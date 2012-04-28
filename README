@@ -1,0 +1,6 @@
+* D3D11 HLSL bytecode decoder.
+* D3D11 HLSL bytecode to GLSL translator/compiler.
+
+The tests directory contains HLSL, bytecode and asm versions of some shaders used to verify this decoder.
+
+A cmake makefile can be found in the mk directory.
