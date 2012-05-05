@@ -49,6 +49,74 @@ void TranslateDeclaration(const Declaration* psDecl)
 
             break;
         }
+        case OPCODE_DCL_RESOURCE:
+        {
+            switch(psDecl->eResourceDimension)
+            {
+                case RESOURCE_DIMENSION_BUFFER:
+                {
+                    bcatcstr(glsl, "samplerBuffer ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE1D:
+                {
+                    bcatcstr(glsl, "sampler1D ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2D:
+                {
+                    bcatcstr(glsl, "sampler2D ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2DMS:
+                {
+                    bcatcstr(glsl, "sampler2DMS ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE3D:
+                {
+                    bcatcstr(glsl, "sampler3D ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURECUBE:
+                {
+                    bcatcstr(glsl, "samplerCube ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+                {
+                    bcatcstr(glsl, "sampler1DArray ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+                {
+                    bcatcstr(glsl, "sampler2DArray ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
+                {
+                    bcatcstr(glsl, "sampler3DArray ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+                {
+                    bcatcstr(glsl, "samplerCuubeArray ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    break;
+                }
+            }
+            bcatcstr(glsl, ";\n");
+            break;
+        }
         default:
         {
             break;
@@ -98,11 +166,75 @@ void TranslateOperand(const Operand* psOperand)
             bformata(glsl, "Const%d", psOperand->ui32RegisterNumber);
             break;
         }
+        case OPERAND_TYPE_RESOURCE:
+        {
+            bformata(glsl, "Resource%d", psOperand->ui32RegisterNumber);
+            break;
+        }
         default:
         {
             bformata(glsl, "%d %d", psOperand->eType, psOperand->ui32RegisterNumber);
             break;
         }
+    }
+
+    if(psOperand->iWriteMaskEnabled &&
+       psOperand->iNumComponents == 4)
+    {
+    //Comonent Mask
+    if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+    {
+        bcatcstr(glsl, ".");
+        if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_X)
+        {
+            bcatcstr(glsl, "x");
+        }
+        if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Y)
+        {
+            bcatcstr(glsl, "y");
+        }
+        if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Z)
+        {
+            bcatcstr(glsl, "z");
+        }
+        if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_W)
+        {
+            bcatcstr(glsl, "w");
+        }
+    }
+    else
+    //Component Swizzle
+    if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+    {
+        uint32_t i;
+
+        bcatcstr(glsl, ".");
+
+        for(i=0; i< 4; ++i)
+        {
+            if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X)
+            {
+                bcatcstr(glsl, "x");
+            }
+            else
+            if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y)
+            {
+                bcatcstr(glsl, "y");
+            }
+            else
+            if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z)
+            {
+                bcatcstr(glsl, "z");
+            }
+            else
+            if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W)
+            {
+                bcatcstr(glsl, "w");
+            }
+        }
+    }
+
+    //Component Select 1
     }
 }
 
@@ -214,11 +346,31 @@ void TranslateInstruction(const Instruction* psInst)
         }
         case OPCODE_MOVC:
         {
+            //dest = (src0) ? src1 : src2;
             //Scalar version. Use any() for vector with scalar 1
             AddIndentation();
             bcatcstr(glsl, "//MOVC\n");
             AddIndentation();
-            bcatcstr(glsl, "XXX\n");
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = (");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ") ? ");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, " : ");
+            TranslateOperand(&psInst->asOperands[3]);
+            bcatcstr(glsl, ";\n");
+
+                /*for each component in dest[.mask]
+                    if the corresponding component in src0 (POS-swizzle)
+                       has any bit set
+                    {
+                        copy this component (POS-swizzle) from src1 into dest
+                    }
+                    else
+                    {
+                        copy this component (POS-swizzle) from src2 into dest
+                    }
+                endfor*/
             break;
         }
 		case OPCODE_LOG:
@@ -288,6 +440,21 @@ void TranslateInstruction(const Instruction* psInst)
             TranslateOperand(&psInst->asOperands[1]);
             bcatcstr(glsl, ", ");
             TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_SAMPLE:
+        {
+            //dest, coords, tex, sampler
+            AddIndentation();
+            bcatcstr(glsl, "//SAMPLE\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = texture2D(");
+
+            TranslateOperand(&psInst->asOperands[2]);//sampler
+            bcatcstr(glsl, ", ");
+            TranslateOperand(&psInst->asOperands[1]);
             bcatcstr(glsl, ");\n");
             break;
         }

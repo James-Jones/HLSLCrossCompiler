@@ -147,6 +147,28 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
         }
     }
 
+    if(psOperand->iWriteMaskEnabled &&
+       psOperand->iNumComponents == 4)
+    {
+        psOperand->eSelMode = DecodeOperand4CompSelMode(*pui32Tokens);
+
+        if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+        {
+            psOperand->ui32CompMask = DecodeOperand4CompMask(*pui32Tokens);
+        }
+        else
+        if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+        {
+            psOperand->ui32Swizzle = DecodeOperand4CompSwizzle(*pui32Tokens);
+            printf("Swizzle = 0x%X\n", psOperand->ui32Swizzle);
+
+            psOperand->aui32Swizzle[0] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 0);
+            psOperand->aui32Swizzle[1] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 1);
+            psOperand->aui32Swizzle[2] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 2);
+            psOperand->aui32Swizzle[3] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 3);
+        }
+    }
+
     if(psOperand->eType == OPERAND_TYPE_IMMEDIATE32)
     {
         for(i=0; i< psOperand->iNumComponents; ++i)
@@ -155,6 +177,7 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
             ui32NumTokens ++;
         }
     }
+
 
     for(i=0; i <psOperand->iIndexDims; ++i)
     {
@@ -205,6 +228,8 @@ const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDec
 #endif
         case OPCODE_DCL_RESOURCE: // DCL* opcodes have
         {
+            psDecl->eResourceDimension = DecodeResourceDimension(*pui32Token+ui32OperandOffset);
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
         case OPCODE_DCL_CONSTANT_BUFFER: // custom operand formats.
@@ -355,6 +380,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         //Instructions with four operands go here
 		case OPCODE_MAD:
         case OPCODE_MOVC:
+        case OPCODE_SAMPLE:
         {
             psInst->ui32NumOperands = 4;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);

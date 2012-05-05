@@ -21,6 +21,11 @@ typedef struct Operand_TAG
 
     int iNumComponents;
 
+    OPERAND_4_COMPONENT_SELECTION_MODE eSelMode;
+    uint32_t ui32CompMask;
+    uint32_t ui32Swizzle;
+    uint32_t aui32Swizzle[4];
+
     uint32_t ui32RegisterNumber;
     //If eType is OPERAND_TYPE_IMMEDIATE32
     float afImmediates[4];
@@ -43,6 +48,7 @@ typedef struct Declaration_TAG
     OPCODE_TYPE eOpcode;
     uint32_t ui32NumOperands;
     uint32_t ui32NumTemps;
+    RESOURCE_DIMENSION eResourceDimension;
     Operand asOperands[1];
 } Declaration;
 
