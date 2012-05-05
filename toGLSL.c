@@ -76,10 +76,11 @@ void TranslateInstruction(const Instruction* psInst)
     {
         case OPCODE_MOV:
         {
-            if(psInst->asOperands[0].eType == OPERAND_TYPE_OUTPUT)
-            {
-            }
-            bformata(glsl, "x%d = y%d;\n", psInst->asOperands[0].ui32RegisterNumber, psInst->asOperands[1].ui32RegisterNumber);
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = ");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ";\n");
             break;
         }
         case OPCODE_MAD:
@@ -135,6 +136,8 @@ void TranslateToGLSL(const Shader* psShader)
     {
         TranslateInstruction(psShader->psInst+i);
     }
+
+    indent--;
 
     bcatcstr(glsl, "}\n");
 
