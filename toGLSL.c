@@ -7,7 +7,38 @@
 
 bstring glsl;
 
-void TranslateInstruction(const Instruction* psInst)
+void TranslateOperand(const Operand* psOperand)
+{
+    switch(psOperand->eType)
+    {
+        case OPERAND_TYPE_IMMEDIATE32:
+        {
+            bformata(glsl, "vec4(%f, %f, %f, %f)",
+                psOperand->afImmediates[0],
+                psOperand->afImmediates[1],
+                psOperand->afImmediates[2],
+                psOperand->afImmediates[3]);
+            break;
+        }
+        case OPERAND_TYPE_INPUT:
+        {
+            bformata(glsl, "Input %d", psOperand->ui32RegisterNumber);
+            break;
+        }
+        case OPERAND_TYPE_OUTPUT:
+        {
+            bformata(glsl, "Output %d", psOperand->ui32RegisterNumber);
+            break;
+        }
+        default:
+        {
+            bformata(glsl, "%d %d", psOperand->eType, psOperand->ui32RegisterNumber);
+            break;
+        }
+    }
+}
+
+void TranslateInstruction(const Instruction* psInst)    
 {
     switch(psInst->eOpcode)
     {
@@ -21,13 +52,14 @@ void TranslateInstruction(const Instruction* psInst)
         }
         case OPCODE_MAD:
         {
-            if(psInst->asOperands[0].eType == OPERAND_TYPE_OUTPUT)
-            {
-            }
-            bformata(glsl, "x%d = y%d * z%d + w%d;\n", psInst->asOperands[0].ui32RegisterNumber,
-                psInst->asOperands[1].ui32RegisterNumber,
-                psInst->asOperands[2].ui32RegisterNumber,
-                psInst->asOperands[3].ui32RegisterNumber);
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = ");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, " * ");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, " + ");
+            TranslateOperand(&psInst->asOperands[3]);
+            bcatcstr(glsl, ";\n");
             break;
         }
         default:

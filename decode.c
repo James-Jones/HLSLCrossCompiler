@@ -107,13 +107,14 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 
     psOperand->iExtended = DecodeIsOpcodeExtended(*pui32Tokens);
 
+
 	/* Check if this instruction is extended.  If it is,
 	 * we need to print the information first */
 	if (psOperand->iExtended)
 	{
 		/* OperandToken1 is the second token */
 
-        printf("Extended\n");
+        printf("TODO: Extended operand\n");
 
 		ui32NumTokens++;
         //TODO
@@ -124,20 +125,19 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 
     psOperand->ui32RegisterNumber = 0xFFFFFFFF;
 
-    printf("dims = %d\n", psOperand->iIndexDims);
-
     if(psOperand->eType == OPERAND_TYPE_IMMEDIATE32)
     {
-        printf("Immediate. %f %f %f %f\n", *((float*)(&pui32Tokens[1])),
-            *((float*)(&pui32Tokens[2])),
-            *((float*)(&pui32Tokens[3])),
-            *((float*)(&pui32Tokens[4])));
+        psOperand->afImmediates[0] = *((float*)(&pui32Tokens[1]));
+        psOperand->afImmediates[1] = *((float*)(&pui32Tokens[2]));
+        psOperand->afImmediates[2] = *((float*)(&pui32Tokens[3]));
+        psOperand->afImmediates[3] = *((float*)(&pui32Tokens[4]));
+
+        ui32NumTokens += 4;
     }
 
     for(i=0; i <psOperand->iIndexDims; ++i)
     {
         OPERAND_INDEX_REPRESENTATION eRep = DecodeOperandIndexRepresentation(i ,*pui32Tokens);
-        printf("rep = %d\n", eRep);
 
         psOperand->ui32RegisterNumber = *(pui32Tokens+ui32NumTokens);
 
@@ -228,12 +228,12 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         //Instructions with four operands go here
 		case OPCODE_MAD:
         {
-            uint32_t ui32Length = 0;
+            uint32_t ui32OperandOffset = 1;
             psInst->ui32NumOperands = 4;
-            ui32Length += DecodeOperand(pui32Token+ui32Length, &psInst->asOperands[0]);
-            ui32Length += DecodeOperand(pui32Token+ui32Length, &psInst->asOperands[1]);
-            ui32Length += DecodeOperand(pui32Token+ui32Length, &psInst->asOperands[2]);
-            ui32Length += DecodeOperand(pui32Token+ui32Length, &psInst->asOperands[3]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
             break;
         }
         default:
