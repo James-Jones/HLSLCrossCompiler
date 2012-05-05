@@ -149,6 +149,125 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
     return ui32NumTokens;
 }
 
+const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDecl)
+{
+    const uint32_t ui32TokenLength = DecodeInstructionLength(*pui32Token);
+    const uint32_t bExtended = DecodeIsOpcodeExtended(*pui32Token);
+    const OPCODE_TYPE eOpcode = DecodeOpcodeType(*pui32Token);
+
+    psDecl->eOpcode = eOpcode;
+
+    switch (eOpcode)
+    {
+#if 0
+		case OPCODE_DCL_GLOBAL_FLAGS:
+		{
+			printf("dcl_globalFlags\n");
+			break;
+		}
+		case OPCODE_DCL_INPUT:
+		{
+			printf("dcl_input.\n");
+            psDecl->asOperands[0].ui32RegisterNumber = 0;
+			break;
+		}
+		case OPCODE_DCL_OUTPUT_SIV:
+		{
+            psDecl->ui32NumOperands = 2;
+            DecodeOperand(pui32Token+1, &psDecl->asOperands[0]);
+            DecodeNameToken(pui32Token + 3, &psDecl->asOperands[0]);
+			break;
+		}
+#endif
+        case OPCODE_DCL_RESOURCE: // DCL* opcodes have
+        {
+            break;
+        }
+        case OPCODE_DCL_CONSTANT_BUFFER: // custom operand formats.
+        {
+            break;
+        }
+        case OPCODE_DCL_SAMPLER:
+        {
+            break;
+        }
+        case OPCODE_DCL_INDEX_RANGE:
+        {
+            break;
+        }
+        case OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY:
+        {
+            break;
+        }
+        case OPCODE_DCL_GS_INPUT_PRIMITIVE:
+        {
+            break;
+        }
+        case OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT:
+        {
+            break;
+        }
+        case OPCODE_DCL_INPUT:
+        {
+            break;
+        }
+        case OPCODE_DCL_INPUT_SGV:
+        {
+            break;
+        }
+        case OPCODE_DCL_INPUT_SIV:
+        {
+            break;
+        }
+        case OPCODE_DCL_INPUT_PS:
+        {
+            break;
+        }
+        case OPCODE_DCL_INPUT_PS_SGV:
+        {
+            break;
+        }
+        case OPCODE_DCL_INPUT_PS_SIV:
+        {
+            break;
+        }
+        case OPCODE_DCL_OUTPUT:
+        {
+            break;
+        }
+        case OPCODE_DCL_OUTPUT_SGV:
+        {
+            break;
+        }
+        case OPCODE_DCL_OUTPUT_SIV:
+        {
+            psDecl->ui32NumOperands = 2;
+            DecodeOperand(pui32Token+1, &psDecl->asOperands[0]);
+            DecodeNameToken(pui32Token + 3, &psDecl->asOperands[0]);
+            break;
+        }
+        case OPCODE_DCL_TEMPS:
+        {
+            break;
+        }
+        case OPCODE_DCL_INDEXABLE_TEMP:
+        {
+            break;
+        }
+        case OPCODE_DCL_GLOBAL_FLAGS:
+        {
+            break;
+        }
+        default:
+        {
+            //Reached end of declarations
+            return 0;
+        }
+    }
+
+    return pui32Token + ui32TokenLength;
+}
+
 const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psInst)
 {
     const uint32_t ui32TokenLength = DecodeInstructionLength(*pui32Token);
@@ -159,25 +278,6 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 
     switch (eOpcode)
     {
-		case OPCODE_DCL_GLOBAL_FLAGS:
-		{
-			printf("dcl_globalFlags\n");
-			break;
-		}
-		case OPCODE_DCL_INPUT:
-		{
-			printf("dcl_input.\n");
-            psInst->asOperands[0].ui32RegisterNumber = 0;
-			break;
-		}
-		case OPCODE_DCL_OUTPUT_SIV:
-		{
-            psInst->ui32NumOperands = 2;
-            DecodeOperand(pui32Token+1, &psInst->asOperands[0]);
-            DecodeNameToken(pui32Token + 3, &psInst->asOperands[0]);
-			break;
-		}
-
 		case OPCODE_RET:
 		{
 			printf("RET.\n");
@@ -251,6 +351,7 @@ void Decode(const uint32_t* pui32Tokens, Shader* psShader)
 	const uint32_t* pui32CurrentToken = pui32Tokens;
     const uint32_t ui32ShaderLength = pui32Tokens[1];
     Instruction* psInst;
+    Declaration* psDecl;
 	psShader->ui32MajorVersion = DecodeProgramMajorVersion(*pui32CurrentToken);
 	psShader->ui32MinorVersion = DecodeProgramMinorVersion(*pui32CurrentToken);
 	psShader->eShaderType = DecodeShaderType(*pui32CurrentToken);
@@ -265,8 +366,32 @@ void Decode(const uint32_t* pui32Tokens, Shader* psShader)
     //traverse the entire shader just to get the real instruction count.
     psInst = malloc(sizeof(Instruction) * ui32ShaderLength);
     psShader->psInst = psInst;
-
     psShader->ui32InstCount = 0;
+
+    psDecl = malloc(sizeof(Declaration) * ui32ShaderLength);
+    psShader->psDecl = psDecl;
+    psShader->ui32DeclCount = 0;
+
+    while(1) //Keep going until we reach the first non-declaration token, or the end of the shader.
+    {
+        const uint32_t* pui32Result = DecodeDeclaration(pui32CurrentToken, psDecl);
+        
+        if(pui32Result)
+        {
+            pui32CurrentToken = pui32Result;
+            psShader->ui32DeclCount++;
+            psDecl++;
+
+            if(pui32CurrentToken >= (pui32Tokens + ui32ShaderLength))
+            {
+                break;
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
 
     while (pui32CurrentToken < (pui32Tokens + ui32ShaderLength))
     {

@@ -92,6 +92,9 @@ void main(int argc, char** argv)
         PrintDecode(psShader);
     }
 
+    free(psShader->psDecl);
+    free(psShader->psInst);
+    free(psShader);
     free(shader);
     shader = 0;
     tokens = 0;

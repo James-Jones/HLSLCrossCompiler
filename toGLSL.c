@@ -7,6 +7,28 @@
 
 bstring glsl;
 
+void TranslateOperand(const Operand* psOperand);
+
+void TranslateDeclaration(const Declaration* psDecl)
+{
+    switch(psDecl->eOpcode)
+    {
+        case OPCODE_DCL_OUTPUT_SIV:
+        {
+            bformata(glsl, "vec4 %s;\n", psDecl->asOperands[0].pszSpecialName);
+
+            bcatcstr(glsl, "#define ");
+            TranslateOperand(&psDecl->asOperands[0]);
+            bformata(glsl, " %s\n", psDecl->asOperands[0].pszSpecialName);
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+}
+
 void TranslateOperand(const Operand* psOperand)
 {
     switch(psOperand->eType)
@@ -22,12 +44,12 @@ void TranslateOperand(const Operand* psOperand)
         }
         case OPERAND_TYPE_INPUT:
         {
-            bformata(glsl, "Input %d", psOperand->ui32RegisterNumber);
+            bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
             break;
         }
         case OPERAND_TYPE_OUTPUT:
         {
-            bformata(glsl, "Output %d", psOperand->ui32RegisterNumber);
+            bformata(glsl, "Output%d", psOperand->ui32RegisterNumber);
             break;
         }
         default:
@@ -38,7 +60,7 @@ void TranslateOperand(const Operand* psOperand)
     }
 }
 
-void TranslateInstruction(const Instruction* psInst)    
+void TranslateInstruction(const Instruction* psInst)
 {
     switch(psInst->eOpcode)
     {
@@ -74,6 +96,7 @@ void TranslateToGLSL(const Shader* psShader)
     char* glslcstr;
     uint32_t i;
     const uint32_t ui32InstCount = psShader->ui32InstCount;
+    const uint32_t ui32DeclCount = psShader->ui32DeclCount;
 
 	if(psShader->ui32MajorVersion == 5)
 	{
@@ -84,6 +107,11 @@ void TranslateToGLSL(const Shader* psShader)
 	{
         glsl = bfromcstralloc (1024, "#version 330\n");
 	}
+
+    for(i=0; i < ui32DeclCount; ++i)
+    {
+        TranslateDeclaration(psShader->psDecl+i);
+    }
 
     bcatcstr(glsl, "void main()\n");
     bcatcstr(glsl, "{\n");
@@ -141,6 +169,9 @@ void main(int argc, char** argv)
         TranslateToGLSL(psShader);
     }
 
+    free(psShader->psDecl);
+    free(psShader->psInst);
+    free(psShader);
     free(shader);
     shader = 0;
     tokens = 0;

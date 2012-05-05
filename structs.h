@@ -38,7 +38,9 @@ typedef struct Instruction_TAG
 
 typedef struct Declaration_TAG
 {
-    int type;
+    OPCODE_TYPE eOpcode;
+    uint32_t ui32NumOperands;
+    Operand asOperands[1];
 } Declaration;
 
 typedef struct Shader_TAG
@@ -50,8 +52,8 @@ typedef struct Shader_TAG
     //DWORDs in program code, including version and length tokens.
     uint32_t ui32ShaderLength;
 
-    uint32_t numDecl;
-    Declaration* decl;
+    uint32_t ui32DeclCount;
+    Declaration* psDecl;
 
     //Instruction* functions;//non-main subroutines
 
