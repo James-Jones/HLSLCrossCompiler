@@ -6,8 +6,18 @@
 #include "bstrlib.h"
 
 bstring glsl;
+int indent;
 
 void TranslateOperand(const Operand* psOperand);
+
+void AddIndentation()
+{
+    int i;
+    for(i=0; i < indent; ++i)
+    {
+        bcatcstr(glsl, "    ");
+    }
+}
 
 void TranslateDeclaration(const Declaration* psDecl)
 {
@@ -74,6 +84,7 @@ void TranslateInstruction(const Instruction* psInst)
         }
         case OPCODE_MAD:
         {
+            AddIndentation();
             TranslateOperand(&psInst->asOperands[0]);
             bcatcstr(glsl, " = ");
             TranslateOperand(&psInst->asOperands[1]);
@@ -98,6 +109,8 @@ void TranslateToGLSL(const Shader* psShader)
     const uint32_t ui32InstCount = psShader->ui32InstCount;
     const uint32_t ui32DeclCount = psShader->ui32DeclCount;
 
+    indent = 0;
+
 	if(psShader->ui32MajorVersion == 5)
 	{
         glsl = bfromcstralloc (1024, "#version 420\n");
@@ -115,6 +128,8 @@ void TranslateToGLSL(const Shader* psShader)
 
     bcatcstr(glsl, "void main()\n");
     bcatcstr(glsl, "{\n");
+
+    indent++;
 
     for(i=0; i < ui32InstCount; ++i)
     {
