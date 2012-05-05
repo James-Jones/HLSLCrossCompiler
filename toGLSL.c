@@ -37,6 +37,18 @@ void TranslateDeclaration(const Declaration* psDecl)
             bformata(glsl, "in vec4 Input%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
             break;
         }
+        case OPCODE_DCL_TEMPS:
+        {
+            uint32_t i = 0; 
+            const uint32_t ui32NumTemps = psDecl->ui32NumTemps;
+
+            for(i=0; i < ui32NumTemps; ++i)
+            {
+                 bformata(glsl, "vec4 Temp%d;\n", i);
+            }
+
+            break;
+        }
         default:
         {
             break;
@@ -101,6 +113,8 @@ void TranslateInstruction(const Instruction* psInst)
         case OPCODE_MOV:
         {
             AddIndentation();
+            bcatcstr(glsl, "//MOV\n");
+            AddIndentation();
             TranslateOperand(&psInst->asOperands[0]);
             bcatcstr(glsl, " = ");
             TranslateOperand(&psInst->asOperands[1]);
@@ -109,7 +123,9 @@ void TranslateInstruction(const Instruction* psInst)
         }
         case OPCODE_MAD:
         {
-            AddIndentation();   
+            AddIndentation();
+            bcatcstr(glsl, "//MAD\n");
+            AddIndentation();
             TranslateOperand(&psInst->asOperands[0]);
             bcatcstr(glsl, " = ");
             TranslateOperand(&psInst->asOperands[1]);
@@ -122,7 +138,9 @@ void TranslateInstruction(const Instruction* psInst)
         }
         case OPCODE_ADD:
         {
-            AddIndentation();   
+            AddIndentation();
+            bcatcstr(glsl, "//ADD\n");
+            AddIndentation();
             TranslateOperand(&psInst->asOperands[0]);
             bcatcstr(glsl, " = ");
             TranslateOperand(&psInst->asOperands[1]);
@@ -133,7 +151,9 @@ void TranslateInstruction(const Instruction* psInst)
         }
         case OPCODE_MUL:
         {
-            AddIndentation();   
+            AddIndentation();
+            bcatcstr(glsl, "//MUL\n");
+            AddIndentation();
             TranslateOperand(&psInst->asOperands[0]);
             bcatcstr(glsl, " = ");
             TranslateOperand(&psInst->asOperands[1]);
@@ -144,6 +164,8 @@ void TranslateInstruction(const Instruction* psInst)
         }
         case OPCODE_SINCOS:
         {
+            AddIndentation();
+            bcatcstr(glsl, "//SINCOS\n");
             if(psInst->asOperands[0].eType != OPERAND_TYPE_NULL)
             {
                 AddIndentation();
@@ -165,7 +187,9 @@ void TranslateInstruction(const Instruction* psInst)
         }
         case OPCODE_DP4:
         {
-            AddIndentation();   
+            AddIndentation();
+            bcatcstr(glsl, "//DP4\n");
+            AddIndentation();
             TranslateOperand(&psInst->asOperands[0]);
             bcatcstr(glsl, " = dot(");
             TranslateOperand(&psInst->asOperands[1]);
@@ -178,19 +202,99 @@ void TranslateInstruction(const Instruction* psInst)
         {
             //Scalar version. Use any() for vector with scalar 1
             AddIndentation();
-            bcatcstr(glsl, "(");
+            bcatcstr(glsl, "//NE\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = (");
             TranslateOperand(&psInst->asOperands[1]);
             bcatcstr(glsl, " != ");
             TranslateOperand(&psInst->asOperands[2]);
-            bcatcstr(glsl, ") ? ");
+            bcatcstr(glsl, ") ? 1 : 0;\n");
+            break;
+        }
+        case OPCODE_MOVC:
+        {
+            //Scalar version. Use any() for vector with scalar 1
+            AddIndentation();
+            bcatcstr(glsl, "//MOVC\n");
+            AddIndentation();
+            bcatcstr(glsl, "XXX\n");
+            break;
+        }
+		case OPCODE_LOG:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//LOG\n");
+            AddIndentation();
             TranslateOperand(&psInst->asOperands[0]);
-            bcatcstr(glsl, " = 1 : ");
+            bcatcstr(glsl, " = log(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+		case OPCODE_RSQ:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//SQRT\n");
+            AddIndentation();
             TranslateOperand(&psInst->asOperands[0]);
-            bcatcstr(glsl, " = 0;\n");
+            bcatcstr(glsl, " = inversesqrt(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_EXP:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//EXP\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = exp(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+		case OPCODE_SQRT:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//SQRT\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = sqrt(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+		case OPCODE_MAX:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//MAX\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = max(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+		case OPCODE_MIN:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//MIN\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = min(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ");\n");
             break;
         }
 		case OPCODE_RET:
 		{
+            AddIndentation();
+            bcatcstr(glsl, "//RET\n");
             AddIndentation();
 			bcatcstr(glsl, "return;\n");
 			break;
@@ -204,7 +308,6 @@ void TranslateInstruction(const Instruction* psInst)
 
 void TranslateToGLSL(const Shader* psShader)
 {
-    char* glslcstr;
     uint32_t i;
     const uint32_t ui32InstCount = psShader->ui32InstCount;
     const uint32_t ui32DeclCount = psShader->ui32DeclCount;
@@ -239,28 +342,22 @@ void TranslateToGLSL(const Shader* psShader)
     indent--;
 
     bcatcstr(glsl, "}\n");
-
-    //Dump to console
-    glslcstr = bstr2cstr(glsl, '\0');
-    printf("%s\n", glslcstr);
-    bcstrfree(glslcstr);
-
-
-    bdestroy(glsl);
 }
 
 void main(int argc, char** argv)
 {
     FILE* shaderFile;
+    FILE* outputFile;
     int length;
     int readLength;
     char* shader;
     uint32_t* tokens;
     Shader* psShader;
+    char* glslcstr;
 
-    if(argc != 2 || !(shaderFile = fopen(argv[1], "rb")))
+    if(argc < 2 || !(shaderFile = fopen(argv[1], "rb")))
     {
-        printf("Bad args. Supply a valid shader path\n");
+        printf("Bad args. Supply a valid shader path, optionaly followed by the output path\n");
         return;
     }
 
@@ -284,6 +381,22 @@ void main(int argc, char** argv)
 	if(psShader)
     {
         TranslateToGLSL(psShader);
+
+        //Dump to console
+        glslcstr = bstr2cstr(glsl, '\0');
+        printf("%s\n", glslcstr);
+
+        if(argc > 2)
+        {
+            //Dump to file
+            outputFile = fopen(argv[2], "w");
+            fprintf(outputFile, glslcstr);
+            fclose(outputFile);
+        }
+
+        bcstrfree(glslcstr);
+        bdestroy(glsl);
+
         free(psShader->psDecl);
         free(psShader->psInst);
         free(psShader);

@@ -42,6 +42,7 @@ typedef struct Declaration_TAG
 {
     OPCODE_TYPE eOpcode;
     uint32_t ui32NumOperands;
+    uint32_t ui32NumTemps;
     Operand asOperands[1];
 } Declaration;
 

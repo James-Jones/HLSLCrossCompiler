@@ -177,6 +177,7 @@ const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDec
     const uint32_t ui32TokenLength = DecodeInstructionLength(*pui32Token);
     const uint32_t bExtended = DecodeIsOpcodeExtended(*pui32Token);
     const OPCODE_TYPE eOpcode = DecodeOpcodeType(*pui32Token);
+    uint32_t ui32OperandOffset = 1;
 
     psDecl->eOpcode = eOpcode;
 
@@ -233,7 +234,7 @@ const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDec
         case OPCODE_DCL_INPUT:
         {
             psDecl->ui32NumOperands = 1;
-            DecodeOperand(pui32Token+1, &psDecl->asOperands[0]);
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
         case OPCODE_DCL_INPUT_SGV:
@@ -267,12 +268,13 @@ const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDec
         case OPCODE_DCL_OUTPUT_SIV:
         {
             psDecl->ui32NumOperands = 1;
-            DecodeOperand(pui32Token+1, &psDecl->asOperands[0]);
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             DecodeNameToken(pui32Token + 3, &psDecl->asOperands[0]);
             break;
         }
         case OPCODE_DCL_TEMPS:
         {
+            psDecl->ui32NumTemps = *(pui32Token+ui32OperandOffset);
             break;
         }
         case OPCODE_DCL_INDEXABLE_TEMP:
@@ -352,6 +354,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         }
         //Instructions with four operands go here
 		case OPCODE_MAD:
+        case OPCODE_MOVC:
         {
             psInst->ui32NumOperands = 4;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
