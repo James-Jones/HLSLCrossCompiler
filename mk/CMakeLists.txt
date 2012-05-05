@@ -38,11 +38,15 @@ IF(WIN32)
     ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS /WX /W3 /arch:SSE2)
 ENDIF()
 
-INCLUDE_DIRECTORIES( ../ )
+INCLUDE_DIRECTORIES( ../ ../cbstring/)
 
-ADD_EXECUTABLE( decodeHLSLByteCode ../decode.c )
+ADD_EXECUTABLE( decodeHLSLByteCode ../decode.c ../printdecode.c)
 
-ADD_EXECUTABLE( HLSLByteCodeToGLSL ../toGLSL.c )
+file(GLOB CBSTRING_CFILES ../cbstring/*.c)
+file(GLOB CBSTRING_HFILES ../cbstring/*.h)
+source_group("CBString Files" FILES ${CBSTRING_CFILES} ${CBSTRING_HFILES})
+
+ADD_EXECUTABLE( HLSLByteCodeToGLSL ../decode.c ../toGLSL.c ${CBSTRING_CFILES} ${CBSTRING_HFILES} )
 
 # force variables that could be defined on the cmdline
 # to be written to the cach
