@@ -50,11 +50,20 @@ void TranslateOperand(const Operand* psOperand)
     {
         case OPERAND_TYPE_IMMEDIATE32:
         {
-            bformata(glsl, "vec4(%f, %f, %f, %f)",
-                psOperand->afImmediates[0],
-                psOperand->afImmediates[1],
-                psOperand->afImmediates[2],
-                psOperand->afImmediates[3]);
+            if(psOperand->iNumComponents == 1)
+            {
+                bformata(glsl, "%f",
+                    psOperand->afImmediates[0]);
+            }
+            else
+            if(psOperand->iNumComponents == 4)
+            {
+                bformata(glsl, "vec4(%f, %f, %f, %f)",
+                    psOperand->afImmediates[0],
+                    psOperand->afImmediates[1],
+                    psOperand->afImmediates[2],
+                    psOperand->afImmediates[3]);
+            }
             break;
         }
         case OPERAND_TYPE_INPUT:
@@ -154,6 +163,32 @@ void TranslateInstruction(const Instruction* psInst)
             }
             break;
         }
+        case OPCODE_DP4:
+        {
+            AddIndentation();   
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = dot(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_NE:
+        {
+            //Scalar version. Use any() for vector with scalar 1
+            AddIndentation();
+            bcatcstr(glsl, "(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, " != ");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ") ? ");
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = 1 : ");
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = 0;\n");
+            break;
+        }
 		case OPCODE_RET:
 		{
             AddIndentation();
@@ -249,11 +284,11 @@ void main(int argc, char** argv)
 	if(psShader)
     {
         TranslateToGLSL(psShader);
+        free(psShader->psDecl);
+        free(psShader->psInst);
+        free(psShader);
     }
 
-    free(psShader->psDecl);
-    free(psShader->psInst);
-    free(psShader);
     free(shader);
     shader = 0;
     tokens = 0;

@@ -401,3 +401,16 @@ static OPERAND_INDEX_REPRESENTATION DecodeOperandIndexRepresentation(uint32_t ui
 {
 	return (OPERAND_INDEX_REPRESENTATION)((ui32Token & (0x3<<(22+3*((ui32Dimension)&3)))) >> (22+3*((ui32Dimension)&3)));
 }
+
+typedef enum OPERAND_NUM_COMPONENTS
+{
+    OPERAND_0_COMPONENT = 0,
+    OPERAND_1_COMPONENT = 1,
+    OPERAND_4_COMPONENT = 2,
+    OPERAND_N_COMPONENT = 3 // unused for now
+} OPERAND_NUM_COMPONENTS;
+
+static OPERAND_NUM_COMPONENTS DecodeOperandNumComponents(uint32_t ui32Token)
+{
+	return (OPERAND_NUM_COMPONENTS)(ui32Token & 0x00000003);
+}

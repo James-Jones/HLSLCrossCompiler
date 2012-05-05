@@ -100,6 +100,7 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 {
     int i;
 	uint32_t ui32NumTokens = 1;
+    OPERAND_NUM_COMPONENTS eNumComponents;
 
     //Some defaults
     psOperand->iWriteMaskEnabled = 1;
@@ -125,14 +126,34 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 
     psOperand->ui32RegisterNumber = 0xFFFFFFFF;
 
+    eNumComponents = DecodeOperandNumComponents(*pui32Tokens);
+
+    switch(eNumComponents)
+    {
+        case OPERAND_1_COMPONENT:
+        {
+            psOperand->iNumComponents = 1;
+            break;
+        }
+        case OPERAND_4_COMPONENT:
+        {
+            psOperand->iNumComponents = 4;
+            break;
+        }
+        default:
+        {
+            psOperand->iNumComponents = 0;
+            break;
+        }
+    }
+
     if(psOperand->eType == OPERAND_TYPE_IMMEDIATE32)
     {
-        psOperand->afImmediates[0] = *((float*)(&pui32Tokens[1]));
-        psOperand->afImmediates[1] = *((float*)(&pui32Tokens[2]));
-        psOperand->afImmediates[2] = *((float*)(&pui32Tokens[3]));
-        psOperand->afImmediates[3] = *((float*)(&pui32Tokens[4]));
-
-        ui32NumTokens += 4;
+        for(i=0; i< psOperand->iNumComponents; ++i)
+        {
+            psOperand->afImmediates[i] = *((float*)(&pui32Tokens[1+i]));
+            ui32NumTokens ++;
+        }
     }
 
     for(i=0; i <psOperand->iIndexDims; ++i)
@@ -321,6 +342,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_DP2:
 		case OPCODE_DP3:
 		case OPCODE_DP4:
+        case OPCODE_NE:
         {
             psInst->ui32NumOperands = 3;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);

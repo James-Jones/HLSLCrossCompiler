@@ -19,6 +19,8 @@ typedef struct Operand_TAG
     int iGSInput;
     int iWriteMaskEnabled;
 
+    int iNumComponents;
+
     uint32_t ui32RegisterNumber;
     //If eType is OPERAND_TYPE_IMMEDIATE32
     float afImmediates[4];
