@@ -25,11 +25,16 @@ void TranslateDeclaration(const Declaration* psDecl)
     {
         case OPCODE_DCL_OUTPUT_SIV:
         {
-            bformata(glsl, "vec4 %s;\n", psDecl->asOperands[0].pszSpecialName);
+            bformata(glsl, "out vec4 %s;\n", psDecl->asOperands[0].pszSpecialName);
 
             bcatcstr(glsl, "#define ");
             TranslateOperand(&psDecl->asOperands[0]);
             bformata(glsl, " %s\n", psDecl->asOperands[0].pszSpecialName);
+            break;
+        }
+        case OPCODE_DCL_INPUT:
+        {
+            bformata(glsl, "in vec4 Input%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
             break;
         }
         default:
@@ -62,6 +67,16 @@ void TranslateOperand(const Operand* psOperand)
             bformata(glsl, "Output%d", psOperand->ui32RegisterNumber);
             break;
         }
+        case OPERAND_TYPE_TEMP:
+        {
+            bformata(glsl, "Temp%d", psOperand->ui32RegisterNumber);
+            break;
+        }
+        case OPERAND_TYPE_CONSTANT_BUFFER:
+        {
+            bformata(glsl, "Const%d", psOperand->ui32RegisterNumber);
+            break;
+        }
         default:
         {
             bformata(glsl, "%d %d", psOperand->eType, psOperand->ui32RegisterNumber);
@@ -85,7 +100,7 @@ void TranslateInstruction(const Instruction* psInst)
         }
         case OPCODE_MAD:
         {
-            AddIndentation();
+            AddIndentation();   
             TranslateOperand(&psInst->asOperands[0]);
             bcatcstr(glsl, " = ");
             TranslateOperand(&psInst->asOperands[1]);
@@ -96,6 +111,55 @@ void TranslateInstruction(const Instruction* psInst)
             bcatcstr(glsl, ";\n");
             break;
         }
+        case OPCODE_ADD:
+        {
+            AddIndentation();   
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = ");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, " + ");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ";\n");
+            break;
+        }
+        case OPCODE_MUL:
+        {
+            AddIndentation();   
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = ");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, " * ");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ";\n");
+            break;
+        }
+        case OPCODE_SINCOS:
+        {
+            if(psInst->asOperands[0].eType != OPERAND_TYPE_NULL)
+            {
+                AddIndentation();
+                TranslateOperand(&psInst->asOperands[0]);//Dest sin
+                bcatcstr(glsl, " = sin(");
+                TranslateOperand(&psInst->asOperands[2]);//angle
+                bcatcstr(glsl, ");\n");
+            }
+
+            if(psInst->asOperands[1].eType != OPERAND_TYPE_NULL)
+            {
+                AddIndentation();
+                TranslateOperand(&psInst->asOperands[1]);//Dest cos
+                bcatcstr(glsl, " = cos(");
+                TranslateOperand(&psInst->asOperands[2]);//angle
+                bcatcstr(glsl, ");\n");
+            }
+            break;
+        }
+		case OPCODE_RET:
+		{
+            AddIndentation();
+			bcatcstr(glsl, "return;\n");
+			break;
+		}
         default:
         {
             break;

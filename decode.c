@@ -144,6 +144,8 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
         ui32NumTokens++;
     }
 
+    psOperand->pszSpecialName[0] ='\0';
+
     //psOperand->ui32RegisterNumber = pui32Tokens[0] & 0x3FF;
 
     return ui32NumTokens;
@@ -209,6 +211,8 @@ const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDec
         }
         case OPCODE_DCL_INPUT:
         {
+            psDecl->ui32NumOperands = 1;
+            DecodeOperand(pui32Token+1, &psDecl->asOperands[0]);
             break;
         }
         case OPCODE_DCL_INPUT_SGV:
@@ -241,7 +245,7 @@ const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDec
         }
         case OPCODE_DCL_OUTPUT_SIV:
         {
-            psDecl->ui32NumOperands = 2;
+            psDecl->ui32NumOperands = 1;
             DecodeOperand(pui32Token+1, &psDecl->asOperands[0]);
             DecodeNameToken(pui32Token + 3, &psDecl->asOperands[0]);
             break;
