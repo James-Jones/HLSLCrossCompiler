@@ -114,15 +114,17 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 	if (psOperand->iExtended)
 	{
 		/* OperandToken1 is the second token */
-
-        printf("TODO: Extended operand\n");
-
 		ui32NumTokens++;
-        //TODO
 	}
 
 	psOperand->iIndexDims = DecodeOperandIndexDimension(*pui32Tokens);
     psOperand->eType = DecodeOperandType(*pui32Tokens);
+    
+    if(psOperand->eType == OPERAND_TYPE_SAMPLER ||
+       psOperand->eType == OPERAND_TYPE_RESOURCE)
+    {
+        psOperand->iWriteMaskEnabled = 0;
+    }
 
     psOperand->ui32RegisterNumber = 0xFFFFFFFF;
 
@@ -160,7 +162,6 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
         if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
         {
             psOperand->ui32Swizzle = DecodeOperand4CompSwizzle(*pui32Tokens);
-            printf("Swizzle = 0x%X\n", psOperand->ui32Swizzle);
 
             psOperand->aui32Swizzle[0] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 0);
             psOperand->aui32Swizzle[1] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 1);
@@ -203,6 +204,11 @@ const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDec
     uint32_t ui32OperandOffset = 1;
 
     psDecl->eOpcode = eOpcode;
+
+    if(bExtended)
+    {
+        ui32OperandOffset = 2;
+    }
 
     switch (eOpcode)
     {
@@ -328,6 +334,11 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
     uint32_t ui32OperandOffset = 1;
 
     psInst->eOpcode = eOpcode;
+
+    if(bExtended)
+    {
+        ui32OperandOffset = 2;
+    }
 
     switch (eOpcode)
     {

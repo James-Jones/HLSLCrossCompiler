@@ -476,6 +476,6 @@ typedef enum RESOURCE_DIMENSION
 
 static RESOURCE_DIMENSION DecodeResourceDimension(uint32_t ui32Token)
 {
-	return (RESOURCE_DIMENSION)((ui32Token & 0x000007C0) >> 6);
+	return (RESOURCE_DIMENSION)((ui32Token & 0x0000f800) >> 11);
 }
 

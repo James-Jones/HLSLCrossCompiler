@@ -55,61 +55,61 @@ void TranslateDeclaration(const Declaration* psDecl)
             {
                 case RESOURCE_DIMENSION_BUFFER:
                 {
-                    bcatcstr(glsl, "samplerBuffer ");
+                    bcatcstr(glsl, "uniform samplerBuffer ");
                     TranslateOperand(&psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE1D:
                 {
-                    bcatcstr(glsl, "sampler1D ");
+                    bcatcstr(glsl, "uniform sampler1D ");
                     TranslateOperand(&psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2D:
                 {
-                    bcatcstr(glsl, "sampler2D ");
+                    bcatcstr(glsl, "uniform sampler2D ");
                     TranslateOperand(&psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DMS:
                 {
-                    bcatcstr(glsl, "sampler2DMS ");
+                    bcatcstr(glsl, "uniform sampler2DMS ");
                     TranslateOperand(&psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE3D:
                 {
-                    bcatcstr(glsl, "sampler3D ");
+                    bcatcstr(glsl, "uniform sampler3D ");
                     TranslateOperand(&psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBE:
                 {
-                    bcatcstr(glsl, "samplerCube ");
+                    bcatcstr(glsl, "uniform samplerCube ");
                     TranslateOperand(&psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE1DARRAY:
                 {
-                    bcatcstr(glsl, "sampler1DArray ");
+                    bcatcstr(glsl, "uniform sampler1DArray ");
                     TranslateOperand(&psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DARRAY:
                 {
-                    bcatcstr(glsl, "sampler2DArray ");
+                    bcatcstr(glsl, "uniform sampler2DArray ");
                     TranslateOperand(&psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
                 {
-                    bcatcstr(glsl, "sampler3DArray ");
+                    bcatcstr(glsl, "uniform sampler3DArray ");
                     TranslateOperand(&psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
                 {
-                    bcatcstr(glsl, "samplerCuubeArray ");
+                    bcatcstr(glsl, "uniform samplerCuubeArray ");
                     TranslateOperand(&psDecl->asOperands[0]);
                     break;
                 }
@@ -169,6 +169,11 @@ void TranslateOperand(const Operand* psOperand)
         case OPERAND_TYPE_RESOURCE:
         {
             bformata(glsl, "Resource%d", psOperand->ui32RegisterNumber);
+            break;
+        }
+        case OPERAND_TYPE_SAMPLER:
+        {
+            bformata(glsl, "Sampler%d", psOperand->ui32RegisterNumber);
             break;
         }
         default:
@@ -448,13 +453,13 @@ void TranslateInstruction(const Instruction* psInst)
             //dest, coords, tex, sampler
             AddIndentation();
             bcatcstr(glsl, "//SAMPLE\n");
-            AddIndentation();
-            TranslateOperand(&psInst->asOperands[0]);
+            AddIndentation();//1=temp??
+            TranslateOperand(&psInst->asOperands[1]);//??
             bcatcstr(glsl, " = texture2D(");
 
-            TranslateOperand(&psInst->asOperands[2]);//sampler
+            TranslateOperand(&psInst->asOperands[3]);//resource
             bcatcstr(glsl, ", ");
-            TranslateOperand(&psInst->asOperands[1]);
+            TranslateOperand(&psInst->asOperands[2]);//in
             bcatcstr(glsl, ");\n");
             break;
         }
