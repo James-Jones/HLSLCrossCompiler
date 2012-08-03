@@ -49,6 +49,13 @@ void TranslateDeclaration(const Declaration* psDecl)
 
             break;
         }
+        case OPCODE_DCL_CONSTANT_BUFFER:
+        {
+            bcatcstr(glsl, "uniform vec4 ");
+            TranslateOperand(&psDecl->asOperands[0]);
+            bcatcstr(glsl, ";\n");
+            break;
+        }
         case OPCODE_DCL_RESOURCE:
         {
             switch(psDecl->eResourceDimension)
@@ -163,7 +170,7 @@ void TranslateOperand(const Operand* psOperand)
         }
         case OPERAND_TYPE_CONSTANT_BUFFER:
         {
-            bformata(glsl, "Const%d", psOperand->ui32RegisterNumber);
+            bformata(glsl, "Const[%d]", psOperand->ui32RegisterNumber);
             break;
         }
         case OPERAND_TYPE_RESOURCE:
@@ -189,53 +196,84 @@ void TranslateOperand(const Operand* psOperand)
     //Comonent Mask
     if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
     {
-        bcatcstr(glsl, ".");
-        if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_X)
+        if(psOperand->ui32CompMask != 0 && psOperand->ui32CompMask != (OPERAND_4_COMPONENT_MASK_X|OPERAND_4_COMPONENT_MASK_Y|OPERAND_4_COMPONENT_MASK_Z|OPERAND_4_COMPONENT_MASK_W))
         {
-            bcatcstr(glsl, "x");
-        }
-        if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Y)
-        {
-            bcatcstr(glsl, "y");
-        }
-        if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Z)
-        {
-            bcatcstr(glsl, "z");
-        }
-        if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_W)
-        {
-            bcatcstr(glsl, "w");
+            bcatcstr(glsl, ".");
+            if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_X)
+            {
+                bcatcstr(glsl, "x");
+            }
+            if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Y)
+            {
+                bcatcstr(glsl, "y");
+            }
+            if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Z)
+            {
+                bcatcstr(glsl, "z");
+            }
+            if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_W)
+            {
+                bcatcstr(glsl, "w");
+            }
         }
     }
     else
     //Component Swizzle
     if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
     {
-        uint32_t i;
+        if(psOperand->ui32Swizzle != (NO_SWIZZLE))
+        {
+            uint32_t i;
 
+            bcatcstr(glsl, ".");
+
+            for(i=0; i< 4; ++i)
+            {
+                if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X)
+                {
+                    bcatcstr(glsl, "x");
+                }
+                else
+                if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y)
+                {
+                    bcatcstr(glsl, "y");
+                }
+                else
+                if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z)
+                {
+                    bcatcstr(glsl, "z");
+                }
+                else
+                if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W)
+                {
+                    bcatcstr(glsl, "w");
+                }
+            }
+        }
+    }
+    else
+    if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+    {
         bcatcstr(glsl, ".");
 
-        for(i=0; i< 4; ++i)
+        if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_X)
         {
-            if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X)
-            {
-                bcatcstr(glsl, "x");
-            }
-            else
-            if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y)
-            {
-                bcatcstr(glsl, "y");
-            }
-            else
-            if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z)
-            {
-                bcatcstr(glsl, "z");
-            }
-            else
-            if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W)
-            {
-                bcatcstr(glsl, "w");
-            }
+            bcatcstr(glsl, "x");
+        }
+        else
+        if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Y)
+        {
+            bcatcstr(glsl, "y");
+        }
+        else
+        if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Z)
+        {
+            bcatcstr(glsl, "z");
+        }
+        else
+        if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_W)
+        {
+            bcatcstr(glsl, "w");
         }
     }
 
@@ -351,7 +389,7 @@ void TranslateInstruction(const Instruction* psInst)
         }
         case OPCODE_MOVC:
         {
-            //dest = (src0) ? src1 : src2;
+            //dest = (src0 > 0) ? src1 : src2;
             //Scalar version. Use any() for vector with scalar 1
             AddIndentation();
             bcatcstr(glsl, "//MOVC\n");
@@ -359,7 +397,7 @@ void TranslateInstruction(const Instruction* psInst)
             TranslateOperand(&psInst->asOperands[0]);
             bcatcstr(glsl, " = (");
             TranslateOperand(&psInst->asOperands[1]);
-            bcatcstr(glsl, ") ? ");
+            bcatcstr(glsl, " > 0) ? ");
             TranslateOperand(&psInst->asOperands[2]);
             bcatcstr(glsl, " : ");
             TranslateOperand(&psInst->asOperands[3]);
@@ -488,7 +526,8 @@ void TranslateToGLSL(const Shader* psShader)
 
 	if(psShader->ui32MajorVersion == 5)
 	{
-        glsl = bfromcstralloc (1024, "#version 420\n");
+        //glsl = bfromcstralloc (1024, "#version 420\n");
+        glsl = bfromcstralloc (1024, "#version 330\n");
 	}
 	else
 	if(psShader->ui32MajorVersion == 4)
@@ -515,6 +554,192 @@ void TranslateToGLSL(const Shader* psShader)
 
     bcatcstr(glsl, "}\n");
 }
+
+#define VALIDATE_OUTPUT
+
+#if defined(VALIDATE_OUTPUT) && defined(_WIN32)
+#if defined(_WIN32)
+#include <windows.h>
+#include <gl/GL.h>
+
+ #pragma comment(lib, "opengl32.lib")
+
+	typedef char GLcharARB;		/* native character */
+	typedef unsigned int GLhandleARB;	/* shader object handle */
+#define GL_VERTEX_SHADER_ARB              0x8B31
+#define GL_FRAGMENT_SHADER_ARB            0x8B30
+#define GL_OBJECT_COMPILE_STATUS_ARB      0x8B81
+#define GL_OBJECT_LINK_STATUS_ARB         0x8B82
+	typedef void (WINAPI * PFNGLDELETEOBJECTARBPROC) (GLhandleARB obj);
+	typedef GLhandleARB (WINAPI * PFNGLCREATESHADEROBJECTARBPROC) (GLenum shaderType);
+	typedef void (WINAPI * PFNGLSHADERSOURCEARBPROC) (GLhandleARB shaderObj, GLsizei count, const GLcharARB* *string, const GLint *length);
+	typedef void (WINAPI * PFNGLCOMPILESHADERARBPROC) (GLhandleARB shaderObj);
+	typedef void (WINAPI * PFNGLGETINFOLOGARBPROC) (GLhandleARB obj, GLsizei maxLength, GLsizei *length, GLcharARB *infoLog);
+	typedef void (WINAPI * PFNGLGETOBJECTPARAMETERIVARBPROC) (GLhandleARB obj, GLenum pname, GLint *params);
+	typedef GLhandleARB (WINAPI * PFNGLCREATEPROGRAMOBJECTARBPROC) (void);
+	typedef void (WINAPI * PFNGLATTACHOBJECTARBPROC) (GLhandleARB containerObj, GLhandleARB obj);
+	typedef void (WINAPI * PFNGLLINKPROGRAMARBPROC) (GLhandleARB programObj);
+	typedef void (WINAPI * PFNGLUSEPROGRAMOBJECTARBPROC) (GLhandleARB programObj);
+    //typedef void (WINAPI * PFNGLGETSHADERIVPROC) (GLuint shader, GLenum pname, GLint* param);
+    typedef void (WINAPI * PFNGLGETSHADERINFOLOGPROC) (GLuint shader, GLsizei bufSize, GLsizei* length, GLcharARB* infoLog);
+
+	static PFNGLDELETEOBJECTARBPROC glDeleteObjectARB;
+	static PFNGLCREATESHADEROBJECTARBPROC glCreateShaderObjectARB;
+	static PFNGLSHADERSOURCEARBPROC glShaderSourceARB;
+	static PFNGLCOMPILESHADERARBPROC glCompileShaderARB;
+	static PFNGLGETINFOLOGARBPROC glGetInfoLogARB;
+	static PFNGLGETOBJECTPARAMETERIVARBPROC glGetObjectParameterivARB;
+	static PFNGLCREATEPROGRAMOBJECTARBPROC glCreateProgramObjectARB;
+	static PFNGLATTACHOBJECTARBPROC glAttachObjectARB;
+	static PFNGLLINKPROGRAMARBPROC glLinkProgramARB;
+	static PFNGLUSEPROGRAMOBJECTARBPROC glUseProgramObjectARB;
+    //static PFNGLGETSHADERIVPROC glGetShaderiv;
+    static PFNGLGETSHADERINFOLOGPROC glGetShaderInfoLog;
+
+#define WGL_CONTEXT_DEBUG_BIT_ARB 0x0001
+#define WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB 0x0002
+#define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
+#define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
+#define WGL_CONTEXT_LAYER_PLANE_ARB 0x2093
+#define WGL_CONTEXT_FLAGS_ARB 0x2094
+#define ERROR_INVALID_VERSION_ARB 0x2095
+#define ERROR_INVALID_PROFILE_ARB 0x2096
+
+#define WGL_CONTEXT_CORE_PROFILE_BIT_ARB 0x00000001
+#define WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB 0x00000002
+#define WGL_CONTEXT_PROFILE_MASK_ARB 0x9126
+
+typedef HGLRC (WINAPI * PFNWGLCREATECONTEXTATTRIBSARBPROC) (HDC hDC, HGLRC hShareContext, const int* attribList);
+static PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
+
+void InitOpenGL()
+{
+    HGLRC rc;
+
+	// setup minimal required GL
+	HWND wnd = CreateWindowA(
+							 "STATIC",
+							 "GL",
+							 WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS |	WS_CLIPCHILDREN,
+							 0, 0, 16, 16,
+							 NULL, NULL,
+							 GetModuleHandle(NULL), NULL );
+	HDC dc = GetDC( wnd );
+	
+	PIXELFORMATDESCRIPTOR pfd = {
+		sizeof(PIXELFORMATDESCRIPTOR), 1,
+		PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL,
+		PFD_TYPE_RGBA, 32,
+		0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0,
+		16, 0,
+		0, PFD_MAIN_PLANE, 0, 0, 0, 0
+	};
+	
+	int fmt = ChoosePixelFormat( dc, &pfd );
+	SetPixelFormat( dc, fmt, &pfd );
+	
+	rc = wglCreateContext( dc );
+	wglMakeCurrent( dc, rc );
+
+    wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
+
+    if(wglCreateContextAttribsARB)
+    {
+        const int OpenGLContextAttribs [] = {
+            WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
+            WGL_CONTEXT_MINOR_VERSION_ARB, 3,
+    #if defined(_DEBUG)
+            //WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB | WGL_CONTEXT_DEBUG_BIT_ARB,
+    #else
+            //WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+    #endif
+            //WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+            0, 0
+        };
+
+        const HGLRC OpenGLContext = wglCreateContextAttribsARB( dc, 0, OpenGLContextAttribs );
+
+        wglMakeCurrent(dc, OpenGLContext);
+
+        wglDeleteContext(rc);
+
+        rc = OpenGLContext;
+    }
+
+    glDeleteObjectARB = (PFNGLDELETEOBJECTARBPROC)wglGetProcAddress("glDeleteObjectARB");
+    glCreateShaderObjectARB = (PFNGLCREATESHADEROBJECTARBPROC)wglGetProcAddress("glCreateShaderObjectARB");
+    glShaderSourceARB = (PFNGLSHADERSOURCEARBPROC)wglGetProcAddress("glShaderSourceARB");
+    glCompileShaderARB = (PFNGLCOMPILESHADERARBPROC)wglGetProcAddress("glCompileShaderARB");
+    glGetInfoLogARB = (PFNGLGETINFOLOGARBPROC)wglGetProcAddress("glGetInfoLogARB");
+    glGetObjectParameterivARB = (PFNGLGETOBJECTPARAMETERIVARBPROC)wglGetProcAddress("glGetObjectParameterivARB");
+    glCreateProgramObjectARB = (PFNGLCREATEPROGRAMOBJECTARBPROC)wglGetProcAddress("glCreateProgramObjectARB");
+    glAttachObjectARB = (PFNGLATTACHOBJECTARBPROC)wglGetProcAddress("glAttachObjectARB");
+    glLinkProgramARB = (PFNGLLINKPROGRAMARBPROC)wglGetProcAddress("glLinkProgramARB");
+    glUseProgramObjectARB = (PFNGLUSEPROGRAMOBJECTARBPROC)wglGetProcAddress("glUseProgramObjectARB");
+    //glGetShaderiv = (PFNGLGETSHADERIVPROC)("glGetShaderiv");
+    glGetShaderInfoLog = (PFNGLGETSHADERINFOLOGPROC)("glGetShaderInfoLog");
+}
+#endif
+
+int TryCompileShader(SHADER_TYPE eShaderType, char* shader)
+{
+    GLint iCompileStatus;
+    GLuint hShader;
+    GLenum eGLSLShaderType = GL_FRAGMENT_SHADER_ARB;
+
+    switch(eShaderType)
+    {
+        case VERTEX_SHADER:
+        {
+            eGLSLShaderType = GL_VERTEX_SHADER_ARB;
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+
+    InitOpenGL();
+
+    hShader = glCreateShaderObjectARB(eGLSLShaderType);
+    glShaderSourceARB(hShader, 1, (const char **)&shader, NULL);
+
+    glCompileShaderARB(hShader);
+
+    /* Check it compiled OK */
+    glGetObjectParameterivARB (hShader, GL_OBJECT_COMPILE_STATUS_ARB, &iCompileStatus);
+    //glGetShaderiv(hShader, GL_COMPILE_STATUS, &iCompileStatus); 
+
+    if (iCompileStatus != GL_TRUE)
+    {
+        FILE* errorFile;
+        GLint iInfoLogLength = 0;
+        char pszInfoLog[1024];
+
+        printf("Error: Failed to compile GLSL shader\n");
+
+		//char log[4096];
+		//GLsizei logLength;
+		glGetInfoLogARB (hShader, sizeof(pszInfoLog), &iInfoLogLength, pszInfoLog);
+
+        //glGetShaderInfoLog(hShader, 1024, &iInfoLogLength, pszInfoLog);
+        printf(pszInfoLog);
+
+        //Dump to file
+        errorFile = fopen("compileErrors.txt", "w");
+        fprintf(errorFile, pszInfoLog);
+        fclose(errorFile);
+
+        return 0;
+    }
+
+    printf("Shader compiled successfully\n");
+
+    return 1;
+}
+#endif
 
 void main(int argc, char** argv)
 {
@@ -565,6 +790,10 @@ void main(int argc, char** argv)
             fprintf(outputFile, glslcstr);
             fclose(outputFile);
         }
+
+#if defined(VALIDATE_OUTPUT)
+        TryCompileShader(psShader->eShaderType, glslcstr);
+#endif
 
         bcstrfree(glslcstr);
         bdestroy(glsl);

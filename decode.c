@@ -163,10 +163,18 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
         {
             psOperand->ui32Swizzle = DecodeOperand4CompSwizzle(*pui32Tokens);
 
-            psOperand->aui32Swizzle[0] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 0);
-            psOperand->aui32Swizzle[1] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 1);
-            psOperand->aui32Swizzle[2] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 2);
-            psOperand->aui32Swizzle[3] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 3);
+            if(psOperand->ui32Swizzle != NO_SWIZZLE)
+            {
+                psOperand->aui32Swizzle[0] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 0);
+                psOperand->aui32Swizzle[1] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 1);
+                psOperand->aui32Swizzle[2] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 2);
+                psOperand->aui32Swizzle[3] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 3);
+            }
+        }
+        else
+        if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+        {
+            psOperand->aui32Swizzle[0] = DecodeOperand4CompSel1(*pui32Tokens);
         }
     }
 
@@ -240,6 +248,8 @@ const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDec
         }
         case OPCODE_DCL_CONSTANT_BUFFER: // custom operand formats.
         {
+            psDecl->ui32NumOperands = 1;
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
         case OPCODE_DCL_SAMPLER:

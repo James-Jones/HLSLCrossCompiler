@@ -447,10 +447,17 @@ static uint32_t DecodeOperand4CompSwizzle(uint32_t ui32Token)
 	return (uint32_t)((ui32Token & 0x00000ff0) >> 4);
 }
 
+static uint32_t DecodeOperand4CompSel1(uint32_t ui32Token)
+{
+	return (uint32_t)((ui32Token & 0x00000030) >> 4);
+}
+
 #define OPERAND_4_COMPONENT_X      0
 #define OPERAND_4_COMPONENT_Y      1
 #define OPERAND_4_COMPONENT_Z      2
 #define OPERAND_4_COMPONENT_W      3
+
+#define NO_SWIZZLE (( (OPERAND_4_COMPONENT_X) | (OPERAND_4_COMPONENT_Y<<2) | (OPERAND_4_COMPONENT_Z << 4) | (OPERAND_4_COMPONENT_W << 6))/*<<4*/)
 
 static uint32_t DecodeOperand4CompSwizzleSource(uint32_t ui32Token, uint32_t comp)
 {
