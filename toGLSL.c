@@ -25,11 +25,20 @@ void TranslateDeclaration(const Declaration* psDecl)
     {
         case OPCODE_DCL_OUTPUT_SIV:
         {
-            bformata(glsl, "out vec4 %s;\n", psDecl->asOperands[0].pszSpecialName);
+            if(strcmp(psDecl->asOperands[0].pszSpecialName, "position") == 0)
+            {
+                bcatcstr(glsl, "#define ");
+                TranslateOperand(&psDecl->asOperands[0]);
+                bformata(glsl, " gl_Position\n");
+            }
+            else
+            {
+                bformata(glsl, "out vec4 %s;\n", psDecl->asOperands[0].pszSpecialName);
 
-            bcatcstr(glsl, "#define ");
-            TranslateOperand(&psDecl->asOperands[0]);
-            bformata(glsl, " %s\n", psDecl->asOperands[0].pszSpecialName);
+                bcatcstr(glsl, "#define ");
+                TranslateOperand(&psDecl->asOperands[0]);
+                bformata(glsl, " %s\n", psDecl->asOperands[0].pszSpecialName);
+            }
             break;
         }
         case OPCODE_DCL_INPUT:
