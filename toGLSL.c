@@ -362,8 +362,12 @@ void TranslateInstruction(Instruction* psInst)
             bcatcstr(glsl, "//MOV\n");
             AddIndentation();
             TranslateOperand(&psInst->asOperands[0]);
-            bcatcstr(glsl, " = ");
+            bcatcstr(glsl, " = vec4(");
+
+
             TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ")");
+            TranslateOperandSwizzle(&psInst->asOperands[0]);
             bcatcstr(glsl, ";\n");
             break;
         }
