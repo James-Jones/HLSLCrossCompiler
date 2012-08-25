@@ -226,19 +226,6 @@ const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDec
 			printf("dcl_globalFlags\n");
 			break;
 		}
-		case OPCODE_DCL_INPUT:
-		{
-			printf("dcl_input.\n");
-            psDecl->asOperands[0].ui32RegisterNumber = 0;
-			break;
-		}
-		case OPCODE_DCL_OUTPUT_SIV:
-		{
-            psDecl->ui32NumOperands = 2;
-            DecodeOperand(pui32Token+1, &psDecl->asOperands[0]);
-            DecodeNameToken(pui32Token + 3, &psDecl->asOperands[0]);
-			break;
-		}
 #endif
         case OPCODE_DCL_RESOURCE: // DCL* opcodes have
         {
@@ -358,7 +345,6 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
     {
 		case OPCODE_RET:
 		{
-			printf("RET.\n");
 			break;
 		}
 
@@ -412,6 +398,8 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
+
+            psInst->asOperands[1].ui32RegisterNumber = pui32Token[4];
             break;
         }
         default:
