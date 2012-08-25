@@ -126,7 +126,7 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
         psOperand->iWriteMaskEnabled = 0;
     }
 
-    psOperand->ui32RegisterNumber = 0xFFFFFFFF;
+    psOperand->ui32RegisterNumber = 0;
 
     eNumComponents = DecodeOperandNumComponents(*pui32Tokens);
 
@@ -288,6 +288,8 @@ const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDec
         }
         case OPCODE_DCL_INPUT_PS:
         {
+            psDecl->ui32NumOperands = 1;
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
         case OPCODE_DCL_INPUT_PS_SGV:
@@ -300,6 +302,8 @@ const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDec
         }
         case OPCODE_DCL_OUTPUT:
         {
+            psDecl->ui32NumOperands = 1;
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
         case OPCODE_DCL_OUTPUT_SGV:

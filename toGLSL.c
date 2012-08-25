@@ -10,6 +10,38 @@ int indent;
 
 void TranslateOperand(const Operand* psOperand);
 
+int GetMaxComponentFromComponentMask(const Operand* psOperand)
+{
+    if(psOperand->iWriteMaskEnabled &&
+       psOperand->iNumComponents == 4)
+    {
+        //Comonent Mask
+        if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+        {
+            if(psOperand->ui32CompMask != 0 && psOperand->ui32CompMask != (OPERAND_4_COMPONENT_MASK_X|OPERAND_4_COMPONENT_MASK_Y|OPERAND_4_COMPONENT_MASK_Z|OPERAND_4_COMPONENT_MASK_W))
+            {
+                if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_W)
+                {
+                    return 4;
+                }
+                if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Z)
+                {
+                    return 3;
+                }
+                if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Y)
+                {
+                    return 2;
+                }
+                if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_X)
+                {
+                    return 1;
+                }
+            }
+        }
+    }
+    return 4;
+}
+
 void AddIndentation()
 {
     int i;
@@ -19,7 +51,7 @@ void AddIndentation()
     }
 }
 
-void TranslateDeclaration(const Declaration* psDecl)
+void TranslateDeclaration(const Shader* psShader, const Declaration* psDecl)
 {
     switch(psDecl->eOpcode)
     {
@@ -43,7 +75,17 @@ void TranslateDeclaration(const Declaration* psDecl)
         }
         case OPCODE_DCL_INPUT:
         {
-            bformata(glsl, "in vec4 Input%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+            const Operand* psOperand = &psDecl->asOperands[0];
+            int iNumComponents = GetMaxComponentFromComponentMask(psOperand);
+            bformata(glsl, "in vec%d Input%d;\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+            break;
+        }
+        case OPCODE_DCL_INPUT_PS:
+        {
+            const Operand* psOperand = &psDecl->asOperands[0];
+            int iNumComponents = GetMaxComponentFromComponentMask(psOperand);
+            bformata(glsl, "in vec%d VtxOutput%d;\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+            bformata(glsl, "#define Input%d VtxOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
             break;
         }
         case OPCODE_DCL_TEMPS:
@@ -133,8 +175,23 @@ void TranslateDeclaration(const Declaration* psDecl)
             bcatcstr(glsl, ";\n");
             break;
         }
+        case OPCODE_DCL_OUTPUT:
+        {
+            if(psShader->eShaderType == PIXEL_SHADER)
+            {
+                bformata(glsl, "out vec4 PixOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+                bformata(glsl, "#define Output%d PixOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+            }
+            else
+            {
+                bformata(glsl, "out vec4 VtxOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+                bformata(glsl, "#define Output%d VtxOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+            }
+            break;
+        }
         default:
         {
+            bformata(glsl, "/* Unhandled input declaration - opcode=0x%X */\n", psDecl->eOpcode);
             break;
         }
     }
@@ -290,7 +347,7 @@ void TranslateOperand(const Operand* psOperand)
     }
 }
 
-void TranslateInstruction(const Instruction* psInst)
+void TranslateInstruction(Instruction* psInst)
 {
     switch(psInst->eOpcode)
     {
@@ -506,6 +563,10 @@ void TranslateInstruction(const Instruction* psInst)
 
             TranslateOperand(&psInst->asOperands[3]);//resource
             bcatcstr(glsl, ", ");
+            //Texture coord cannot be vec4
+            //Determining if it is a vec3 for vec2 yet to be done.
+            psInst->asOperands[2].aui32Swizzle[2] = 0xFFFFFFFF;
+            psInst->asOperands[2].aui32Swizzle[3] = 0xFFFFFFFF;
             TranslateOperand(&psInst->asOperands[2]);//in
             bcatcstr(glsl, ");\n");
             break;
@@ -546,7 +607,7 @@ void TranslateToGLSL(const Shader* psShader)
 
     for(i=0; i < ui32DeclCount; ++i)
     {
-        TranslateDeclaration(psShader->psDecl+i);
+        TranslateDeclaration(psShader, psShader->psDecl+i);
     }
 
     bcatcstr(glsl, "void main()\n");
