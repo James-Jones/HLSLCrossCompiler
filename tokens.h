@@ -344,8 +344,6 @@ typedef enum OPERAND_TYPE
     OPERAND_TYPE_CYCLE_COUNTER = 40, // Cycle counter
 } OPERAND_TYPE;
 
-#endif
-
 static OPERAND_TYPE DecodeOperandType(uint32_t ui32Token)
 {
 	return (OPERAND_TYPE)((ui32Token & 0x000ff000) >> 12);
@@ -486,3 +484,89 @@ static RESOURCE_DIMENSION DecodeResourceDimension(uint32_t ui32Token)
 	return (RESOURCE_DIMENSION)((ui32Token & 0x0000f800) >> 11);
 }
 
+typedef enum INSTRUCTION_TEST_BOOLEAN
+{
+    INSTRUCTION_TEST_ZERO       = 0,
+    INSTRUCTION_TEST_NONZERO    = 1
+} INSTRUCTION_TEST_BOOLEAN;
+
+static INSTRUCTION_TEST_BOOLEAN DecodeInstrTestBool(uint32_t ui32Token)
+{
+	return (INSTRUCTION_TEST_BOOLEAN)((ui32Token & 0x00040000) >> 18);
+}
+
+typedef enum EXTENDED_OPERAND_TYPE
+{
+    EXTENDED_OPERAND_EMPTY            = 0,
+    EXTENDED_OPERAND_MODIFIER         = 1,
+} EXTENDED_OPERAND_TYPE;
+
+static EXTENDED_OPERAND_TYPE DecodeExtendedOperandType(uint32_t ui32Token)
+{
+	return (EXTENDED_OPERAND_TYPE)(ui32Token & 0x0000003f);
+}
+
+typedef enum OPERAND_MODIFIER
+{
+    OPERAND_MODIFIER_NONE     = 0,
+    OPERAND_MODIFIER_NEG      = 1,
+    OPERAND_MODIFIER_ABS      = 2,
+    OPERAND_MODIFIER_ABSNEG   = 3,
+} OPERAND_MODIFIER;
+
+static OPERAND_MODIFIER DecodeExtendedOperandModifier(uint32_t ui32Token)
+{
+	return (OPERAND_MODIFIER)((ui32Token & 0x00003fc0) >> 6);
+}
+
+static const uint32_t GLOBAL_FLAG_REFACTORING_ALLOWED = (1<<11);
+static const uint32_t GLOBAL_FLAG_ENABLE_DOUBLE_PRECISION_FLOAT_OPS = (1<<12);
+static const uint32_t GLOBAL_FLAG_FORCE_EARLY_DEPTH_STENCIL = (1<<13);
+static const uint32_t GLOBAL_FLAG_ENABLE_RAW_AND_STRUCTURED_BUFFERS = (1<<14);
+
+static uint32_t DecodeGlobalFlags(uint32_t ui32Token)
+{
+	return (uint32_t)(ui32Token & 0x00fff800);
+}
+
+
+typedef enum INTERPOLATION_MODE
+{
+    INTERPOLATION_UNDEFINED = 0,
+    INTERPOLATION_CONSTANT = 1,
+    INTERPOLATION_LINEAR = 2,
+    INTERPOLATION_LINEAR_CENTROID = 3,
+    INTERPOLATION_LINEAR_NOPERSPECTIVE = 4,
+    INTERPOLATION_LINEAR_NOPERSPECTIVE_CENTROID = 5,
+    INTERPOLATION_LINEAR_SAMPLE = 6,
+    INTERPOLATION_LINEAR_NOPERSPECTIVE_SAMPLE = 7,
+} INTERPOLATION_MODE;
+
+static INTERPOLATION_MODE DecodeInterpolationMode(uint32_t ui32Token)
+{
+	return (INTERPOLATION_MODE)((ui32Token & 0x00007800) >> 11);
+}
+
+
+typedef enum PRIMITIVE_TOPOLOGY
+{
+    PRIMITIVE_TOPOLOGY_UNDEFINED = 0,
+    PRIMITIVE_TOPOLOGY_POINTLIST = 1,
+    PRIMITIVE_TOPOLOGY_LINELIST = 2,
+    PRIMITIVE_TOPOLOGY_LINESTRIP = 3,
+    PRIMITIVE_TOPOLOGY_TRIANGLELIST = 4,
+    PRIMITIVE_TOPOLOGY_TRIANGLESTRIP = 5,
+    // 6 is reserved for legacy triangle fans
+    // Adjacency values should be equal to (0x8 & non-adjacency):
+    PRIMITIVE_TOPOLOGY_LINELIST_ADJ = 10,
+    PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ = 11,
+    PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ = 12,
+    PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ = 13,
+} PRIMITIVE_TOPOLOGY;
+
+static PRIMITIVE_TOPOLOGY DecodeGSPrimitiveTopology(uint32_t ui32Token)
+{
+	return (PRIMITIVE_TOPOLOGY)((ui32Token & 0x0001f800) >> 11);
+}
+
+#endif

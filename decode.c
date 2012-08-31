@@ -115,6 +115,14 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 	{
 		/* OperandToken1 is the second token */
 		ui32NumTokens++;
+
+        psOperand->eModifier = OPERAND_MODIFIER_NONE;
+
+        if(DecodeExtendedOperandType(pui32Tokens[1]) == EXTENDED_OPERAND_MODIFIER)
+        {
+            psOperand->eModifier = DecodeExtendedOperandModifier(pui32Tokens[1]);
+        }
+
 	}
 
 	psOperand->iIndexDims = DecodeOperandIndexDimension(*pui32Tokens);
@@ -182,7 +190,7 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
     {
         for(i=0; i< psOperand->iNumComponents; ++i)
         {
-            psOperand->afImmediates[i] = *((float*)(&pui32Tokens[1+i]));
+            psOperand->afImmediates[i] = *((float*)(&pui32Tokens[ui32NumTokens]));
             ui32NumTokens ++;
         }
     }
@@ -204,7 +212,7 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
     return ui32NumTokens;
 }
 
-const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDecl)
+const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, Declaration* psDecl)
 {
     const uint32_t ui32TokenLength = DecodeInstructionLength(*pui32Token);
     const uint32_t bExtended = DecodeIsOpcodeExtended(*pui32Token);
@@ -249,10 +257,12 @@ const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDec
         }
         case OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY:
         {
+            psDecl->ePrimitiveTopology = DecodeGSPrimitiveTopology(*pui32Token);
             break;
         }
         case OPCODE_DCL_GS_INPUT_PRIMITIVE:
         {
+            psDecl->ePrimitiveTopology = DecodeGSPrimitiveTopology(*pui32Token);
             break;
         }
         case OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT:
@@ -271,11 +281,16 @@ const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDec
         }
         case OPCODE_DCL_INPUT_SIV:
         {
+            if(psShader->eShaderType == PIXEL_SHADER)
+            {
+                psDecl->eInterpolation = DecodeInterpolationMode(*pui32Token);
+            }
             break;
         }
         case OPCODE_DCL_INPUT_PS:
         {
             psDecl->ui32NumOperands = 1;
+            psDecl->eInterpolation = DecodeInterpolationMode(*pui32Token);
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
@@ -285,12 +300,14 @@ const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDec
         }
         case OPCODE_DCL_INPUT_PS_SIV:
         {
+            psDecl->eInterpolation = DecodeInterpolationMode(*pui32Token);
             break;
         }
         case OPCODE_DCL_OUTPUT:
         {
             psDecl->ui32NumOperands = 1;
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
+            DecodeNameToken(pui32Token + 3, &psDecl->asOperands[0]);
             break;
         }
         case OPCODE_DCL_OUTPUT_SGV:
@@ -315,6 +332,7 @@ const uint32_t* DecodeDeclaration(const uint32_t* pui32Token, Declaration* psDec
         }
         case OPCODE_DCL_GLOBAL_FLAGS:
         {
+            psDecl->ui32GlobalFlags = DecodeGlobalFlags(*pui32Token);
             break;
         }
         default:
@@ -381,6 +399,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_DP3:
 		case OPCODE_DP4:
         case OPCODE_NE:
+        case OPCODE_OR:
         {
             psInst->ui32NumOperands = 3;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -391,6 +410,13 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         //Instructions with four operands go here
 		case OPCODE_MAD:
         case OPCODE_MOVC:
+		/*{
+            psInst->ui32NumOperands = 4;
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
+		}*/
         case OPCODE_SAMPLE:
         {
             psInst->ui32NumOperands = 4;
@@ -402,9 +428,33 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             psInst->asOperands[1].ui32RegisterNumber = pui32Token[4];
             break;
         }
+        case OPCODE_LOOP:
+        case OPCODE_ENDLOOP:
+        case OPCODE_BREAK:
+        case OPCODE_ELSE:
+        case OPCODE_ENDIF:
+		{
+			break;
+		}
+        case OPCODE_IF:
+        case OPCODE_BREAKC:
+        case OPCODE_CALLC:
+        case OPCODE_CONTINUEC:
+        case OPCODE_RETC:
+        case OPCODE_DISCARD:
+        {
+            psInst->eBooleanTestType = DecodeInstrTestBool(*pui32Token);
+            psInst->ui32NumOperands = 2;
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
+            break;
+        }
         default:
         {
-			printf("Unkown opcode.\n");
+#ifdef DEBUG
+			//OutputDebugString("Unkown opcode.\n");
+            printf("Unkown opcode.\n");
+#endif
             break;
         }
     }
@@ -440,7 +490,7 @@ void Decode(const uint32_t* pui32Tokens, Shader* psShader)
 
     while(1) //Keep going until we reach the first non-declaration token, or the end of the shader.
     {
-        const uint32_t* pui32Result = DecodeDeclaration(pui32CurrentToken, psDecl);
+        const uint32_t* pui32Result = DecodeDeclaration(psShader, pui32CurrentToken, psDecl);
         
         if(pui32Result)
         {

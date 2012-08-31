@@ -5,6 +5,10 @@
 #include "stdio.h"
 #include "bstrlib.h"
 
+#include <assert.h>
+
+#define ASSERT(x) assert(x)
+
 bstring glsl;
 int indent;
 
@@ -282,6 +286,98 @@ void TranslateDeclaration(const Shader* psShader, const Declaration* psDecl)
             }
             break;
         }
+        case OPCODE_DCL_GLOBAL_FLAGS:
+        {
+            uint32_t ui32Flags = psDecl->ui32GlobalFlags;
+            
+            if(ui32Flags & GLOBAL_FLAG_FORCE_EARLY_DEPTH_STENCIL)
+            {
+                bcatcstr(glsl, "layout(early_fragment_tests) in;\n");
+            }
+            if(!(ui32Flags & GLOBAL_FLAG_REFACTORING_ALLOWED))
+            {
+                //TODO add precise
+                //HLSL precise - http://msdn.microsoft.com/en-us/library/windows/desktop/hh447204(v=vs.85).aspx
+            }
+            if(ui32Flags & GLOBAL_FLAG_ENABLE_DOUBLE_PRECISION_FLOAT_OPS)
+            {
+                bcatcstr(glsl, "#extension GL_ARB_gpu_shader_fp64 : enable\n");
+            }
+            
+            break;
+        }
+        case OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY:
+        {
+            switch(psDecl->ePrimitiveTopology)
+            {
+                case PRIMITIVE_TOPOLOGY_POINTLIST:
+                {
+                    bcatcstr(glsl, "layout(points) out;\n");
+                    break;
+                }
+                case PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
+                case PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ:
+                case PRIMITIVE_TOPOLOGY_LINELIST:
+                case PRIMITIVE_TOPOLOGY_LINESTRIP:
+                {
+                    bcatcstr(glsl, "layout(line_strip) out;\n");
+                    break;
+                }
+
+                case PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
+                case PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ:
+                case PRIMITIVE_TOPOLOGY_TRIANGLESTRIP:
+                case PRIMITIVE_TOPOLOGY_TRIANGLELIST:
+                {
+                    bcatcstr(glsl, "layout(triangle_strip) out;\n");
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
+            break;
+        }
+        case OPCODE_DCL_GS_INPUT_PRIMITIVE:
+        {
+            switch(psDecl->ePrimitiveTopology)
+            {
+                case PRIMITIVE_TOPOLOGY_POINTLIST:
+                {
+                    bcatcstr(glsl, "layout(points) in;\n");
+                    break;
+                }
+                case PRIMITIVE_TOPOLOGY_LINELIST:
+                case PRIMITIVE_TOPOLOGY_LINESTRIP:
+                {
+                    bcatcstr(glsl, "layout(lines) in;\n");
+                    break;
+                }
+                case PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
+                case PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ:
+                {
+                    bcatcstr(glsl, "layout(lines_adjacency) in;\n");
+                    break;
+                }
+                case PRIMITIVE_TOPOLOGY_TRIANGLESTRIP:
+                case PRIMITIVE_TOPOLOGY_TRIANGLELIST:
+                {
+                    bcatcstr(glsl, "layout(triangles) in;\n");
+                    break;
+                }
+                case PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
+                case PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ:
+                {
+                    bcatcstr(glsl, "layout(triangles_adjacency) in;\n");
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
+        }
         default:
         {
             bformata(glsl, "/* Unhandled input declaration - opcode=0x%X */\n", psDecl->eOpcode);
@@ -292,6 +388,28 @@ void TranslateDeclaration(const Shader* psShader, const Declaration* psDecl)
 
 void TranslateOperand(const Operand* psOperand)
 {
+    switch(psOperand->eModifier)
+    {
+        case OPERAND_MODIFIER_NONE:
+        {
+            break;
+        }
+        case OPERAND_MODIFIER_NEG:
+        {
+            bcatcstr(glsl, "-");
+            break;
+        }
+        case OPERAND_MODIFIER_ABS:
+        {
+            bcatcstr(glsl, "abs(");
+            break;
+        }
+        case OPERAND_MODIFIER_ABSNEG:
+        {
+            bcatcstr(glsl, "-abs(");
+            break;
+        }
+    }
     switch(psOperand->eType)
     {
         case OPERAND_TYPE_IMMEDIATE32:
@@ -350,6 +468,28 @@ void TranslateOperand(const Operand* psOperand)
     }
 
     TranslateOperandSwizzle(psOperand);
+
+    switch(psOperand->eModifier)
+    {
+        case OPERAND_MODIFIER_NONE:
+        {
+            break;
+        }
+        case OPERAND_MODIFIER_NEG:
+        {
+            break;
+        }
+        case OPERAND_MODIFIER_ABS:
+        {
+            bcatcstr(glsl, ")");
+            break;
+        }
+        case OPERAND_MODIFIER_ABSNEG:
+        {
+            bcatcstr(glsl, ")");
+            break;
+        }
+    }
 }
 
 void TranslateInstruction(Instruction* psInst)
@@ -413,6 +553,19 @@ void TranslateInstruction(Instruction* psInst)
             bcatcstr(glsl, ";\n");
             break;
         }
+        case OPCODE_OR:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//OR\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = ");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, " || ");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ";\n");
+            break;
+        }
         case OPCODE_MUL:
         {
             AddIndentation();
@@ -422,6 +575,19 @@ void TranslateInstruction(Instruction* psInst)
             bcatcstr(glsl, " = ");
             TranslateOperand(&psInst->asOperands[1]);
             bcatcstr(glsl, " * ");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ";\n");
+            break;
+        }
+        case OPCODE_DIV:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//DIV\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = ");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, " / ");
             TranslateOperand(&psInst->asOperands[2]);
             bcatcstr(glsl, ";\n");
             break;
@@ -447,6 +613,33 @@ void TranslateInstruction(Instruction* psInst)
                 TranslateOperand(&psInst->asOperands[2]);//angle
                 bcatcstr(glsl, ");\n");
             }
+            break;
+        }
+
+        case OPCODE_DP2:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//DP2\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = dot((");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ").xy);\n");
+            break;
+        }
+        case OPCODE_DP3:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//DP3\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = dot((");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ").xyz);\n");
             break;
         }
         case OPCODE_DP4:
@@ -519,7 +712,7 @@ void TranslateInstruction(Instruction* psInst)
 		case OPCODE_RSQ:
         {
             AddIndentation();
-            bcatcstr(glsl, "//SQRT\n");
+            bcatcstr(glsl, "//RSQ\n");
             AddIndentation();
             TranslateOperand(&psInst->asOperands[0]);
             bcatcstr(glsl, " = inversesqrt(");
@@ -545,6 +738,61 @@ void TranslateInstruction(Instruction* psInst)
             AddIndentation();
             TranslateOperand(&psInst->asOperands[0]);
             bcatcstr(glsl, " = sqrt(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_ROUND_PI:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//ROUND_PI\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = ceil(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+		case OPCODE_ROUND_NI:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//ROUND_NI\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = floor(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+		case OPCODE_ROUND_Z:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//ROUND_Z\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = trunc(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+		case OPCODE_ROUND_NE:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//ROUND_NE\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = roundEven(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+		case OPCODE_FRC:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//FRC\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = fract(");
             TranslateOperand(&psInst->asOperands[1]);
             bcatcstr(glsl, ");\n");
             break;
@@ -602,8 +850,79 @@ void TranslateInstruction(Instruction* psInst)
 			bcatcstr(glsl, "return;\n");
 			break;
 		}
+        case OPCODE_LOOP:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//LOOP\n");
+            AddIndentation();
+            bcatcstr(glsl, "while(true){\n");
+            ++indent;
+            break;
+        }
+        case OPCODE_ENDLOOP:
+        {
+            --indent;
+            AddIndentation();
+            bcatcstr(glsl, "//ENDLOOP\n");
+            AddIndentation();
+            bcatcstr(glsl, "}\n");
+            break;
+        }
+        case OPCODE_BREAK:
+        {
+           AddIndentation();
+            bcatcstr(glsl, "//BREAK\n");
+            AddIndentation();
+            bcatcstr(glsl, "break;\n");
+            break;
+        }
+        case OPCODE_IF:
+        {
+           AddIndentation();
+            bcatcstr(glsl, "//IF\n");
+            AddIndentation();
+            if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
+            {
+                bcatcstr(glsl, "if((");
+                TranslateOperand(&psInst->asOperands[0]);
+                bcatcstr(glsl, ")==0){\n");
+            }
+            else
+            {
+                ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
+                bcatcstr(glsl, "if((");
+                TranslateOperand(&psInst->asOperands[0]);
+                bcatcstr(glsl, ")!=0){\n");
+            }
+            ++indent;
+            break;
+        }
+        case OPCODE_ELSE:
+        {
+            --indent;
+           AddIndentation();
+            bcatcstr(glsl, "//ELSE\n");
+            AddIndentation();
+            bcatcstr(glsl, "} else {\n");
+            indent++;
+            break;
+        }
+        case OPCODE_ENDIF:
+        {
+            --indent;
+           AddIndentation();
+            bcatcstr(glsl, "//ENDIF\n");
+            AddIndentation();
+            bcatcstr(glsl, "}\n");
+            break;
+        }
         default:
         {
+            AddIndentation();
+            bcatcstr(glsl, "//Unknown opcode\n");
+#ifdef _DEBUG
+            printf("Unknown opcode (toGLSL).\n");
+#endif
             break;
         }
     }
@@ -833,6 +1152,10 @@ int TryCompileShader(SHADER_TYPE eShaderType, char* shader)
     return 1;
 }
 #endif
+
+void TranslateHLSLFromFile(const char* filename, char** result)
+{
+}
 
 void main(int argc, char** argv)
 {

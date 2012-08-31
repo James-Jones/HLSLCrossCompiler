@@ -1,6 +1,14 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
-PROJECT (SHADERTOOLS C)
+PROJECT (SHADERTOOLS C CXX)
+
+#IF(DXSDKDIR)
+#    INCLUDE_DIRECTORIES($(DXSDKDIR)\\Include)
+#    LINK_DIRECTORIES($(DXSDKDIR)\\Lib\\x86)
+#ELSE()
+#    INCLUDE_DIRECTORIES("C:\\Program Files\\Microsoft DirectX SDK (June 2010)\\Include")
+#    LINK_DIRECTORIES("C:\\Program Files\\Microsoft DirectX SDK (June 2010)\\Lib\\x86")
+#ENDIF()
 
 IF(NOT CMAKE_BUILD_TYPE)
 #	SET(CMAKE_BUILD_TYPE "Debug")
@@ -47,6 +55,8 @@ file(GLOB CBSTRING_HFILES ../cbstring/*.h)
 source_group("CBString Files" FILES ${CBSTRING_CFILES} ${CBSTRING_HFILES})
 
 ADD_EXECUTABLE( HLSLByteCodeToGLSL ../decode.c ../toGLSL.c ${CBSTRING_CFILES} ${CBSTRING_HFILES} )
+
+# ADD_EXECUTABLE( Reflect ../reflect.cpp )
 
 # force variables that could be defined on the cmdline
 # to be written to the cach

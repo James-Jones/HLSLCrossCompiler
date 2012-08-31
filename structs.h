@@ -12,7 +12,7 @@ typedef struct Operand_TAG
 {
     int iExtended;
     OPERAND_TYPE eType;
-    int modifier;
+    OPERAND_MODIFIER eModifier;
     int iIndexDims;
     int indexRepresentation[4];
     int writeMask;
@@ -39,6 +39,7 @@ typedef struct Operand_TAG
 typedef struct Instruction_TAG
 {
     OPCODE_TYPE eOpcode;
+    INSTRUCTION_TEST_BOOLEAN eBooleanTestType;
     uint32_t ui32NumOperands;
     Operand asOperands[4];
 } Instruction;
@@ -46,9 +47,12 @@ typedef struct Instruction_TAG
 typedef struct Declaration_TAG
 {
     OPCODE_TYPE eOpcode;
+    uint32_t ui32GlobalFlags;
     uint32_t ui32NumOperands;
     uint32_t ui32NumTemps;
     RESOURCE_DIMENSION eResourceDimension;
+    INTERPOLATION_MODE eInterpolation;
+    PRIMITIVE_TOPOLOGY ePrimitiveTopology;
     Operand asOperands[1];
 } Declaration;
 
