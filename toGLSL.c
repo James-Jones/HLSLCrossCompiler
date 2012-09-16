@@ -4,6 +4,7 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "bstrlib.h"
+#include "hlsl_opcode_funcs_glsl.h"
 
 #include <assert.h>
 
@@ -53,6 +54,54 @@ void AddIndentation()
     {
         bcatcstr(glsl, "    ");
     }
+}
+
+void AddOpcodeFuncs()
+{
+    bcatcstr(glsl, "\n");
+
+    bcatcstr(glsl, psz_hlsl_opcode_funcs_glsl);
+
+    bcatcstr(glsl, "\n");
+}
+
+void CallHLSLOpcodeFunc1(const char* name, Instruction* psInst)
+{
+    AddIndentation();
+    bcatcstr(glsl, name);
+    bcatcstr(glsl, "(");
+    TranslateOperand(&psInst->asOperands[0]);
+    bcatcstr(glsl, ", ");
+    TranslateOperand(&psInst->asOperands[1]);
+    bcatcstr(glsl, ");\n");
+}
+
+void CallHLSLOpcodeFunc2(const char* name, Instruction* psInst)
+{
+    AddIndentation();
+    bcatcstr(glsl, name);
+    bcatcstr(glsl, "(");
+    TranslateOperand(&psInst->asOperands[0]);
+    bcatcstr(glsl, ", ");
+    TranslateOperand(&psInst->asOperands[1]);
+    bcatcstr(glsl, ", ");
+    TranslateOperand(&psInst->asOperands[2]);
+    bcatcstr(glsl, ");\n");
+}
+
+void CallHLSLOpcodeFunc3(const char* name, Instruction* psInst)
+{
+    AddIndentation();
+    bcatcstr(glsl, name);
+    bcatcstr(glsl, "(");
+    TranslateOperand(&psInst->asOperands[0]);
+    bcatcstr(glsl, ", ");
+    TranslateOperand(&psInst->asOperands[1]);
+    bcatcstr(glsl, ", ");
+    TranslateOperand(&psInst->asOperands[2]);
+    bcatcstr(glsl, ", ");
+    TranslateOperand(&psInst->asOperands[3]);
+    bcatcstr(glsl, ");\n");
 }
 
 void TranslateOperandSwizzle(const Operand* psOperand)
@@ -148,7 +197,7 @@ void TranslateOperandSwizzle(const Operand* psOperand)
     }
 }
 
-void TranslateDeclaration(const Shader* psShader, const Declaration* psDecl)
+void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
 {
     switch(psDecl->eOpcode)
     {
@@ -194,6 +243,8 @@ void TranslateDeclaration(const Shader* psShader, const Declaration* psDecl)
             {
                  bformata(glsl, "vec4 Temp%d;\n", i);
             }
+
+            
 
             break;
         }
@@ -492,7 +543,7 @@ void TranslateOperand(const Operand* psOperand)
     }
 }
 
-void TranslateInstruction(Instruction* psInst)
+void TranslateInstruction(Shader* psShader, Instruction* psInst)
 {
     switch(psInst->eOpcode)
     {
@@ -515,15 +566,7 @@ void TranslateInstruction(Instruction* psInst)
         {
             AddIndentation();
             bcatcstr(glsl, "//MAD\n");
-            AddIndentation();
-            TranslateOperand(&psInst->asOperands[0]);
-            bcatcstr(glsl, " = ");
-            TranslateOperand(&psInst->asOperands[1]);
-            bcatcstr(glsl, " * ");
-            TranslateOperand(&psInst->asOperands[2]);
-            bcatcstr(glsl, " + ");
-            TranslateOperand(&psInst->asOperands[3]);
-            bcatcstr(glsl, ";\n");
+            CallHLSLOpcodeFunc3("mad", psInst);
             break;
         }
         case OPCODE_ADD:
@@ -555,14 +598,49 @@ void TranslateInstruction(Instruction* psInst)
         }
         case OPCODE_OR:
         {
+            /*Todo: vector version */
             AddIndentation();
             bcatcstr(glsl, "//OR\n");
             AddIndentation();
             TranslateOperand(&psInst->asOperands[0]);
-            bcatcstr(glsl, " = ");
+            bcatcstr(glsl, " = int(");
             TranslateOperand(&psInst->asOperands[1]);
-            bcatcstr(glsl, " || ");
+            bcatcstr(glsl, ") | int(");
             TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_AND:
+        {
+            /* Todo: vector version*/
+            AddIndentation();
+            bcatcstr(glsl, "//AND\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = int(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ") & int(");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_GE:
+        {
+            /*
+                dest = vec4(greaterThan(vec4(srcA), vec4(srcB));
+                Caveat: The result is a boolean but HLSL asm returns 0xFFFFFFFF/0x0 instead.
+             */
+            AddIndentation();
+            bcatcstr(glsl, "//GE\n");
+            AddIndentation();
+
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = vec4(greaterThanEqual(vec4(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, "), vec4(");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ")))");
+            TranslateOperandSwizzle(&psInst->asOperands[0]);
             bcatcstr(glsl, ";\n");
             break;
         }
@@ -570,13 +648,7 @@ void TranslateInstruction(Instruction* psInst)
         {
             AddIndentation();
             bcatcstr(glsl, "//MUL\n");
-            AddIndentation();
-            TranslateOperand(&psInst->asOperands[0]);
-            bcatcstr(glsl, " = ");
-            TranslateOperand(&psInst->asOperands[1]);
-            bcatcstr(glsl, " * ");
-            TranslateOperand(&psInst->asOperands[2]);
-            bcatcstr(glsl, ";\n");
+            CallHLSLOpcodeFunc2("mul", psInst);
             break;
         }
         case OPCODE_DIV:
@@ -671,31 +743,9 @@ void TranslateInstruction(Instruction* psInst)
         }
         case OPCODE_MOVC:
         {
-            //dest = (src0 > 0) ? src1 : src2;
-            //Scalar version. Use any() for vector with scalar 1
             AddIndentation();
             bcatcstr(glsl, "//MOVC\n");
-            AddIndentation();
-            TranslateOperand(&psInst->asOperands[0]);
-            bcatcstr(glsl, " = (");
-            TranslateOperand(&psInst->asOperands[1]);
-            bcatcstr(glsl, " > 0) ? ");
-            TranslateOperand(&psInst->asOperands[2]);
-            bcatcstr(glsl, " : ");
-            TranslateOperand(&psInst->asOperands[3]);
-            bcatcstr(glsl, ";\n");
-
-                /*for each component in dest[.mask]
-                    if the corresponding component in src0 (POS-swizzle)
-                       has any bit set
-                    {
-                        copy this component (POS-swizzle) from src1 into dest
-                    }
-                    else
-                    {
-                        copy this component (POS-swizzle) from src2 into dest
-                    }
-                endfor*/
+            CallHLSLOpcodeFunc1("movc", psInst);
             break;
         }
 		case OPCODE_LOG:
@@ -928,7 +978,7 @@ void TranslateInstruction(Instruction* psInst)
     }
 }
 
-void TranslateToGLSL(const Shader* psShader)
+void TranslateToGLSL(Shader* psShader)
 {
     uint32_t i;
     const uint32_t ui32InstCount = psShader->ui32InstCount;
@@ -952,6 +1002,8 @@ void TranslateToGLSL(const Shader* psShader)
         TranslateDeclaration(psShader, psShader->psDecl+i);
     }
 
+    AddOpcodeFuncs();
+
     bcatcstr(glsl, "void main()\n");
     bcatcstr(glsl, "{\n");
 
@@ -959,7 +1011,7 @@ void TranslateToGLSL(const Shader* psShader)
 
     for(i=0; i < ui32InstCount; ++i)
     {
-        TranslateInstruction(psShader->psInst+i);
+        TranslateInstruction(psShader, psShader->psInst+i);
     }
 
     indent--;
@@ -1197,7 +1249,7 @@ void main(int argc, char** argv)
 
         //Dump to console
         glslcstr = bstr2cstr(glsl, '\0');
-        printf("%s\n", glslcstr);
+        //printf("%s\n", glslcstr);
 
         if(argc > 2)
         {

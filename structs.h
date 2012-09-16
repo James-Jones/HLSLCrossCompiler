@@ -1,13 +1,6 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
-typedef struct Register_TAG
-{
-    const char* specialName;
-    int type;
-    int number;
-} Register;
-
 typedef struct Operand_TAG
 {
     int iExtended;

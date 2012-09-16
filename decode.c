@@ -400,6 +400,8 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_DP4:
         case OPCODE_NE:
         case OPCODE_OR:
+        case OPCODE_AND:
+        case OPCODE_GE:
         {
             psInst->ui32NumOperands = 3;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
