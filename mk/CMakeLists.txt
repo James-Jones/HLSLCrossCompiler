@@ -48,8 +48,6 @@ ENDIF()
 
 INCLUDE_DIRECTORIES( ../ ../cbstring/)
 
-ADD_EXECUTABLE( decodeHLSLByteCode ../decode.c ../printdecode.c)
-
 file(GLOB CBSTRING_CFILES ../cbstring/*.c)
 file(GLOB CBSTRING_HFILES ../cbstring/*.h)
 source_group("CBString Files" FILES ${CBSTRING_CFILES} ${CBSTRING_HFILES})
