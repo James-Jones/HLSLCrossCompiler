@@ -25,6 +25,11 @@ typedef struct DXBCChunkHeaderTAG
 	unsigned size;
 } DXBCChunkHeader;
 
+#ifdef _DEBUG
+static uint64_t operandID = 0;
+static uint64_t instructionID = 0;
+#endif
+
 void DecodeNameToken(const uint32_t* pui32NameToken, Operand* psOperand)
 {
     const size_t MAX_BUFFER_SIZE = sizeof(psOperand->pszSpecialName);
@@ -101,6 +106,10 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
     int i;
 	uint32_t ui32NumTokens = 1;
     OPERAND_NUM_COMPONENTS eNumComponents;
+
+#ifdef _DEBUG
+    psOperand->id = operandID++;
+#endif
 
     //Some defaults
     psOperand->iWriteMaskEnabled = 1;
@@ -351,6 +360,10 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
     const uint32_t bExtended = DecodeIsOpcodeExtended(*pui32Token);
     const OPCODE_TYPE eOpcode = DecodeOpcodeType(*pui32Token);
     uint32_t ui32OperandOffset = 1;
+
+#ifdef _DEBUG
+    psInst->id = instructionID++;
+#endif
 
     psInst->eOpcode = eOpcode;
 

@@ -627,7 +627,7 @@ void TranslateInstruction(Shader* psShader, Instruction* psInst)
         case OPCODE_GE:
         {
             /*
-                dest = vec4(greaterThan(vec4(srcA), vec4(srcB));
+                dest = vec4(greaterThanEqual(vec4(srcA), vec4(srcB));
                 Caveat: The result is a boolean but HLSL asm returns 0xFFFFFFFF/0x0 instead.
              */
             AddIndentation();

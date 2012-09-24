@@ -27,6 +27,10 @@ typedef struct Operand_TAG
 
     SPECIAL_NAME eSpecialName;
     char pszSpecialName[64];
+
+#ifdef _DEBUG
+    uint64_t id;
+#endif
 } Operand;
 
 typedef struct Instruction_TAG
@@ -35,6 +39,10 @@ typedef struct Instruction_TAG
     INSTRUCTION_TEST_BOOLEAN eBooleanTestType;
     uint32_t ui32NumOperands;
     Operand asOperands[4];
+
+#ifdef _DEBUG
+    uint64_t id;
+#endif
 } Instruction;
 
 typedef struct Declaration_TAG
