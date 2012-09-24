@@ -4,3 +4,7 @@
 The tests directory contains HLSL, bytecode and asm versions of some shaders used to verify this decoder.
 
 A cmake makefile can be found in the mk directory.
+
+Generating hlsl_opcode_funcs_glsl.h
+  Use fwrap.py -f hlsl_opcode_funcs.glsl
+  fwrap.py can be found in my Helpful-scripts github rep.

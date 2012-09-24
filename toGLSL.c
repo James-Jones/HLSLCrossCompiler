@@ -566,7 +566,7 @@ void TranslateInstruction(Shader* psShader, Instruction* psInst)
         {
             AddIndentation();
             bcatcstr(glsl, "//MAD\n");
-            CallHLSLOpcodeFunc3("mad", psInst);
+            CallHLSLOpcodeFunc3("HLSL_mad", psInst);
             break;
         }
         case OPCODE_IADD:
@@ -654,23 +654,14 @@ void TranslateInstruction(Shader* psShader, Instruction* psInst)
              */
             AddIndentation();
             bcatcstr(glsl, "//GE\n");
-            AddIndentation();
-
-            TranslateOperand(&psInst->asOperands[0]);
-            bcatcstr(glsl, " = vec4(greaterThanEqual(vec4(");
-            TranslateOperand(&psInst->asOperands[1]);
-            bcatcstr(glsl, "), vec4(");
-            TranslateOperand(&psInst->asOperands[2]);
-            bcatcstr(glsl, ")))");
-            TranslateOperandSwizzle(&psInst->asOperands[0]);
-            bcatcstr(glsl, ";\n");
+            CallHLSLOpcodeFunc2("HLSL_ge", psInst);
             break;
         }
         case OPCODE_MUL:
         {
             AddIndentation();
             bcatcstr(glsl, "//MUL\n");
-            CallHLSLOpcodeFunc2("mul", psInst);
+            CallHLSLOpcodeFunc2("HLSL_mul", psInst);
             break;
         }
         case OPCODE_DIV:
@@ -769,13 +760,7 @@ void TranslateInstruction(Shader* psShader, Instruction* psInst)
             AddIndentation();
             bcatcstr(glsl, "//IGE\n");
 #endif
-            AddIndentation();
-            TranslateOperand(&psInst->asOperands[0]);
-            bcatcstr(glsl, " = greaterThanEqual(");
-            TranslateOperand(&psInst->asOperands[1]);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(&psInst->asOperands[2]);
-            bcatcstr(glsl, ");\n");
+            CallHLSLOpcodeFunc2("HLSL_ige", psInst);
             break;
         }
         case OPCODE_LT:
@@ -784,13 +769,7 @@ void TranslateInstruction(Shader* psShader, Instruction* psInst)
             AddIndentation();
             bcatcstr(glsl, "//LT\n");
 #endif
-            AddIndentation();
-            TranslateOperand(&psInst->asOperands[0]);
-            bcatcstr(glsl, " = lessThan(");
-            TranslateOperand(&psInst->asOperands[1]);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(&psInst->asOperands[2]);
-            bcatcstr(glsl, ");\n");
+            CallHLSLOpcodeFunc2("HLSL_lt", psInst);
             break;
         }
         case OPCODE_IEQ:
@@ -799,13 +778,7 @@ void TranslateInstruction(Shader* psShader, Instruction* psInst)
             AddIndentation();
             bcatcstr(glsl, "//IEQ\n");
 #endif
-            AddIndentation();
-            TranslateOperand(&psInst->asOperands[0]);
-            bcatcstr(glsl, " = equal(");
-            TranslateOperand(&psInst->asOperands[1]);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(&psInst->asOperands[2]);
-            bcatcstr(glsl, ");\n");
+            CallHLSLOpcodeFunc2("HLSL_ieq", psInst);
             break;
         }
         case OPCODE_FTOI:
@@ -818,7 +791,7 @@ void TranslateInstruction(Shader* psShader, Instruction* psInst)
         {
             AddIndentation();
             bcatcstr(glsl, "//MOVC\n");
-            CallHLSLOpcodeFunc1("movc", psInst);
+            CallHLSLOpcodeFunc1("HLSL_movc", psInst);
             break;
         }
 		case OPCODE_LOG:
@@ -972,17 +945,14 @@ void TranslateInstruction(Shader* psShader, Instruction* psInst)
             AddIndentation();
             bcatcstr(glsl, "//SAMPLE_L\n");
 #endif
-            AddIndentation();//1=temp??
-            TranslateOperand(&psInst->asOperands[1]);//??
-            bcatcstr(glsl, " = texture2DLod(");
-
-            TranslateOperand(&psInst->asOperands[3]);//resource
+            AddIndentation();
+            bcatcstr(glsl, "HLSL_sample_l");
+            bcatcstr(glsl, "(");
+            TranslateOperand(&psInst->asOperands[1]);
             bcatcstr(glsl, ", ");
-            //Texture coord cannot be vec4
-            //Determining if it is a vec3 for vec2 yet to be done.
-            psInst->asOperands[2].aui32Swizzle[2] = 0xFFFFFFFF;
-            psInst->asOperands[2].aui32Swizzle[3] = 0xFFFFFFFF;
-            TranslateOperand(&psInst->asOperands[2]);//in
+            TranslateOperand(&psInst->asOperands[3]);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(&psInst->asOperands[2]);
             bcatcstr(glsl, ", ");
             TranslateOperand(&psInst->asOperands[5]);
             bcatcstr(glsl, ");\n");
@@ -1119,6 +1089,10 @@ void TranslateToGLSL(Shader* psShader)
     {
         TranslateDeclaration(psShader, psShader->psDecl+i);
     }
+
+    bcatcstr(glsl, "#if __VERSION__ > 120 \n");
+        bcatcstr(glsl, "#define texture2DLod texture \n");
+    bcatcstr(glsl, "#endif \n");
 
     AddOpcodeFuncs();
 
