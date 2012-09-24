@@ -412,8 +412,12 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_DP4:
         case OPCODE_NE:
         case OPCODE_OR:
+        case OPCODE_LT:
+        case OPCODE_IEQ:
+        case OPCODE_IADD:
         case OPCODE_AND:
         case OPCODE_GE:
+        case OPCODE_IGE:
         {
             psInst->ui32NumOperands = 3;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -424,13 +428,14 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         //Instructions with four operands go here
 		case OPCODE_MAD:
         case OPCODE_MOVC:
-		/*{
+		{
             psInst->ui32NumOperands = 4;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
-		}*/
+            break;
+		}
         case OPCODE_SAMPLE:
         {
             psInst->ui32NumOperands = 4;
@@ -440,6 +445,19 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
 
             psInst->asOperands[1].ui32RegisterNumber = pui32Token[4];
+            break;
+        }
+        case OPCODE_SAMPLE_L:
+        {
+            psInst->ui32NumOperands = 5;
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[4]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[5]);
+
+            //psInst->asOperands[1].ui32RegisterNumber = pui32Token[4];
             break;
         }
         case OPCODE_LOOP:

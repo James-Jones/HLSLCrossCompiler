@@ -569,6 +569,28 @@ void TranslateInstruction(Shader* psShader, Instruction* psInst)
             CallHLSLOpcodeFunc3("mad", psInst);
             break;
         }
+        case OPCODE_IADD:
+        {
+#ifdef _DEBUG
+            AddIndentation();
+            bcatcstr(glsl, "//IADD\n");
+#endif
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = ");
+
+            bcatcstr(glsl, "vec4(");
+
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, " + ");
+            TranslateOperand(&psInst->asOperands[2]);
+
+            bcatcstr(glsl, ")");
+            TranslateOperandSwizzle(&psInst->asOperands[0]);
+
+            bcatcstr(glsl, ";\n");
+            break;
+        }
         case OPCODE_ADD:
         {
             //Limit src swizzles based on dest swizzle
@@ -741,6 +763,57 @@ void TranslateInstruction(Shader* psShader, Instruction* psInst)
             bcatcstr(glsl, ") ? 1 : 0;\n");
             break;
         }
+        case OPCODE_IGE:
+        {
+#ifdef _DEBUG
+            AddIndentation();
+            bcatcstr(glsl, "//IGE\n");
+#endif
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = greaterThanEqual(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_LT:
+        {
+#ifdef _DEBUG
+            AddIndentation();
+            bcatcstr(glsl, "//LT\n");
+#endif
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = lessThan(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_IEQ:
+        {
+#ifdef _DEBUG
+            AddIndentation();
+            bcatcstr(glsl, "//IEQ\n");
+#endif
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = equal(");
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(&psInst->asOperands[2]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_FTOI:
+        {
+            // Rounding is always performed towards zero
+
+            //Use int constructor - int(float). This drops the fractional part.
+        }
         case OPCODE_MOVC:
         {
             AddIndentation();
@@ -892,6 +965,29 @@ void TranslateInstruction(Shader* psShader, Instruction* psInst)
             bcatcstr(glsl, ");\n");
             break;
         }
+        case OPCODE_SAMPLE_L:
+        {
+            //dest, coords, tex, sampler, lod
+#ifdef _DEBUG
+            AddIndentation();
+            bcatcstr(glsl, "//SAMPLE_L\n");
+#endif
+            AddIndentation();//1=temp??
+            TranslateOperand(&psInst->asOperands[1]);//??
+            bcatcstr(glsl, " = texture2DLod(");
+
+            TranslateOperand(&psInst->asOperands[3]);//resource
+            bcatcstr(glsl, ", ");
+            //Texture coord cannot be vec4
+            //Determining if it is a vec3 for vec2 yet to be done.
+            psInst->asOperands[2].aui32Swizzle[2] = 0xFFFFFFFF;
+            psInst->asOperands[2].aui32Swizzle[3] = 0xFFFFFFFF;
+            TranslateOperand(&psInst->asOperands[2]);//in
+            bcatcstr(glsl, ", ");
+            TranslateOperand(&psInst->asOperands[5]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
 		case OPCODE_RET:
 		{
             AddIndentation();
@@ -924,6 +1020,28 @@ void TranslateInstruction(Shader* psShader, Instruction* psInst)
             bcatcstr(glsl, "//BREAK\n");
             AddIndentation();
             bcatcstr(glsl, "break;\n");
+            break;
+        }
+        case OPCODE_BREAKC:
+        {
+#ifdef _DEBUG
+            AddIndentation();
+            bcatcstr(glsl, "//BREAKC\n");
+#endif
+            AddIndentation();
+            if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
+            {
+                bcatcstr(glsl, "if((");
+                TranslateOperand(&psInst->asOperands[0]);
+                bcatcstr(glsl, ")==0){break;}\n");
+            }
+            else
+            {
+                ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
+                bcatcstr(glsl, "if((");
+                TranslateOperand(&psInst->asOperands[0]);
+                bcatcstr(glsl, ")!=0){break;}\n");
+            }
             break;
         }
         case OPCODE_IF:
@@ -1247,9 +1365,7 @@ void main(int argc, char** argv)
     {
         TranslateToGLSL(psShader);
 
-        //Dump to console
         glslcstr = bstr2cstr(glsl, '\0');
-        //printf("%s\n", glslcstr);
 
         if(argc > 2)
         {
