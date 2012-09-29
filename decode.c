@@ -92,7 +92,7 @@ void DecodeNameToken(const uint32_t* pui32NameToken, Operand* psOperand)
         }
         default:
         {
-            printf("Unknown name token\n");
+            printf("Unknown name token %d\n", psOperand->eSpecialName);
             break;
         }
     }
@@ -315,7 +315,6 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         {
             psDecl->ui32NumOperands = 1;
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
-            DecodeNameToken(pui32Token + 3, &psDecl->asOperands[0]);
             break;
         }
         case OPCODE_DCL_OUTPUT_SGV:
@@ -543,7 +542,17 @@ void Decode(const uint32_t* pui32Tokens, Shader* psShader)
 
     while (pui32CurrentToken < (pui32Tokens + ui32ShaderLength))
     {
-        pui32CurrentToken = DeocdeInstruction(pui32CurrentToken, psInst);
+        const uint32_t* nextInstr = DeocdeInstruction(pui32CurrentToken, psInst);
+
+#ifdef _DEBUG
+        if(nextInstr == pui32CurrentToken)
+        {
+            printf("Zero length instruction found\n");
+            break;
+        }
+#endif
+
+        pui32CurrentToken = nextInstr;
         psShader->ui32InstCount++;
         psInst++;
     }
