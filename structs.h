@@ -1,6 +1,9 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
+#include "tokens.h"
+#include "languages.h"
+
 typedef struct Operand_TAG
 {
     int iExtended;
@@ -62,6 +65,8 @@ typedef struct Shader_TAG
     uint32_t ui32MajorVersion;
     uint32_t ui32MinorVersion;
     SHADER_TYPE eShaderType;
+
+    GLLang eTargetLanguage;
 
     //DWORDs in program code, including version and length tokens.
     uint32_t ui32ShaderLength;

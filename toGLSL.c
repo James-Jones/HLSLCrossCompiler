@@ -11,6 +11,13 @@
 
 #define ASSERT(x) assert(x)
 
+#ifndef GL_VERTEX_SHADER_ARB
+#define GL_VERTEX_SHADER_ARB              0x8B31
+#endif
+#ifndef GL_FRAGMENT_SHADER_ARB
+#define GL_FRAGMENT_SHADER_ARB            0x8B30
+#endif
+
 bstring glsl;
 int indent;
 
@@ -1067,7 +1074,94 @@ void TranslateInstruction(Shader* psShader, Instruction* psInst)
     }
 }
 
-void TranslateToGLSL(Shader* psShader)
+GLLang ChooseLanguage(Shader* psShader)
+{
+    // Depends on the HLSL shader model extracted from bytecode.
+    switch(psShader->ui32MajorVersion)
+    {
+        case 5:
+        {
+            return LANG_430;
+        }
+        case 4:
+        {
+            return LANG_330;
+        }
+        default:
+        {
+            return LANG_120;
+        }
+    }
+}
+
+const char* GetVersionString(GLLang language)
+{
+    switch(language)
+    {
+        case LANG_ES_100:
+        {
+            return "#version 100\n";
+            break;
+        }
+        case LANG_ES_300:
+        {
+            return "#version 300 es\n";
+            break;
+        }
+        case LANG_120:
+        {
+            return "#version 120\n";
+            break;
+        }
+        case LANG_130:
+        {
+            return "#version 130\n";
+            break;
+        }
+        case LANG_140:
+        {
+            return "#version 140\n";
+            break;
+        }
+        case LANG_150:
+        {
+            return "#version 150\n";
+            break;
+        }
+        case LANG_330:
+        {
+            return "#version 330\n";
+            break;
+        }
+        case LANG_400:
+        {
+            return "#version 400\n";
+            break;
+        }
+        case LANG_410:
+        {
+            return "#version 410\n";
+            break;
+        }
+        case LANG_420:
+        {
+            return "#version 420\n";
+            break;
+        }
+        case LANG_430:
+        {
+            return "#version 430\n";
+            break;
+        }
+        default:
+        {
+            return "";
+            break;
+        }
+    }
+}
+
+void TranslateToGLSL(Shader* psShader, GLLang language)
 {
     uint32_t i;
     const uint32_t ui32InstCount = psShader->ui32InstCount;
@@ -1075,16 +1169,14 @@ void TranslateToGLSL(Shader* psShader)
 
     indent = 0;
 
-	if(psShader->ui32MajorVersion == 5)
-	{
-        //glsl = bfromcstralloc (1024, "#version 420\n");
-        glsl = bfromcstralloc (1024, "#version 330\n");
-	}
-	else
-	if(psShader->ui32MajorVersion == 4)
-	{
-        glsl = bfromcstralloc (1024, "#version 330\n");
-	}
+    if(language == LANG_DEFAULT)
+    {
+        language = ChooseLanguage(psShader);
+    }
+
+    glsl = bfromcstralloc (1024, GetVersionString(language));
+
+    psShader->eTargetLanguage = language;
 
     for(i=0; i < ui32DeclCount; ++i)
     {
@@ -1112,7 +1204,7 @@ void TranslateToGLSL(Shader* psShader)
     bcatcstr(glsl, "}\n");
 }
 
-void TranslateHLSLFromMem(const char* shader, GLSLShader* result)
+void TranslateHLSLFromMem(const char* shader, GLLang language, GLSLShader* result)
 {
     uint32_t* tokens;
     Shader* psShader;
@@ -1125,7 +1217,7 @@ void TranslateHLSLFromMem(const char* shader, GLSLShader* result)
 
 	if(psShader)
     {
-        TranslateToGLSL(psShader);
+        TranslateToGLSL(psShader, language);
 
         glslcstr = bstr2cstr(glsl, '\0');
 
@@ -1156,7 +1248,7 @@ void TranslateHLSLFromMem(const char* shader, GLSLShader* result)
     result->sourceCode = glslcstr;
 }
 
-int TranslateHLSLFromFile(const char* filename, GLSLShader* result)
+int TranslateHLSLFromFile(const char* filename, GLLang language, GLSLShader* result)
 {
     FILE* shaderFile;
     int length;
@@ -1183,7 +1275,7 @@ int TranslateHLSLFromFile(const char* filename, GLSLShader* result)
 
     shader[readLength] = '\0';
 
-    TranslateHLSLFromMem(shader, result);
+    TranslateHLSLFromMem(shader, language, result);
 
     free(shader);
 

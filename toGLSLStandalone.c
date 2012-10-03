@@ -1,5 +1,6 @@
 
 #include "toGLSL.h"
+#include "languages.h"
 #include "stdlib.h"
 #include "stdio.h"
 #include "bstrlib.h"
@@ -19,6 +20,8 @@ typedef unsigned char uint8_t;
 
 	typedef char GLcharARB;		/* native character */
 	typedef unsigned int GLhandleARB;	/* shader object handle */
+#define GL_VERTEX_SHADER_ARB              0x8B31
+#define GL_FRAGMENT_SHADER_ARB            0x8B30
 #define GL_OBJECT_COMPILE_STATUS_ARB      0x8B81
 #define GL_OBJECT_LINK_STATUS_ARB         0x8B82
 	typedef void (WINAPI * PFNGLDELETEOBJECTARBPROC) (GLhandleARB obj);
@@ -191,10 +194,62 @@ int fileExists(const char* path)
     return 0;
 }
 
+GLLang LanguageFromString(const char* str)
+{
+    if(strcmp(str, "es100")==0)
+    {
+        return LANG_ES_100;
+    }
+    if(strcmp(str, "es300")==0)
+    {
+        return LANG_ES_300;
+    }
+    if(strcmp(str, "120")==0)
+    {
+        return LANG_120;
+    }
+    if(strcmp(str, "130")==0)
+    {
+        return LANG_130;
+    }
+    if(strcmp(str, "140")==0)
+    {
+        return LANG_140;
+    }
+    if(strcmp(str, "150")==0)
+    {
+        return LANG_150;
+    }
+    if(strcmp(str, "330")==0)
+    {
+        return LANG_330;
+    }
+    if(strcmp(str, "400")==0)
+    {
+        return LANG_400;
+    }
+    if(strcmp(str, "410")==0)
+    {
+        return LANG_410;
+    }
+    if(strcmp(str, "420")==0)
+    {
+        return LANG_420;
+    }
+    if(strcmp(str, "430")==0)
+    {
+        return LANG_430;
+    }
+    return LANG_DEFAULT;
+}
+
 void main(int argc, char** argv)
 {
     FILE* outputFile;
     GLSLShader result;
+    GLLang language = LANG_DEFAULT;
+
+    printf("args: bytecode-file [output-file] [language override - es100 es300 120 130 etc.]\n");
 
     if(argc < 2 || !fileExists(argv[1]))
     {
@@ -202,7 +257,12 @@ void main(int argc, char** argv)
         return;
     }
 
-    if(TranslateHLSLFromFile(argv[1], &result))
+    if(argc > 3)
+    {
+        language = LanguageFromString(argv[3]);
+    }
+
+    if(TranslateHLSLFromFile(argv[1], language, &result))
     {
         if(argc > 2)
         {

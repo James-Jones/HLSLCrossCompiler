@@ -484,7 +484,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         {
 #ifdef DEBUG
 			//OutputDebugString("Unkown opcode.\n");
-            printf("Unkown opcode.\n");
+            printf("Unkown opcode %d.\n", eOpcode);
 #endif
             break;
         }

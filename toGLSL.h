@@ -1,20 +1,15 @@
 #ifndef TO_GLSL_H
 #define TO_GLSL_H
 
-#ifndef GL_VERTEX_SHADER_ARB
-#define GL_VERTEX_SHADER_ARB              0x8B31
-#endif
-#ifndef GL_FRAGMENT_SHADER_ARB
-#define GL_FRAGMENT_SHADER_ARB            0x8B30
-#endif
+#include "languages.h"
 
 typedef struct
 {
-    int shaderType;
+    int shaderType; //One of the GL enums.
     char* sourceCode;
 } GLSLShader;
 
-int TranslateHLSLFromFile(const char* filename, GLSLShader* result);
-void TranslateHLSLFromMem(const char* shader, GLSLShader* result);
+int TranslateHLSLFromFile(const char* filename, GLLang language, GLSLShader* result);
+void TranslateHLSLFromMem(const char* shader, GLLang language, GLSLShader* result);
 
 #endif
