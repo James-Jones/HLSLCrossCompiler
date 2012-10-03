@@ -57,6 +57,11 @@ typedef struct Declaration_TAG
     RESOURCE_DIMENSION eResourceDimension;
     INTERPOLATION_MODE eInterpolation;
     PRIMITIVE_TOPOLOGY ePrimitiveTopology;
+    uint32_t ui32MaxOutputVertexCount;
+    TESSELLATOR_DOMAIN eTessDomain;
+    TESSELLATOR_PARTITIONING eTessPartitioning;
+    TESSELLATOR_OUTPUT_PRIMITIVE eTessOutPrim;
+    uint32_t aui32WorkGroupSize[3];
     Operand asOperands[1];
 } Declaration;
 

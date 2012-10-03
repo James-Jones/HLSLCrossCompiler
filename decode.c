@@ -275,6 +275,29 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT:
         {
+            psDecl->ui32MaxOutputVertexCount = pui32Token[1];
+            break;
+        }
+        case OPCODE_DCL_TESS_PARTITIONING:
+        {
+            psDecl->eTessPartitioning = DecodeTessPartitioning(*pui32Token);
+            break;
+        }
+        case OPCODE_DCL_TESS_DOMAIN:
+        {
+            psDecl->eTessDomain = DecodeTessDomain(*pui32Token);
+            break;
+        }
+        case OPCODE_DCL_TESS_OUTPUT_PRIMITIVE:
+        {
+            psDecl->eTessOutPrim = DecodeTessOutPrim(*pui32Token);
+            break;
+        }
+        case OPCODE_DCL_THREAD_GROUP:
+        {
+            psDecl->aui32WorkGroupSize[0] = pui32Token[1];
+            psDecl->aui32WorkGroupSize[1] = pui32Token[2];
+            psDecl->aui32WorkGroupSize[2] = pui32Token[3];
             break;
         }
         case OPCODE_DCL_INPUT:
@@ -293,6 +316,8 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
             {
                 psDecl->eInterpolation = DecodeInterpolationMode(*pui32Token);
             }
+            psDecl->ui32NumOperands = 1;
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
         case OPCODE_DCL_INPUT_PS:
@@ -352,7 +377,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
     return pui32Token + ui32TokenLength;
 }
 
-const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psInst)
+const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psInst, Shader* psShader)
 {
     const uint32_t ui32TokenLength = DecodeInstructionLength(*pui32Token);
     const uint32_t bExtended = DecodeIsOpcodeExtended(*pui32Token);
@@ -372,10 +397,22 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 
     switch (eOpcode)
     {
+        case OPCODE_CUT:
+        case OPCODE_EMIT:
+        case OPCODE_EMITTHENCUT:
 		case OPCODE_RET:
 		{
 			break;
 		}
+
+        case OPCODE_EMIT_STREAM:
+        case OPCODE_CUT_STREAM:
+        case OPCODE_EMITTHENCUT_STREAM:
+        {
+            psInst->ui32NumOperands = 1;
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            break;
+        }
 
 	/* Floating point instruction decodes */
 
@@ -541,7 +578,7 @@ void Decode(const uint32_t* pui32Tokens, Shader* psShader)
 
     while (pui32CurrentToken < (pui32Tokens + ui32ShaderLength))
     {
-        const uint32_t* nextInstr = DeocdeInstruction(pui32CurrentToken, psInst);
+        const uint32_t* nextInstr = DeocdeInstruction(pui32CurrentToken, psInst, psShader);
 
 #ifdef _DEBUG
         if(nextInstr == pui32CurrentToken)
@@ -584,7 +621,7 @@ Shader* DecodeDXBC(uint32_t* data)
 		if(chunk->fourcc == FOURCC_SHDR ||
 			chunk->fourcc == FOURCC_SHEX)
 		{
-            psShader = malloc(sizeof(Shader));
+            psShader = calloc(1, sizeof(Shader));
 			Decode((uint32_t*)(chunk + 1), psShader);
 			printf("Success!\n");
 			return psShader;

@@ -17,6 +17,18 @@
 #ifndef GL_FRAGMENT_SHADER_ARB
 #define GL_FRAGMENT_SHADER_ARB            0x8B30
 #endif
+#ifndef GL_GEOMETRY_SHADER
+#define GL_GEOMETRY_SHADER 0x8DD9
+#endif
+#ifndef GL_TESS_EVALUATION_SHADER
+#define GL_TESS_EVALUATION_SHADER 0x8E87
+#endif
+#ifndef GL_TESS_CONTROL_SHADER
+#define GL_TESS_CONTROL_SHADER 0x8E88
+#endif
+#ifndef GL_COMPUTE_SHADER
+#define GL_COMPUTE_SHADER 0x91B9
+#endif
 
 bstring glsl;
 int indent;
@@ -62,6 +74,30 @@ void AddIndentation()
     {
         bcatcstr(glsl, "    ");
     }
+}
+
+void AddVersionDependentCode(Shader* psShader)
+{
+    /*
+        OpenGL 4.1 API spec:
+        To use any built-in input or output in the gl_PerVertex block in separable
+        program objects, shader code must redeclare that block prior to use.
+    */
+    if(psShader->eShaderType == VERTEX_SHADER)
+    {
+        bcatcstr(glsl, "#if __VERSION__ > 410\n");
+            bcatcstr(glsl, "\tout gl_PerVertex {\n");
+            bcatcstr(glsl, "\tvec4 gl_Position;\n");
+            bcatcstr(glsl, "\tfloat gl_PointSize;\n");
+            bcatcstr(glsl, "\tfloat gl_ClipDistance[];");
+            bcatcstr(glsl, "};\n");
+        bcatcstr(glsl, "#endif \n");
+    }
+
+    /* After GLSL 120 and GLSL ES 100 texture function have overloaded parameters */
+    bcatcstr(glsl, "#if __VERSION__ > 120 \n");
+        bcatcstr(glsl, "\t#define texture2DLod texture \n");
+    bcatcstr(glsl, "#endif \n");
 }
 
 void AddOpcodeFuncs()
@@ -365,6 +401,99 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
             
             break;
         }
+
+        case OPCODE_DCL_THREAD_GROUP:
+        {
+            bformata(glsl, "layout(local_size_x = %d, local_size_y = %d, local_size_z = %d) in;\n",
+                psDecl->aui32WorkGroupSize[0],
+                psDecl->aui32WorkGroupSize[1],
+                psDecl->aui32WorkGroupSize[2]);
+            break;
+        }
+        case OPCODE_DCL_TESS_OUTPUT_PRIMITIVE:
+        {
+            switch(psDecl->eTessOutPrim)
+            {
+                case TESSELLATOR_OUTPUT_TRIANGLE_CW:
+                {
+                    bcatcstr(glsl, "layout(cw) in;\n");
+                    break;
+                }
+                case TESSELLATOR_OUTPUT_TRIANGLE_CCW:
+                {
+                    bcatcstr(glsl, "layout(ccw) in;\n");
+                    break;
+                }
+                case TESSELLATOR_OUTPUT_POINT:
+                {
+                    bcatcstr(glsl, "layout(point_mode) in;\n");
+                    break;
+                }
+                case TESSELLATOR_OUTPUT_LINE:
+                {
+                    bcatcstr(glsl, "//TESSELLATOR_OUTPUT_LINE\n");
+                    break;
+                }
+            }
+            break;
+        }
+        case OPCODE_DCL_TESS_DOMAIN:
+        {
+            switch(psDecl->eTessDomain)
+            {
+                case TESSELLATOR_DOMAIN_ISOLINE:
+                {
+                    bcatcstr(glsl, "layout(isolines) in;\n");
+                    break;
+                }
+                case TESSELLATOR_DOMAIN_TRI:
+                {
+                    bcatcstr(glsl, "layout(triangles) in;\n");
+                    break;
+                }
+                case TESSELLATOR_DOMAIN_QUAD:
+                {
+                    bcatcstr(glsl, "layout(quads) in;\n");
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
+            break;
+        }
+        case OPCODE_DCL_TESS_PARTITIONING:
+        {
+            switch(psDecl->eTessPartitioning)
+            {
+                case TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
+                {
+                    bcatcstr(glsl, "layout(fractional_odd_spacing) in;\n");
+                    break;
+                }
+                case TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
+                {
+                    bcatcstr(glsl, "layout(fractional_even_spacing) in;\n");
+                    break;
+                }
+                case TESSELLATOR_PARTITIONING_INTEGER:
+                {
+                    bcatcstr(glsl, "//TESSELLATOR_PARTITIONING_INTEGER not supported\n");
+                    break;
+                }
+                case TESSELLATOR_PARTITIONING_POW2:
+                {
+                    bcatcstr(glsl, "//TESSELLATOR_PARTITIONING_POW2 not supported\n");
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
+            break;
+        }
         case OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY:
         {
             switch(psDecl->ePrimitiveTopology)
@@ -396,6 +525,11 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
                     break;
                 }
             }
+            break;
+        }
+        case OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT:
+        {
+            bformata(glsl, "layout(max_vertices = %d) out;\n", psDecl->ui32MaxOutputVertexCount);
             break;
         }
         case OPCODE_DCL_GS_INPUT_PRIMITIVE:
@@ -974,6 +1108,65 @@ void TranslateInstruction(Shader* psShader, Instruction* psInst)
 			bcatcstr(glsl, "return;\n");
 			break;
 		}
+        case OPCODE_CUT:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//CUT\n");
+            AddIndentation();
+			bcatcstr(glsl, "EndPrimitive();\n");
+			break;
+        }
+        case OPCODE_EMIT:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//EMIT\n");
+            AddIndentation();
+			bcatcstr(glsl, "EmitVertex();\n");
+			break;
+        }
+        case OPCODE_EMITTHENCUT:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//EMITTHENCUT\n");
+            AddIndentation();
+			bcatcstr(glsl, "EmitVertex();\nEndPrimitive();\n");
+			break;
+        }
+
+        case OPCODE_CUT_STREAM:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//CUT\n");
+            AddIndentation();
+			bcatcstr(glsl, "EndStreamPrimitive(");
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, ");\n");
+
+			break;
+        }
+        case OPCODE_EMIT_STREAM:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//EMIT\n");
+            AddIndentation();
+			bcatcstr(glsl, "EmitStreamVertex(");
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, ");\n");
+			break;
+        }
+        case OPCODE_EMITTHENCUT_STREAM:
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//EMITTHENCUT\n");
+            AddIndentation();
+			bcatcstr(glsl, "EmitStreamVertex(");
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, ");\n");
+			bcatcstr(glsl, "EndStreamPrimitive(");
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, ");\n");
+			break;
+        }
         case OPCODE_LOOP:
         {
             AddIndentation();
@@ -1183,9 +1376,7 @@ void TranslateToGLSL(Shader* psShader, GLLang language)
         TranslateDeclaration(psShader, psShader->psDecl+i);
     }
 
-    bcatcstr(glsl, "#if __VERSION__ > 120 \n");
-        bcatcstr(glsl, "#define texture2DLod texture \n");
-    bcatcstr(glsl, "#endif \n");
+	AddVersionDependentCode(psShader);
 
     AddOpcodeFuncs();
 
@@ -1226,6 +1417,26 @@ void TranslateHLSLFromMem(const char* shader, GLLang language, GLSLShader* resul
                 GLSLShaderType = GL_VERTEX_SHADER_ARB;
                 break;
             }
+            case GEOMETRY_SHADER:
+            {
+                GLSLShaderType = GL_GEOMETRY_SHADER;
+                break;
+            }
+            case DOMAIN_SHADER:
+            {
+                GLSLShaderType = GL_TESS_EVALUATION_SHADER;
+                break;
+            }
+            case HULL_SHADER:
+            {
+                GLSLShaderType = GL_TESS_CONTROL_SHADER;
+                break;
+            }
+            case COMPUTE_SHADER:
+            {
+                GLSLShaderType = GL_COMPUTE_SHADER;
+                break;
+            }
             default:
             {
                 break;
@@ -1245,6 +1456,7 @@ void TranslateHLSLFromMem(const char* shader, GLLang language, GLSLShader* resul
     tokens = 0;
 
     /* Fill in the result struct */
+
     result->shaderType = GLSLShaderType;
     result->sourceCode = glslcstr;
 }
