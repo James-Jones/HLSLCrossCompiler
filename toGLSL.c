@@ -1219,6 +1219,19 @@ void TranslateHLSLFromMem(const char* shader, GLLang language, GLSLShader* resul
     {
         TranslateToGLSL(psShader, language);
 
+        switch(psShader->eShaderType)
+        {
+            case VERTEX_SHADER:
+            {
+                GLSLShaderType = GL_VERTEX_SHADER_ARB;
+                break;
+            }
+            default:
+            {
+                break;
+            }
+        }
+
         glslcstr = bstr2cstr(glsl, '\0');
 
         bdestroy(glsl);
@@ -1232,18 +1245,6 @@ void TranslateHLSLFromMem(const char* shader, GLLang language, GLSLShader* resul
     tokens = 0;
 
     /* Fill in the result struct */
-    switch(psShader->eShaderType)
-    {
-        case VERTEX_SHADER:
-        {
-            GLSLShaderType = GL_VERTEX_SHADER_ARB;
-            break;
-        }
-        default:
-        {
-            break;
-        }
-    }
     result->shaderType = GLSLShaderType;
     result->sourceCode = glslcstr;
 }

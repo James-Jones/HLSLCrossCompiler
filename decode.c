@@ -502,11 +502,10 @@ void Decode(const uint32_t* pui32Tokens, Shader* psShader)
 	psShader->ui32MajorVersion = DecodeProgramMajorVersion(*pui32CurrentToken);
 	psShader->ui32MinorVersion = DecodeProgramMinorVersion(*pui32CurrentToken);
 	psShader->eShaderType = DecodeShaderType(*pui32CurrentToken);
-	pui32CurrentToken++;
-	psShader->ui32ShaderLength = ui32ShaderLength;
 
-    pui32CurrentToken++;//Shader length
-	pui32CurrentToken++;//After shader length (usually a declaration)
+	pui32CurrentToken++;//Move to shader length
+	psShader->ui32ShaderLength = ui32ShaderLength;
+    pui32CurrentToken++;//Move to after shader length (usually a declaration)
 
     //Using ui32ShaderLength as the instruction count
     //will allocate more than enough memory. Avoids having to
