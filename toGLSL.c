@@ -524,7 +524,7 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
         }
         case OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY:
         {
-            switch(psDecl->ePrimitiveTopology)
+            switch(psDecl->eOutputPrimitiveTopology)
             {
                 case PRIMITIVE_TOPOLOGY_POINTLIST:
                 {
@@ -562,33 +562,29 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
         }
         case OPCODE_DCL_GS_INPUT_PRIMITIVE:
         {
-            switch(psDecl->ePrimitiveTopology)
+            switch(psDecl->eInputPrimitive)
             {
-                case PRIMITIVE_TOPOLOGY_POINTLIST:
+                case PRIMITIVE_POINT:
                 {
                     bcatcstr(glsl, "layout(points) in;\n");
                     break;
                 }
-                case PRIMITIVE_TOPOLOGY_LINELIST:
-                case PRIMITIVE_TOPOLOGY_LINESTRIP:
+                case PRIMITIVE_LINE:
                 {
                     bcatcstr(glsl, "layout(lines) in;\n");
                     break;
                 }
-                case PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
-                case PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ:
+                case PRIMITIVE_LINE_ADJ:
                 {
                     bcatcstr(glsl, "layout(lines_adjacency) in;\n");
                     break;
                 }
-                case PRIMITIVE_TOPOLOGY_TRIANGLESTRIP:
-                case PRIMITIVE_TOPOLOGY_TRIANGLELIST:
+                case PRIMITIVE_TRIANGLE:
                 {
                     bcatcstr(glsl, "layout(triangles) in;\n");
                     break;
                 }
-                case PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
-                case PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ:
+                case PRIMITIVE_TRIANGLE_ADJ:
                 {
                     bcatcstr(glsl, "layout(triangles_adjacency) in;\n");
                     break;
@@ -604,6 +600,42 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
         {
             bformata(glsl, "/* Unhandled input declaration - opcode=0x%X */\n", psDecl->eOpcode);
             break;
+        }
+    }
+}
+
+void TranslateIndex(const Operand* psOperand, int index)
+{
+    int i = index;
+    int isGeoShader = 1;
+    ASSERT(index < psOperand->iIndexDims);
+    //for(i=0; i <psOperand->iIndexDims; ++i)
+    {
+        switch(psOperand->eIndexRep[i])
+        {
+            case OPERAND_INDEX_IMMEDIATE32:
+            {
+                if(i > 0 || isGeoShader)
+                {
+                    bformata(glsl, "[%d]", psOperand->aui32ArraySizes[i]);
+                }
+                else
+                {
+                    bformata(glsl, "%d", psOperand->aui32ArraySizes[i]);
+                }
+                break;
+            }
+            case OPERAND_INDEX_RELATIVE:
+            {
+                bcatcstr(glsl, "[");
+                TranslateOperand(psOperand->psSubOperand[i]);
+                bcatcstr(glsl, "]");
+                break;
+            }
+            default:
+            {
+                break;
+            }
         }
     }
 }
@@ -656,14 +688,19 @@ void TranslateOperand(const Operand* psOperand)
         {
             switch(psOperand->iIndexDims)
             {
-                //case INDEX_2D:
-                //{
-                //    bformata(glsl, "Input%d[%d]", psOperand->ui32RegisterNumber, psOperand->aui32ArraySizes[0]);
-                //    break;
-                //}
+                case INDEX_2D:
+                {
+                    bformata(glsl, "Input%d", psOperand->aui32ArraySizes[1]);
+                    TranslateIndex(psOperand, 0);
+                    //bformata(glsl, "Input%d[%d]", psOperand->ui32RegisterNumber, psOperand->aui32ArraySizes[2]);
+                    break;
+                }
                 default:
                 {
                     bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
+
+                                        //bformata(glsl, "Input");
+                    //TranslateIndex(psOperand);
                     break;
                 }
             }

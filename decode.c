@@ -207,9 +207,35 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
     {
         OPERAND_INDEX_REPRESENTATION eRep = DecodeOperandIndexRepresentation(i ,*pui32Tokens);
 
-        psOperand->ui32RegisterNumber = *(pui32Tokens+ui32NumTokens);
+        psOperand->eIndexRep[i] = eRep;
 
-        psOperand->aui32ArraySizes[i] = psOperand->ui32RegisterNumber;
+        psOperand->aui32ArraySizes[i] = 0;
+        psOperand->ui32RegisterNumber = 0;
+
+        switch(eRep)
+        {
+            case OPERAND_INDEX_IMMEDIATE32:
+            {
+                psOperand->ui32RegisterNumber = *(pui32Tokens+ui32NumTokens);
+                psOperand->aui32ArraySizes[i] = psOperand->ui32RegisterNumber;
+                break;
+            }
+            case OPERAND_INDEX_RELATIVE:
+            {
+                psOperand->psSubOperand[i] = malloc(sizeof(Operand));
+                //ui32NumTokens +=
+                    DecodeOperand(pui32Tokens+ui32NumTokens, psOperand->psSubOperand[i]);
+
+                    ui32NumTokens++;
+                //psOperand->ui32RegisterNumber = 0xFFFFFFFF;
+                break;
+            }
+            default:
+            {
+                printf("Unhandled index representation\n");
+                break;
+            }
+        }
 
         ui32NumTokens++;
     }
@@ -266,12 +292,12 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY:
         {
-            psDecl->ePrimitiveTopology = DecodeGSPrimitiveTopology(*pui32Token);
+            psDecl->eOutputPrimitiveTopology = DecodeGSOutputPrimitiveTopology(*pui32Token);
             break;
         }
         case OPCODE_DCL_GS_INPUT_PRIMITIVE:
         {
-            psDecl->ePrimitiveTopology = DecodeGSPrimitiveTopology(*pui32Token);
+            psDecl->eInputPrimitive = DecodeGSInputPrimitive(*pui32Token);
             break;
         }
         case OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT:

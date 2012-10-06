@@ -28,9 +28,12 @@ typedef struct Operand_TAG
     float afImmediates[4];
     //uint64_t aui64Immediates;
 
-
     SPECIAL_NAME eSpecialName;
     char pszSpecialName[64];
+
+    OPERAND_INDEX_REPRESENTATION eIndexRep[3];
+
+    struct Operand_TAG* psSubOperand[3];
 
 #ifdef _DEBUG
     uint64_t id;
@@ -57,7 +60,8 @@ typedef struct Declaration_TAG
     uint32_t ui32NumTemps;
     RESOURCE_DIMENSION eResourceDimension;
     INTERPOLATION_MODE eInterpolation;
-    PRIMITIVE_TOPOLOGY ePrimitiveTopology;
+    PRIMITIVE_TOPOLOGY eOutputPrimitiveTopology;
+    PRIMITIVE eInputPrimitive;
     uint32_t ui32MaxOutputVertexCount;
     TESSELLATOR_DOMAIN eTessDomain;
     TESSELLATOR_PARTITIONING eTessPartitioning;
