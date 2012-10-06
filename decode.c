@@ -203,12 +203,13 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
         }
     }
 
-
     for(i=0; i <psOperand->iIndexDims; ++i)
     {
         OPERAND_INDEX_REPRESENTATION eRep = DecodeOperandIndexRepresentation(i ,*pui32Tokens);
 
         psOperand->ui32RegisterNumber = *(pui32Tokens+ui32NumTokens);
+
+        psOperand->aui32ArraySizes[i] = psOperand->ui32RegisterNumber;
 
         ui32NumTokens++;
     }

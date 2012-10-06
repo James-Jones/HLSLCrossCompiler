@@ -267,7 +267,35 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
         {
             const Operand* psOperand = &psDecl->asOperands[0];
             int iNumComponents = GetMaxComponentFromComponentMask(psOperand);
-            bformata(glsl, "in vec%d Input%d;\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+            switch(psOperand->iIndexDims)
+            {
+                case INDEX_2D:
+                {
+                    if(iNumComponents == 1)
+                    {
+                        bformata(glsl, "in float Input%d [%d];\n", psDecl->asOperands[0].ui32RegisterNumber,
+                            psDecl->asOperands[0].aui32ArraySizes[0]);
+                    }
+                    else
+                    {
+                        bformata(glsl, "in vec%d Input%d [%d];\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber,
+                            psDecl->asOperands[0].aui32ArraySizes[0]);
+                    }
+                    break;
+                }
+                default:
+                {
+                    if(iNumComponents == 1)
+                    {
+                        bformata(glsl, "in float Input%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+                    }
+                    else
+                    {
+                        bformata(glsl, "in vec%d Input%d;\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+                    }
+                    break;
+                }
+            }
             break;
         }
         case OPCODE_DCL_INPUT_PS:
@@ -570,6 +598,7 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
                     break;
                 }
             }
+            break;
         }
         default:
         {
@@ -625,7 +654,19 @@ void TranslateOperand(const Operand* psOperand)
         }
         case OPERAND_TYPE_INPUT:
         {
-            bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
+            switch(psOperand->iIndexDims)
+            {
+                //case INDEX_2D:
+                //{
+                //    bformata(glsl, "Input%d[%d]", psOperand->ui32RegisterNumber, psOperand->aui32ArraySizes[0]);
+                //    break;
+                //}
+                default:
+                {
+                    bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
+                    break;
+                }
+            }
             break;
         }
         case OPERAND_TYPE_OUTPUT:

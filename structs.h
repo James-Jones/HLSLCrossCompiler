@@ -22,6 +22,7 @@ typedef struct Operand_TAG
     uint32_t ui32Swizzle;
     uint32_t aui32Swizzle[4];
 
+    uint32_t aui32ArraySizes[3];
     uint32_t ui32RegisterNumber;
     //If eType is OPERAND_TYPE_IMMEDIATE32
     float afImmediates[4];
