@@ -609,33 +609,31 @@ void TranslateIndex(const Operand* psOperand, int index)
     int i = index;
     int isGeoShader = 1;
     ASSERT(index < psOperand->iIndexDims);
-    //for(i=0; i <psOperand->iIndexDims; ++i)
+
+    switch(psOperand->eIndexRep[i])
     {
-        switch(psOperand->eIndexRep[i])
+        case OPERAND_INDEX_IMMEDIATE32:
         {
-            case OPERAND_INDEX_IMMEDIATE32:
+            if(i > 0 || isGeoShader)
             {
-                if(i > 0 || isGeoShader)
-                {
-                    bformata(glsl, "[%d]", psOperand->aui32ArraySizes[i]);
-                }
-                else
-                {
-                    bformata(glsl, "%d", psOperand->aui32ArraySizes[i]);
-                }
-                break;
+                bformata(glsl, "[%d]", psOperand->aui32ArraySizes[i]);
             }
-            case OPERAND_INDEX_RELATIVE:
+            else
             {
-                bcatcstr(glsl, "[");
-                TranslateOperand(psOperand->psSubOperand[i]);
-                bcatcstr(glsl, "]");
-                break;
+                bformata(glsl, "%d", psOperand->aui32ArraySizes[i]);
             }
-            default:
-            {
-                break;
-            }
+            break;
+        }
+        case OPERAND_INDEX_RELATIVE:
+        {
+            bcatcstr(glsl, "[int("); //Indexes must be integral.
+            TranslateOperand(psOperand->psSubOperand[i]);
+            bcatcstr(glsl, ")]");
+            break;
+        }
+        default:
+        {
+            break;
         }
     }
 }
@@ -690,17 +688,22 @@ void TranslateOperand(const Operand* psOperand)
             {
                 case INDEX_2D:
                 {
-                    bformata(glsl, "Input%d", psOperand->aui32ArraySizes[1]);
-                    TranslateIndex(psOperand, 0);
-                    //bformata(glsl, "Input%d[%d]", psOperand->ui32RegisterNumber, psOperand->aui32ArraySizes[2]);
+                    if(psOperand->aui32ArraySizes[1] == 0)//Input index zero - position.
+                    {
+                        bcatcstr(glsl, "gl_in");
+                        TranslateIndex(psOperand, 0);//Vertex index
+                        bcatcstr(glsl, ".gl_Position");
+                    }
+                    else
+                    {
+                        bformata(glsl, "Input%d", psOperand->aui32ArraySizes[1]);
+                        TranslateIndex(psOperand, 0);//Vertex index
+                    }
                     break;
                 }
                 default:
                 {
                     bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
-
-                                        //bformata(glsl, "Input");
-                    //TranslateIndex(psOperand);
                     break;
                 }
             }
