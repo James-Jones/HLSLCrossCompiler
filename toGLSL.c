@@ -34,6 +34,7 @@ bstring glsl;
 int indent;
 
 void TranslateOperand(const Operand* psOperand);
+void TranslateSystemValueVariableName(const Operand* psOperand);
 
 int GetMaxComponentFromComponentMask(const Operand* psOperand)
 {
@@ -78,6 +79,11 @@ void AddIndentation()
 
 void AddVersionDependentCode(Shader* psShader)
 {
+    /* For versions which do not support a vec1 (currently all versions) */
+    bcatcstr(glsl,"struct vec1 {\n");
+    bcatcstr(glsl,"\tfloat x;\n");
+    bcatcstr(glsl,"};\n");
+
     /*
         OpenGL 4.1 API spec:
         To use any built-in input or output in the gl_PerVertex block in separable
@@ -246,6 +252,84 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
     switch(psDecl->eOpcode)
     {
         case OPCODE_DCL_INPUT_PS_SGV:
+        {
+            switch(psDecl->asOperands[0].eSpecialName)
+            {
+                case NAME_POSITION:
+                {
+                    bcatcstr(glsl, "#define ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    bformata(glsl, " gl_Position\n");
+                    break;
+                }
+                /*
+                    HLSL allows .x on scalars. Upgrade scalar
+                    system values to vec1 so .x works. Even when
+                    GLSL allows a vec1, this will still be needed for
+                    backwards compatiblility.
+                */
+                case NAME_RENDER_TARGET_ARRAY_INDEX:
+                {
+                    bcatcstr(glsl, "vec1 ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    bformata(glsl, " = vec1(gl_Layer)\n");
+                    break;
+                }
+                case NAME_CLIP_DISTANCE:
+                {
+                    bcatcstr(glsl, "#define ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    bformata(glsl, " gl_ClipDistance\n");
+                    break;
+                }
+                case NAME_VIEWPORT_ARRAY_INDEX:
+                {
+                    bcatcstr(glsl, "vec1 ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    bformata(glsl, " = vec1(gl_ViewportIndex)\n");
+                    break;
+                }
+                case NAME_VERTEX_ID:
+                {
+                    bcatcstr(glsl, "vec1 ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    bformata(glsl, " = vec1(gl_VertexID)\n");
+                    break;
+                }
+                case NAME_PRIMITIVE_ID:
+                {
+                    bcatcstr(glsl, "vec1 ");
+                    TranslateSystemValueVariableName(&psDecl->asOperands[0]);
+                    bformata(glsl, " = vec1(gl_PrimitiveID);\n");
+                    break;
+                }
+                case NAME_INSTANCE_ID:
+                {
+                    bcatcstr(glsl, "vec1 ");
+                    TranslateSystemValueVariableName(&psDecl->asOperands[0]);
+                    bformata(glsl, " = vec1(gl_InstanceID)\n");
+                    break;
+                }
+                case NAME_IS_FRONT_FACE:
+                {
+                    bcatcstr(glsl, "vec1 ");
+                    TranslateSystemValueVariableName(&psDecl->asOperands[0]);
+                    bformata(glsl, " = vec1(gl_FrontFacing)\n");
+                    break;
+                }
+                default:
+                {
+                    bformata(glsl, "in vec4 %s;\n", psDecl->asOperands[0].pszSpecialName);
+
+                    bcatcstr(glsl, "#define ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    bformata(glsl, " %s\n", psDecl->asOperands[0].pszSpecialName);
+                    break;
+                }
+            }
+            break;
+        }
+
         case OPCODE_DCL_OUTPUT_SIV:
         {
             switch(psDecl->asOperands[0].eSpecialName)
@@ -289,7 +373,7 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
                 {
                     bcatcstr(glsl, "#define ");
                     TranslateOperand(&psDecl->asOperands[0]);
-                    bformata(glsl, " gl_PrimitiveID\n");
+                    bformata(glsl, " gl_PrimitiveID);\n");
                     break;
                 }
                 case NAME_INSTANCE_ID:
@@ -700,11 +784,55 @@ void TranslateIndex(const Operand* psOperand, int index)
     }
 }
 
+void TranslateSystemValueVariableName(const Operand* psOperand)
+{
+    switch(psOperand->eType)
+    {
+        case OPERAND_TYPE_INPUT:
+        {
+            switch(psOperand->iIndexDims)
+            {
+                case INDEX_2D:
+                {
+                    if(psOperand->aui32ArraySizes[1] == 0)//Input index zero - position.
+                    {
+                        bcatcstr(glsl, "gl_in");
+                        TranslateIndex(psOperand, 0);//Vertex index
+                        bcatcstr(glsl, ".gl_Position");
+                    }
+                    else
+                    {
+                        bformata(glsl, "Input%d", psOperand->aui32ArraySizes[1]);
+                        TranslateIndex(psOperand, 0);//Vertex index
+                    }
+                    break;
+                }
+                default:
+                {
+                    bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
+                    break;
+                }
+            }
+            break;
+        }
+        case OPERAND_TYPE_OUTPUT:
+        {
+            bformata(glsl, "Output%d", psOperand->ui32RegisterNumber);
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+}
+
 void TranslateOperand(const Operand* psOperand)
 {
     switch(psOperand->eModifier)
     {
-        case OPERAND_MODIFIER_NONE:
+        
+    case OPERAND_MODIFIER_NONE:
         {
             break;
         }
@@ -841,6 +969,19 @@ void TranslateInstruction(Shader* psShader, Instruction* psInst)
             bcatcstr(glsl, " = vec4(");
 
 
+            TranslateOperand(&psInst->asOperands[1]);
+            bcatcstr(glsl, ")");
+            TranslateOperandSwizzle(&psInst->asOperands[0]);
+            bcatcstr(glsl, ";\n");
+            break;
+        }
+        case OPCODE_UTOF://unsigned to float
+        {
+            AddIndentation();
+            bcatcstr(glsl, "//UTOF\n");
+            AddIndentation();
+            TranslateOperand(&psInst->asOperands[0]);
+            bcatcstr(glsl, " = vec4(");
             TranslateOperand(&psInst->asOperands[1]);
             bcatcstr(glsl, ")");
             TranslateOperandSwizzle(&psInst->asOperands[0]);
@@ -1514,12 +1655,12 @@ void TranslateToGLSL(Shader* psShader, GLLang language)
 
     psShader->eTargetLanguage = language;
 
+    AddVersionDependentCode(psShader);
+
     for(i=0; i < ui32DeclCount; ++i)
     {
         TranslateDeclaration(psShader, psShader->psDecl+i);
     }
-
-	AddVersionDependentCode(psShader);
 
     AddOpcodeFuncs();
 
