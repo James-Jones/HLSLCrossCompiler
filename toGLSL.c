@@ -245,21 +245,76 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
 {
     switch(psDecl->eOpcode)
     {
+        case OPCODE_DCL_INPUT_PS_SGV:
         case OPCODE_DCL_OUTPUT_SIV:
         {
-            if(strcmp(psDecl->asOperands[0].pszSpecialName, "position") == 0)
+            switch(psDecl->asOperands[0].eSpecialName)
             {
-                bcatcstr(glsl, "#define ");
-                TranslateOperand(&psDecl->asOperands[0]);
-                bformata(glsl, " gl_Position\n");
-            }
-            else
-            {
-                bformata(glsl, "out vec4 %s;\n", psDecl->asOperands[0].pszSpecialName);
+                case NAME_POSITION:
+                {
+                    bcatcstr(glsl, "#define ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    bformata(glsl, " gl_Position\n");
+                    break;
+                }
+                case NAME_RENDER_TARGET_ARRAY_INDEX:
+                {
+                    bcatcstr(glsl, "#define ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    bformata(glsl, " gl_Layer\n");
+                    break;
+                }
+                case NAME_CLIP_DISTANCE:
+                {
+                    bcatcstr(glsl, "#define ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    bformata(glsl, " gl_ClipDistance\n");
+                    break;
+                }
+                case NAME_VIEWPORT_ARRAY_INDEX:
+                {
+                    bcatcstr(glsl, "#define ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    bformata(glsl, " gl_ViewportIndex\n");
+                    break;
+                }
+                case NAME_VERTEX_ID:
+                {
+                    bcatcstr(glsl, "#define ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    bformata(glsl, " gl_VertexID\n");
+                    break;
+                }
+                case NAME_PRIMITIVE_ID:
+                {
+                    bcatcstr(glsl, "#define ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    bformata(glsl, " gl_PrimitiveID\n");
+                    break;
+                }
+                case NAME_INSTANCE_ID:
+                {
+                    bcatcstr(glsl, "#define ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    bformata(glsl, " gl_InstanceID\n");
+                    break;
+                }
+                case NAME_IS_FRONT_FACE:
+                {
+                    bcatcstr(glsl, "#define ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    bformata(glsl, " gl_FrontFacing\n");
+                    break;
+                }
+                default:
+                {
+                    bformata(glsl, "out vec4 %s;\n", psDecl->asOperands[0].pszSpecialName);
 
-                bcatcstr(glsl, "#define ");
-                TranslateOperand(&psDecl->asOperands[0]);
-                bformata(glsl, " %s\n", psDecl->asOperands[0].pszSpecialName);
+                    bcatcstr(glsl, "#define ");
+                    TranslateOperand(&psDecl->asOperands[0]);
+                    bformata(glsl, " %s\n", psDecl->asOperands[0].pszSpecialName);
+                    break;
+                }
             }
             break;
         }
@@ -302,7 +357,14 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
         {
             const Operand* psOperand = &psDecl->asOperands[0];
             int iNumComponents = GetMaxComponentFromComponentMask(psOperand);
-            bformata(glsl, "in vec%d VtxOutput%d;\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+            if(iNumComponents == 1)
+            {
+                bformata(glsl, "in float VtxOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+            }
+            else
+            {
+                bformata(glsl, "in vec%d VtxOutput%d;\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+            }
             bformata(glsl, "#define Input%d VtxOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
             break;
         }
