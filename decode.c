@@ -272,7 +272,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 #endif
         case OPCODE_DCL_RESOURCE: // DCL* opcodes have
         {
-            psDecl->eResourceDimension = DecodeResourceDimension(*pui32Token+ui32OperandOffset);
+            psDecl->value.eResourceDimension = DecodeResourceDimension(*pui32Token+ui32OperandOffset);
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
@@ -292,39 +292,39 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY:
         {
-            psDecl->eOutputPrimitiveTopology = DecodeGSOutputPrimitiveTopology(*pui32Token);
+            psDecl->value.eOutputPrimitiveTopology = DecodeGSOutputPrimitiveTopology(*pui32Token);
             break;
         }
         case OPCODE_DCL_GS_INPUT_PRIMITIVE:
         {
-            psDecl->eInputPrimitive = DecodeGSInputPrimitive(*pui32Token);
+            psDecl->value.eInputPrimitive = DecodeGSInputPrimitive(*pui32Token);
             break;
         }
         case OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT:
         {
-            psDecl->ui32MaxOutputVertexCount = pui32Token[1];
+            psDecl->value.ui32MaxOutputVertexCount = pui32Token[1];
             break;
         }
         case OPCODE_DCL_TESS_PARTITIONING:
         {
-            psDecl->eTessPartitioning = DecodeTessPartitioning(*pui32Token);
+            psDecl->value.eTessPartitioning = DecodeTessPartitioning(*pui32Token);
             break;
         }
         case OPCODE_DCL_TESS_DOMAIN:
         {
-            psDecl->eTessDomain = DecodeTessDomain(*pui32Token);
+            psDecl->value.eTessDomain = DecodeTessDomain(*pui32Token);
             break;
         }
         case OPCODE_DCL_TESS_OUTPUT_PRIMITIVE:
         {
-            psDecl->eTessOutPrim = DecodeTessOutPrim(*pui32Token);
+            psDecl->value.eTessOutPrim = DecodeTessOutPrim(*pui32Token);
             break;
         }
         case OPCODE_DCL_THREAD_GROUP:
         {
-            psDecl->aui32WorkGroupSize[0] = pui32Token[1];
-            psDecl->aui32WorkGroupSize[1] = pui32Token[2];
-            psDecl->aui32WorkGroupSize[2] = pui32Token[3];
+            psDecl->value.aui32WorkGroupSize[0] = pui32Token[1];
+            psDecl->value.aui32WorkGroupSize[1] = pui32Token[2];
+            psDecl->value.aui32WorkGroupSize[2] = pui32Token[3];
             break;
         }
         case OPCODE_DCL_INPUT:
@@ -341,7 +341,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         {
             if(psShader->eShaderType == PIXEL_SHADER)
             {
-                psDecl->eInterpolation = DecodeInterpolationMode(*pui32Token);
+                psDecl->value.eInterpolation = DecodeInterpolationMode(*pui32Token);
             }
             psDecl->ui32NumOperands = 1;
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
@@ -350,7 +350,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         case OPCODE_DCL_INPUT_PS:
         {
             psDecl->ui32NumOperands = 1;
-            psDecl->eInterpolation = DecodeInterpolationMode(*pui32Token);
+            psDecl->value.eInterpolation = DecodeInterpolationMode(*pui32Token);
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
@@ -363,7 +363,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_INPUT_PS_SIV:
         {
-            psDecl->eInterpolation = DecodeInterpolationMode(*pui32Token);
+            psDecl->value.eInterpolation = DecodeInterpolationMode(*pui32Token);
             break;
         }
         case OPCODE_DCL_OUTPUT:
@@ -385,7 +385,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_TEMPS:
         {
-            psDecl->ui32NumTemps = *(pui32Token+ui32OperandOffset);
+            psDecl->value.ui32NumTemps = *(pui32Token+ui32OperandOffset);
             break;
         }
         case OPCODE_DCL_INDEXABLE_TEMP:
@@ -394,7 +394,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_GLOBAL_FLAGS:
         {
-            psDecl->ui32GlobalFlags = DecodeGlobalFlags(*pui32Token);
+            psDecl->value.ui32GlobalFlags = DecodeGlobalFlags(*pui32Token);
             break;
         }
         default:

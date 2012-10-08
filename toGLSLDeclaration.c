@@ -214,7 +214,7 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
         case OPCODE_DCL_TEMPS:
         {
             uint32_t i = 0; 
-            const uint32_t ui32NumTemps = psDecl->ui32NumTemps;
+            const uint32_t ui32NumTemps = psDecl->value.ui32NumTemps;
 
             for(i=0; i < ui32NumTemps; ++i)
             {
@@ -234,7 +234,7 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
         }
         case OPCODE_DCL_RESOURCE:
         {
-            switch(psDecl->eResourceDimension)
+            switch(psDecl->value.eResourceDimension)
             {
                 case RESOURCE_DIMENSION_BUFFER:
                 {
@@ -316,7 +316,7 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
         }
         case OPCODE_DCL_GLOBAL_FLAGS:
         {
-            uint32_t ui32Flags = psDecl->ui32GlobalFlags;
+            uint32_t ui32Flags = psDecl->value.ui32GlobalFlags;
             
             if(ui32Flags & GLOBAL_FLAG_FORCE_EARLY_DEPTH_STENCIL)
             {
@@ -338,14 +338,14 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
         case OPCODE_DCL_THREAD_GROUP:
         {
             bformata(glsl, "layout(local_size_x = %d, local_size_y = %d, local_size_z = %d) in;\n",
-                psDecl->aui32WorkGroupSize[0],
-                psDecl->aui32WorkGroupSize[1],
-                psDecl->aui32WorkGroupSize[2]);
+                psDecl->value.aui32WorkGroupSize[0],
+                psDecl->value.aui32WorkGroupSize[1],
+                psDecl->value.aui32WorkGroupSize[2]);
             break;
         }
         case OPCODE_DCL_TESS_OUTPUT_PRIMITIVE:
         {
-            switch(psDecl->eTessOutPrim)
+            switch(psDecl->value.eTessOutPrim)
             {
                 case TESSELLATOR_OUTPUT_TRIANGLE_CW:
                 {
@@ -372,7 +372,7 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
         }
         case OPCODE_DCL_TESS_DOMAIN:
         {
-            switch(psDecl->eTessDomain)
+            switch(psDecl->value.eTessDomain)
             {
                 case TESSELLATOR_DOMAIN_ISOLINE:
                 {
@@ -398,7 +398,7 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
         }
         case OPCODE_DCL_TESS_PARTITIONING:
         {
-            switch(psDecl->eTessPartitioning)
+            switch(psDecl->value.eTessPartitioning)
             {
                 case TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
                 {
@@ -429,7 +429,7 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
         }
         case OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY:
         {
-            switch(psDecl->eOutputPrimitiveTopology)
+            switch(psDecl->value.eOutputPrimitiveTopology)
             {
                 case PRIMITIVE_TOPOLOGY_POINTLIST:
                 {
@@ -462,12 +462,12 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
         }
         case OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT:
         {
-            bformata(glsl, "layout(max_vertices = %d) out;\n", psDecl->ui32MaxOutputVertexCount);
+            bformata(glsl, "layout(max_vertices = %d) out;\n", psDecl->value.ui32MaxOutputVertexCount);
             break;
         }
         case OPCODE_DCL_GS_INPUT_PRIMITIVE:
         {
-            switch(psDecl->eInputPrimitive)
+            switch(psDecl->value.eInputPrimitive)
             {
                 case PRIMITIVE_POINT:
                 {
