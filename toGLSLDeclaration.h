@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-void TranslateDeclaration(Shader* psShader, const Declaration* psDecl);
+void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration* psDecl);
 
 #endif

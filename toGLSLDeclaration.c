@@ -2,12 +2,13 @@
 #include "toGLSLOperand.h"
 #include "bstrlib.h"
 
-extern bstring glsl;
-extern int indent;
-extern void AddIndentation();
+extern void AddIndentation(HLSLCrossCompilerContext* psContext);
 
-void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
+void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration* psDecl)
 {
+    bstring glsl = psContext->glsl;
+    Shader* psShader = psContext->psShader;
+
     switch(psDecl->eOpcode)
     {
         case OPCODE_DCL_INPUT_PS_SGV:
@@ -17,7 +18,7 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
                 case NAME_POSITION:
                 {
                     bcatcstr(glsl, "#define ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_Position\n");
                     break;
                 }
@@ -30,49 +31,49 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
                 case NAME_RENDER_TARGET_ARRAY_INDEX:
                 {
                     bcatcstr(glsl, "vec1 ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " = vec1(gl_Layer)\n");
                     break;
                 }
                 case NAME_CLIP_DISTANCE:
                 {
                     bcatcstr(glsl, "#define ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_ClipDistance\n");
                     break;
                 }
                 case NAME_VIEWPORT_ARRAY_INDEX:
                 {
                     bcatcstr(glsl, "vec1 ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " = vec1(gl_ViewportIndex)\n");
                     break;
                 }
                 case NAME_VERTEX_ID:
                 {
                     bcatcstr(glsl, "vec1 ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " = vec1(gl_VertexID)\n");
                     break;
                 }
                 case NAME_PRIMITIVE_ID:
                 {
                     bcatcstr(glsl, "vec1 ");
-                    TranslateSystemValueVariableName(&psDecl->asOperands[0]);
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " = vec1(gl_PrimitiveID);\n");
                     break;
                 }
                 case NAME_INSTANCE_ID:
                 {
                     bcatcstr(glsl, "vec1 ");
-                    TranslateSystemValueVariableName(&psDecl->asOperands[0]);
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " = vec1(gl_InstanceID)\n");
                     break;
                 }
                 case NAME_IS_FRONT_FACE:
                 {
                     bcatcstr(glsl, "vec1 ");
-                    TranslateSystemValueVariableName(&psDecl->asOperands[0]);
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " = vec1(gl_FrontFacing)\n");
                     break;
                 }
@@ -81,7 +82,7 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
                     bformata(glsl, "in vec4 %s;\n", psDecl->asOperands[0].pszSpecialName);
 
                     bcatcstr(glsl, "#define ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " %s\n", psDecl->asOperands[0].pszSpecialName);
                     break;
                 }
@@ -96,56 +97,56 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
                 case NAME_POSITION:
                 {
                     bcatcstr(glsl, "#define ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_Position\n");
                     break;
                 }
                 case NAME_RENDER_TARGET_ARRAY_INDEX:
                 {
                     bcatcstr(glsl, "#define ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_Layer\n");
                     break;
                 }
                 case NAME_CLIP_DISTANCE:
                 {
                     bcatcstr(glsl, "#define ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_ClipDistance\n");
                     break;
                 }
                 case NAME_VIEWPORT_ARRAY_INDEX:
                 {
                     bcatcstr(glsl, "#define ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_ViewportIndex\n");
                     break;
                 }
                 case NAME_VERTEX_ID:
                 {
                     bcatcstr(glsl, "#define ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_VertexID\n");
                     break;
                 }
                 case NAME_PRIMITIVE_ID:
                 {
                     bcatcstr(glsl, "#define ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_PrimitiveID);\n");
                     break;
                 }
                 case NAME_INSTANCE_ID:
                 {
                     bcatcstr(glsl, "#define ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_InstanceID\n");
                     break;
                 }
                 case NAME_IS_FRONT_FACE:
                 {
                     bcatcstr(glsl, "#define ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_FrontFacing\n");
                     break;
                 }
@@ -154,7 +155,7 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
                     bformata(glsl, "out vec4 %s;\n", psDecl->asOperands[0].pszSpecialName);
 
                     bcatcstr(glsl, "#define ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " %s\n", psDecl->asOperands[0].pszSpecialName);
                     break;
                 }
@@ -220,15 +221,12 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
             {
                  bformata(glsl, "vec4 Temp%d;\n", i);
             }
-
-            
-
             break;
         }
         case OPCODE_DCL_CONSTANT_BUFFER:
         {
             bcatcstr(glsl, "uniform vec4 ");
-            TranslateOperand(&psDecl->asOperands[0]);
+            TranslateOperand(psContext, &psDecl->asOperands[0]);
             bcatcstr(glsl, ";\n");
             break;
         }
@@ -239,61 +237,61 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
                 case RESOURCE_DIMENSION_BUFFER:
                 {
                     bcatcstr(glsl, "uniform samplerBuffer ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE1D:
                 {
                     bcatcstr(glsl, "uniform sampler1D ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2D:
                 {
                     bcatcstr(glsl, "uniform sampler2D ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DMS:
                 {
                     bcatcstr(glsl, "uniform sampler2DMS ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE3D:
                 {
                     bcatcstr(glsl, "uniform sampler3D ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBE:
                 {
                     bcatcstr(glsl, "uniform samplerCube ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE1DARRAY:
                 {
                     bcatcstr(glsl, "uniform sampler1DArray ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DARRAY:
                 {
                     bcatcstr(glsl, "uniform sampler2DArray ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
                 {
                     bcatcstr(glsl, "uniform sampler3DArray ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
                 {
                     bcatcstr(glsl, "uniform samplerCubeArray ");
-                    TranslateOperand(&psDecl->asOperands[0]);
+                    TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }
             }
@@ -331,7 +329,6 @@ void TranslateDeclaration(Shader* psShader, const Declaration* psDecl)
             {
                 bcatcstr(glsl, "#extension GL_ARB_gpu_shader_fp64 : enable\n");
             }
-            
             break;
         }
 

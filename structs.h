@@ -3,6 +3,7 @@
 
 #include "tokens.h"
 #include "languages.h"
+#include "bstrlib.h"
 
 typedef struct Operand_TAG
 {
@@ -95,5 +96,14 @@ typedef struct Shader_TAG
     uint32_t ui32InstCount;
     Instruction* psInst;
 } Shader;
+
+//typedef __restrict struct tagbstring * restrict_bstring;
+
+typedef struct HLSLCrossCompilerContext_TAG
+{
+    bstring glsl;
+    int indent;
+    Shader* psShader;
+} HLSLCrossCompilerContext;
 
 #endif

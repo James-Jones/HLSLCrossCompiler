@@ -2,6 +2,6 @@
 
 #include "structs.h"
 
-void TranslateInstruction(Shader* psShader, Instruction* psInst);
+void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psInst);
 
 #endif

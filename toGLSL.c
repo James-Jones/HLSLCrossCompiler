@@ -32,21 +32,21 @@
 #define GL_COMPUTE_SHADER 0x91B9
 #endif
 
-bstring glsl;
-int indent;
-
-
-void AddIndentation()
+void AddIndentation(HLSLCrossCompilerContext* psContext)
 {
     int i;
+    int indent = psContext->indent;
+    bstring glsl = psContext->glsl;
     for(i=0; i < indent; ++i)
     {
         bcatcstr(glsl, "    ");
     }
 }
 
-void AddVersionDependentCode(Shader* psShader)
+void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 {
+    bstring glsl = psContext->glsl;
+
     /* For versions which do not support a vec1 (currently all versions) */
     bcatcstr(glsl,"struct vec1 {\n");
     bcatcstr(glsl,"\tfloat x;\n");
@@ -57,7 +57,7 @@ void AddVersionDependentCode(Shader* psShader)
         To use any built-in input or output in the gl_PerVertex block in separable
         program objects, shader code must redeclare that block prior to use.
     */
-    if(psShader->eShaderType == VERTEX_SHADER)
+    if(psContext->psShader->eShaderType == VERTEX_SHADER)
     {
         bcatcstr(glsl, "#if __VERSION__ > 410\n");
             bcatcstr(glsl, "\tout gl_PerVertex {\n");
@@ -74,8 +74,10 @@ void AddVersionDependentCode(Shader* psShader)
     bcatcstr(glsl, "#endif \n");
 }
 
-void AddOpcodeFuncs()
+void AddOpcodeFuncs(HLSLCrossCompilerContext* psContext)
 {
+    bstring glsl = psContext->glsl;
+
     bcatcstr(glsl, "\n");
 
     bcatcstr(glsl, psz_hlsl_opcode_funcs_glsl);
@@ -170,13 +172,15 @@ const char* GetVersionString(GLLang language)
     }
 }
 
-void TranslateToGLSL(Shader* psShader, GLLang language)
+void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
 {
+    bstring glsl;
     uint32_t i;
+    Shader* psShader = psContext->psShader;
     const uint32_t ui32InstCount = psShader->ui32InstCount;
     const uint32_t ui32DeclCount = psShader->ui32DeclCount;
 
-    indent = 0;
+    psContext->indent = 0;
 
     if(language == LANG_DEFAULT)
     {
@@ -185,28 +189,29 @@ void TranslateToGLSL(Shader* psShader, GLLang language)
 
     glsl = bfromcstralloc (1024, GetVersionString(language));
 
+    psContext->glsl = glsl;
     psShader->eTargetLanguage = language;
 
-    AddVersionDependentCode(psShader);
+    AddVersionDependentCode(psContext);
 
     for(i=0; i < ui32DeclCount; ++i)
     {
-        TranslateDeclaration(psShader, psShader->psDecl+i);
+        TranslateDeclaration(psContext, psShader->psDecl+i);
     }
 
-    AddOpcodeFuncs();
+    AddOpcodeFuncs(psContext);
 
     bcatcstr(glsl, "void main()\n");
     bcatcstr(glsl, "{\n");
 
-    indent++;
+    psContext->indent++;
 
     for(i=0; i < ui32InstCount; ++i)
     {
-        TranslateInstruction(psShader, psShader->psInst+i);
+        TranslateInstruction(psContext, psShader->psInst+i);
     }
 
-    indent--;
+    psContext->indent--;
 
     bcatcstr(glsl, "}\n");
 }
@@ -224,7 +229,11 @@ void TranslateHLSLFromMem(const char* shader, GLLang language, GLSLShader* resul
 
 	if(psShader)
     {
-        TranslateToGLSL(psShader, language);
+        HLSLCrossCompilerContext sContext;
+
+        sContext.psShader = psShader;
+
+        TranslateToGLSL(&sContext, language);
 
         switch(psShader->eShaderType)
         {
@@ -259,9 +268,9 @@ void TranslateHLSLFromMem(const char* shader, GLLang language, GLSLShader* resul
             }
         }
 
-        glslcstr = bstr2cstr(glsl, '\0');
+        glslcstr = bstr2cstr(sContext.glsl, '\0');
 
-        bdestroy(glsl);
+        bdestroy(sContext.glsl);
 
         free(psShader->psDecl);
         free(psShader->psInst);

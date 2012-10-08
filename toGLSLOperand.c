@@ -4,9 +4,7 @@
 #include <assert.h>
 #define ASSERT(x) assert(x)
 
-extern bstring glsl;
-extern int indent;
-extern void AddIndentation();
+extern void AddIndentation(HLSLCrossCompilerContext* psContext);
 
 int GetMaxComponentFromComponentMask(const Operand* psOperand)
 {
@@ -41,8 +39,10 @@ int GetMaxComponentFromComponentMask(const Operand* psOperand)
 }
 
 
-void TranslateOperandSwizzle(const Operand* psOperand)
+void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
 {
+    bstring glsl = psContext->glsl;
+
     if(psOperand->iWriteMaskEnabled &&
        psOperand->iNumComponents == 4)
     {
@@ -134,10 +134,13 @@ void TranslateOperandSwizzle(const Operand* psOperand)
     }
 }
 
-void TranslateIndex(const Operand* psOperand, int index)
+void TranslateIndex(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index)
 {
     int i = index;
-    int isGeoShader = 1;
+    int isGeoShader = psContext->psShader->eShaderType == GEOMETRY_SHADER ? 1 : 0;
+
+    bstring glsl = psContext->glsl;
+
     ASSERT(index < psOperand->iIndexDims);
 
     switch(psOperand->eIndexRep[i])
@@ -157,7 +160,7 @@ void TranslateIndex(const Operand* psOperand, int index)
         case OPERAND_INDEX_RELATIVE:
         {
             bcatcstr(glsl, "[int("); //Indexes must be integral.
-            TranslateOperand(psOperand->psSubOperand[i]);
+            TranslateOperand(psContext, psOperand->psSubOperand[i]);
             bcatcstr(glsl, ")]");
             break;
         }
@@ -168,8 +171,10 @@ void TranslateIndex(const Operand* psOperand, int index)
     }
 }
 
-void TranslateSystemValueVariableName(const Operand* psOperand)
+void TranslateSystemValueVariableName(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
 {
+    bstring glsl = psContext->glsl;
+
     switch(psOperand->eType)
     {
         case OPERAND_TYPE_INPUT:
@@ -181,13 +186,13 @@ void TranslateSystemValueVariableName(const Operand* psOperand)
                     if(psOperand->aui32ArraySizes[1] == 0)//Input index zero - position.
                     {
                         bcatcstr(glsl, "gl_in");
-                        TranslateIndex(psOperand, 0);//Vertex index
+                        TranslateIndex(psContext, psOperand, 0);//Vertex index
                         bcatcstr(glsl, ".gl_Position");
                     }
                     else
                     {
                         bformata(glsl, "Input%d", psOperand->aui32ArraySizes[1]);
-                        TranslateIndex(psOperand, 0);//Vertex index
+                        TranslateIndex(psContext, psOperand, 0);//Vertex index
                     }
                     break;
                 }
@@ -211,12 +216,13 @@ void TranslateSystemValueVariableName(const Operand* psOperand)
     }
 }
 
-void TranslateOperand(const Operand* psOperand)
+void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
 {
+    bstring glsl = psContext->glsl;
+
     switch(psOperand->eModifier)
     {
-        
-    case OPERAND_MODIFIER_NONE:
+        case OPERAND_MODIFIER_NONE:
         {
             break;
         }
@@ -265,13 +271,13 @@ void TranslateOperand(const Operand* psOperand)
                     if(psOperand->aui32ArraySizes[1] == 0)//Input index zero - position.
                     {
                         bcatcstr(glsl, "gl_in");
-                        TranslateIndex(psOperand, 0);//Vertex index
+                        TranslateIndex(psContext, psOperand, 0);//Vertex index
                         bcatcstr(glsl, ".gl_Position");
                     }
                     else
                     {
                         bformata(glsl, "Input%d", psOperand->aui32ArraySizes[1]);
-                        TranslateIndex(psOperand, 0);//Vertex index
+                        TranslateIndex(psContext, psOperand, 0);//Vertex index
                     }
                     break;
                 }
@@ -315,7 +321,7 @@ void TranslateOperand(const Operand* psOperand)
         }
     }
 
-    TranslateOperandSwizzle(psOperand);
+    TranslateOperandSwizzle(psContext, psOperand);
 
     switch(psOperand->eModifier)
     {

@@ -3,10 +3,10 @@
 
 #include "structs.h"
 
-void TranslateOperand(const Operand* psOperand);
-void TranslateSystemValueVariableName(const Operand* psOperand);
+void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
+void TranslateSystemValueVariableName(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
 int GetMaxComponentFromComponentMask(const Operand* psOperand);
-void TranslateIndex(const Operand* psOperand, int index);
-void TranslateOperandSwizzle(const Operand* psOperand);
+void TranslateIndex(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index);
+void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
 
 #endif
