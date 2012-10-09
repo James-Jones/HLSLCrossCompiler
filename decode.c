@@ -427,14 +427,30 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 
     switch (eOpcode)
     {
+        //no operands
         case OPCODE_CUT:
         case OPCODE_EMIT:
         case OPCODE_EMITTHENCUT:
-		case OPCODE_RET:
-		{
-			break;
-		}
+        case OPCODE_RET:
+        case OPCODE_LOOP:
+        case OPCODE_ENDLOOP:
+        case OPCODE_BREAK:
+        case OPCODE_ELSE:
+        case OPCODE_ENDIF:
+        case OPCODE_CONTINUE:
+        case OPCODE_DEFAULT:
+        case OPCODE_ENDSWITCH:
+        case OPCODE_NOP:
+        {
+            break;
+        }
+        case OPCODE_SYNC:
+        {
+            psInst->ui32SyncFlags = DecodeSyncFlags(*pui32Token);
+            break;
+        }
 
+        //1 operand
         case OPCODE_EMIT_STREAM:
         case OPCODE_CUT_STREAM:
         case OPCODE_EMITTHENCUT_STREAM:
@@ -527,14 +543,6 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             //psInst->asOperands[1].ui32RegisterNumber = pui32Token[4];
             break;
         }
-        case OPCODE_LOOP:
-        case OPCODE_ENDLOOP:
-        case OPCODE_BREAK:
-        case OPCODE_ELSE:
-        case OPCODE_ENDIF:
-		{
-			break;
-		}
         case OPCODE_IF:
         case OPCODE_BREAKC:
         case OPCODE_CALLC:

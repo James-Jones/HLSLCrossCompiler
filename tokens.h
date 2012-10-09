@@ -659,5 +659,14 @@ static TESSELLATOR_OUTPUT_PRIMITIVE DecodeTessOutPrim(uint32_t ui32Token)
 	return (TESSELLATOR_OUTPUT_PRIMITIVE)((ui32Token & 0x00003800) >> 11);
 }
 
+static const uint32_t SYNC_THREADS_IN_GROUP = 0x00000800;
+static const uint32_t SYNC_THREAD_GROUP_SHARED_MEMORY = 0x00001000;
+static const uint32_t SYNC_UNORDERED_ACCESS_VIEW_MEMORY_GROUP = 0x00002000;
+static const uint32_t SYNC_UNORDERED_ACCESS_VIEW_MEMORY_GLOBAL = 0x00004000;
+
+static uint32_t DecodeSyncFlags(uint32_t ui32Token)
+{
+	return ui32Token & 0x00007800;
+}
 
 #endif

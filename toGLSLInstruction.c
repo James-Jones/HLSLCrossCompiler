@@ -626,6 +626,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             psContext->indent++;
             break;
         }
+        case OPCODE_ENDSWITCH:
         case OPCODE_ENDIF:
         {
             --psContext->indent;
@@ -633,6 +634,46 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//ENDIF\n");
             AddIndentation(psContext);
             bcatcstr(glsl, "}\n");
+            break;
+        }
+        case OPCODE_CONTINUE:
+        {
+            bcatcstr(glsl, "continue;\n");
+            break;
+        }
+        case OPCODE_DEFAULT:
+        {
+            bcatcstr(glsl, "default:\n");
+            ++psContext->indent;
+            break;
+        }
+        case OPCODE_NOP:
+        {
+            break;
+        }
+        case OPCODE_SYNC:
+        {
+            const uint32_t ui32SyncFlags = psInst->ui32SyncFlags;
+
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//SYNC\n");
+#endif
+
+            AddIndentation(psContext);
+
+            if(ui32SyncFlags & SYNC_THREADS_IN_GROUP)
+            {
+                bcatcstr(glsl, "groupMemoryBarrier();\n");
+            }
+            if(ui32SyncFlags & SYNC_THREAD_GROUP_SHARED_MEMORY)
+            {
+                bcatcstr(glsl, "memoryBarrierShared();\n");
+            }
+            if(ui32SyncFlags & (SYNC_UNORDERED_ACCESS_VIEW_MEMORY_GROUP|SYNC_UNORDERED_ACCESS_VIEW_MEMORY_GLOBAL))
+            {
+                bcatcstr(glsl, "memoryBarrier();\n");
+            }
             break;
         }
         default:
