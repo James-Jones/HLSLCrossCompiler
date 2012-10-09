@@ -1,3 +1,4 @@
+#include "toGLSL.h"
 #include "toGLSLDeclaration.h"
 #include "toGLSLOperand.h"
 #include "bstrlib.h"
@@ -225,9 +226,27 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
         }
         case OPCODE_DCL_CONSTANT_BUFFER:
         {
-            bcatcstr(glsl, "uniform vec4 ");
-            TranslateOperand(psContext, &psDecl->asOperands[0]);
-            bcatcstr(glsl, ";\n");
+            if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
+            {
+                /*
+                    layout(std140) uniform UniformBufferX
+                    {
+                        vec4 ConstsX[numConsts];
+                    };
+                */
+                bcatcstr(glsl, "layout(std140) uniform UniformBuffer");
+                TranslateOperandIndex(psContext, &psDecl->asOperands[0], 0); /*0=bufferNumber 1=numberOfElements*/
+                bcatcstr(glsl, "{\n\tvec4 ");
+                TranslateOperand(psContext, &psDecl->asOperands[0]);
+                bcatcstr(glsl, ";\n};\n");
+            }
+            else
+            {
+                /* uniform vec4 ConstsX[numConsts]; */
+                bcatcstr(glsl, "uniform vec4 ");
+                TranslateOperand(psContext, &psDecl->asOperands[0]);
+                bcatcstr(glsl, ";\n");
+            }
             break;
         }
         case OPCODE_DCL_RESOURCE:

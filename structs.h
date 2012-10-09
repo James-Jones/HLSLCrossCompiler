@@ -103,6 +103,7 @@ typedef struct HLSLCrossCompilerContext_TAG
 {
     bstring glsl;
     int indent;
+    unsigned int flags;
     Shader* psShader;
 } HLSLCrossCompilerContext;
 

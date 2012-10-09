@@ -134,7 +134,7 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
     }
 }
 
-void TranslateIndex(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index)
+void TranslateOperandIndex(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index)
 {
     int i = index;
     int isGeoShader = psContext->psShader->eShaderType == GEOMETRY_SHADER ? 1 : 0;
@@ -186,13 +186,13 @@ void TranslateSystemValueVariableName(HLSLCrossCompilerContext* psContext, const
                     if(psOperand->aui32ArraySizes[1] == 0)//Input index zero - position.
                     {
                         bcatcstr(glsl, "gl_in");
-                        TranslateIndex(psContext, psOperand, 0);//Vertex index
+                        TranslateOperandIndex(psContext, psOperand, 0);//Vertex index
                         bcatcstr(glsl, ".gl_Position");
                     }
                     else
                     {
                         bformata(glsl, "Input%d", psOperand->aui32ArraySizes[1]);
-                        TranslateIndex(psContext, psOperand, 0);//Vertex index
+                        TranslateOperandIndex(psContext, psOperand, 0);//Vertex index
                     }
                     break;
                 }
@@ -271,13 +271,13 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
                     if(psOperand->aui32ArraySizes[1] == 0)//Input index zero - position.
                     {
                         bcatcstr(glsl, "gl_in");
-                        TranslateIndex(psContext, psOperand, 0);//Vertex index
+                        TranslateOperandIndex(psContext, psOperand, 0);//Vertex index
                         bcatcstr(glsl, ".gl_Position");
                     }
                     else
                     {
                         bformata(glsl, "Input%d", psOperand->aui32ArraySizes[1]);
-                        TranslateIndex(psContext, psOperand, 0);//Vertex index
+                        TranslateOperandIndex(psContext, psOperand, 0);//Vertex index
                     }
                     break;
                 }
@@ -301,7 +301,7 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         }
         case OPERAND_TYPE_CONSTANT_BUFFER:
         {
-            bformata(glsl, "Const[%d]", psOperand->ui32RegisterNumber);
+            bformata(glsl, "Const%d[%d]", psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
             break;
         }
         case OPERAND_TYPE_RESOURCE:
