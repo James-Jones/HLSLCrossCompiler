@@ -15,6 +15,10 @@ typedef struct
   Note: Currently the nth const buffer will be named UnformBufferN. This is likey to change to the original HLSL name in the future.*/
 static const unsigned int HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT = 0x1;
 
+static const unsigned int HLSLCC_FLAG_ORIGIN_UPPER_LEFT = 0x2;
+
+static const unsigned int HLSLCC_FLAG_PIXEL_CENTER_INTEGER = 0x4;
+
 int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang language, GLSLShader* result);
 void TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language, GLSLShader* result);
 
