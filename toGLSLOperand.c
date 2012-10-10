@@ -209,6 +209,13 @@ void TranslateSystemValueVariableName(HLSLCrossCompilerContext* psContext, const
             bformata(glsl, "Output%d", psOperand->ui32RegisterNumber);
             break;
         }
+        case OPERAND_TYPE_OUTPUT_DEPTH:
+        case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+        case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+        {
+            bcatcstr(glsl, "gl_FragDepth");
+            break;
+        }
         default:
         {
             break;
@@ -312,6 +319,13 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         case OPERAND_TYPE_SAMPLER:
         {
             bformata(glsl, "Sampler%d", psOperand->ui32RegisterNumber);
+            break;
+        }
+        case OPERAND_TYPE_OUTPUT_DEPTH:
+        case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+        case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+        {
+            bcatcstr(glsl, "gl_FragDepth");
             break;
         }
         default:

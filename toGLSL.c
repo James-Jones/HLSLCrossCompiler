@@ -49,12 +49,12 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 
     if(psContext->flags & HLSLCC_FLAG_ORIGIN_UPPER_LEFT)
     {
-        bcatcstr(glsl,"#if __VERSION__ >= 150\n layout(origin_upper_left); \n#endif\n");
+        bcatcstr(glsl,"#if __VERSION__ >= 150\n layout(origin_upper_left) in vec4 gl_FragCoord; \n#endif\n");
     }
 
     if(psContext->flags & HLSLCC_FLAG_PIXEL_CENTER_INTEGER)
     {
-        bcatcstr(glsl,"#if __VERSION__ >= 150\n layout(pixel_center_integer); \n#endif\n");
+        bcatcstr(glsl,"#if __VERSION__ >= 150\n layout(pixel_center_integer) in vec4 gl_FragCoord; \n#endif\n");
     }
 
     /* For versions which do not support a vec1 (currently all versions) */

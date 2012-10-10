@@ -321,8 +321,29 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
         {
             if(psShader->eShaderType == PIXEL_SHADER)
             {
-                bformata(glsl, "out vec4 PixOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
-                bformata(glsl, "#define Output%d PixOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+                switch(psDecl->asOperands[0].eType)
+                {
+                     case OPERAND_TYPE_OUTPUT_DEPTH:
+                    {
+                        break;
+                    }
+                    case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+                    {
+                        bcatcstr(glsl, "layout (depth_greater) out float gl_FragDepth;");
+                        break;
+                    }
+                    case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+                    {
+                        bcatcstr(glsl, "layout (depth_less) out float gl_FragDepth;");
+                        break;
+                    }
+                    default:
+                    {
+                        bformata(glsl, "out vec4 PixOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+                        bformata(glsl, "#define Output%d PixOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+                        break;
+                    }
+                }
             }
             else
             {
