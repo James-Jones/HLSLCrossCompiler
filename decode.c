@@ -454,6 +454,8 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_EMIT_STREAM:
         case OPCODE_CUT_STREAM:
         case OPCODE_EMITTHENCUT_STREAM:
+        case OPCODE_CASE:
+        case OPCODE_SWITCH:
         {
             psInst->ui32NumOperands = 1;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);

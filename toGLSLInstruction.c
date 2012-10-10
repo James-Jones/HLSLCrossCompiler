@@ -638,11 +638,14 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_CONTINUE:
         {
+            AddIndentation(psContext);
             bcatcstr(glsl, "continue;\n");
             break;
         }
         case OPCODE_DEFAULT:
         {
+            --psContext->indent;
+            AddIndentation(psContext);
             bcatcstr(glsl, "default:\n");
             ++psContext->indent;
             break;
@@ -674,6 +677,33 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             {
                 bcatcstr(glsl, "memoryBarrier();\n");
             }
+            break;
+        }
+        case OPCODE_SWITCH:
+        {
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//SWITCH\n");
+            AddIndentation(psContext);
+
+            bcatcstr(glsl, "switch(int(");
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, ")){\n");
+
+            psContext->indent += 2;
+            break;
+        }
+        case OPCODE_CASE:
+        {
+            --psContext->indent;
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//case\n");
+            AddIndentation(psContext);
+
+            bcatcstr(glsl, "case ");
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, ":\n");
+
+            ++psContext->indent;
             break;
         }
         default:
