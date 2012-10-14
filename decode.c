@@ -397,6 +397,41 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
             psDecl->value.ui32GlobalFlags = DecodeGlobalFlags(*pui32Token);
             break;
         }
+        case OPCODE_DCL_INTERFACE:
+        {
+            uint32_t funcBody = 0, tableLen, arrayLen, interfaceID;
+            interfaceID = pui32Token[ui32OperandOffset];
+            ui32OperandOffset++;
+            psDecl->ui32TableLength = pui32Token[ui32OperandOffset];
+            ui32OperandOffset++;
+
+            tableLen = DecodeInterfaceTableLength(*(pui32Token+ui32OperandOffset));
+            arrayLen = DecodeInterfaceArrayLength(*(pui32Token+ui32OperandOffset));
+
+            ui32OperandOffset++;
+
+            psDecl->value.interface.ui32InterfaceID = interfaceID;
+
+            for(;funcBody < tableLen; ++funcBody)
+            {
+                uint32_t ui32FuncID = *(pui32Token+ui32OperandOffset);
+                psShader->functionToInterfaceRemap[ui32FuncID] = interfaceID;
+                psDecl->value.interface.aui32Functions[funcBody] = ui32FuncID;
+                ui32OperandOffset++;
+            }
+
+            break;
+        }
+        case OPCODE_DCL_FUNCTION_BODY:
+        {
+            psDecl->ui32NumOperands = 1;
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
+            break;
+        }
+        case OPCODE_DCL_FUNCTION_TABLE:
+        {
+            break;
+        }
         default:
         {
             //Reached end of declarations
@@ -456,6 +491,12 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_EMITTHENCUT_STREAM:
         case OPCODE_CASE:
         case OPCODE_SWITCH:
+        case OPCODE_LABEL:
+        case OPCODE_COUNTBITS:
+        case OPCODE_FIRSTBIT_HI:
+        case OPCODE_FIRSTBIT_LO:
+        case OPCODE_FIRSTBIT_SHI:
+        case OPCODE_BFREV:
         {
             psInst->ui32NumOperands = 1;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -522,6 +563,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             break;
 		}
         case OPCODE_SAMPLE:
+        case OPCODE_GATHER4:
         {
             psInst->ui32NumOperands = 4;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -533,6 +575,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             break;
         }
         case OPCODE_SAMPLE_L:
+        case OPCODE_BFI:
         {
             psInst->ui32NumOperands = 5;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);

@@ -441,6 +441,25 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, ");\n");
             break;
         }
+        case OPCODE_GATHER4:
+        {
+            //dest, coords, tex, sampler
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//GATHER4\n");
+            AddIndentation(psContext);//1=temp??
+            TranslateOperand(psContext, &psInst->asOperands[1]);//??
+            bcatcstr(glsl, " = textureGather(");
+
+            TranslateOperand(psContext, &psInst->asOperands[3]);//resource
+            bcatcstr(glsl, ", ");
+            //Texture coord cannot be vec4
+            //Determining if it is a vec3 for vec2 yet to be done.
+            psInst->asOperands[2].aui32Swizzle[2] = 0xFFFFFFFF;
+            psInst->asOperands[2].aui32Swizzle[3] = 0xFFFFFFFF;
+            TranslateOperand(psContext, &psInst->asOperands[2]);//in
+            bcatcstr(glsl, ");\n");
+            break;
+        }
         case OPCODE_SAMPLE:
         {
             //dest, coords, tex, sampler
@@ -488,6 +507,89 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			bcatcstr(glsl, "return;\n");
 			break;
 		}
+        case OPCODE_LABEL:
+        {
+            uint32_t funcID = psInst->asOperands[0].ui32RegisterNumber;
+            --psContext->indent;
+            AddIndentation(psContext);
+            bcatcstr(glsl, "}\n"); //Closing brace ends the previous function.
+            AddIndentation(psContext);
+
+            bformata(glsl, "subroutine(Interface%d)\n", psContext->psShader->functionToInterfaceRemap[funcID]);
+            
+
+            bcatcstr(glsl, "void "); //Closing brace ends the previous function.
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, "(){\n");
+            ++psContext->indent;
+            break;
+        }
+        case OPCODE_COUNTBITS:
+        {
+            bcatcstr(glsl, "bitCount(");
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_FIRSTBIT_HI:
+        {
+            bcatcstr(glsl, "findMSB(");
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_FIRSTBIT_LO:
+        {
+            bcatcstr(glsl, "findLSB(");
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_FIRSTBIT_SHI:
+        {
+            bcatcstr(glsl, "findMSB(");
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_BFREV:
+        {
+            bcatcstr(glsl, "bitfieldReverse(");
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_BFI:
+        {
+            //FIXME
+/*src0
+[in] The bitfield width to take from src2.
+src1
+[in] The bitfield offset for replacing bits in src3.
+src2
+[in] The number the bits are taken from.
+src3
+[in] The number with bits to be replaced.
+*/
+            /*
+            glsl:
+            base, instert, offset, bits
+            */
+            bcatcstr(glsl, "bitfieldInsert(");
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(psContext, &psInst->asOperands[1]);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(psContext, &psInst->asOperands[2]);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(psContext, &psInst->asOperands[3]);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(psContext, &psInst->asOperands[4]);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(psContext, &psInst->asOperands[5]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
         case OPCODE_CUT:
         {
             AddIndentation(psContext);

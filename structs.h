@@ -75,7 +75,17 @@ typedef struct Declaration_TAG
         TESSELLATOR_PARTITIONING eTessPartitioning;
         TESSELLATOR_OUTPUT_PRIMITIVE eTessOutPrim;
         uint32_t aui32WorkGroupSize[3];
+
+        struct Interface_TAG
+        {
+            uint32_t ui32InterfaceID;
+            uint32_t ui32NumFunctions;
+            uint32_t aui32Functions[128]; //FIXME dynamic alloc
+        } interface;
     } value;
+
+    uint32_t ui32TableLength;
+
 } Declaration;
 
 typedef struct Shader_TAG
@@ -93,6 +103,8 @@ typedef struct Shader_TAG
     Declaration* psDecl;
 
     //Instruction* functions;//non-main subroutines
+
+    uint32_t functionToInterfaceRemap[1024];//FIXME dynamic alloc
 
     uint32_t ui32InstCount;
     Instruction* psInst;

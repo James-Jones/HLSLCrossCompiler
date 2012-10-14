@@ -538,6 +538,27 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
             }
             break;
         }
+        case OPCODE_DCL_INTERFACE:
+        {
+            uint32_t func = 0;
+            const uint32_t interfaceID = psDecl->value.interface.ui32InterfaceID;
+            const uint32_t funcCount = psDecl->value.interface.ui32NumFunctions;
+            //for(;func < funcCount; ++func)
+
+            bformata(glsl, "subroutine void Interface%d();\n", interfaceID);
+
+            bformata(glsl, "subroutine uniform Interface%d InterfaceVar%d;\n", interfaceID, interfaceID);
+            break;
+        }
+        case OPCODE_DCL_FUNCTION_BODY:
+        {
+            //bformata(glsl, "void Func%d();//%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].eType);
+            break;
+        }
+        case OPCODE_DCL_FUNCTION_TABLE:
+        {
+            break;
+        }
         default:
         {
             bformata(glsl, "/* Unhandled input declaration - opcode=0x%X */\n", psDecl->eOpcode);

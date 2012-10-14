@@ -328,6 +328,11 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
             bcatcstr(glsl, "gl_FragDepth");
             break;
         }
+        case OPERAND_TYPE_FUNCTION_BODY:
+        {
+            bformata(glsl, "Func%d", psOperand->ui32RegisterNumber);
+            break;
+        }
         default:
         {
             bformata(glsl, "%d %d", psOperand->eType, psOperand->ui32RegisterNumber);

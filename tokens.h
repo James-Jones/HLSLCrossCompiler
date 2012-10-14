@@ -669,4 +669,16 @@ static uint32_t DecodeSyncFlags(uint32_t ui32Token)
 	return ui32Token & 0x00007800;
 }
 
+// The number of types that implement this interface
+static uint32_t DecodeInterfaceTableLength(uint32_t ui32Token)
+{
+	return (uint32_t)((ui32Token & 0x0000ffff) >> 0);
+}
+
+// The number of interfaces that are defined in this array.
+static uint32_t DecodeInterfaceArrayLength(uint32_t ui32Token)
+{
+	return (uint32_t)((ui32Token & 0xffff0000) >> 16);
+}
+
 #endif
