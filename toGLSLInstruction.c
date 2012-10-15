@@ -507,6 +507,14 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			bcatcstr(glsl, "return;\n");
 			break;
 		}
+        case OPCODE_INTERFACE_CALL:
+        {
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//INTERFACE_CALL\n");
+            AddIndentation(psContext);
+            bformata(glsl, "InterfaceVar%d();\n", psInst->ui32FunctionIDToCall);
+            break;
+        }
         case OPCODE_LABEL:
         {
             uint32_t funcID = psInst->asOperands[0].ui32RegisterNumber;

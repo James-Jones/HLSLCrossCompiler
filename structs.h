@@ -48,6 +48,7 @@ typedef struct Instruction_TAG
     uint32_t ui32SyncFlags;
     uint32_t ui32NumOperands;
     Operand asOperands[4];
+    uint32_t ui32FunctionIDToCall;
 
 #ifdef _DEBUG
     uint64_t id;
@@ -109,8 +110,6 @@ typedef struct Shader_TAG
     uint32_t ui32InstCount;
     Instruction* psInst;
 } Shader;
-
-//typedef __restrict struct tagbstring * restrict_bstring;
 
 typedef struct HLSLCrossCompilerContext_TAG
 {
