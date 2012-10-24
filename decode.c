@@ -649,6 +649,8 @@ void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Resources, Shader*
     psShader->psDecl = psDecl;
     psShader->ui32DeclCount = 0;
 
+    ReadResources(pui32Resources, &psShader->sInfo);
+
     while(1) //Keep going until we reach the first non-declaration token, or the end of the shader.
     {
         const uint32_t* pui32Result = DecodeDeclaration(psShader, pui32CurrentToken, psDecl);

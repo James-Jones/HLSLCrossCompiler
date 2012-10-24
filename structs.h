@@ -5,6 +5,8 @@
 #include "languages.h"
 #include "bstrlib.h"
 
+#include "reflect.h"
+
 typedef struct Operand_TAG
 {
     int iExtended;
@@ -109,6 +111,9 @@ typedef struct Shader_TAG
 
     uint32_t ui32InstCount;
     Instruction* psInst;
+
+    ShaderInfo sInfo;
+
 } Shader;
 
 typedef struct HLSLCrossCompilerContext_TAG

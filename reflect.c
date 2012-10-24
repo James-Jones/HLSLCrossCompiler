@@ -2,7 +2,7 @@
 #include "reflect.h"
 #include <stdlib.h>
 
-static uint32_t* ReadStringFromTokenStream(const uint32_t* tokens, char* str)
+static void ReadStringFromTokenStream(const uint32_t* tokens, char* str)
 {
     char* charTokens = (char*) tokens;
     char nextCharacter = *charTokens++;
@@ -16,18 +16,14 @@ static uint32_t* ReadStringFromTokenStream(const uint32_t* tokens, char* str)
 
         if(length > MAX_RESOURCE_BINDING_NAME_LENGTH)
         {
-            //Need to continue in order to return the token stream
-            //at the end of the string.
-            length--;
+            str[length-1] = '\0';
+            return;
         }
 
         nextCharacter = *charTokens++;
     }
 
     str[length] = '\0';
-
-    //return (charTokens + 3) &~ 3;
-    return (uint32_t*)charTokens;
 }
 
 static const uint32_t* ReadResourceBinding(const uint32_t* pui32FirstResourceToken, const uint32_t* pui32Tokens, ResourceBinding* psBinding)
@@ -78,7 +74,7 @@ void ReadResources(const uint32_t* pui32Tokens,//in
     }
 }
 
-int GetResourceFromBindingPoint(uint32_t ui32BindPoint, ShaderInfo* psShaderInfo, ResourceBinding** ppsOutBinding)
+int GetResourceFromBindingPoint(ResourceType eType, uint32_t ui32BindPoint, ShaderInfo* psShaderInfo, ResourceBinding** ppsOutBinding)
 {
     uint32_t i;
     const uint32_t ui32NumBindings = psShaderInfo->ui32NumResourceBindings;
@@ -86,7 +82,7 @@ int GetResourceFromBindingPoint(uint32_t ui32BindPoint, ShaderInfo* psShaderInfo
 
     for(i=0; i<ui32NumBindings; ++i)
     {
-        if(psBindings[i].ui32BindPoint == ui32BindPoint)
+        if(psBindings[i].ui32BindPoint == ui32BindPoint && psBindings[i].eType == eType)
         {
             *ppsOutBinding = psBindings + i;
             return 1;

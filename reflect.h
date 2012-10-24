@@ -1,7 +1,8 @@
 #ifndef REFLECT_H
 #define REFLECT_H
 
-#include "structs.h"
+#include "tokens.h"
+#include "bstrlib.h"
 
 typedef enum ResourceType_TAG
 {
@@ -42,7 +43,7 @@ typedef struct ShaderInfo_TAG
 void ReadResources(const uint32_t* pui32Tokens,//in
                    ShaderInfo* psShaderInfo);//out
 
-int GetResourceFromBindingPoint(uint32_t ui32BindPoint, ShaderInfo* psShaderInfo, ResourceBinding** ppsOutBinding);
+int GetResourceFromBindingPoint(ResourceType eType, uint32_t ui32BindPoint, ShaderInfo* psShaderInfo, ResourceBinding** ppsOutBinding);
 
 #if 0
 //--- Utility functions ---
