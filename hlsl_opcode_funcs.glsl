@@ -1,11 +1,11 @@
 
 void HLSL_movc(inout float dest, float value) {
     if(value > 0.0) dest = value;
-};
+}
 void HLSL_movc(inout vec2 dest, vec4 value) {
     if(value.x > 0.0) dest.x = value.x;
     if(value.y > 0.0) dest.y = value.y;
-};
+}
 void HLSL_mul(inout float dest, float a, float b) {
     dest = a * b;
 }

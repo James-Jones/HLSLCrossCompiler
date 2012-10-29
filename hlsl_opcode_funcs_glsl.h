@@ -3,11 +3,11 @@ const char* psz_hlsl_opcode_funcs_glsl = {
 "	\n \
 	void HLSL_movc(inout float dest, float value) {\n \
 	    if(value > 0.0) dest = value;\n \
-	};\n \
+	}\n \
 	void HLSL_movc(inout vec2 dest, vec4 value) {\n \
 	    if(value.x > 0.0) dest.x = value.x;\n \
 	    if(value.y > 0.0) dest.y = value.y;\n \
-	};\n \
+	}\n \
 	void HLSL_mul(inout float dest, float a, float b) {\n \
 	    dest = a * b;\n \
 	}\n \

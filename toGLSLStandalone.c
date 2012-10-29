@@ -243,18 +243,19 @@ GLLang LanguageFromString(const char* str)
     return LANG_DEFAULT;
 }
 
-void main(int argc, char** argv)
+int main(int argc, char** argv)
 {
     FILE* outputFile;
     GLSLShader result;
     GLLang language = LANG_DEFAULT;
+	int returnValue = 0;//EXIT_SUCCESS
 
     printf("args: bytecode-file [output-file] [language override - es100 es300 120 130 etc.]\n");
 
     if(argc < 2 || !fileExists(argv[1]))
     {
         printf("Bad args. Supply a valid shader path, optionaly followed by the output path\n");
-        return;
+        return 1;//EXIT_FAILURE
     }
 
     if(argc > 3)
@@ -273,9 +274,14 @@ void main(int argc, char** argv)
         }
 
 #if defined(VALIDATE_OUTPUT)
-        TryCompileShader(result.shaderType, result.sourceCode);
+        if(!TryCompileShader(result.shaderType, result.sourceCode))
+		{
+			returnValue = 1;//EXIT_FAILURE
+		}
 #endif
 
         bcstrfree(result.sourceCode);
     }
+
+	return returnValue;
 }
