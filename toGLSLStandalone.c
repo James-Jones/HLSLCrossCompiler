@@ -136,7 +136,7 @@ void InitOpenGL()
 }
 #endif
 
-int TryCompileShader(GLenum eGLSLShaderType, char* shader)
+int TryCompileShader(GLenum eGLSLShaderType, char* inFilename, char* shader)
 {
     GLint iCompileStatus;
     GLuint hShader;
@@ -157,6 +157,8 @@ int TryCompileShader(GLenum eGLSLShaderType, char* shader)
         FILE* errorFile;
         GLint iInfoLogLength = 0;
         char pszInfoLog[1024];
+		bstring filename = bfromcstr(inFilename);
+		char* cstrFilename;
 
         printf("Error: Failed to compile GLSL shader\n");
 
@@ -167,10 +169,17 @@ int TryCompileShader(GLenum eGLSLShaderType, char* shader)
         //glGetShaderInfoLog(hShader, 1024, &iInfoLogLength, pszInfoLog);
         printf(pszInfoLog);
 
+		bcatcstr(filename, "_compileErrors.txt");
+
+		cstrFilename = bstr2cstr(filename, '\0');
+
         //Dump to file
-        errorFile = fopen("compileErrors.txt", "w");
+        errorFile = fopen(cstrFilename, "w");
         fprintf(errorFile, pszInfoLog);
         fclose(errorFile);
+
+		bdestroy(filename);
+		free(cstrFilename);
 
         return 0;
     }
@@ -274,7 +283,7 @@ int main(int argc, char** argv)
         }
 
 #if defined(VALIDATE_OUTPUT)
-        if(!TryCompileShader(result.shaderType, result.sourceCode))
+        if(!TryCompileShader(result.shaderType, (argc > 2) ? argv[2] : "", result.sourceCode))
 		{
 			returnValue = 1;//EXIT_FAILURE
 		}
