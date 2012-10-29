@@ -6,6 +6,7 @@ executable = "../bin/Debug/HLSLByteCodeToGLSLStandalone"
 
 passCount = 0
 failCount = 0
+listOfFailedTests = []
 
 i = 0
 
@@ -13,6 +14,7 @@ def RunTest(ByteCodeFileName, lang):
 
 	global failCount
 	global passCount
+	global listOfFailedTests
 
 	(head, tail) = os.path.split(ByteCodeFileName);
 	outputfilename = tail + ".glsl"
@@ -26,6 +28,7 @@ def RunTest(ByteCodeFileName, lang):
 	if returnCode == 1:
 		print "vs4/mov failed to compile"
 		failCount += 1
+		listOfFailedTests.append(ByteCodeFileName)
 	else:
 		passCount += 1
 
@@ -54,3 +57,6 @@ for files in glob.glob("ds5/*.o"):
 	RunTest(files, "400")
 
 print str(passCount) + " passed; " + str(failCount) + " failed.\n"
+print "Failed tests:"
+for testName in listOfFailedTests:
+	print testName
