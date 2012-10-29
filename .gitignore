@@ -1,6 +1,7 @@
 
 bin/
 obj/
+lib/
 
 CMakeCache.txt
 CMakeFiles
@@ -8,9 +9,22 @@ Makefile
 cmake_install.cmake
 install_manifest.txt
 
+tests/results/
+
 # Visual Studio
 *.suo
 *.user
+*.sdf
+*.sln
+*.opensdf
+*.obj
+*.vcxproj
+*.vcxproj.filters
+*.tlog
+
+mk/*.dir
+mk/ipch/
+mk/Win32/
 
 # Compiled source #
 ###################
