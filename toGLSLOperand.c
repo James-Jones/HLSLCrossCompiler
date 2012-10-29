@@ -1,5 +1,6 @@
 #include "toGLSLOperand.h"
 #include "bstrlib.h"
+#include "toGLSL.h"
 
 #include <assert.h>
 #define ASSERT(x) assert(x)
@@ -308,7 +309,28 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         }
         case OPERAND_TYPE_CONSTANT_BUFFER:
         {
-            bformata(glsl, "Const%d[%d]", psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
+			if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
+			{
+				//Each uniform block is given the HLSL consant buffer name.
+				//Within each uniform block is a constant array named ConstN
+				bformata(glsl, "Const%d[%d]", psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
+			}
+			else
+			{
+				//Arrays of constants. Each array is given the HLSL constant buffer name.
+				ResourceBinding* psBinding = 0;
+				GetResourceFromBindingPoint(RTYPE_CBUFFER, psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psBinding);
+
+				//$Globals.
+				if(psBinding->Name[0] == '$')
+				{
+					bformata(glsl, "Globals[%d]", psOperand->aui32ArraySizes[1]);
+				}
+				else
+				{
+					bformata(glsl, "%s[%d]", psBinding->Name, psOperand->aui32ArraySizes[1]);
+				}
+			}
             break;
         }
         case OPERAND_TYPE_RESOURCE:

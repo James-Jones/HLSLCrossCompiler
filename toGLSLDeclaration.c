@@ -226,25 +226,34 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
         }
         case OPCODE_DCL_CONSTANT_BUFFER:
         {
+			const Operand* psOperand = &psDecl->asOperands[0];
             if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
             {
+				ResourceBinding* psBinding = 0;
+				GetResourceFromBindingPoint(RTYPE_CBUFFER, psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psBinding);
                 /*
-                    layout(std140) uniform UniformBufferX
+                    layout(std140) uniform UniformBufferName
                     {
                         vec4 ConstsX[numConsts];
                     };
                 */
-                bcatcstr(glsl, "layout(std140) uniform UniformBuffer");
-                TranslateOperandIndex(psContext, &psDecl->asOperands[0], 0); /*0=bufferNumber 1=numberOfElements*/
+				if(psBinding->Name[0] == '$')
+				{
+					bformata(glsl, "layout(std140) uniform Globals");
+				}
+				else
+				{
+					bformata(glsl, "layout(std140) uniform %s", psBinding->Name);
+				}
                 bcatcstr(glsl, "{\n\tvec4 ");
-                TranslateOperand(psContext, &psDecl->asOperands[0]);
+                TranslateOperand(psContext, psOperand);
                 bcatcstr(glsl, ";\n};\n");
             }
             else
             {
-                /* uniform vec4 ConstsX[numConsts]; */
+                /* uniform vec4 HLSLConstantBufferName[numConsts]; */
                 bcatcstr(glsl, "uniform vec4 ");
-                TranslateOperand(psContext, &psDecl->asOperands[0]);
+                TranslateOperand(psContext, psOperand);
                 bcatcstr(glsl, ";\n");
             }
             break;
