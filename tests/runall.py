@@ -33,13 +33,13 @@ def RunTest(ByteCodeFileName, lang):
 		passCount += 1
 
 for files in glob.glob("vs4/*.o"):
-	RunTest(files, "130")
+	RunTest(files, "150")
 
 for files in glob.glob("ps4/*.o"):
-	RunTest(files, "130")
+	RunTest(files, "150")
 
 for files in glob.glob("gs4/*.o"):
-	RunTest(files, "130")
+	RunTest(files, "150")
 
 for files in glob.glob("vs5/*.o"):
 	 RunTest(files, "400")
