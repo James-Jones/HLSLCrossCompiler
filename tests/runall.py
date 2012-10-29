@@ -1,20 +1,56 @@
 from subprocess import call
 import os;
+import glob;
 
 executable = "../bin/Debug/HLSLByteCodeToGLSLStandalone"
 
 passCount = 0
 failCount = 0
 
-if os.path.isdir("results/glsl130") == False:
-	os.makedirs("results/glsl130")
+i = 0
 
-returnCode = call([executable, "vs4/mov.o", "results/glsl130/vs4mov.glsl", "130"])
+def RunTest(ByteCodeFileName, lang):
 
-if returnCode == 1:
-	print "vs4/mov failed to compile"
-	failCount += 1
-else:
-	passCount += 1
+	global failCount
+	global passCount
 
-print str(passCount) + "passed; " + str(failCount) + " failed.\n"
+	(head, tail) = os.path.split(ByteCodeFileName);
+	outputfilename = tail + ".glsl"
+	directory = "results/glsl" + lang
+
+	if os.path.isdir(directory) == False:
+		os.makedirs(directory)
+
+	returnCode = call([executable, ByteCodeFileName, directory+"/"+outputfilename, lang])
+
+	if returnCode == 1:
+		print "vs4/mov failed to compile"
+		failCount += 1
+	else:
+		passCount += 1
+
+for files in glob.glob("vs4/*.o"):
+	RunTest(files, "130")
+
+for files in glob.glob("ps4/*.o"):
+	RunTest(files, "130")
+
+for files in glob.glob("gs4/*.o"):
+	RunTest(files, "130")
+
+for files in glob.glob("vs5/*.o"):
+	 RunTest(files, "400")
+
+for files in glob.glob("ps5/*.o"):
+	RunTest(files, "400")
+
+for files in glob.glob("gs5/*.o"):
+	RunTest(files, "400")
+
+for files in glob.glob("hs5/*.o"):
+	RunTest(files, "400")
+
+for files in glob.glob("ds5/*.o"):
+	RunTest(files, "400")
+
+print str(passCount) + " passed; " + str(failCount) + " failed.\n"
