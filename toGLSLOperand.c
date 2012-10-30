@@ -35,7 +35,19 @@ int GetMaxComponentFromComponentMask(const Operand* psOperand)
                 }
             }
         }
+		else
+		//Component Swizzle
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+		{
+			return 4;
+		}
+		else
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+		{
+			return 1;
+		}
     }
+
     return 4;
 }
 
@@ -47,92 +59,92 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
     if(psOperand->iWriteMaskEnabled &&
        psOperand->iNumComponents == 4)
     {
-    //Comonent Mask
-    if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
-    {
-        if(psOperand->ui32CompMask != 0 && psOperand->ui32CompMask != (OPERAND_4_COMPONENT_MASK_X|OPERAND_4_COMPONENT_MASK_Y|OPERAND_4_COMPONENT_MASK_Z|OPERAND_4_COMPONENT_MASK_W))
-        {
-            bcatcstr(glsl, ".");
-            if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_X)
-            {
-                bcatcstr(glsl, "x");
-            }
-            if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Y)
-            {
-                bcatcstr(glsl, "y");
-            }
-            if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Z)
-            {
-                bcatcstr(glsl, "z");
-            }
-            if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_W)
-            {
-                bcatcstr(glsl, "w");
-            }
-        }
-    }
-    else
-    //Component Swizzle
-    if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
-    {
-        if(psOperand->ui32Swizzle != (NO_SWIZZLE))
-        {
-            uint32_t i;
+		//Comonent Mask
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+		{
+			if(psOperand->ui32CompMask != 0 && psOperand->ui32CompMask != (OPERAND_4_COMPONENT_MASK_X|OPERAND_4_COMPONENT_MASK_Y|OPERAND_4_COMPONENT_MASK_Z|OPERAND_4_COMPONENT_MASK_W))
+			{
+				bcatcstr(glsl, ".");
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_X)
+				{
+					bcatcstr(glsl, "x");
+				}
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Y)
+				{
+					bcatcstr(glsl, "y");
+				}
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Z)
+				{
+					bcatcstr(glsl, "z");
+				}
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_W)
+				{
+					bcatcstr(glsl, "w");
+				}
+			}
+		}
+		else
+		//Component Swizzle
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+		{
+			if(psOperand->ui32Swizzle != (NO_SWIZZLE))
+			{
+				uint32_t i;
 
-            bcatcstr(glsl, ".");
+				bcatcstr(glsl, ".");
 
-            for(i=0; i< 4; ++i)
-            {
-                if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X)
-                {
-                    bcatcstr(glsl, "x");
-                }
-                else
-                if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y)
-                {
-                    bcatcstr(glsl, "y");
-                }
-                else
-                if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z)
-                {
-                    bcatcstr(glsl, "z");
-                }
-                else
-                if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W)
-                {
-                    bcatcstr(glsl, "w");
-                }
-            }
-        }
-    }
-    else
-    if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
-    {
-        bcatcstr(glsl, ".");
+				for(i=0; i< 4; ++i)
+				{
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X)
+					{
+						bcatcstr(glsl, "x");
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y)
+					{
+						bcatcstr(glsl, "y");
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z)
+					{
+						bcatcstr(glsl, "z");
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W)
+					{
+						bcatcstr(glsl, "w");
+					}
+				}
+			}
+		}
+		else
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+		{
+			bcatcstr(glsl, ".");
 
-        if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_X)
-        {
-            bcatcstr(glsl, "x");
-        }
-        else
-        if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Y)
-        {
-            bcatcstr(glsl, "y");
-        }
-        else
-        if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Z)
-        {
-            bcatcstr(glsl, "z");
-        }
-        else
-        if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_W)
-        {
-            bcatcstr(glsl, "w");
-        }
-    }
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_X)
+			{
+				bcatcstr(glsl, "x");
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Y)
+			{
+				bcatcstr(glsl, "y");
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Z)
+			{
+				bcatcstr(glsl, "z");
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_W)
+			{
+				bcatcstr(glsl, "w");
+			}
+		}
 
-    //Component Select 1
-    }
+		//Component Select 1
+	}
 }
 
 void TranslateOperandIndex(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index)

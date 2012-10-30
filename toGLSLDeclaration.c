@@ -205,12 +205,14 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
             if(iNumComponents == 1)
             {
                 bformata(glsl, "in float VtxOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "vec1 Input%d = vec1(VtxOutput%d);\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
             }
             else
             {
                 bformata(glsl, "in vec%d VtxOutput%d;\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "#define Input%d VtxOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
             }
-            bformata(glsl, "#define Input%d VtxOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+            
             break;
         }
         case OPCODE_DCL_TEMPS:

@@ -1,4 +1,23 @@
 
+void HLSL_mov(inout float dest, float value) {
+    dest = value;
+}
+void HLSL_mov(inout float dest, vec4 value) {
+    dest = value.x;
+}
+void HLSL_mov(inout vec1 dest, vec4 value) {
+    dest.x = value.x;
+}
+void HLSL_mov(inout vec2 dest, vec4 value) {
+    dest = value.xy;
+}
+void HLSL_mov(inout vec3 dest, vec4 value) {
+    dest = value.xyz;
+}
+void HLSL_mov(inout vec4 dest, vec4 value) {
+    dest = value;
+}
+
 void HLSL_movc(inout float dest, float value) {
     if(value > 0.0) dest = value;
 }
