@@ -332,19 +332,23 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
             {
                 switch(psDecl->asOperands[0].eType)
                 {
-                     case OPERAND_TYPE_OUTPUT_DEPTH:
+                    case OPERAND_TYPE_OUTPUT_DEPTH:
                     {
                         break;
                     }
                     case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
                     {
-                        bcatcstr(glsl, "layout (depth_greater) out float gl_FragDepth;");
-                        break;
+						bcatcstr(glsl, "#ifdef GL_ARB_conservative_depth\n");
+						bcatcstr(glsl, "layout (depth_greater) out float gl_FragDepth;\n");
+						bcatcstr(glsl, "#endif\n");
+						break;
                     }
                     case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
                     {
-                        bcatcstr(glsl, "layout (depth_less) out float gl_FragDepth;");
-                        break;
+						bcatcstr(glsl, "#ifdef GL_ARB_conservative_depth\n");
+						bcatcstr(glsl, "layout (depth_less) out float gl_FragDepth;\n");
+						bcatcstr(glsl, "#endif\n");
+						break;
                     }
                     default:
                     {

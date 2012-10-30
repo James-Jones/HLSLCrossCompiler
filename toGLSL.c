@@ -47,6 +47,9 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 {
     bstring glsl = psContext->glsl;
 
+	//Enable conservative depth if the extension is defined by the GLSL compiler.
+	bcatcstr(glsl,"#ifdef GL_ARB_conservative_depth\n\t#extension GL_ARB_conservative_depth : enable\n#endif\n");
+
     if(psContext->flags & HLSLCC_FLAG_ORIGIN_UPPER_LEFT)
     {
         bcatcstr(glsl,"#if __VERSION__ >= 150\n layout(origin_upper_left) in vec4 gl_FragCoord; \n#endif\n");
