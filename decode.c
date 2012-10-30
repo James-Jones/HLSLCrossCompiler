@@ -437,6 +437,10 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         {
             break;
         }
+		case OPCODE_DCL_INPUT_CONTROL_POINT_COUNT:
+		{
+			break;
+		}
         default:
         {
             //Reached end of declarations
@@ -621,7 +625,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         }
         default:
         {
-#ifdef DEBUG
+#ifdef _DEBUG
 			//OutputDebugString("Unkown opcode.\n");
             printf("Unkown opcode %d.\n", eOpcode);
 #endif

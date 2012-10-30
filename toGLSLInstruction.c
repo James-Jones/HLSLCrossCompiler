@@ -810,9 +810,9 @@ src3
         default:
         {
             AddIndentation(psContext);
-            bcatcstr(glsl, "//Unknown opcode\n");
+            bformata(glsl, "//Unknown opcode %d\n", psInst->eOpcode);
 #ifdef _DEBUG
-            printf("Unknown opcode (toGLSL).\n");
+            printf("Unknown opcode %d (toGLSL).\n", psInst->eOpcode);
 #endif
             break;
         }
