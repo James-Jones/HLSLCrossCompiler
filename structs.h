@@ -119,6 +119,7 @@ typedef struct Shader_TAG
 typedef struct HLSLCrossCompilerContext_TAG
 {
     bstring glsl;
+	bstring earlyMain;//Code to be inserted at the start of main()
     int indent;
     unsigned int flags;
     Shader* psShader;

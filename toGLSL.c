@@ -203,6 +203,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
     glsl = bfromcstralloc (1024, GetVersionString(language));
 
     psContext->glsl = glsl;
+	psContext->earlyMain = bfromcstralloc (1024, "");
     psShader->eTargetLanguage = language;
 
     AddVersionDependentCode(psContext);
@@ -218,6 +219,8 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
     bcatcstr(glsl, "{\n");
 
     psContext->indent++;
+
+	bconcat(glsl, psContext->earlyMain);
 
     for(i=0; i < ui32InstCount; ++i)
     {
@@ -285,6 +288,7 @@ void TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang languag
         glslcstr = bstr2cstr(sContext.glsl, '\0');
 
         bdestroy(sContext.glsl);
+		bdestroy(sContext.earlyMain);
 
         free(psShader->psDecl);
         free(psShader->psInst);

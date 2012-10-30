@@ -60,21 +60,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         {
 
 			CallHLSLOpcodeFunc1(psContext, "HLSL_mov", psInst);
-
-			
-			/*int iNumComponents = GetMaxComponentFromComponentMask(&psInst->asOperands[0]);
-
-            AddIndentation(psContext);
-            bcatcstr(glsl, "//MOV\n");
-            AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
-            bformata(glsl, " = vec%d(", iNumComponents);
-
-
-            TranslateOperand(psContext, &psInst->asOperands[1]);
-            bcatcstr(glsl, ")");
-            TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
-            bcatcstr(glsl, ";\n");*/
             break;
         }
         case OPCODE_UTOF://unsigned to float

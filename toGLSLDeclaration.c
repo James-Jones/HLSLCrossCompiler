@@ -104,9 +104,9 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                 }
                 case NAME_RENDER_TARGET_ARRAY_INDEX:
                 {
-                    bcatcstr(glsl, "#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0]);
-                    bformata(glsl, " gl_Layer\n");
+                    bcatcstr(glsl, "vec1 ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+                    bformata(glsl, " = vec1(gl_Layer);\n");
                     break;
                 }
                 case NAME_CLIP_DISTANCE:
@@ -173,8 +173,22 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                 {
                     if(iNumComponents == 1)
                     {
-                        bformata(glsl, "in float Input%d [%d];\n", psDecl->asOperands[0].ui32RegisterNumber,
-                            psDecl->asOperands[0].aui32ArraySizes[0]);
+						bstring earlyMain = psContext->earlyMain;
+						uint32_t i;
+						uint32_t regNum =  psDecl->asOperands[0].ui32RegisterNumber;
+						uint32_t arraySize = psDecl->asOperands[0].aui32ArraySizes[0];
+
+                        bformata(glsl, "in float ScalarInput%d [%d];\n", regNum,
+                            arraySize);
+
+						bformata(glsl, "vec1 Input%d [%d];\n", regNum,
+							arraySize);
+
+						for(i=0; i<arraySize; ++i)
+						{
+							bformata(earlyMain, "Input%d[%d] = vec1(ScalarInput%d[%d]);\n", regNum, i,
+								regNum, i);
+						}
                     }
                     else
                     {
@@ -187,7 +201,10 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                 {
                     if(iNumComponents == 1)
                     {
-                        bformata(glsl, "in float Input%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+                        bformata(glsl, "in float ScalarInput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+
+						bformata(glsl, "vec1 Input%d = vec1(ScalarInput%d);\n", psDecl->asOperands[0].ui32RegisterNumber,
+							psDecl->asOperands[0].ui32RegisterNumber);
                     }
                     else
                     {
