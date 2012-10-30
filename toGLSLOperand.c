@@ -268,8 +268,16 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         {
             if(psOperand->iNumComponents == 1)
             {
-                bformata(glsl, "%f",
+				if(psOperand->iIntegerImmediate)
+				{
+					bformata(glsl, "%u",
+						*((uint32_t*)(&psOperand->afImmediates[0])));
+				}
+				else
+				{
+					bformata(glsl, "%f",
                     psOperand->afImmediates[0]);
+				}
             }
             else
             if(psOperand->iNumComponents == 4)

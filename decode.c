@@ -196,6 +196,9 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
         }
     }
 
+	//Set externally to this function based on the instruction opcode.
+	psOperand->iIntegerImmediate = 0;
+
     if(psOperand->eType == OPERAND_TYPE_IMMEDIATE32)
     {
         for(i=0; i< psOperand->iNumComponents; ++i)
@@ -502,6 +505,11 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         {
             psInst->ui32NumOperands = 1;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+
+			if(eOpcode == OPCODE_CASE)
+			{
+				psInst->asOperands[0].iIntegerImmediate = 1;
+			}
             break;
         }
 
