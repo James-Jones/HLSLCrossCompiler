@@ -22,6 +22,6 @@ static const unsigned int HLSLCC_FLAG_PIXEL_CENTER_INTEGER = 0x4;
 static const unsigned int HLSLCC_FLAG_GLOBAL_CONSTS_NEVER_IN_UBO = 0x8;
 
 int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang language, GLSLShader* result);
-void TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language, GLSLShader* result);
+int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language, GLSLShader* result);
 
 #endif

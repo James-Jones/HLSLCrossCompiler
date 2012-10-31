@@ -4,12 +4,19 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "reflect.h"
+#include "assert.h"
 
 #define FOURCC(a, b, c, d) ((uint32_t)(uint8_t)(a) | ((uint32_t)(uint8_t)(b) << 8) | ((uint32_t)(uint8_t)(c) << 16) | ((uint32_t)(uint8_t)(d) << 24 ))
 const uint32_t FOURCC_DXBC = FOURCC('D', 'X', 'B', 'C');
 const uint32_t FOURCC_SHDR = FOURCC('S', 'H', 'D', 'R');
 const uint32_t FOURCC_SHEX = FOURCC('S', 'H', 'E', 'X');
 const uint32_t FOURCC_RDEF = FOURCC('R', 'D', 'E', 'F');
+
+#ifdef _DEBUG
+#define ASSERT(expr) assert(expr)
+#else
+#define ASSERT(expr)
+#endif
 
 typedef struct DXBCContainerHeaderTAG
 {
@@ -94,7 +101,7 @@ void DecodeNameToken(const uint32_t* pui32NameToken, Operand* psOperand)
         }
         default:
         {
-            printf("Unknown name token %d\n", psOperand->eSpecialName);
+            ASSERT(0);
             break;
         }
     }
@@ -237,7 +244,7 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
             }
             default:
             {
-                printf("Unhandled index representation\n");
+                ASSERT(0);
                 break;
             }
         }
@@ -268,13 +275,6 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 
     switch (eOpcode)
     {
-#if 0
-		case OPCODE_DCL_GLOBAL_FLAGS:
-		{
-			printf("dcl_globalFlags\n");
-			break;
-		}
-#endif
         case OPCODE_DCL_RESOURCE: // DCL* opcodes have
         {
             psDecl->value.eResourceDimension = DecodeResourceDimension(*pui32Token+ui32OperandOffset);
@@ -630,10 +630,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         }
         default:
         {
-#ifdef _DEBUG
-			//OutputDebugString("Unkown opcode.\n");
-            printf("Unkown opcode %d.\n", eOpcode);
-#endif
+			ASSERT(0);
             break;
         }
     }
@@ -696,7 +693,7 @@ void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Resources, Shader*
 #ifdef _DEBUG
         if(nextInstr == pui32CurrentToken)
         {
-            printf("Zero length instruction found\n");
+            ASSERT(0);
             break;
         }
 #endif
@@ -718,7 +715,6 @@ Shader* DecodeDXBC(uint32_t* data)
 
 	if(header->fourcc != FOURCC_DXBC)
 	{
-		printf("Bad fourcc\n");
 		return 0;
 	}
 
@@ -742,12 +738,9 @@ Shader* DecodeDXBC(uint32_t* data)
 		{
             psShader = calloc(1, sizeof(Shader));
 			Decode((uint32_t*)(chunk + 1), (uint32_t*)(rdefChunk + 1), psShader);
-			printf("Success!\n");
 			return psShader;
 		}
 	}
-
-	printf("Failed - No SHEX ro SHDR fourcc found.\n");
     return 0;
 }
 

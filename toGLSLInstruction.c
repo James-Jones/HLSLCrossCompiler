@@ -58,14 +58,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
     {
         case OPCODE_MOV:
         {
-
 			CallHLSLOpcodeFunc1(psContext, "HLSL_mov", psInst);
             break;
         }
         case OPCODE_UTOF://unsigned to float
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//UTOF\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = vec4(");
@@ -77,8 +78,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_MAD:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//MAD\n");
+#endif
             CallHLSLOpcodeFunc3(psContext, "HLSL_mad", psInst);
             break;
         }
@@ -112,9 +115,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             //Temp0.xy = Input0.xyxx + vec4(0.100000, 0.000000, 0.000000, 0.000000);
             //becomes
             //Temp0.xy = vec4(Input0.xyxx + vec4(0.100000, 0.000000, 0.000000, 0.000000)).xy;
-
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//ADD\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = ");
@@ -134,8 +138,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_OR:
         {
             /*Todo: vector version */
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//OR\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = int(");
@@ -148,8 +154,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_AND:
         {
             /* Todo: vector version*/
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//AND\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = int(");
@@ -165,22 +173,28 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
                 dest = vec4(greaterThanEqual(vec4(srcA), vec4(srcB));
                 Caveat: The result is a boolean but HLSL asm returns 0xFFFFFFFF/0x0 instead.
              */
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//GE\n");
+#endif
             CallHLSLOpcodeFunc2(psContext, "HLSL_ge", psInst);
             break;
         }
         case OPCODE_MUL:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//MUL\n");
+#endif
             CallHLSLOpcodeFunc2(psContext, "HLSL_mul", psInst);
             break;
         }
         case OPCODE_DIV:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//DIV\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = ");
@@ -192,8 +206,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_SINCOS:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//SINCOS\n");
+#endif
             if(psInst->asOperands[0].eType != OPERAND_TYPE_NULL)
             {
                 AddIndentation(psContext);
@@ -216,8 +232,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
         case OPCODE_DP2:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//DP2\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = dot((");
@@ -229,8 +247,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_DP3:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//DP3\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = dot((");
@@ -242,8 +262,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_DP4:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//DP4\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = dot(");
@@ -256,8 +278,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_NE:
         {
             //Scalar version. Use any() for vector with scalar 1
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//NE\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = (");
@@ -302,15 +326,19 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_MOVC:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//MOVC\n");
+#endif
             CallHLSLOpcodeFunc1(psContext, "HLSL_movc", psInst);
             break;
         }
 		case OPCODE_LOG:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//LOG\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = log(");
@@ -320,8 +348,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
 		case OPCODE_RSQ:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//RSQ\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = inversesqrt(");
@@ -331,8 +361,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_EXP:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//EXP\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = exp(");
@@ -342,8 +374,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
 		case OPCODE_SQRT:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//SQRT\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = sqrt(");
@@ -353,8 +387,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_ROUND_PI:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//ROUND_PI\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = ceil(");
@@ -364,8 +400,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
 		case OPCODE_ROUND_NI:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//ROUND_NI\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = floor(");
@@ -375,8 +413,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
 		case OPCODE_ROUND_Z:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//ROUND_Z\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = trunc(");
@@ -386,8 +426,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
 		case OPCODE_ROUND_NE:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//ROUND_NE\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = roundEven(");
@@ -397,8 +439,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
 		case OPCODE_FRC:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//FRC\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = fract(");
@@ -408,8 +452,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
 		case OPCODE_MAX:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//MAX\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = max(");
@@ -421,8 +467,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
 		case OPCODE_MIN:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//MIN\n");
+#endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = min(");
@@ -435,8 +483,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_GATHER4:
         {
             //dest, coords, tex, sampler
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//GATHER4\n");
+#endif
             AddIndentation(psContext);//1=temp??
             TranslateOperand(psContext, &psInst->asOperands[1]);//??
             bcatcstr(glsl, " = textureGather(");
@@ -454,8 +504,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_SAMPLE:
         {
             //dest, coords, tex, sampler
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//SAMPLE\n");
+#endif
             AddIndentation(psContext);//1=temp??
             TranslateOperand(psContext, &psInst->asOperands[1]);//??
             bcatcstr(glsl, " = texture2D(");
@@ -492,16 +544,20 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
 		case OPCODE_RET:
 		{
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//RET\n");
+#endif
             AddIndentation(psContext);
 			bcatcstr(glsl, "return;\n");
 			break;
 		}
         case OPCODE_INTERFACE_CALL:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//INTERFACE_CALL\n");
+#endif
             AddIndentation(psContext);
             bformata(glsl, "InterfaceVar%d();\n", psInst->ui32FunctionIDToCall);
             break;
@@ -591,24 +647,30 @@ src3
         }
         case OPCODE_CUT:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//CUT\n");
+#endif
             AddIndentation(psContext);
 			bcatcstr(glsl, "EndPrimitive();\n");
 			break;
         }
         case OPCODE_EMIT:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//EMIT\n");
+#endif
             AddIndentation(psContext);
 			bcatcstr(glsl, "EmitVertex();\n");
 			break;
         }
         case OPCODE_EMITTHENCUT:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//EMITTHENCUT\n");
+#endif
             AddIndentation(psContext);
 			bcatcstr(glsl, "EmitVertex();\nEndPrimitive();\n");
 			break;
@@ -616,8 +678,10 @@ src3
 
         case OPCODE_CUT_STREAM:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//CUT\n");
+#endif
             AddIndentation(psContext);
 			bcatcstr(glsl, "EndStreamPrimitive(");
             TranslateOperand(psContext, &psInst->asOperands[0]);
@@ -627,8 +691,10 @@ src3
         }
         case OPCODE_EMIT_STREAM:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//EMIT\n");
+#endif
             AddIndentation(psContext);
 			bcatcstr(glsl, "EmitStreamVertex(");
             TranslateOperand(psContext, &psInst->asOperands[0]);
@@ -637,8 +703,10 @@ src3
         }
         case OPCODE_EMITTHENCUT_STREAM:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//EMITTHENCUT\n");
+#endif
             AddIndentation(psContext);
 			bcatcstr(glsl, "EmitStreamVertex(");
             TranslateOperand(psContext, &psInst->asOperands[0]);
@@ -650,8 +718,10 @@ src3
         }
         case OPCODE_LOOP:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//LOOP\n");
+#endif
             AddIndentation(psContext);
             bcatcstr(glsl, "while(true){\n");
             ++psContext->indent;
@@ -660,16 +730,20 @@ src3
         case OPCODE_ENDLOOP:
         {
             --psContext->indent;
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//ENDLOOP\n");
+#endif
             AddIndentation(psContext);
             bcatcstr(glsl, "}\n");
             break;
         }
         case OPCODE_BREAK:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//BREAK\n");
+#endif
             AddIndentation(psContext);
             bcatcstr(glsl, "break;\n");
             break;
@@ -698,8 +772,10 @@ src3
         }
         case OPCODE_IF:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//IF\n");
+#endif
             AddIndentation(psContext);
             if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
             {
@@ -720,8 +796,10 @@ src3
         case OPCODE_ELSE:
         {
             --psContext->indent;
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//ELSE\n");
+#endif
             AddIndentation(psContext);
             bcatcstr(glsl, "} else {\n");
             psContext->indent++;
@@ -782,10 +860,11 @@ src3
         }
         case OPCODE_SWITCH:
         {
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//SWITCH\n");
+#endif
             AddIndentation(psContext);
-
             bcatcstr(glsl, "switch(int(");
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ")){\n");
@@ -796,8 +875,10 @@ src3
         case OPCODE_CASE:
         {
             --psContext->indent;
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//case\n");
+#endif
             AddIndentation(psContext);
 
             bcatcstr(glsl, "case ");
@@ -809,11 +890,7 @@ src3
         }
         default:
         {
-            AddIndentation(psContext);
-            bformata(glsl, "//Unknown opcode %d\n", psInst->eOpcode);
-#ifdef _DEBUG
-            printf("Unknown opcode %d (toGLSL).\n", psInst->eOpcode);
-#endif
+            ASSERT(0);
             break;
         }
     }
