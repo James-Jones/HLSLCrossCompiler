@@ -46,8 +46,14 @@ def RunTest(ByteCodeFileName, lang):
 	print "Running " + ByteCodeFileName
 
 	(head, tail) = os.path.split(ByteCodeFileName);
+
+	# tail2 will be shader model folder name
+	# e.g. vs4, hs5 etc.
+	(head2, tail2) = os.path.split(head);
+
 	outputfilename = tail + ".glsl"
-	directory = "results/glsl" + lang
+
+	directory = "results/glsl" + lang + os.sep + tail2
 
 	if os.path.isdir(directory) == False:
 		os.makedirs(directory)
