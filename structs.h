@@ -115,6 +115,8 @@ typedef struct Shader_TAG
 
     ShaderInfo sInfo;
 
+	int aiOpcodeUsed[NUM_OPCODES];
+
 } Shader;
 
 typedef struct HLSLCrossCompilerContext_TAG

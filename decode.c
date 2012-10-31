@@ -137,7 +137,7 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 
 	psOperand->iIndexDims = DecodeOperandIndexDimension(*pui32Tokens);
     psOperand->eType = DecodeOperandType(*pui32Tokens);
-    
+
     if(psOperand->eType == OPERAND_TYPE_SAMPLER ||
        psOperand->eType == OPERAND_TYPE_RESOURCE)
     {
@@ -467,6 +467,11 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
     if(bExtended)
     {
         ui32OperandOffset = 2;
+    }
+
+    if(eOpcode < NUM_OPCODES && eOpcode >= 0)
+    {
+        psShader->aiOpcodeUsed[eOpcode] = 1;
     }
 
     switch (eOpcode)
