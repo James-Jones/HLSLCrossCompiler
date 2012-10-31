@@ -175,8 +175,8 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                     {
 						bstring earlyMain = psContext->earlyMain;
 						uint32_t i;
-						uint32_t regNum =  psDecl->asOperands[0].ui32RegisterNumber;
-						uint32_t arraySize = psDecl->asOperands[0].aui32ArraySizes[0];
+						const uint32_t regNum =  psDecl->asOperands[0].ui32RegisterNumber;
+						const uint32_t arraySize = psDecl->asOperands[0].aui32ArraySizes[0];
 
                         bformata(glsl, "in float ScalarInput%d [%d];\n", regNum,
                             arraySize);
@@ -184,6 +184,7 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 						bformata(glsl, "vec1 Input%d [%d];\n", regNum,
 							arraySize);
 
+						//Copy to a vec1 to allow .x swizzle
 						for(i=0; i<arraySize; ++i)
 						{
 							bformata(earlyMain, "Input%d[%d] = vec1(ScalarInput%d[%d]);\n", regNum, i,
@@ -203,6 +204,7 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                     {
                         bformata(glsl, "in float ScalarInput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
 
+						//Copy to a vec1 to allow .x swizzle
 						bformata(glsl, "vec1 Input%d = vec1(ScalarInput%d);\n", psDecl->asOperands[0].ui32RegisterNumber,
 							psDecl->asOperands[0].ui32RegisterNumber);
                     }
@@ -258,15 +260,25 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                 */
 				if(psBinding->Name[0] == '$')
 				{
-					bformata(glsl, "layout(std140) uniform Globals");
+					if(psContext->flags & HLSLCC_FLAG_GLOBAL_CONSTS_NEVER_IN_UBO)
+					{
+						bcatcstr(glsl, "uniform vec4 ");
+						TranslateOperand(psContext, psOperand);
+						bcatcstr(glsl, ";\n");
+					}
+					else
+					{
+						bformata(glsl, "layout(std140) uniform Globals {\n\tvec4 ");
+						TranslateOperand(psContext, psOperand);
+						bcatcstr(glsl, ";\n};\n");
+					}
 				}
 				else
 				{
-					bformata(glsl, "layout(std140) uniform %s", psBinding->Name);
+					bformata(glsl, "layout(std140) uniform %s {\n\tvec4 ", psBinding->Name);
+					TranslateOperand(psContext, psOperand);
+					bcatcstr(glsl, ";\n};\n");
 				}
-                bcatcstr(glsl, "{\n\tvec4 ");
-                TranslateOperand(psContext, psOperand);
-                bcatcstr(glsl, ";\n};\n");
             }
             else
             {
