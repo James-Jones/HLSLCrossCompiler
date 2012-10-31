@@ -43,6 +43,8 @@ def RunTest(ByteCodeFileName, lang):
 	global listOfFailedTests
 	global executable
 
+	print "Running " + ByteCodeFileName
+
 	(head, tail) = os.path.split(ByteCodeFileName);
 	outputfilename = tail + ".glsl"
 	directory = "results/glsl" + lang
