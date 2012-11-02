@@ -487,17 +487,17 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//GATHER4\n");
 #endif
-            AddIndentation(psContext);//1=temp??
-            TranslateOperand(psContext, &psInst->asOperands[1]);//??
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[1]);
             bcatcstr(glsl, " = textureGather(");
 
-            TranslateOperand(psContext, &psInst->asOperands[3]);//resource
+            TranslateOperand(psContext, &psInst->asOperands[3]);
             bcatcstr(glsl, ", ");
             //Texture coord cannot be vec4
             //Determining if it is a vec3 for vec2 yet to be done.
             psInst->asOperands[2].aui32Swizzle[2] = 0xFFFFFFFF;
             psInst->asOperands[2].aui32Swizzle[3] = 0xFFFFFFFF;
-            TranslateOperand(psContext, &psInst->asOperands[2]);//in
+            TranslateOperand(psContext, &psInst->asOperands[2]);
             bcatcstr(glsl, ");\n");
             break;
         }
@@ -509,16 +509,16 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//SAMPLE\n");
 #endif
             AddIndentation(psContext);//1=temp??
-            TranslateOperand(psContext, &psInst->asOperands[1]);//??
+            TranslateOperand(psContext, &psInst->asOperands[0]);//??
             bcatcstr(glsl, " = texture2D(");
 
-            TranslateOperand(psContext, &psInst->asOperands[3]);//resource
+            TranslateOperand(psContext, &psInst->asOperands[2]);//resource
             bcatcstr(glsl, ", ");
             //Texture coord cannot be vec4
             //Determining if it is a vec3 for vec2 yet to be done.
-            psInst->asOperands[2].aui32Swizzle[2] = 0xFFFFFFFF;
-            psInst->asOperands[2].aui32Swizzle[3] = 0xFFFFFFFF;
-            TranslateOperand(psContext, &psInst->asOperands[2]);//in
+            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+            TranslateOperand(psContext, &psInst->asOperands[1]);//in
             bcatcstr(glsl, ");\n");
             break;
         }

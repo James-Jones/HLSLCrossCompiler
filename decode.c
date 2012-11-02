@@ -123,7 +123,7 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
     psOperand->iWriteMaskEnabled = 1;
     psOperand->iGSInput = 0;
 
-    psOperand->iExtended = DecodeIsOpcodeExtended(*pui32Tokens);
+    psOperand->iExtended = DecodeIsOperandExtended(*pui32Tokens);
 
 
 	/* Check if this instruction is extended.  If it is,
@@ -475,7 +475,10 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 
     if(bExtended)
     {
-        ui32OperandOffset = 2;
+        do {
+			ui32OperandOffset++;
+		}
+		while(DecodeIsOpcodeExtended(pui32Token[ui32OperandOffset-1]));
     }
 
     if(eOpcode < NUM_OPCODES && eOpcode >= 0)
@@ -605,12 +608,11 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_GATHER4:
         {
             psInst->ui32NumOperands = 4;
+
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
-
-            psInst->asOperands[1].ui32RegisterNumber = pui32Token[4];
             break;
         }
         case OPCODE_SAMPLE_L:

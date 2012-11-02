@@ -40,6 +40,19 @@ static uint32_t DecodeIsOpcodeExtended(uint32_t ui32Token)
     return (ui32Token & 0x80000000) >> 31;
 }
 
+typedef enum EXTENDED_OPCODE_TYPE
+{
+    EXTENDED_OPCODE_EMPTY           = 0,
+    EXTENDED_OPCODE_SAMPLE_CONTROLS = 1,
+    EXTENDED_OPCODE_RESOURCE_DIM = 2,
+    EXTENDED_OPCODE_RESOURCE_RETURN_TYPE = 3,
+} EXTENDED_OPCODE_TYPE;
+
+static EXTENDED_OPCODE_TYPE DecodeExtendedOpcodeType(uint32_t ui32Token)
+{
+    return (ui32Token & 0x0000003f);
+}
+
 typedef enum
 {
     OPCODE_ADD,
@@ -494,6 +507,11 @@ typedef enum INSTRUCTION_TEST_BOOLEAN
 static INSTRUCTION_TEST_BOOLEAN DecodeInstrTestBool(uint32_t ui32Token)
 {
 	return (INSTRUCTION_TEST_BOOLEAN)((ui32Token & 0x00040000) >> 18);
+}
+
+static uint32_t DecodeIsOperandExtended(uint32_t ui32Token)
+{
+    return (ui32Token & 0x80000000) >> 31;
 }
 
 typedef enum EXTENDED_OPERAND_TYPE
