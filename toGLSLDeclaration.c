@@ -167,6 +167,19 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
         {
             const Operand* psOperand = &psDecl->asOperands[0];
             int iNumComponents = GetMaxComponentFromComponentMask(psOperand);
+			const char* StorageQualifier = "attribute";
+			const char* InputName = "Input";
+
+			if(psShader->eShaderType == GEOMETRY_SHADER)
+			{
+				InputName = "VtxOutput";
+			}
+
+			if(InOutSupported(psContext->psShader->eTargetLanguage))
+			{
+				StorageQualifier = "in";
+			}
+
             switch(psOperand->iIndexDims)
             {
                 case INDEX_2D:
@@ -178,7 +191,7 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 						const uint32_t regNum =  psDecl->asOperands[0].ui32RegisterNumber;
 						const uint32_t arraySize = psDecl->asOperands[0].aui32ArraySizes[0];
 
-                        bformata(glsl, "in float ScalarInput%d [%d];\n", regNum,
+                        bformata(glsl, "%s float ScalarInput%d [%d];\n", StorageQualifier, regNum,
                             arraySize);
 
 						bformata(glsl, "vec1 Input%d [%d];\n", regNum,
@@ -193,7 +206,7 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                     }
                     else
                     {
-                        bformata(glsl, "in vec%d Input%d [%d];\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber,
+                        bformata(glsl, "%s vec%d %s%d [%d];\n", StorageQualifier, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber,
                             psDecl->asOperands[0].aui32ArraySizes[0]);
                     }
                     break;
@@ -202,7 +215,7 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                 {
                     if(iNumComponents == 1)
                     {
-                        bformata(glsl, "in float ScalarInput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+                        bformata(glsl, "%s float ScalarInput%d;\n", StorageQualifier, psDecl->asOperands[0].ui32RegisterNumber);
 
 						//Copy to a vec1 to allow .x swizzle
 						bformata(glsl, "vec1 Input%d = vec1(ScalarInput%d);\n", psDecl->asOperands[0].ui32RegisterNumber,
@@ -210,7 +223,7 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                     }
                     else
                     {
-                        bformata(glsl, "in vec%d Input%d;\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+                        bformata(glsl, "%s vec%d %s%d;\n", StorageQualifier, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber);
                     }
                     break;
                 }
@@ -221,15 +234,22 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
         {
             const Operand* psOperand = &psDecl->asOperands[0];
             int iNumComponents = GetMaxComponentFromComponentMask(psOperand);
+			const char* StorageQualifier = "varying";
+
+			if(InOutSupported(psContext->psShader->eTargetLanguage))
+			{
+				StorageQualifier = "in";
+			}
+
             if(iNumComponents == 1)
             {
-                bformata(glsl, "in float VtxOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
-				bformata(glsl, "vec1 Input%d = vec1(VtxOutput%d);\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+                bformata(glsl, "%s float VtxGeoOutput%d;\n", StorageQualifier, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "vec1 Input%d = vec1(VtxGeoOutput%d);\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
             }
             else
             {
-                bformata(glsl, "in vec%d VtxOutput%d;\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
-				bformata(glsl, "#define Input%d VtxOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+                bformata(glsl, "%s vec%d VtxGeoOutput%d;\n", StorageQualifier, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "#define Input%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
             }
             
             break;
@@ -359,41 +379,79 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
         }
         case OPCODE_DCL_OUTPUT:
         {
-            if(psShader->eShaderType == PIXEL_SHADER)
-            {
-                switch(psDecl->asOperands[0].eType)
-                {
-                    case OPERAND_TYPE_OUTPUT_DEPTH:
-                    {
-                        break;
-                    }
-                    case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
-                    {
-						bcatcstr(glsl, "#ifdef GL_ARB_conservative_depth\n");
-						bcatcstr(glsl, "layout (depth_greater) out float gl_FragDepth;\n");
-						bcatcstr(glsl, "#endif\n");
-						break;
-                    }
-                    case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
-                    {
-						bcatcstr(glsl, "#ifdef GL_ARB_conservative_depth\n");
-						bcatcstr(glsl, "layout (depth_less) out float gl_FragDepth;\n");
-						bcatcstr(glsl, "#endif\n");
-						break;
-                    }
-                    default:
-                    {
-                        bformata(glsl, "out vec4 PixOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
-                        bformata(glsl, "#define Output%d PixOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                bformata(glsl, "out vec4 VtxOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
-                bformata(glsl, "#define Output%d VtxOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
-            }
+			switch(psShader->eShaderType)
+			{
+				case PIXEL_SHADER:
+				{
+					switch(psDecl->asOperands[0].eType)
+					{
+						case OPERAND_TYPE_OUTPUT_DEPTH:
+						{
+							break;
+						}
+						case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+						{
+							bcatcstr(glsl, "#ifdef GL_ARB_conservative_depth\n");
+							bcatcstr(glsl, "layout (depth_greater) out float gl_FragDepth;\n");
+							bcatcstr(glsl, "#endif\n");
+							break;
+						}
+						case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+						{
+							bcatcstr(glsl, "#ifdef GL_ARB_conservative_depth\n");
+							bcatcstr(glsl, "layout (depth_less) out float gl_FragDepth;\n");
+							bcatcstr(glsl, "#endif\n");
+							break;
+						}
+						default:
+						{
+							if(WriteToFragData(psContext->psShader->eTargetLanguage))
+							{
+								bformata(glsl, "#define Output%d gl_FragData[%d]\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+							}
+							else
+							{
+								bformata(glsl, "out vec4 PixOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+								bformata(glsl, "#define Output%d PixOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+							}
+							break;
+						}
+					}
+					break;
+				}
+				case VERTEX_SHADER:
+				{
+					if(psContext->flags & HLSLCC_FLAG_GS_ENABLED)
+					{
+						bformata(glsl, "out vec4 VtxOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+						bformata(glsl, "#define Output%d VtxOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+					}
+					else
+					{
+						bformata(glsl, "out vec4 VtxGeoOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+						bformata(glsl, "#define Output%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+					}
+					break;
+				}
+				case GEOMETRY_SHADER:
+				{
+					bformata(glsl, "out vec4 VtxGeoOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+					bformata(glsl, "#define Output%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+					break;
+				}
+				case HULL_SHADER:
+				{
+					bformata(glsl, "out vec4 HullOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+					bformata(glsl, "#define Output%d HullOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+					break;
+				}
+				case DOMAIN_SHADER:
+				{
+					bformata(glsl, "out vec4 DomOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+					bformata(glsl, "#define Output%d DomOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+					break;
+				}
+			}
             break;
         }
         case OPCODE_DCL_GLOBAL_FLAGS:

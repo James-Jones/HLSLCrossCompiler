@@ -441,6 +441,15 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 		{
 			break;
 		}
+		case OPCODE_HS_DECLS:
+		{
+			break;
+		}
+		case OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT:
+		{
+			//const uint32_t ui32OutputControlPointCount = *(pui32Token+ui32OperandOffset);
+			break;
+		}
         default:
         {
             //Reached end of declarations
@@ -490,6 +499,9 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_DEFAULT:
         case OPCODE_ENDSWITCH:
         case OPCODE_NOP:
+		case OPCODE_HS_CONTROL_POINT_PHASE:
+		case OPCODE_HS_FORK_PHASE:
+		case OPCODE_HS_JOIN_PHASE:
         {
             break;
         }

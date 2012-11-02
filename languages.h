@@ -17,4 +17,22 @@ typedef enum
     LANG_430
 } GLLang;
 
+static int InOutSupported(GLLang eLang)
+{
+	if(eLang == LANG_ES_100 || eLang == LANG_120)
+	{
+		return 0;
+	}
+	return 1;
+}
+
+static int WriteToFragData(GLLang eLang)
+{
+	if(eLang == LANG_ES_100 || eLang == LANG_120)
+	{
+		return 1;
+	}
+	return 0;
+}
+
 #endif

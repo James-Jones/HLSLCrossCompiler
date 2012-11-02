@@ -21,6 +21,14 @@ static const unsigned int HLSLCC_FLAG_PIXEL_CENTER_INTEGER = 0x4;
 
 static const unsigned int HLSLCC_FLAG_GLOBAL_CONSTS_NEVER_IN_UBO = 0x8;
 
+//GS enabled?
+//Affects vertex shader (i.e. need to compile vertex shader again to use with/without GS).
+//This flag is needed in order for the interfaces between stages to match when GS is in use.
+//PS inputs VtxGeoOutput
+//GS outputs VtxGeoOutput
+//Vs outputs VtxOutput if GS enabled. VtxGeoOutput otherwise.
+static const unsigned int HLSLCC_FLAG_GS_ENABLED = 0x10;
+
 int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang language, GLSLShader* result);
 int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language, GLSLShader* result);
 
