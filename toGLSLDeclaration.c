@@ -241,15 +241,18 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 				StorageQualifier = "in";
 			}
 
+			//VtxGeoOutput0 is gl_Position. There is not varying/out vec4 VtxGeoOutput0 in vertex shader.
+			//So remap VtxGeoOutputN to VtxGeoOutputN+1
+
             if(iNumComponents == 1)
             {
-                bformata(glsl, "%s float VtxGeoOutput%d;\n", StorageQualifier, psDecl->asOperands[0].ui32RegisterNumber);
-				bformata(glsl, "vec1 Input%d = vec1(VtxGeoOutput%d);\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+                bformata(glsl, "%s float VtxGeoOutput%d;\n", StorageQualifier, psDecl->asOperands[0].ui32RegisterNumber+1);
+				bformata(glsl, "vec1 Input%d = vec1(VtxGeoOutput%d);\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber+1);
             }
             else
             {
-                bformata(glsl, "%s vec%d VtxGeoOutput%d;\n", StorageQualifier, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
-				bformata(glsl, "#define Input%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+                bformata(glsl, "%s vec%d VtxGeoOutput%d;\n", StorageQualifier, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber+1);
+				bformata(glsl, "#define Input%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber+1);
             }
             
             break;
@@ -421,14 +424,23 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 				}
 				case VERTEX_SHADER:
 				{
+					int iNumComponents = GetMaxComponentFromComponentMask(&psDecl->asOperands[0]);
+
 					if(psContext->flags & HLSLCC_FLAG_GS_ENABLED)
 					{
-						bformata(glsl, "out vec4 VtxOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+						bformata(glsl, "out vec%d VtxOutput%d;\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
 						bformata(glsl, "#define Output%d VtxOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
 					}
 					else
 					{
-						bformata(glsl, "out vec4 VtxGeoOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+						if(InOutSupported(psContext->psShader->eTargetLanguage))
+						{
+							bformata(glsl, "out vec%d VtxGeoOutput%d;\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+						}
+						else
+						{
+							bformata(glsl, "varying vec%d VtxGeoOutput%d;\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+						}
 						bformata(glsl, "#define Output%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
 					}
 					break;
