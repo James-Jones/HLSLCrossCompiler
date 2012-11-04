@@ -532,13 +532,13 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "HLSL_sample_l");
             bcatcstr(glsl, "(");
-            TranslateOperand(psContext, &psInst->asOperands[1]);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[3]);
+            TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ", ");
             TranslateOperand(psContext, &psInst->asOperands[2]);
             bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[5]);
+            TranslateOperand(psContext, &psInst->asOperands[1]);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(psContext, &psInst->asOperands[4]);
             bcatcstr(glsl, ");\n");
             break;
         }

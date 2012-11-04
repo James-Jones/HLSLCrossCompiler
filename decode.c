@@ -126,14 +126,15 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
     psOperand->iExtended = DecodeIsOperandExtended(*pui32Tokens);
 
 
+    psOperand->eModifier = OPERAND_MODIFIER_NONE;
+
+
 	/* Check if this instruction is extended.  If it is,
 	 * we need to print the information first */
 	if (psOperand->iExtended)
 	{
 		/* OperandToken1 is the second token */
 		ui32NumTokens++;
-
-        psOperand->eModifier = OPERAND_MODIFIER_NONE;
 
         if(DecodeExtendedOperandType(pui32Tokens[1]) == EXTENDED_OPERAND_MODIFIER)
         {
@@ -624,9 +625,6 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[4]);
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[5]);
-
-            //psInst->asOperands[1].ui32RegisterNumber = pui32Token[4];
             break;
         }
         case OPCODE_IF:
