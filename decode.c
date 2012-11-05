@@ -477,7 +477,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 		}
 		case OPCODE_CUSTOMDATA:
 		{
-			uint32_t ui32ConstIndex = 0;
+			int iTupleSrc = 0, iTupleDest = 0;
 			const uint32_t ui32ConstCount = pui32Token[1] - 2;
 			const uint32_t ui32TupleCount = (ui32ConstCount / 4);
 			CUSTOMDATA_CLASS eClass = DecodeCustomDataClass(pui32Token[0]);
@@ -492,17 +492,26 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 
 			psDecl->ui32NumOperands = ui32ConstCount;
 
+
+			iTupleSrc = ui32TupleCount - 1;
+			iTupleDest = 0;
+
 			//Sequence of 4-tuples of DWORDs defining the Immediate Constant Buffer.
-			while(ui32ConstIndex < ui32ConstCount)
+			while(iTupleSrc >= 0)
 			{
-				psDecl->afImmediateConstBuffer[ui32ConstIndex] = *(float*)&pui32Token[2+ui32ConstIndex];
-				ui32ConstIndex++;
-				psDecl->afImmediateConstBuffer[ui32ConstIndex] = *(float*)&pui32Token[2+ui32ConstIndex];
-				ui32ConstIndex++;
-				psDecl->afImmediateConstBuffer[ui32ConstIndex] = *(float*)&pui32Token[2+ui32ConstIndex];
-				ui32ConstIndex++;
-				psDecl->afImmediateConstBuffer[ui32ConstIndex] = *(float*)&pui32Token[2+ui32ConstIndex];
-				ui32ConstIndex++;
+				const uint32_t ui32TupleOffset = iTupleSrc * 4;
+				const uint32_t ui32DestTupleOffset = iTupleDest;
+
+				psDecl->afImmediateConstBuffer[ui32DestTupleOffset][3] = *(float*)&pui32Token[2+ui32TupleOffset+3];
+
+				psDecl->afImmediateConstBuffer[ui32DestTupleOffset][2] = *(float*)&pui32Token[2+ui32TupleOffset+2];
+
+				psDecl->afImmediateConstBuffer[ui32DestTupleOffset][1] = *(float*)&pui32Token[2+ui32TupleOffset+1];
+
+				psDecl->afImmediateConstBuffer[ui32DestTupleOffset][0] = *(float*)&pui32Token[2+ui32TupleOffset];
+
+				iTupleSrc--;
+				iTupleDest++;
 			}
 			break;
 		}

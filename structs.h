@@ -68,7 +68,7 @@ typedef struct Declaration_TAG
 
     Operand asOperands[1];
 
-	float afImmediateConstBuffer[MAX_IMMEDIATE_CONST_BUFFER_SIZE];
+	float afImmediateConstBuffer[1024][4];
 
     //The declaration can set one of these
     //values depending on the opcode.

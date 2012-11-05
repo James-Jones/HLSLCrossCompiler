@@ -678,15 +678,20 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 			const  uint32_t ui32NumOperands = psDecl->ui32NumOperands;
 			uint32_t ui32ConstIndex = 0;
 
-			bcatcstr(glsl, "float immediateConstBuffer[] = {\n");
-			for(;ui32ConstIndex < ui32NumOperands;)
+			bformata(glsl, "vec4 immediateConstBuffer[%d] = vec4[%d] (\n", ui32NumOperands/4, ui32NumOperands/4);
+			for(;ui32ConstIndex < (ui32NumOperands-4)/4; ui32ConstIndex++)
 			{
-				bformata(glsl, "{%f, %f, %f, %f},\n", psDecl->afImmediateConstBuffer[ui32ConstIndex++],
-				psDecl->afImmediateConstBuffer[ui32ConstIndex++],
-				psDecl->afImmediateConstBuffer[ui32ConstIndex++],
-				psDecl->afImmediateConstBuffer[ui32ConstIndex++]);
+				bformata(glsl, "\tvec4(%f, %f, %f, %f), \n", psDecl->afImmediateConstBuffer[ui32ConstIndex][0],
+				psDecl->afImmediateConstBuffer[ui32ConstIndex][1],
+				psDecl->afImmediateConstBuffer[ui32ConstIndex][2],
+				psDecl->afImmediateConstBuffer[ui32ConstIndex][3]);
 			}
-			bcatcstr(glsl, "};\n");
+			//No trailing comma on this one
+			bformata(glsl, "\tvec4(%f, %f, %f, %f)\n", psDecl->afImmediateConstBuffer[ui32ConstIndex][0],
+			psDecl->afImmediateConstBuffer[ui32ConstIndex][1],
+			psDecl->afImmediateConstBuffer[ui32ConstIndex][2],
+			psDecl->afImmediateConstBuffer[ui32ConstIndex][3]);
+			bcatcstr(glsl, ");\n");
 			break;
 		}
         default:
