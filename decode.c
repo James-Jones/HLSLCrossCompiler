@@ -477,7 +477,33 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 		}
 		case OPCODE_CUSTOMDATA:
 		{
+			uint32_t ui32ConstIndex = 0;
+			const uint32_t ui32ConstCount = pui32Token[1] - 2;
+			const uint32_t ui32TupleCount = (ui32ConstCount / 4);
+			CUSTOMDATA_CLASS eClass = DecodeCustomDataClass(pui32Token[0]);
+
 			ui32TokenLength = pui32Token[1];
+
+			//According to docs
+			//The buffer will contain at least one value, but not more than 4096 values.
+			//Number of constants will also be a multiple of 4.
+
+			ASSERT(ui32ConstCount < MAX_IMMEDIATE_CONST_BUFFER_SIZE);
+
+			psDecl->ui32NumOperands = ui32ConstCount;
+
+			//Sequence of 4-tuples of DWORDs defining the Immediate Constant Buffer.
+			while(ui32ConstIndex < ui32ConstCount)
+			{
+				psDecl->afImmediateConstBuffer[ui32ConstIndex] = *(float*)&pui32Token[2+ui32ConstIndex];
+				ui32ConstIndex++;
+				psDecl->afImmediateConstBuffer[ui32ConstIndex] = *(float*)&pui32Token[2+ui32ConstIndex];
+				ui32ConstIndex++;
+				psDecl->afImmediateConstBuffer[ui32ConstIndex] = *(float*)&pui32Token[2+ui32ConstIndex];
+				ui32ConstIndex++;
+				psDecl->afImmediateConstBuffer[ui32ConstIndex] = *(float*)&pui32Token[2+ui32ConstIndex];
+				ui32ConstIndex++;
+			}
 			break;
 		}
         default:

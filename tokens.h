@@ -699,4 +699,17 @@ static uint32_t DecodeInterfaceArrayLength(uint32_t ui32Token)
 	return (uint32_t)((ui32Token & 0xffff0000) >> 16);
 }
 
+typedef enum CUSTOMDATA_CLASS
+{
+    CUSTOMDATA_COMMENT = 0,
+    CUSTOMDATA_DEBUGINFO,
+    CUSTOMDATA_OPAQUE,
+    CUSTOMDATA_DCL_IMMEDIATE_CONSTANT_BUFFER,
+} CUSTOMDATA_CLASS;
+
+static CUSTOMDATA_CLASS DecodeCustomDataClass(uint32_t ui32Token)
+{
+	return (CUSTOMDATA_CLASS)((ui32Token & 0xfffff800) >> 11);
+}
+
 #endif

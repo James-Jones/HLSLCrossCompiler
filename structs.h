@@ -58,12 +58,17 @@ typedef struct Instruction_TAG
 #endif
 } Instruction;
 
+static enum{ MAX_IMMEDIATE_CONST_BUFFER_SIZE = 4096 };
+
 typedef struct Declaration_TAG
 {
     OPCODE_TYPE eOpcode;
 
     uint32_t ui32NumOperands;
+
     Operand asOperands[1];
+
+	float afImmediateConstBuffer[MAX_IMMEDIATE_CONST_BUFFER_SIZE];
 
     //The declaration can set one of these
     //values depending on the opcode.

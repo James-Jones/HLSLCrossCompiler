@@ -673,6 +673,22 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
         {
             break;
         }
+		case OPCODE_CUSTOMDATA:
+		{
+			const  uint32_t ui32NumOperands = psDecl->ui32NumOperands;
+			uint32_t ui32ConstIndex = 0;
+
+			bcatcstr(glsl, "float immediateConstBuffer[] = {\n");
+			for(;ui32ConstIndex < ui32NumOperands;)
+			{
+				bformata(glsl, "{%f, %f, %f, %f},\n", psDecl->afImmediateConstBuffer[ui32ConstIndex++],
+				psDecl->afImmediateConstBuffer[ui32ConstIndex++],
+				psDecl->afImmediateConstBuffer[ui32ConstIndex++],
+				psDecl->afImmediateConstBuffer[ui32ConstIndex++]);
+			}
+			bcatcstr(glsl, "};\n");
+			break;
+		}
         default:
         {
             bformata(glsl, "/* Unhandled input declaration - opcode=0x%X */\n", psDecl->eOpcode);
