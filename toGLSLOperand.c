@@ -51,6 +51,134 @@ int GetMaxComponentFromComponentMask(const Operand* psOperand)
     return 4;
 }
 
+//e.g.
+//.z = 1
+//.x = 1
+//.yw = 2
+uint32_t GetNumSwizzleElements(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
+{
+    bstring glsl = psContext->glsl;
+	uint32_t count = 0;
+
+	if(psOperand->eType == OPERAND_TYPE_IMMEDIATE32 ||
+	   psOperand->eType == OPERAND_TYPE_IMMEDIATE64)
+	{
+		return psOperand->iNumComponents;
+	}
+
+    if(psOperand->iWriteMaskEnabled &&
+       psOperand->iNumComponents == 4)
+    {
+		//Comonent Mask
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+		{
+			if(psOperand->ui32CompMask != 0 && psOperand->ui32CompMask != (OPERAND_4_COMPONENT_MASK_X|OPERAND_4_COMPONENT_MASK_Y|OPERAND_4_COMPONENT_MASK_Z|OPERAND_4_COMPONENT_MASK_W))
+			{
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_X)
+				{
+					count++;
+				}
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Y)
+				{
+					count++;
+				}
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Z)
+				{
+					count++;
+				}
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_W)
+				{
+					count++;
+				}
+			}
+		}
+		else
+		//Component Swizzle
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+		{
+			if(psOperand->ui32Swizzle != (NO_SWIZZLE))
+			{
+				uint32_t i;
+
+				for(i=0; i< 4; ++i)
+				{
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X)
+					{
+						count++;
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y)
+					{
+						count++;
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z)
+					{
+						count++;
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W)
+					{
+						count++;
+					}
+				}
+			}
+		}
+		else
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+		{
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_X)
+			{
+				count++;
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Y)
+			{
+				count++;
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Z)
+			{
+				count++;
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_W)
+			{
+				count++;
+			}
+		}
+
+		//Component Select 1
+	}
+
+	return count;
+}
+
+void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t count)
+{
+	bstring glsl = psContext->glsl;
+	if(count)
+	{
+		bcatcstr(glsl, ".");
+		bcatcstr(glsl, "x");
+		count--;
+	}
+	if(count)
+	{
+		bcatcstr(glsl, "y");
+		count--;
+	}
+	if(count)
+	{
+		bcatcstr(glsl, "z");
+		count--;
+	}
+	if(count)
+	{
+		bcatcstr(glsl, "w");
+		count--;
+	}
+}
 
 void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
 {
