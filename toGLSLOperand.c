@@ -512,7 +512,9 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 		}
 		case OPERAND_TYPE_IMMEDIATE_CONSTANT_BUFFER:
 		{
-			bcatcstr(glsl, "immediateConstBuffer");
+			bcatcstr(glsl, "immediateConstBuffer[int(");
+			TranslateOperand(psContext, psOperand->psSubOperand[0]);
+			bcatcstr(glsl, ")]");
 			break;
 		}
         default:
