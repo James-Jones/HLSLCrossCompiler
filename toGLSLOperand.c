@@ -505,9 +505,19 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
             bformata(glsl, "Func%d", psOperand->ui32RegisterNumber);
             break;
         }
+		case OPERAND_TYPE_INPUT_FORK_INSTANCE_ID:
+		{
+			bcatcstr(glsl, "forkInstanceID");
+			return;
+		}
+		case OPERAND_TYPE_IMMEDIATE_CONSTANT_BUFFER:
+		{
+			bcatcstr(glsl, "immediateConstBuffer");
+			return;
+		}
         default:
         {
-            bformata(glsl, "%d %d", psOperand->eType, psOperand->ui32RegisterNumber);
+            ASSERT(0);
             break;
         }
     }

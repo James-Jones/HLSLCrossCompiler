@@ -99,6 +99,22 @@ void DecodeNameToken(const uint32_t* pui32NameToken, Operand* psOperand)
             sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "sampleIndex");
             break;
         }
+		case NAME_FINAL_QUAD_U_EQ_0_EDGE_TESSFACTOR:
+		case NAME_FINAL_QUAD_V_EQ_0_EDGE_TESSFACTOR: 
+		case NAME_FINAL_QUAD_U_EQ_1_EDGE_TESSFACTOR: 
+		case NAME_FINAL_QUAD_V_EQ_1_EDGE_TESSFACTOR:
+		case NAME_FINAL_QUAD_U_INSIDE_TESSFACTOR:
+		case NAME_FINAL_QUAD_V_INSIDE_TESSFACTOR:
+		case NAME_FINAL_TRI_U_EQ_0_EDGE_TESSFACTOR:
+		case NAME_FINAL_TRI_V_EQ_0_EDGE_TESSFACTOR:
+		case NAME_FINAL_TRI_W_EQ_0_EDGE_TESSFACTOR:
+		case NAME_FINAL_TRI_INSIDE_TESSFACTOR:
+		case NAME_FINAL_LINE_DETAIL_TESSFACTOR:
+		case NAME_FINAL_LINE_DENSITY_TESSFACTOR:
+        {
+            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "tessFactor");
+            break;
+        }
         default:
         {
             ASSERT(0);
@@ -262,7 +278,7 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 
 const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, Declaration* psDecl)
 {
-    const uint32_t ui32TokenLength = DecodeInstructionLength(*pui32Token);
+    uint32_t ui32TokenLength = DecodeInstructionLength(*pui32Token);
     const uint32_t bExtended = DecodeIsOpcodeExtended(*pui32Token);
     const OPCODE_TYPE eOpcode = DecodeOpcodeType(*pui32Token);
     uint32_t ui32OperandOffset = 1;
@@ -451,6 +467,19 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 			//const uint32_t ui32OutputControlPointCount = *(pui32Token+ui32OperandOffset);
 			break;
 		}
+		case OPCODE_HS_FORK_PHASE:
+		{
+			break;
+		}
+		case OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT:
+		{
+			break;
+		}
+		case OPCODE_CUSTOMDATA:
+		{
+			ui32TokenLength = pui32Token[1];
+			break;
+		}
         default:
         {
             //Reached end of declarations
@@ -463,7 +492,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 
 const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psInst, Shader* psShader)
 {
-    const uint32_t ui32TokenLength = DecodeInstructionLength(*pui32Token);
+    uint32_t ui32TokenLength = DecodeInstructionLength(*pui32Token);
     const uint32_t bExtended = DecodeIsOpcodeExtended(*pui32Token);
     const OPCODE_TYPE eOpcode = DecodeOpcodeType(*pui32Token);
     uint32_t ui32OperandOffset = 1;
@@ -509,6 +538,10 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         {
             break;
         }
+		case OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT:
+		{
+			break;
+		}
         case OPCODE_SYNC:
         {
             psInst->ui32SyncFlags = DecodeSyncFlags(*pui32Token);
@@ -640,6 +673,11 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
             break;
         }
+		case OPCODE_CUSTOMDATA:
+		{
+			ui32TokenLength = pui32Token[1];
+			break;
+		}
         default:
         {
 			ASSERT(0);
