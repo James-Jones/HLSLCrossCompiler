@@ -191,6 +191,13 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
 			return;
 		}
 	}
+	if(psOperand->eType == OPERAND_TYPE_INPUT)
+	{
+		if(psContext->psShader->abScalarInput[psOperand->ui32RegisterNumber])
+		{
+			return;
+		}
+	}
 
     if(psOperand->iWriteMaskEnabled &&
        psOperand->iNumComponents == 4)
@@ -534,6 +541,14 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
                 TranslateOperand(psContext, psOperand->psSubOperand[0]);
                 bcatcstr(glsl, ")]");
             }
+			break;
+		}
+		case OPERAND_TYPE_INPUT_DOMAIN_POINT:
+		{
+			break;
+		}
+		case OPERAND_TYPE_INPUT_CONTROL_POINT:
+		{
 			break;
 		}
         default:

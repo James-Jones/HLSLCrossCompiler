@@ -112,6 +112,7 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                 case NAME_RENDER_TARGET_ARRAY_INDEX:
                 {
 					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
+					psContext->psShader->abIntegerOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
                     bcatcstr(glsl, "#define ");
 					TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_Layer\n");
@@ -220,23 +221,13 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                 {
                     if(iNumComponents == 1)
                     {
-						bstring earlyMain = psContext->earlyMain;
-						uint32_t i;
 						const uint32_t regNum =  psDecl->asOperands[0].ui32RegisterNumber;
 						const uint32_t arraySize = psDecl->asOperands[0].aui32ArraySizes[0];
 
-                        bformata(glsl, "%s float ScalarInput%d [%d];\n", StorageQualifier, regNum,
+						psContext->psShader->abScalarInput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
+
+                        bformata(glsl, "%s float %s%d [%d];\n", StorageQualifier, InputName, regNum,
                             arraySize);
-
-						bformata(glsl, "vec1 Input%d [%d];\n", regNum,
-							arraySize);
-
-						//Copy to a vec1 to allow .x swizzle
-						for(i=0; i<arraySize; ++i)
-						{
-							bformata(earlyMain, "Input%d[%d] = vec1(ScalarInput%d[%d]);\n", regNum, i,
-								regNum, i);
-						}
                     }
                     else
                     {
@@ -249,11 +240,9 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                 {
                     if(iNumComponents == 1)
                     {
-                        bformata(glsl, "%s float ScalarInput%d;\n", StorageQualifier, psDecl->asOperands[0].ui32RegisterNumber);
+						psContext->psShader->abScalarInput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
 
-						//Copy to a vec1 to allow .x swizzle
-						bformata(glsl, "vec1 Input%d = vec1(ScalarInput%d);\n", psDecl->asOperands[0].ui32RegisterNumber,
-							psDecl->asOperands[0].ui32RegisterNumber);
+                        bformata(glsl, "%s float %s%d;\n", StorageQualifier, InputName, psDecl->asOperands[0].ui32RegisterNumber);
                     }
                     else
                     {
@@ -262,6 +251,12 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                     break;
                 }
             }
+
+			if(psShader->eShaderType == GEOMETRY_SHADER)
+			{
+				bformata(glsl, "#define Input%d VtxOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber,
+					psDecl->asOperands[0].ui32RegisterNumber);
+			}
             break;
         }
 		case OPCODE_DCL_INPUT_SIV:
@@ -765,6 +760,10 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
         {
             break;
         }
+		case OPCODE_DCL_SAMPLER:
+		{
+			break;
+		}
         default:
         {
             ASSERT(0);
