@@ -731,6 +731,56 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
     return pui32Token + ui32TokenLength;
 }
 
+const uint32_t* DecodeHullShaderDecls(const uint32_t* pui32Tokens, Shader* psShader)
+{
+	const uint32_t* pui32CurrentToken = pui32Tokens;
+	const uint32_t ui32ShaderLength = psShader->ui32ShaderLength;
+	Declaration* psDecl;
+    psDecl = malloc(sizeof(Declaration) * ui32ShaderLength);
+    psShader->psHSDecl = psDecl;
+    psShader->ui32HSDeclCount = 0;
+
+    while(1) //Keep going until we reach the first non-declaration token, or the end of the shader.
+    {
+        const uint32_t* pui32Result = DecodeDeclaration(psShader, pui32CurrentToken, psDecl);
+
+		if(psDecl->eOpcode == OPCODE_HS_CONTROL_POINT_PHASE)
+		{
+		}
+		if(psDecl->eOpcode == OPCODE_HS_FORK_PHASE)
+		{
+		}
+
+        if(pui32Result)
+        {
+            pui32CurrentToken = pui32Result;
+            psShader->ui32DeclCount++;
+            psDecl++;
+
+            if(pui32CurrentToken >= (pui32Tokens + ui32ShaderLength))
+            {
+                break;
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
+
+	return pui32CurrentToken;
+}
+
+const uint32_t* DecodeHullShaderControlPointPhase(const uint32_t* pui32Tokens, Shader* psShader)
+{
+	return pui32Tokens;
+}
+
+const uint32_t* DecodeHullShaderForkPhase(const uint32_t* pui32Tokens, Shader* psShader)
+{
+	return pui32Tokens;
+}
+
 void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Resources, Shader* psShader)
 {
 	const uint32_t* pui32CurrentToken = pui32Tokens;
@@ -745,6 +795,16 @@ void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Resources, Shader*
 	psShader->ui32ShaderLength = ui32ShaderLength;
     pui32CurrentToken++;//Move to after shader length (usually a declaration)
 
+    ReadResources(pui32Resources, &psShader->sInfo);
+
+	if(psShader->eShaderType == HULL_SHADER)
+	{
+		pui32CurrentToken = DecodeHullShaderDecls(pui32CurrentToken, psShader);
+		pui32CurrentToken = DecodeHullShaderControlPointPhase(pui32CurrentToken, psShader);
+		pui32CurrentToken = DecodeHullShaderForkPhase(pui32CurrentToken, psShader);
+		return;
+	}
+
     //Using ui32ShaderLength as the instruction count
     //will allocate more than enough memory. Avoids having to
     //traverse the entire shader just to get the real instruction count.
@@ -755,8 +815,6 @@ void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Resources, Shader*
     psDecl = malloc(sizeof(Declaration) * ui32ShaderLength);
     psShader->psDecl = psDecl;
     psShader->ui32DeclCount = 0;
-
-    ReadResources(pui32Resources, &psShader->sInfo);
 
     while(1) //Keep going until we reach the first non-declaration token, or the end of the shader.
     {

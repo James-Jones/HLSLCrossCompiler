@@ -123,6 +123,24 @@ typedef struct Shader_TAG
     uint32_t ui32InstCount;
     Instruction* psInst;
 
+
+	//Hull shader declarations and instructions.
+	//psDecl, psInst are null for hull shaders.
+	uint32_t ui32HSDeclCount;
+	Declaration* psHSDecl;
+
+	uint32_t ui32HSControlPointDeclCount;
+	Declaration* psHSControlPointPhaseDecl;
+
+	uint32_t ui32HSControlPointInstrCount;
+	Instruction* psHSControlPointPhaseInstr;
+
+	uint32_t ui32HSForkDeclCount;
+	Declaration* psHSForkPhaseDecl;
+
+	uint32_t ui32HSForkInstrCount;
+	Instruction* psHSForkPhaseInstr;
+
     ShaderInfo sInfo;
 
 	int abIntegerOutput[MAX_SHADER_VEC4_OUTPUT];
