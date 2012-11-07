@@ -40,4 +40,12 @@ const char* psz_hlsl_opcode_funcs_glsl = {
 	void HLSL_ieq(out float dest, float a, float b) {\n \
 	    dest = (a == b) ? 1 : 0;\n \
 	}\n \
+	\n \
+	void HLSL_eq(out vec4 dest, vec4 a, vec4 b) {\n \
+	    dest = vec4(equal(a, b));\n \
+	}\n \
+	\n \
+	void HLSL_eq(out float dest, float a, float b) {\n \
+	    dest = (a == b) ? 1 : 0;\n \
+	}\n \
 "};

@@ -566,6 +566,12 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 			}
             break;
 		}
+		case OPERAND_TYPE_NULL:
+		{
+			// Null register, used to discard results of operations
+			bcatcstr(glsl, "//null");
+			break;
+		}
         default:
         {
             ASSERT(0);

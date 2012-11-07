@@ -38,3 +38,11 @@ void HLSL_ieq(out vec4 dest, vec4 a, vec4 b) {
 void HLSL_ieq(out float dest, float a, float b) {
     dest = (a == b) ? 1 : 0;
 }
+
+void HLSL_eq(out vec4 dest, vec4 a, vec4 b) {
+    dest = vec4(equal(a, b));
+}
+
+void HLSL_eq(out float dest, float a, float b) {
+    dest = (a == b) ? 1 : 0;
+}

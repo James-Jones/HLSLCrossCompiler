@@ -298,6 +298,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			CallTernaryOp(psContext, "*", "+", psInst, 0, 1, 2, 3);
             break;
         }
+        case OPCODE_IMAD:
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//IMAD\n");
+#endif
+			CallTernaryOp(psContext, "*", "+", psInst, 0, 1, 2, 3);
+            break;
+        }
         case OPCODE_IADD:
         {
 #ifdef _DEBUG
@@ -355,6 +364,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//MUL\n");
+#endif
+			CallBinaryOp(psContext, "*", psInst, 0, 1, 2);
+            break;
+        }
+        case OPCODE_IMUL:
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//IMUL\n");
 #endif
 			CallBinaryOp(psContext, "*", psInst, 0, 1, 2);
             break;
@@ -478,10 +496,20 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_FTOI:
         {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//FTOI.  Use a MOV for now\n");
+#endif
             // Rounding is always performed towards zero
-
             //Use int constructor - int(float). This drops the fractional part.
         }
+		case OPCODE_FTOU:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//FTOU. Use a MOV for now\n");
+#endif
+		}
         case OPCODE_MOVC:
         {
 #ifdef _DEBUG
@@ -1007,6 +1035,45 @@ src3
             ++psContext->indent;
             break;
         }
+		case OPCODE_EQ:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//EQ\n");
+#endif
+            CallHLSLOpcodeFunc2(psContext, "HLSL_eq", psInst);
+			break;
+		}
+		case OPCODE_ISHL:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//ISH - TODO\n");
+#endif
+			break;
+		}
+		case OPCODE_LD:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//LD\n");
+#endif
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, " = texelFetch(");
+
+            TranslateOperand(psContext, &psInst->asOperands[2]);
+            bcatcstr(glsl, ", ");
+            //Force texcoord to be a vec2.
+            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+            TranslateOperand(psContext, &psInst->asOperands[1]);
+
+			//texcoord.a (POS-swizzle) always provides an unsigned integer mipmap level.
+			//Force to 0 for now
+			bcatcstr(glsl, ", 0);\n");
+			break;
+		}
         default:
         {
             ASSERT(0);
