@@ -184,6 +184,14 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
 {
     bstring glsl = psContext->glsl;
 
+	if(psOperand->eType == OPERAND_TYPE_OUTPUT)
+	{
+		if(psContext->psShader->abScalarOutput[psOperand->ui32RegisterNumber])
+		{
+			return;
+		}
+	}
+
     if(psOperand->iWriteMaskEnabled &&
        psOperand->iNumComponents == 4)
     {

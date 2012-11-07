@@ -111,9 +111,10 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                 }
                 case NAME_RENDER_TARGET_ARRAY_INDEX:
                 {
-                    bcatcstr(glsl, "vec1 ");
-                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
-                    bformata(glsl, " = vec1(gl_Layer);\n");
+					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
+                    bcatcstr(glsl, "#define ");
+					TranslateOperand(psContext, &psDecl->asOperands[0]);
+                    bformata(glsl, " gl_Layer\n");
                     break;
                 }
                 case NAME_CLIP_DISTANCE:
@@ -168,6 +169,7 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 		        case NAME_FINAL_LINE_DETAIL_TESSFACTOR:
 		        case NAME_FINAL_LINE_DENSITY_TESSFACTOR:
                 {
+					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
                     bcatcstr(glsl, "#define ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_TessLevelOuter\n");
@@ -177,6 +179,7 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 		        case NAME_FINAL_QUAD_V_INSIDE_TESSFACTOR:
                 case NAME_FINAL_TRI_INSIDE_TESSFACTOR:
                 {
+					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
                     bcatcstr(glsl, "#define ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_TessLevelInner\n");
@@ -261,6 +264,10 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
             }
             break;
         }
+		case OPCODE_DCL_INPUT_SIV:
+		{
+			break;
+		}
         case OPCODE_DCL_INPUT_PS:
         {
             const Operand* psOperand = &psDecl->asOperands[0];
