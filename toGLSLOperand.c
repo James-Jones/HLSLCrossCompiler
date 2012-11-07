@@ -550,7 +550,11 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 		}
 		case OPERAND_TYPE_INPUT_CONTROL_POINT:
 		{
-			break;
+			if(psOperand->aui32ArraySizes[1] == 0)//Input index zero - position.
+			{
+				bformata(glsl, "gl_in[%d].gl_Position", psOperand->aui32ArraySizes[0]);
+			}
+            break;
 		}
         default:
         {
