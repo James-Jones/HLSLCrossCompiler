@@ -545,6 +545,7 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 		}
 		case OPERAND_TYPE_INPUT_DOMAIN_POINT:
 		{
+			bcatcstr(glsl, "gl_TessCoord");
 			break;
 		}
 		case OPERAND_TYPE_INPUT_CONTROL_POINT:

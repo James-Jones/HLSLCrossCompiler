@@ -205,6 +205,11 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 			const char* StorageQualifier = "attribute";
 			const char* InputName = "Input";
 
+			if(psOperand->eType == OPERAND_TYPE_INPUT_DOMAIN_POINT)
+			{
+				break;
+			}
+
 			if(psShader->eShaderType == GEOMETRY_SHADER)
 			{
 				InputName = "VtxOutput";
