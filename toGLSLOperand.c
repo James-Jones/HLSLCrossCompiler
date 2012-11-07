@@ -60,10 +60,20 @@ uint32_t GetNumSwizzleElements(HLSLCrossCompilerContext* psContext, const Operan
     bstring glsl = psContext->glsl;
 	uint32_t count = 0;
 
-	if(psOperand->eType == OPERAND_TYPE_IMMEDIATE32 ||
-	   psOperand->eType == OPERAND_TYPE_IMMEDIATE64)
+	switch(psOperand->eType)
 	{
-		return psOperand->iNumComponents;
+		case OPERAND_TYPE_IMMEDIATE32:
+		case OPERAND_TYPE_IMMEDIATE64:
+		case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+		case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+		case OPERAND_TYPE_OUTPUT_DEPTH:
+		{
+			return psOperand->iNumComponents;
+		}
+		default:
+		{
+			break;
+		}
 	}
 
     if(psOperand->iWriteMaskEnabled &&
