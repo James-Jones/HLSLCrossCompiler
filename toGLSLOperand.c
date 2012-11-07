@@ -448,6 +448,12 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         case OPERAND_TYPE_OUTPUT:
         {
             bformata(glsl, "Output%d", psOperand->ui32RegisterNumber);
+            if(psOperand->psSubOperand[0])
+            {
+                bcatcstr(glsl, "[int("); //Indexes must be integral.
+                TranslateOperand(psContext, psOperand->psSubOperand[0]);
+                bcatcstr(glsl, ")]");
+            }
             break;
         }
         case OPERAND_TYPE_TEMP:
@@ -512,9 +518,14 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 		}
 		case OPERAND_TYPE_IMMEDIATE_CONSTANT_BUFFER:
 		{
-			bcatcstr(glsl, "immediateConstBuffer[int(");
-			TranslateOperand(psContext, psOperand->psSubOperand[0]);
-			bcatcstr(glsl, ")]");
+            bcatcstr(glsl, "immediateConstBuffer");
+
+            if(psOperand->psSubOperand[0])
+            {
+                bcatcstr(glsl, "[int("); //Indexes must be integral.
+                TranslateOperand(psContext, psOperand->psSubOperand[0]);
+                bcatcstr(glsl, ")]");
+            }
 			break;
 		}
         default:

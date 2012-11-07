@@ -2,6 +2,13 @@
 #include "toGLSLDeclaration.h"
 #include "toGLSLOperand.h"
 #include "bstrlib.h"
+#include "assert.h"
+
+#ifdef _DEBUG
+#define ASSERT(expr) assert(expr)
+#else
+#define ASSERT(expr)
+#endif
 
 extern void AddIndentation(HLSLCrossCompilerContext* psContext);
 
@@ -149,6 +156,30 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                     bcatcstr(glsl, "#define ");
                     TranslateOperand(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_FrontFacing\n");
+                    break;
+                }
+		        case NAME_FINAL_QUAD_U_EQ_0_EDGE_TESSFACTOR:
+		        case NAME_FINAL_QUAD_V_EQ_0_EDGE_TESSFACTOR: 
+		        case NAME_FINAL_QUAD_U_EQ_1_EDGE_TESSFACTOR: 
+		        case NAME_FINAL_QUAD_V_EQ_1_EDGE_TESSFACTOR:
+		        case NAME_FINAL_TRI_U_EQ_0_EDGE_TESSFACTOR:
+		        case NAME_FINAL_TRI_V_EQ_0_EDGE_TESSFACTOR:
+		        case NAME_FINAL_TRI_W_EQ_0_EDGE_TESSFACTOR:
+		        case NAME_FINAL_LINE_DETAIL_TESSFACTOR:
+		        case NAME_FINAL_LINE_DENSITY_TESSFACTOR:
+                {
+                    bcatcstr(glsl, "#define ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+                    bformata(glsl, " gl_TessLevelOuter\n");
+                    break;
+                }
+		        case NAME_FINAL_QUAD_U_INSIDE_TESSFACTOR:
+		        case NAME_FINAL_QUAD_V_INSIDE_TESSFACTOR:
+                case NAME_FINAL_TRI_INSIDE_TESSFACTOR:
+                {
+                    bcatcstr(glsl, "#define ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+                    bformata(glsl, " gl_TessLevelInner\n");
                     break;
                 }
                 default:
@@ -694,9 +725,39 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 			bcatcstr(glsl, ");\n");
 			break;
 		}
+        case OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT:
+        {
+            const uint32_t instanceCount = psDecl->value.ui32HullPhaseInstanceCount;
+            bformata(glsl, "int HullPhaseInstanceCount = %d;\n", instanceCount);
+            break;
+        }
+        case OPCODE_DCL_INDEX_RANGE:
+        {
+            break;
+        }
+        case OPCODE_HS_DECLS:
+        {
+            break;
+        }
+        case OPCODE_DCL_INPUT_CONTROL_POINT_COUNT:
+        {
+             break;
+        }
+        case OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT:
+        {
+            break;
+        }
+        case OPCODE_HS_FORK_PHASE:
+        {
+            break;
+        }
+        case OPCODE_HS_JOIN_PHASE:
+        {
+            break;
+        }
         default:
         {
-            bformata(glsl, "/* Unhandled input declaration - opcode=0x%X */\n", psDecl->eOpcode);
+            ASSERT(0);
             break;
         }
     }

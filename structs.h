@@ -84,6 +84,7 @@ typedef struct Declaration_TAG
         TESSELLATOR_PARTITIONING eTessPartitioning;
         TESSELLATOR_OUTPUT_PRIMITIVE eTessOutPrim;
         uint32_t aui32WorkGroupSize[3];
+        uint32_t ui32HullPhaseInstanceCount;
 
         struct Interface_TAG
         {

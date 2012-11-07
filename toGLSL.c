@@ -215,10 +215,16 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
 
     AddOpcodeFuncs(psContext);
 
-    bcatcstr(glsl, "void main()\n");
-    bcatcstr(glsl, "{\n");
+    bcatcstr(glsl, "void main()\n{\n");
 
     psContext->indent++;
+
+    if(psContext->psShader->eShaderType == HULL_SHADER)
+    {
+        AddIndentation(psContext);
+        bcatcstr(glsl, "for(int forkInstanceID = 0; forkInstanceID < HullPhaseInstanceCount; ++forkInstanceID) {\n");
+        psContext->indent++;
+    }
 
 	bconcat(glsl, psContext->earlyMain);
 
@@ -228,6 +234,13 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
     }
 
     psContext->indent--;
+
+    if(psContext->psShader->eShaderType == HULL_SHADER)
+    {
+        AddIndentation(psContext);
+        bcatcstr(glsl, "}\n");
+        psContext->indent--;
+    }
 
     bcatcstr(glsl, "}\n");
 }

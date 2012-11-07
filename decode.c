@@ -99,16 +99,21 @@ void DecodeNameToken(const uint32_t* pui32NameToken, Operand* psOperand)
             sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "sampleIndex");
             break;
         }
+        //For the quadrilateral domain, there are 6 factors (4 sides, 2 inner).
 		case NAME_FINAL_QUAD_U_EQ_0_EDGE_TESSFACTOR:
 		case NAME_FINAL_QUAD_V_EQ_0_EDGE_TESSFACTOR: 
 		case NAME_FINAL_QUAD_U_EQ_1_EDGE_TESSFACTOR: 
 		case NAME_FINAL_QUAD_V_EQ_1_EDGE_TESSFACTOR:
 		case NAME_FINAL_QUAD_U_INSIDE_TESSFACTOR:
 		case NAME_FINAL_QUAD_V_INSIDE_TESSFACTOR:
+
+        //For the triangular domain, there are 4 factors (3 sides, 1 inner)
 		case NAME_FINAL_TRI_U_EQ_0_EDGE_TESSFACTOR:
 		case NAME_FINAL_TRI_V_EQ_0_EDGE_TESSFACTOR:
 		case NAME_FINAL_TRI_W_EQ_0_EDGE_TESSFACTOR:
 		case NAME_FINAL_TRI_INSIDE_TESSFACTOR:
+
+        //For the isoline domain, there are 2 factors (detail and density).
 		case NAME_FINAL_LINE_DETAIL_TESSFACTOR:
 		case NAME_FINAL_LINE_DENSITY_TESSFACTOR:
         {
@@ -143,7 +148,9 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 
 
     psOperand->eModifier = OPERAND_MODIFIER_NONE;
-
+    psOperand->psSubOperand[0] = 0;
+    psOperand->psSubOperand[1] = 0;
+    psOperand->psSubOperand[2] = 0;
 
 	/* Check if this instruction is extended.  If it is,
 	 * we need to print the information first */
@@ -473,6 +480,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 		}
 		case OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT:
 		{
+            psDecl->value.ui32HullPhaseInstanceCount = pui32Token[1];
 			break;
 		}
 		case OPCODE_CUSTOMDATA:
