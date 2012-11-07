@@ -554,28 +554,31 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
         }
         case OPCODE_DCL_TESS_DOMAIN:
         {
-            switch(psDecl->value.eTessDomain)
-            {
-                case TESSELLATOR_DOMAIN_ISOLINE:
-                {
-                    bcatcstr(glsl, "layout(isolines) in;\n");
-                    break;
-                }
-                case TESSELLATOR_DOMAIN_TRI:
-                {
-                    bcatcstr(glsl, "layout(triangles) in;\n");
-                    break;
-                }
-                case TESSELLATOR_DOMAIN_QUAD:
-                {
-                    bcatcstr(glsl, "layout(quads) in;\n");
-                    break;
-                }
-                default:
-                {
-                    break;
-                }
-            }
+			if(psContext->psShader->eShaderType == DOMAIN_SHADER)
+			{
+				switch(psDecl->value.eTessDomain)
+				{
+					case TESSELLATOR_DOMAIN_ISOLINE:
+					{
+						bcatcstr(glsl, "layout(isolines) in;\n");
+						break;
+					}
+					case TESSELLATOR_DOMAIN_TRI:
+					{
+						bcatcstr(glsl, "layout(triangles) in;\n");
+						break;
+					}
+					case TESSELLATOR_DOMAIN_QUAD:
+					{
+						bcatcstr(glsl, "layout(quads) in;\n");
+						break;
+					}
+					default:
+					{
+						break;
+					}
+				}
+			}
             break;
         }
         case OPCODE_DCL_TESS_PARTITIONING:
