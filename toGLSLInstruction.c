@@ -422,7 +422,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = dot((");
             TranslateOperand(psContext, &psInst->asOperands[1]);
-            bcatcstr(glsl, ", ");
+            bcatcstr(glsl, ").xy, (");
             TranslateOperand(psContext, &psInst->asOperands[2]);
             bcatcstr(glsl, ").xy);\n");
             break;
