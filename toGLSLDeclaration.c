@@ -220,6 +220,10 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 				StorageQualifier = "in";
 			}
 
+			//Prevent multiple declarations caused by register packing.
+			bformata(glsl, "#ifndef Input%d_CREATED\n", psDecl->asOperands[0].ui32RegisterNumber);
+			bformata(glsl, "#define Input%d_CREATED\n", psDecl->asOperands[0].ui32RegisterNumber);
+
             switch(psOperand->iIndexDims)
             {
                 case INDEX_2D:
@@ -262,6 +266,8 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 				bformata(glsl, "#define Input%d VtxOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber,
 					psDecl->asOperands[0].ui32RegisterNumber);
 			}
+
+			bcatcstr(glsl, "#endif\n");
             break;
         }
 		case OPCODE_DCL_INPUT_SIV:
