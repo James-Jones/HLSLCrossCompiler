@@ -485,8 +485,18 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 				}
 				case GEOMETRY_SHADER:
 				{
+					/*
+						The *_CREATED preprocessor code here is designed to ensure that if fxc 
+						packs multiple outputs into a vector and generates something like
+						dcl_output o3.xy
+						dcl_output o3.z
+						then the vector (output3 in the above case) will only be declared once.
+					*/
+					bformata(glsl, "#ifndef VtxGeoOutput%d_CREATED\n", psDecl->asOperands[0].ui32RegisterNumber);
+					bformata(glsl, "#define VtxGeoOutput%d_CREATED\n", psDecl->asOperands[0].ui32RegisterNumber);
 					bformata(glsl, "out vec4 VtxGeoOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
 					bformata(glsl, "#define Output%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+					bcatcstr(glsl, "#endif\n");
 					break;
 				}
 				case HULL_SHADER:
