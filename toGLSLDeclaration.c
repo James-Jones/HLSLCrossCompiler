@@ -201,7 +201,14 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
         case OPCODE_DCL_INPUT:
         {
             const Operand* psOperand = &psDecl->asOperands[0];
-            int iNumComponents = GetMaxComponentFromComponentMask(psOperand);
+			//Force the number of components to be 4.
+/*dcl_output o3.xy
+  dcl_output o3.z
+
+Would generate a vec2 and a vec3. We discard the second one making .z invalid!
+
+*/
+            int iNumComponents = 4;//GetMaxComponentFromComponentMask(psOperand);
 			const char* StorageQualifier = "attribute";
 			const char* InputName = "Input";
 
@@ -277,7 +284,7 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
         case OPCODE_DCL_INPUT_PS:
         {
             const Operand* psOperand = &psDecl->asOperands[0];
-            int iNumComponents = GetMaxComponentFromComponentMask(psOperand);
+            int iNumComponents = 4;//GetMaxComponentFromComponentMask(psOperand);
 			const char* StorageQualifier = "varying";
 
 			if(InOutSupported(psContext->psShader->eTargetLanguage))
@@ -468,7 +475,7 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 				}
 				case VERTEX_SHADER:
 				{
-					int iNumComponents = GetMaxComponentFromComponentMask(&psDecl->asOperands[0]);
+					int iNumComponents = 4;//GetMaxComponentFromComponentMask(&psDecl->asOperands[0]);
 
 					if(psContext->flags & HLSLCC_FLAG_GS_ENABLED)
 					{
