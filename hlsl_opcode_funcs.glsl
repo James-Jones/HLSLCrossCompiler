@@ -59,3 +59,15 @@ void HLSL_eq(out vec4 dest, vec4 a, vec4 b) {
 void HLSL_eq(out float dest, float a, float b) {
     dest = (a == b) ? 1 : 0;
 }
+
+void HLSL_and(out vec4 dest, vec4 a, vec4 b) {
+	ivec4 ia = ivec4(a);
+	ivec4 ib = ivec4(b);
+	dest = ia & ib;
+}
+void HLSL_and(out float dest, float a, float b) {
+	int ia = int(a);
+	int ib = int(b);
+	dest = ia & ib;
+}
+

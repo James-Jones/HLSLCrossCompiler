@@ -353,12 +353,11 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_AND:
         {
-            /* Todo: vector version*/
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//AND\n");
 #endif
-			CallIntegerBinaryOp(psContext, "&", psInst, 0, 1, 2);
+			CallHLSLOpcodeFunc2(psContext, "HLSL_and", psInst);
             break;
         }
         case OPCODE_GE:

@@ -61,4 +61,16 @@ const char* psz_hlsl_opcode_funcs_glsl = {
 	void HLSL_eq(out float dest, float a, float b) {\n \
 	    dest = (a == b) ? 1 : 0;\n \
 	}\n \
+	\n \
+	void HLSL_and(out vec4 dest, vec4 a, vec4 b) {\n \
+		ivec4 ia = ivec4(a);\n \
+		ivec4 ib = ivec4(b);\n \
+		dest = ia & ib;\n \
+	}\n \
+	void HLSL_and(out float dest, float a, float b) {\n \
+		int ia = int(a);\n \
+		int ib = int(b);\n \
+		dest = ia & ib;\n \
+	}\n \
+	\n \
 "};
