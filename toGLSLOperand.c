@@ -543,13 +543,13 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 		}
 		case OPERAND_TYPE_IMMEDIATE_CONSTANT_BUFFER:
 		{
-            bcatcstr(glsl, "immediateConstBuffer");
+            bcatcstr(glsl, "immediateConstBufferF");
 
             if(psOperand->psSubOperand[0])
             {
-                bcatcstr(glsl, "[int("); //Indexes must be integral.
+                bcatcstr(glsl, "(int("); //Indexes must be integral.
                 TranslateOperand(psContext, psOperand->psSubOperand[0]);
-                bcatcstr(glsl, ")]");
+                bcatcstr(glsl, "))");
             }
 			break;
 		}
@@ -750,13 +750,13 @@ void TranslateIntegerOperand(HLSLCrossCompilerContext* psContext, const Operand*
 		}
 		case OPERAND_TYPE_IMMEDIATE_CONSTANT_BUFFER:
 		{
-            bcatcstr(glsl, "immediateConstBuffer");
+            bcatcstr(glsl, "immediateConstBufferI");
 
             if(psOperand->psSubOperand[0])
             {
-                bcatcstr(glsl, "[int("); //Indexes must be integral.
+                bcatcstr(glsl, "(int("); //Indexes must be integral.
                 TranslateOperand(psContext, psOperand->psSubOperand[0]);
-                bcatcstr(glsl, ")]");
+                bcatcstr(glsl, "))");
             }
 			break;
 		}

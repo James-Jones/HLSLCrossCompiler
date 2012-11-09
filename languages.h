@@ -35,4 +35,13 @@ static int WriteToFragData(GLLang eLang)
 	return 0;
 }
 
+static int ShaderBitEncodingSupported(GLLang eLang)
+{
+	if(eLang < LANG_330)
+	{
+		return 0;
+	}
+	return 1;
+}
+
 #endif

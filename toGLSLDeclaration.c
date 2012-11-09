@@ -754,59 +754,99 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			uint32_t ui32ConstIndex = 0;
 			float x, y, z, w;
 
-			bformata(glsl, "vec4 immediateConstBuffer[%d] = vec4[%d] (\n", ui32NumVec4, ui32NumVec4);
+			//If ShaderBitEncodingSupported then 1 integer buffer, use intBitsToFloat to get float values. - More instructions.
+			//else 2 buffers - one integer and one float. - More data
+
+			if(ShaderBitEncodingSupported(psShader->eTargetLanguage) == 0)
+			{
+				bcatcstr(glsl, "#define immediateConstBufferI(idx) immediateConstBufferInt[idx]\n");
+				bcatcstr(glsl, "#define immediateConstBufferF(idx) immediateConstBuffer[idx]\n");
+
+				bformata(glsl, "vec4 immediateConstBuffer[%d] = vec4[%d] (\n", ui32NumVec4, ui32NumVec4);
+				for(;ui32ConstIndex < ui32NumVec4Minus1; ui32ConstIndex++)
+				{
+					float loopLocalX, loopLocalY, loopLocalZ, loopLocalW;
+					loopLocalX = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].a;
+					loopLocalY = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].b;
+					loopLocalZ = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].c;
+					loopLocalW = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].d;
+
+					//A single vec4 can mix integer and float types.
+					//Forced NAN and INF to zero inside the immediate constant buffer. This will allow the shader to compile.
+					if(fpcheck(loopLocalX))
+					{
+						loopLocalX = 0;
+					}
+					if(fpcheck(loopLocalY))
+					{
+						loopLocalY = 0;
+					}
+					if(fpcheck(loopLocalZ))
+					{
+						loopLocalZ = 0;
+					}
+					if(fpcheck(loopLocalW))
+					{
+						loopLocalW = 0;
+					}
+
+					bformata(glsl, "\tvec4(%f, %f, %f, %f), \n", loopLocalX, loopLocalY, loopLocalZ, loopLocalW);
+				}
+				//No trailing comma on this one
+				x = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].a;
+				y = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].b;
+				z = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].c;
+				w = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].d;
+				if(fpcheck(x))
+				{
+					x = 0;
+				}
+				if(fpcheck(y))
+				{
+					y = 0;
+				}
+				if(fpcheck(z))
+				{
+					z = 0;
+				}
+				if(fpcheck(w))
+				{
+					w = 0;
+				}
+				bformata(glsl, "\tvec4(%f, %f, %f, %f)\n", x, y, z, w);
+				bcatcstr(glsl, ");\n");
+			}
+			else
+			{
+				bcatcstr(glsl, "#define immediateConstBufferI(idx) immediateConstBufferInt[idx]\n");
+				bcatcstr(glsl, "#define immediateConstBufferF(idx) intBitsToFloat(immediateConstBufferInt[idx])\n");
+			}
+
+			{
+			uint32_t ui32ConstIndex = 0;
+			int x, y, z, w;
+
+			bformata(glsl, "ivec4 immediateConstBufferInt[%d] = ivec4[%d] (\n", ui32NumVec4, ui32NumVec4);
 			for(;ui32ConstIndex < ui32NumVec4Minus1; ui32ConstIndex++)
 			{
-				float loopLocalX, loopLocalY, loopLocalZ, loopLocalW;
-				loopLocalX = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].a;
-				loopLocalY = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].b;
-				loopLocalZ = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].c;
-				loopLocalW = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].d;
+				int loopLocalX, loopLocalY, loopLocalZ, loopLocalW;
+				loopLocalX = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].a;
+				loopLocalY = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].b;
+				loopLocalZ = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].c;
+				loopLocalW = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].d;
 
-				//A single vec4 can mix integer and float types.
-				//Forced NAN and INF to zero inside the immediate constant buffer. This will allow the shader to compile.
-				if(fpcheck(loopLocalX))
-				{
-					loopLocalX = 0;
-				}
-				if(fpcheck(loopLocalY))
-				{
-					loopLocalY = 0;
-				}
-				if(fpcheck(loopLocalZ))
-				{
-					loopLocalZ = 0;
-				}
-				if(fpcheck(loopLocalW))
-				{
-					loopLocalW = 0;
-				}
-
-				bformata(glsl, "\tvec4(%f, %f, %f, %f), \n", loopLocalX, loopLocalY, loopLocalZ, loopLocalW);
+				bformata(glsl, "\tivec4(%d, %d, %d, %d), \n", loopLocalX, loopLocalY, loopLocalZ, loopLocalW);
 			}
 			//No trailing comma on this one
-			x = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].a;
-			y = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].b;
-			z = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].c;
-			w = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].d;
-			if(fpcheck(x))
-			{
-				x = 0;
-			}
-			if(fpcheck(y))
-			{
-				y = 0;
-			}
-			if(fpcheck(z))
-			{
-				z = 0;
-			}
-			if(fpcheck(w))
-			{
-				w = 0;
-			}
-			bformata(glsl, "\tvec4(%f, %f, %f, %f)\n", x, y, z, w);
+			x = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].a;
+			y = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].b;
+			z = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].c;
+			w = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].d;
+
+			bformata(glsl, "\tivec4(%d, %d, %d, %d)\n", x, y, z, w);
 			bcatcstr(glsl, ");\n");
+			}
+
 			break;
 		}
         case OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT:
