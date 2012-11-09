@@ -9,6 +9,19 @@ const char* psz_hlsl_opcode_funcs_glsl = {
 	    if(value.y > 0.0) dest.y = value.y;\n \
 	}\n \
 	\n \
+	void HLSL_movc(out vec4 dest, vec4 value) {\n \
+	    if(value.x > 0.0) dest.x = value.x;\n \
+	    if(value.y > 0.0) dest.y = value.y;\n \
+	    if(value.z > 0.0) dest.z = value.z;\n \
+	    if(value.w > 0.0) dest.w = value.w;\n \
+	}\n \
+	\n \
+	void HLSL_movc(out vec3 dest, vec4 value) {\n \
+	    if(value.x > 0.0) dest.x = value.x;\n \
+	    if(value.y > 0.0) dest.y = value.y;\n \
+	    if(value.z > 0.0) dest.z = value.z;\n \
+	}\n \
+	\n \
 	void HLSL_ge(out vec4 dest, vec4 a, vec4 b) {\n \
 	    dest = vec4(greaterThanEqual(a, b));\n \
 	}\n \
