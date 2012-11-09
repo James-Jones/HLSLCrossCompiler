@@ -101,20 +101,20 @@ void CallIntegerBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, 
 
 	if(src1SwizCount == src0SwizCount == dstSwizCount)
 	{
-		TranslateOperand(psContext, &psInst->asOperands[dest]);
+		TranslateIntegerOperand(psContext, &psInst->asOperands[dest]);
 		bcatcstr(glsl, " = int(");
-		TranslateOperand(psContext, &psInst->asOperands[src0]);
+		TranslateIntegerOperand(psContext, &psInst->asOperands[src0]);
 		bformata(glsl, ") %s int(", name);
-		TranslateOperand(psContext, &psInst->asOperands[src1]);
+		TranslateIntegerOperand(psContext, &psInst->asOperands[src1]);
 		bcatcstr(glsl, ");\n");
 	}
 	else
 	{
-		TranslateOperand(psContext, &psInst->asOperands[dest]);
+		TranslateIntegerOperand(psContext, &psInst->asOperands[dest]);
 		bcatcstr(glsl, " = vec4(int(");
-		TranslateOperand(psContext, &psInst->asOperands[src0]);
+		TranslateIntegerOperand(psContext, &psInst->asOperands[src0]);
 		bformata(glsl, ") %s int(", name);
-		TranslateOperand(psContext, &psInst->asOperands[src1]);
+		TranslateIntegerOperand(psContext, &psInst->asOperands[src1]);
 		bcatcstr(glsl, "))");
 		AddSwizzleUsingElementCount(psContext, dstSwizCount);
 		bcatcstr(glsl, ";\n");
@@ -328,7 +328,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//IADD\n");
 #endif
-			CallBinaryOp(psContext, "+", psInst, 0, 1, 2);
+			CallIntegerBinaryOp(psContext, "+", psInst, 0, 1, 2);
             break;
         }
         case OPCODE_ADD:
@@ -649,17 +649,18 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//GATHER4\n");
 #endif
+//gather4 r7.xyzw, r3.xyxx, t3.xyzw, s0.x
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[1]);
+            TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = textureGather(");
 
-            TranslateOperand(psContext, &psInst->asOperands[3]);
+            TranslateOperand(psContext, &psInst->asOperands[2]);
             bcatcstr(glsl, ", ");
             //Texture coord cannot be vec4
             //Determining if it is a vec3 for vec2 yet to be done.
-            psInst->asOperands[2].aui32Swizzle[2] = 0xFFFFFFFF;
-            psInst->asOperands[2].aui32Swizzle[3] = 0xFFFFFFFF;
-            TranslateOperand(psContext, &psInst->asOperands[2]);
+            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+            TranslateOperand(psContext, &psInst->asOperands[1]);
             bcatcstr(glsl, ");\n");
             break;
         }
@@ -1078,19 +1079,119 @@ src3
 		}
 		case OPCODE_LD:
 		{
+			ResourceBinding* psBinding = 0;
+			uint32_t dstSwizCount = GetNumSwizzleElements(psContext, &psInst->asOperands[0]);
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//LD\n");
 #endif
-			//texelFetch(samplerBuffer, scalar integer coord)
-            AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
-            bcatcstr(glsl, " = texelFetch(");
 
-            TranslateOperand(psContext, &psInst->asOperands[2]);
-            bcatcstr(glsl, ", int((");
-            TranslateOperand(psContext, &psInst->asOperands[1]);
-			bcatcstr(glsl, ").x));\n");
+            
+            GetResourceFromBindingPoint(RTYPE_TEXTURE, psInst->asOperands[2].ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
+
+			switch(psBinding->eDimension)
+			{
+				case RESOURCE_DIMENSION_TEXTURE1D:
+				case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+				{
+					//texelFetch(samplerBuffer, int coord, level)
+					AddIndentation(psContext);
+					TranslateOperand(psContext, &psInst->asOperands[0]);
+					bcatcstr(glsl, " = texelFetch(");
+
+					TranslateOperand(psContext, &psInst->asOperands[2]);
+					bcatcstr(glsl, ", int((");
+					TranslateOperand(psContext, &psInst->asOperands[1]);
+					bcatcstr(glsl, ").x), 0)");
+					AddSwizzleUsingElementCount(psContext, dstSwizCount);
+					bcatcstr(glsl, ";\n");
+					break;
+				}
+				case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+				case RESOURCE_DIMENSION_TEXTURE3D:
+				{
+					//texelFetch(samplerBuffer, ivec3 coord, level)
+					AddIndentation(psContext);
+					TranslateOperand(psContext, &psInst->asOperands[0]);
+					bcatcstr(glsl, " = texelFetch(");
+
+					TranslateOperand(psContext, &psInst->asOperands[2]);
+					bcatcstr(glsl, ", ivec3((");
+					TranslateOperand(psContext, &psInst->asOperands[1]);
+					bcatcstr(glsl, ").xyz), 0)");
+					AddSwizzleUsingElementCount(psContext, dstSwizCount);
+					bcatcstr(glsl, ";\n");
+					break;
+				}
+				case RESOURCE_DIMENSION_TEXTURE2D:
+				{
+					//texelFetch(samplerBuffer, ivec2 coord, level)
+					AddIndentation(psContext);
+					TranslateOperand(psContext, &psInst->asOperands[0]);
+					bcatcstr(glsl, " = texelFetch(");
+
+					TranslateOperand(psContext, &psInst->asOperands[2]);
+					bcatcstr(glsl, ", ivec2((");
+					TranslateOperand(psContext, &psInst->asOperands[1]);
+					bcatcstr(glsl, ").xy), 0)");
+					AddSwizzleUsingElementCount(psContext, dstSwizCount);
+					bcatcstr(glsl, ";\n");
+					break;
+				}
+				case RESOURCE_DIMENSION_BUFFER:
+				{
+					//texelFetch(samplerBuffer, scalar integer coord)
+					AddIndentation(psContext);
+					TranslateOperand(psContext, &psInst->asOperands[0]);
+					bcatcstr(glsl, " = texelFetch(");
+
+					TranslateOperand(psContext, &psInst->asOperands[2]);
+					bcatcstr(glsl, ", int((");
+					TranslateOperand(psContext, &psInst->asOperands[1]);
+					bcatcstr(glsl, ").x))");
+					AddSwizzleUsingElementCount(psContext, dstSwizCount);
+					bcatcstr(glsl, ";\n");
+					break;
+				}
+				case RESOURCE_DIMENSION_TEXTURE2DMS:
+				{
+					//texelFetch(samplerBuffer, ivec2 coord, sample)
+					AddIndentation(psContext);
+					TranslateOperand(psContext, &psInst->asOperands[0]);
+					bcatcstr(glsl, " = texelFetch(");
+
+					TranslateOperand(psContext, &psInst->asOperands[2]);
+					bcatcstr(glsl, ", ivec2((");
+					TranslateOperand(psContext, &psInst->asOperands[1]);
+					bcatcstr(glsl, ").xy), 0)");
+					AddSwizzleUsingElementCount(psContext, dstSwizCount);
+					bcatcstr(glsl, ";\n");
+					break;
+				}
+				case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
+				{
+					//texelFetch(samplerBuffer, ivec3 coord, sample)
+					AddIndentation(psContext);
+					TranslateOperand(psContext, &psInst->asOperands[0]);
+					bcatcstr(glsl, " = texelFetch(");
+
+					TranslateOperand(psContext, &psInst->asOperands[2]);
+					bcatcstr(glsl, ", ivec3((");
+					TranslateOperand(psContext, &psInst->asOperands[1]);
+					bcatcstr(glsl, ").xyz), 0)");
+					AddSwizzleUsingElementCount(psContext, dstSwizCount);
+					bcatcstr(glsl, ";\n");
+					break;
+				}
+				case RESOURCE_DIMENSION_TEXTURECUBE:
+				case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+				case RESOURCE_DIMENSION_RAW_BUFFER:
+				case RESOURCE_DIMENSION_STRUCTURED_BUFFER:
+				default:
+				{
+					break;
+				}
+			}
 			break;
 		}
         default:

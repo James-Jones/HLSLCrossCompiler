@@ -423,8 +423,8 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
             {
 				if(psOperand->iIntegerImmediate)
 				{
-					bformata(glsl, "%u",
-						*((uint32_t*)(&psOperand->afImmediates[0])));
+					bformata(glsl, "%d",
+						*((int*)(&psOperand->afImmediates[0])));
 				}
 				else
 				{
@@ -440,6 +440,213 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
                     psOperand->afImmediates[1],
                     psOperand->afImmediates[2],
                     psOperand->afImmediates[3]);
+            }
+            break;
+        }
+        case OPERAND_TYPE_INPUT:
+        {
+            switch(psOperand->iIndexDims)
+            {
+                case INDEX_2D:
+                {
+                    if(psOperand->aui32ArraySizes[1] == 0)//Input index zero - position.
+                    {
+                        bcatcstr(glsl, "gl_in");
+                        TranslateOperandIndex(psContext, psOperand, 0);//Vertex index
+                        bcatcstr(glsl, ".gl_Position");
+                    }
+                    else
+                    {
+                        bformata(glsl, "Input%d", psOperand->aui32ArraySizes[1]);
+                        TranslateOperandIndex(psContext, psOperand, 0);//Vertex index
+                    }
+                    break;
+                }
+                default:
+                {
+                    bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
+                    break;
+                }
+            }
+            break;
+        }
+        case OPERAND_TYPE_OUTPUT:
+        {
+            bformata(glsl, "Output%d", psOperand->ui32RegisterNumber);
+            if(psOperand->psSubOperand[0])
+            {
+                bcatcstr(glsl, "[int("); //Indexes must be integral.
+                TranslateOperand(psContext, psOperand->psSubOperand[0]);
+                bcatcstr(glsl, ")]");
+            }
+            break;
+        }
+        case OPERAND_TYPE_TEMP:
+        {
+            bformata(glsl, "Temp%d", psOperand->ui32RegisterNumber);
+            break;
+        }
+        case OPERAND_TYPE_CONSTANT_BUFFER:
+        {
+			if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
+			{
+				//Each uniform block is given the HLSL consant buffer name.
+				//Within each uniform block is a constant array named ConstN
+				bformata(glsl, "Const%d[%d]", psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
+			}
+			else
+			{
+				//Arrays of constants. Each array is given the HLSL constant buffer name.
+				ResourceBinding* psBinding = 0;
+				GetResourceFromBindingPoint(RTYPE_CBUFFER, psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psBinding);
+
+				//$Globals.
+				if(psBinding->Name[0] == '$')
+				{
+					bformata(glsl, "Globals[%d]", psOperand->aui32ArraySizes[1]);
+				}
+				else
+				{
+					bformata(glsl, "%s[%d]", psBinding->Name, psOperand->aui32ArraySizes[1]);
+				}
+			}
+            break;
+        }
+        case OPERAND_TYPE_RESOURCE:
+        {
+            ResourceBinding* psBinding = 0;
+            GetResourceFromBindingPoint(RTYPE_TEXTURE, psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
+            bformata(glsl, "%s", psBinding->Name);
+            break;
+        }
+        case OPERAND_TYPE_SAMPLER:
+        {
+            bformata(glsl, "Sampler%d", psOperand->ui32RegisterNumber);
+            break;
+        }
+        case OPERAND_TYPE_OUTPUT_DEPTH:
+        case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+        case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+        {
+            bcatcstr(glsl, "gl_FragDepth");
+            break;
+        }
+        case OPERAND_TYPE_FUNCTION_BODY:
+        {
+            bformata(glsl, "Func%d", psOperand->ui32RegisterNumber);
+            break;
+        }
+		case OPERAND_TYPE_INPUT_FORK_INSTANCE_ID:
+		{
+			bcatcstr(glsl, "forkInstanceID");
+			return;
+		}
+		case OPERAND_TYPE_IMMEDIATE_CONSTANT_BUFFER:
+		{
+            bcatcstr(glsl, "immediateConstBuffer");
+
+            if(psOperand->psSubOperand[0])
+            {
+                bcatcstr(glsl, "[int("); //Indexes must be integral.
+                TranslateOperand(psContext, psOperand->psSubOperand[0]);
+                bcatcstr(glsl, ")]");
+            }
+			break;
+		}
+		case OPERAND_TYPE_INPUT_DOMAIN_POINT:
+		{
+			bcatcstr(glsl, "gl_TessCoord");
+			break;
+		}
+		case OPERAND_TYPE_INPUT_CONTROL_POINT:
+		{
+			if(psOperand->aui32ArraySizes[1] == 0)//Input index zero - position.
+			{
+				bformata(glsl, "gl_in[%d].gl_Position", psOperand->aui32ArraySizes[0]);
+			}
+            break;
+		}
+		case OPERAND_TYPE_NULL:
+		{
+			// Null register, used to discard results of operations
+			bcatcstr(glsl, "//null");
+			break;
+		}
+        default:
+        {
+            ASSERT(0);
+            break;
+        }
+    }
+
+    TranslateOperandSwizzle(psContext, psOperand);
+
+    switch(psOperand->eModifier)
+    {
+        case OPERAND_MODIFIER_NONE:
+        {
+            break;
+        }
+        case OPERAND_MODIFIER_NEG:
+        {
+            break;
+        }
+        case OPERAND_MODIFIER_ABS:
+        {
+            bcatcstr(glsl, ")");
+            break;
+        }
+        case OPERAND_MODIFIER_ABSNEG:
+        {
+            bcatcstr(glsl, ")");
+            break;
+        }
+    }
+}
+
+void TranslateIntegerOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
+{
+    bstring glsl = psContext->glsl;
+
+    switch(psOperand->eModifier)
+    {
+        case OPERAND_MODIFIER_NONE:
+        {
+            break;
+        }
+        case OPERAND_MODIFIER_NEG:
+        {
+            bcatcstr(glsl, "-");
+            break;
+        }
+        case OPERAND_MODIFIER_ABS:
+        {
+            bcatcstr(glsl, "abs(");
+            break;
+        }
+        case OPERAND_MODIFIER_ABSNEG:
+        {
+            bcatcstr(glsl, "-abs(");
+            break;
+        }
+    }
+    switch(psOperand->eType)
+    {
+        case OPERAND_TYPE_IMMEDIATE32:
+        {
+            if(psOperand->iNumComponents == 1)
+            {
+				bformata(glsl, "%d",
+					*((int*)(&psOperand->afImmediates[0])));
+            }
+            else
+            if(psOperand->iNumComponents == 4)
+            {
+                bformata(glsl, "vec4(%d, %d, %d, %d)",
+                    *(int*)&psOperand->afImmediates[0],
+                    *(int*)&psOperand->afImmediates[1],
+                    *(int*)&psOperand->afImmediates[2],
+                    *(int*)&psOperand->afImmediates[3]);
             }
             break;
         }
