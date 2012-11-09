@@ -3,6 +3,16 @@
 #include "toGLSLOperand.h"
 #include "bstrlib.h"
 #include "assert.h"
+#include <math.h>
+
+#include <float.h>
+
+#ifdef _MSC_VER
+#define isnan(x) _isnan(x)
+#define isinf(x) (!_finite(x))
+#endif
+
+#define fpcheck(x) (isnan(x) || isinf(x))
 
 #ifdef _DEBUG
 #define ASSERT(expr) assert(expr)
@@ -739,22 +749,63 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
 		case OPCODE_CUSTOMDATA:
 		{
-			const  uint32_t ui32NumOperands = psDecl->ui32NumOperands;
+			const uint32_t ui32NumVec4 = psDecl->ui32NumOperands;
+			const uint32_t ui32NumVec4Minus1 = (ui32NumVec4-1);
 			uint32_t ui32ConstIndex = 0;
+			float x, y, z, w;
 
-			bformata(glsl, "vec4 immediateConstBuffer[%d] = vec4[%d] (\n", ui32NumOperands/4, ui32NumOperands/4);
-			for(;ui32ConstIndex < (ui32NumOperands-4)/4; ui32ConstIndex++)
+			bformata(glsl, "vec4 immediateConstBuffer[%d] = vec4[%d] (\n", ui32NumVec4, ui32NumVec4);
+			for(;ui32ConstIndex < ui32NumVec4Minus1; ui32ConstIndex++)
 			{
-				bformata(glsl, "\tvec4(%f, %f, %f, %f), \n", psDecl->afImmediateConstBuffer[ui32ConstIndex][0],
-				psDecl->afImmediateConstBuffer[ui32ConstIndex][1],
-				psDecl->afImmediateConstBuffer[ui32ConstIndex][2],
-				psDecl->afImmediateConstBuffer[ui32ConstIndex][3]);
+				float loopLocalX, loopLocalY, loopLocalZ, loopLocalW;
+				loopLocalX = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].a;
+				loopLocalY = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].b;
+				loopLocalZ = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].c;
+				loopLocalW = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].d;
+
+				//A single vec4 can mix integer and float types.
+				//Forced NAN and INF to zero inside the immediate constant buffer. This will allow the shader to compile.
+				if(fpcheck(loopLocalX))
+				{
+					loopLocalX = 0;
+				}
+				if(fpcheck(loopLocalY))
+				{
+					loopLocalY = 0;
+				}
+				if(fpcheck(loopLocalZ))
+				{
+					loopLocalZ = 0;
+				}
+				if(fpcheck(loopLocalW))
+				{
+					loopLocalW = 0;
+				}
+
+				bformata(glsl, "\tvec4(%f, %f, %f, %f), \n", loopLocalX, loopLocalY, loopLocalZ, loopLocalW);
 			}
 			//No trailing comma on this one
-			bformata(glsl, "\tvec4(%f, %f, %f, %f)\n", psDecl->afImmediateConstBuffer[ui32ConstIndex][0],
-			psDecl->afImmediateConstBuffer[ui32ConstIndex][1],
-			psDecl->afImmediateConstBuffer[ui32ConstIndex][2],
-			psDecl->afImmediateConstBuffer[ui32ConstIndex][3]);
+			x = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].a;
+			y = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].b;
+			z = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].c;
+			w = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].d;
+			if(fpcheck(x))
+			{
+				x = 0;
+			}
+			if(fpcheck(y))
+			{
+				y = 0;
+			}
+			if(fpcheck(z))
+			{
+				z = 0;
+			}
+			if(fpcheck(w))
+			{
+				w = 0;
+			}
+			bformata(glsl, "\tvec4(%f, %f, %f, %f)\n", x, y, z, w);
 			bcatcstr(glsl, ");\n");
 			break;
 		}

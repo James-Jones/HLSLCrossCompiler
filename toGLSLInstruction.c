@@ -274,6 +274,21 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			}
             break;
         }
+        case OPCODE_ITOF://signed to float
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//ITOF\n");
+#endif
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, " = vec4(");
+            TranslateOperand(psContext, &psInst->asOperands[1]);
+            bcatcstr(glsl, ")");
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, ";\n");
+            break;
+        }
         case OPCODE_UTOF://unsigned to float
         {
 #ifdef _DEBUG
@@ -598,6 +613,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//FRC\n");
 #endif
 			CallHelper1(psContext, "fract", psInst, 0, 1);
+            break;
+        }
+		case OPCODE_IMAX:
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//IMAX\n");
+#endif
+			CallHelper2(psContext, "max", psInst, 0, 1, 2);
             break;
         }
 		case OPCODE_MAX:
