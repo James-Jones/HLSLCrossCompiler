@@ -1058,20 +1058,15 @@ src3
             AddIndentation(psContext);
             bcatcstr(glsl, "//LD\n");
 #endif
+			//texelFetch(samplerBuffer, scalar integer coord)
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, " = texelFetch(");
 
             TranslateOperand(psContext, &psInst->asOperands[2]);
-            bcatcstr(glsl, ", ");
-            //Force texcoord to be a vec2.
-            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+            bcatcstr(glsl, ", int((");
             TranslateOperand(psContext, &psInst->asOperands[1]);
-
-			//texcoord.a (POS-swizzle) always provides an unsigned integer mipmap level.
-			//Force to 0 for now
-			bcatcstr(glsl, ", 0);\n");
+			bcatcstr(glsl, ").x));\n");
 			break;
 		}
         default:
