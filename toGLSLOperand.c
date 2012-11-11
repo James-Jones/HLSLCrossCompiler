@@ -488,6 +488,34 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         }
         case OPERAND_TYPE_CONSTANT_BUFFER:
         {
+            const char* StageName = "VS";
+            switch(psContext->psShader->eShaderType)
+            {
+                case PIXEL_SHADER:
+                {
+                    StageName = "PS";
+                    break;
+                }
+                case HULL_SHADER:
+                {
+                    StageName = "HS";
+                    break;
+                }
+                case DOMAIN_SHADER:
+                {
+                    StageName = "DS";
+                    break;
+                }
+                case GEOMETRY_SHADER:
+                {
+                    StageName = "GS";
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
 			if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
 			{
 				//Each uniform block is given the HLSL consant buffer name.
@@ -503,11 +531,11 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 				//$Globals.
 				if(psBinding->Name[0] == '$')
 				{
-					bformata(glsl, "Globals[%d]", psOperand->aui32ArraySizes[1]);
+					bformata(glsl, "Globals%s[%d]", StageName, psOperand->aui32ArraySizes[1]);
 				}
 				else
 				{
-					bformata(glsl, "%s[%d]", psBinding->Name, psOperand->aui32ArraySizes[1]);
+					bformata(glsl, "%s%s[%d]", psBinding->Name, StageName, psOperand->aui32ArraySizes[1]);
 				}
 			}
             break;

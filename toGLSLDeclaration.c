@@ -302,18 +302,15 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				StorageQualifier = "in";
 			}
 
-			//VtxGeoOutput0 is gl_Position. There is not varying/out vec4 VtxGeoOutput0 in vertex shader.
-			//So remap VtxGeoOutputN to VtxGeoOutputN+1
-
             if(iNumComponents == 1)
             {
-                bformata(glsl, "%s float VtxGeoOutput%d;\n", StorageQualifier, psDecl->asOperands[0].ui32RegisterNumber+1);
-				bformata(glsl, "vec1 Input%d = vec1(VtxGeoOutput%d);\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber+1);
+                bformata(glsl, "%s float VtxGeoOutput%d;\n", StorageQualifier, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "vec1 Input%d = vec1(VtxGeoOutput%d);\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
             }
             else
             {
-                bformata(glsl, "%s vec%d VtxGeoOutput%d;\n", StorageQualifier, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber+1);
-				bformata(glsl, "#define Input%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber+1);
+                bformata(glsl, "%s vec%d VtxGeoOutput%d;\n", StorageQualifier, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "#define Input%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
             }
             
             break;
@@ -332,6 +329,34 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         case OPCODE_DCL_CONSTANT_BUFFER:
         {
 			const Operand* psOperand = &psDecl->asOperands[0];
+            const char* StageName = "VS";
+            switch(psContext->psShader->eShaderType)
+            {
+                case PIXEL_SHADER:
+                {
+                    StageName = "PS";
+                    break;
+                }
+                case HULL_SHADER:
+                {
+                    StageName = "HS";
+                    break;
+                }
+                case DOMAIN_SHADER:
+                {
+                    StageName = "DS";
+                    break;
+                }
+                case GEOMETRY_SHADER:
+                {
+                    StageName = "GS";
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
             if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
             {
 				ResourceBinding* psBinding = 0;
@@ -352,14 +377,14 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 					}
 					else
 					{
-						bformata(glsl, "layout(std140) uniform Globals {\n\tvec4 ");
+						bformata(glsl, "layout(std140) uniform Globals%s {\n\tvec4 ", StageName);
 						TranslateOperand(psContext, psOperand);
 						bcatcstr(glsl, ";\n};\n");
 					}
 				}
 				else
 				{
-					bformata(glsl, "layout(std140) uniform %s {\n\tvec4 ", psBinding->Name);
+					bformata(glsl, "layout(std140) uniform %s%s {\n\tvec4 ", psBinding->Name, StageName);
 					TranslateOperand(psContext, psOperand);
 					bcatcstr(glsl, ";\n};\n");
 				}
@@ -451,6 +476,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 					{
 						case OPERAND_TYPE_OUTPUT_DEPTH:
 						{
+
 							break;
 						}
 						case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
