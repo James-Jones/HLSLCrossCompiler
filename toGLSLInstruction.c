@@ -1199,4 +1199,13 @@ src3
             break;
         }
     }
+
+    if(psInst->bSaturate)
+    {
+        AddIndentation(psContext);
+        TranslateOperand(psContext, &psInst->asOperands[0]);
+        bcatcstr(glsl ," = clamp(");
+        TranslateOperand(psContext, &psInst->asOperands[0]);
+        bcatcstr(glsl, ", 0, 1);\n");
+    }
 }

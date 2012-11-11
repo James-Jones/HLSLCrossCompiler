@@ -52,6 +52,7 @@ typedef struct Instruction_TAG
     uint32_t ui32NumOperands;
     Operand asOperands[4];
     uint32_t ui32FunctionIDToCall;
+    uint32_t bSaturate;
 
 #ifdef _DEBUG
     uint64_t id;

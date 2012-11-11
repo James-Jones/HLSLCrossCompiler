@@ -712,4 +712,9 @@ static CUSTOMDATA_CLASS DecodeCustomDataClass(uint32_t ui32Token)
 	return (CUSTOMDATA_CLASS)((ui32Token & 0xfffff800) >> 11);
 }
 
+static uint32_t DecodeInstructionSaturate(uint32_t ui32Token)
+{
+    return (ui32Token & 0x00002000) ? 1 : 0;
+}
+
 #endif

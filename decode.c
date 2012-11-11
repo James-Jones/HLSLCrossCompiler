@@ -546,6 +546,8 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 
     psInst->eOpcode = eOpcode;
 
+    psInst->bSaturate = DecodeInstructionSaturate(*pui32Token);
+
     if(bExtended)
     {
         do {
