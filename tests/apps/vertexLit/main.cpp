@@ -175,6 +175,8 @@ void Init(int argc, char** argv)
 #endif
 
     glFrontFace(GL_CCW);
+    glCullFace(GL_BACK);
+    glEnable(GL_CULL_FACE);
 
     glClearColor(0.0f, 0.125f, 0.3f, 1.0f);
 
