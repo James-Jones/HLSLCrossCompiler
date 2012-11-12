@@ -89,6 +89,30 @@ void ShaderEffect::FromPixelByteFile(std::string& path)
     glAttachShader(mProgram, mPixel);
 }
 
+void ShaderEffect::FromGeometryByteFile(std::string& path)
+{
+    GLSLShader result;
+    TranslateHLSLFromFile(path.c_str(), mCompileFlags, mLang, &result);
+
+    ASSERT(result.shaderType == GL_GEOMETRY_SHADER);
+
+    mGeometry = glCreateShader(GL_GEOMETRY_SHADER);
+
+    glShaderSource(mGeometry, 1, (const char **)&result.sourceCode, 0);
+    glCompileShader(mGeometry);
+
+#ifdef _DEBUG
+    GLint compiled = GL_FALSE;
+    glGetShaderiv(mGeometry, GL_COMPILE_STATUS, &compiled);
+    if(!compiled)
+    {
+        ASSERT(0);
+    }
+#endif
+
+    glAttachShader(mProgram, mGeometry);
+}
+
 void ShaderEffect::Enable()
 {
     glBindAttribLocation(mProgram, 0, "Input0");
@@ -120,17 +144,48 @@ void ShaderEffect::SetVec4(std::string& name, int count, float* v) {
 
     loc = glGetUniformLocation(mProgram, (name + std::string("PS")).c_str());
     glUniform4fv(loc, count, v);
+
+    loc = glGetUniformLocation(mProgram, (name + std::string("GS")).c_str());
+    glUniform4fv(loc, count, v);
+}
+
+void ShaderEffect::CreateUniformBlock(std::string& name, uint_t& ubo)
+{
+	GLuint bufferID;
+
+    glGenBuffers(1, &bufferID);
+
+    uint_t uniformBlockIndex = glGetUniformBlockIndex(mProgram, name.c_str());
+        
+	GLint uniformBlockSize;
+    //We need to get the uniform block's size in order to back it with the
+    //appropriate buffer
+    glGetActiveUniformBlockiv(mProgram, uniformBlockIndex,
+                                    GL_UNIFORM_BLOCK_DATA_SIZE,
+                                    &uniformBlockSize);
+
+    //Create UBO.
+    glBindBuffer(GL_UNIFORM_BUFFER, bufferID);
+    glBufferData(GL_UNIFORM_BUFFER, uniformBlockSize,
+                    NULL, GL_DYNAMIC_DRAW);
+
+	ubo = bufferID;
 }
 
 void ShaderEffect::SetUniformBlock(std::string& name, uint_t bufIndex)
 {
-    int uniformIndex = glGetUniformBlockIndex(mProgram, name.c_str());
+    int uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("VS")).c_str());
+    glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
+
+    uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("GS")).c_str());
+    glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
+
+    uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("PS")).c_str());
     glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
 }
 
 void ShaderEffect::SetUniformBlock(std::string& name, uint_t bufIndex, uint_t ubo)
 {
     glBindBufferBase(GL_UNIFORM_BUFFER, bufIndex, ubo);
-    int uniformIndex = glGetUniformBlockIndex(mProgram, name.c_str());
-    glUniformBlockBinding(mProgram, uniformIndex, ubo);
+	SetUniformBlock(name, bufIndex);
 }

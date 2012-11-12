@@ -27,10 +27,13 @@ public:
     void FromByteFile(std::string& path);
     void FromVertexByteFile(std::string& path);
     void FromPixelByteFile(std::string& path);
+	void FromGeometryByteFile(std::string& path);
 
     void Enable();
 
     //GLuint GetVariableByName(std::string* name);
+
+	void CreateUniformBlock(std::string& name, uint_t& ubo);
 
     void SetVec4(std::string& name, int count, float* v);
     void SetUniformBlock(std::string& name, uint_t bufIndex);
@@ -41,6 +44,9 @@ public:
     }
     uint_t PS() const {
         return mPixel;
+    }
+    uint_t GS() const {
+        return mGeometry;
     }
     uint_t Language() const {
         return mLang;
@@ -56,5 +62,6 @@ private:
     uint_t mProgram;
     uint_t mVertex;
     uint_t mPixel;
+	uint_t mGeometry;
 };
 
