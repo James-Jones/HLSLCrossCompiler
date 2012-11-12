@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 # Project Name
-PROJECT(VertexLitProj)
+PROJECT(LambertLitProj)
 
 SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY "../bin" )
 SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY "../lib" )
@@ -43,8 +43,8 @@ ADD_LIBRARY(fglib STATIC
 #SET_TARGET_PROPERTIES(FREEGLUT PROPERTIES OUTPUT_NAME "FREEGLUT.lib")
 
 
-ADD_EXECUTABLE(VertexLit ${TEST_DIR}/main.cpp ${APP_DIR}/common/debug.cpp ${APP_DIR}/common/Shader.cpp ${APP_DIR}/common/glew/glew.c)
+ADD_EXECUTABLE(LambertLit ${TEST_DIR}/main.cpp ${APP_DIR}/common/debug.cpp ${APP_DIR}/common/Shader.cpp ${APP_DIR}/common/glew/glew.c)
 
-add_dependencies(VertexLit fglib)
+add_dependencies(LambertLit fglib)
 
-TARGET_LINK_LIBRARIES(VertexLit opengl32.lib fglib HLSLByteCodeToGLSL)
+TARGET_LINK_LIBRARIES(LambertLit opengl32.lib fglib HLSLByteCodeToGLSL)

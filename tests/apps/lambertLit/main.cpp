@@ -29,7 +29,7 @@ const size_t GlobalsVec4Count = sizeof(Globals)/sizeof(float)/4;
 
 using namespace Vectormath::Aos;
 
-ShaderEffect mVertexLitEffect;
+ShaderEffect mLambertLitEffect;
 ShaderEffect mSolidColour;
 Matrix4 gWorld;
 Matrix4 gView;
@@ -62,8 +62,8 @@ void display(void)
     // Update our time
     static float t = 0.0f;
 
-    static DWORD dwTimeStart = 0;
-    DWORD dwTimeCur = GetTickCount();
+    static uint32_t dwTimeStart = 0;
+    uint32_t dwTimeCur = GetTickCount();
     if( dwTimeStart == 0 )
         dwTimeStart = dwTimeCur;
     t = ( dwTimeCur - dwTimeStart ) / 1000.0f;
@@ -88,7 +88,7 @@ void display(void)
 
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    mVertexLitEffect.Enable();
+    mLambertLitEffect.Enable();
 
     SetFloatArray(gWorld, gGlobals.World);
     SetFloatArray(gView, gGlobals.View);
@@ -98,7 +98,7 @@ void display(void)
     SetFloatArray(vLightColors[0], &gGlobals.vLightColor[0]);
     SetFloatArray(vLightColors[1], &gGlobals.vLightColor[4]);
 
-    mVertexLitEffect.SetVec4(std::string("Globals"), GlobalsVec4Count, (float*)&gGlobals);
+    mLambertLitEffect.SetVec4(std::string("Globals"), GlobalsVec4Count, (float*)&gGlobals);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gIndexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, gVertexBuffer);
@@ -138,7 +138,7 @@ void reshape (int w, int h)
       loadOrtho2Df (projectionMatrix, 0.0f, 30.0f * (GLfloat) w/(GLfloat) h, 0.0f, 30.0f);
    }*/
 
-    gProjection = Matrix4::perspective(3.14159f * 0.25f, w / ( FLOAT )h, 0.1f, 100.0f);
+    gProjection = Matrix4::perspective(3.14159f * 0.25f, w / ( float )h, 0.1f, 100.0f);
 }
 
 void keyboard(unsigned char key, int x, int y)
@@ -187,13 +187,13 @@ void Init(int argc, char** argv)
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
 
-    mVertexLitEffect.Create();
-    mVertexLitEffect.FromVertexByteFile(std::string("../shaders/VertexLitVS.o"));
-    mVertexLitEffect.FromPixelByteFile(std::string("../shaders/VertexLitPS.o"));
+    mLambertLitEffect.Create();
+    mLambertLitEffect.FromVertexByteFile(std::string("../shaders/LambertLitVS.o"));
+    mLambertLitEffect.FromPixelByteFile(std::string("../shaders/LambertLitPS.o"));
 
     mSolidColour.Create();
-    mSolidColour.FromVertexByteFile(std::string("../shaders/VertexLitVS.o"));
-    mSolidColour.FromPixelByteFile(std::string("../shaders/VertexLitSolidPS.o"));
+    mSolidColour.FromVertexByteFile(std::string("../shaders/LambertLitVS.o"));
+    mSolidColour.FromPixelByteFile(std::string("../shaders/LambertLitSolidPS.o"));
 
     gWorld = Matrix4::identity();
 
@@ -202,10 +202,10 @@ void Init(int argc, char** argv)
     Vector3 Up( 0.0f, 1.0f, 0.0f );
 
     gView = Matrix4::lookAt(Eye, At, Up);
-    gProjection = Matrix4::perspective(3.14159f * 0.25f, WindowWidth / ( FLOAT )WindowHeight, 0.1f, 100.0f);
+    gProjection = Matrix4::perspective(3.14159f * 0.25f, WindowWidth / ( float )WindowHeight, 0.1f, 100.0f);
 
 
-    DWORD indices[] =
+    uint32_t indices[] =
     {
         3,1,0,
         2,1,3,
@@ -228,7 +228,7 @@ void Init(int argc, char** argv)
 
     glGenBuffers(1, &gIndexBuffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gIndexBuffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(DWORD) * 36,
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * 36,
         indices, GL_STATIC_DRAW);
 
 

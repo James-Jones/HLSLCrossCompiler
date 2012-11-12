@@ -1,7 +1,6 @@
 #include "Shader.h"
 #include <GL/glew.h>
-#include <assert.h>
-#define ASSERT(x) assert(x)
+#include "debug.h"
 
 ShaderEffect::ShaderEffect() : mCompileFlags(0), mLang(LANG_DEFAULT)
 {

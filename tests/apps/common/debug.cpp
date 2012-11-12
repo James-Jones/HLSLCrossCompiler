@@ -1,5 +1,5 @@
 #if defined(_DEBUG)
-#include <debug.h>
+#include "debug.h"
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <string>
