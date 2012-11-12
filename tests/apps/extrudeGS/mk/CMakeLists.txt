@@ -40,11 +40,18 @@ ADD_LIBRARY(fglib STATIC
 			${GLUT_DIR}/src/freeglut_structure ${GLUT_DIR}/src/freeglut_teapot ${GLUT_DIR}/src/freeglut_teapot_data ${GLUT_DIR}/src/freeglut_videoresize
 			${GLUT_DIR}/src/freeglut_window)
 
-#SET_TARGET_PROPERTIES(FREEGLUT PROPERTIES OUTPUT_NAME "FREEGLUT.lib")
+
+SET(ASSIMP_DIR ${APP_DIR}/common/assimp)
+INCLUDE_DIRECTORIES(${ASSIMP_DIR}/include/ ${ASSIMP_DIR}/code/BoostWorkaround)
+ADD_DEFINITIONS(-DBOOST_WORKAROUND)
+file(GLOB ASSIMP_CPPFILES ${ASSIMP_DIR}/code/*.cpp)
+#file(GLOB ASSIMP_HFILES ${ASSIMP_DIR}/*.h)
+
+ADD_LIBRARY(assimp STATIC ${ASSIMP_CPPFILES})
 
 
 ADD_EXECUTABLE(Extrude ${TEST_DIR}/main.cpp ${APP_DIR}/common/debug.cpp ${APP_DIR}/common/Shader.cpp ${APP_DIR}/common/glew/glew.c)
 
-add_dependencies(Extrude fglib)
+add_dependencies(Extrude fglib assimp)
 
-TARGET_LINK_LIBRARIES(Extrude opengl32.lib fglib HLSLByteCodeToGLSL)
+TARGET_LINK_LIBRARIES(Extrude opengl32.lib fglib HLSLByteCodeToGLSL assimp)
