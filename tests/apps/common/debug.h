@@ -4,6 +4,8 @@
 
 #ifndef _WIN32
 #define OutputDebugString(str)
+#else
+#include <windows.h>
 #endif
 
 #include <assert.h>

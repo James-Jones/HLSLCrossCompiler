@@ -44,13 +44,13 @@ ADD_LIBRARY(fglib STATIC
 SET(ASSIMP_DIR ${APP_DIR}/common/assimp)
 INCLUDE_DIRECTORIES(${ASSIMP_DIR}/include/ ${ASSIMP_DIR}/code/BoostWorkaround)
 ADD_DEFINITIONS(-DBOOST_WORKAROUND)
-file(GLOB ASSIMP_CPPFILES ${ASSIMP_DIR}/code/*.cpp)
-#file(GLOB ASSIMP_HFILES ${ASSIMP_DIR}/*.h)
+file(GLOB ASSIMP_CPPFILES ${ASSIMP_DIR}/code/*.cpp ${ASSIMP_DIR}/contrib/irrXML/*.cpp ${ASSIMP_DIR}/contrib/clipper/*.cpp ${ASSIMP_DIR}/contrib/poly2tri/poly2tri/sweep/*.cc ${ASSIMP_DIR}/contrib/poly2tri/poly2tri/common/*.cc)
+file(GLOB ASSIMP_CFILES ${ASSIMP_DIR}/contrib/ConvertUTF/*.c ${ASSIMP_DIR}/contrib/zlib/*.c ${ASSIMP_DIR}/contrib/unzip/*.c)
 
-ADD_LIBRARY(assimp STATIC ${ASSIMP_CPPFILES})
+ADD_LIBRARY(assimp STATIC ${ASSIMP_CPPFILES} ${ASSIMP_CFILES})
 
 
-ADD_EXECUTABLE(Extrude ${TEST_DIR}/main.cpp ${APP_DIR}/common/debug.cpp ${APP_DIR}/common/Shader.cpp ${APP_DIR}/common/glew/glew.c)
+ADD_EXECUTABLE(Extrude ${TEST_DIR}/main.cpp ${APP_DIR}/common/debug.cpp ${APP_DIR}/common/model.cpp ${APP_DIR}/common/Shader.cpp ${APP_DIR}/common/glew/glew.c)
 
 add_dependencies(Extrude fglib assimp)
 
