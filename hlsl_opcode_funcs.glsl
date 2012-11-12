@@ -71,3 +71,15 @@ void HLSL_and(out float dest, float a, float b) {
 	dest = ia & ib;
 }
 
+void HLSL_ilt(out vec4 dest, vec4 a, vec4 b) {
+	ivec4 ia = ivec4(a);
+	ivec4 ib = ivec4(b);
+    dest = vec4(lessThan(ia, ib));
+}
+
+void HLSL_ilt(out float dest, float a, float b) {
+	int ia = int(a);
+	int ib = int(b);
+    dest = (ia < ib) ? 1 : 0;
+}
+

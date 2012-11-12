@@ -391,6 +391,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			CallBinaryOp(psContext, "*", psInst, 0, 1, 2);
             break;
         }
+        case OPCODE_UDIV:
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//UDIV\n");
+#endif
+			CallBinaryOp(psContext, "/", psInst, 0, 1, 2);
+            break;
+        }
         case OPCODE_DIV:
         {
 #ifdef _DEBUG
@@ -488,6 +497,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//IGE\n");
 #endif
             CallHLSLOpcodeFunc2(psContext, "HLSL_ige", psInst);
+            break;
+        }
+        case OPCODE_ILT:
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//ILT\n");
+#endif
+            CallHLSLOpcodeFunc2(psContext, "HLSL_ilt", psInst);
             break;
         }
         case OPCODE_LT:
