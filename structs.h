@@ -148,6 +148,12 @@ typedef struct Shader_TAG
 	uint32_t ui32HSForkInstrCount;
 	Instruction* psHSForkPhaseInstr;
 
+	uint32_t ui32HSJoinDeclCount;
+	Declaration* psHSJoinPhaseDecl;
+
+	uint32_t ui32HSJoinInstrCount;
+	Instruction* psHSJoinPhaseInstr;
+
     ShaderInfo sInfo;
 
 	int abIntegerOutput[MAX_SHADER_VEC4_OUTPUT];
