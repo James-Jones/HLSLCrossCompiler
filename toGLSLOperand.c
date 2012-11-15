@@ -600,6 +600,26 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 			bcatcstr(glsl, "//null");
 			break;
 		}
+		case OPERAND_TYPE_INPUT_THREAD_ID://SV_DispatchThreadID
+		{
+			bcatcstr(glsl, "gl_GlobalInvocationID");
+			break;
+		}
+		case OPERAND_TYPE_INPUT_THREAD_GROUP_ID://SV_GroupThreadID
+		{
+			bcatcstr(glsl, "gl_LocalInvocationID");
+			break;
+		}
+		case OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP://SV_GroupID
+		{
+			bcatcstr(glsl, "gl_WorkGroupID");
+			break;
+		}
+		case OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED://SV_GroupIndex
+		{
+			bcatcstr(glsl, "gl_LocalInvocationIndex");
+			break;
+		}
         default:
         {
             ASSERT(0);
