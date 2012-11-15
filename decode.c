@@ -259,13 +259,24 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
             case OPERAND_INDEX_RELATIVE:
             {
                 psOperand->psSubOperand[i] = malloc(sizeof(Operand));
-                //ui32NumTokens +=
                     DecodeOperand(pui32Tokens+ui32NumTokens, psOperand->psSubOperand[i]);
 
                     ui32NumTokens++;
-                //psOperand->ui32RegisterNumber = 0xFFFFFFFF;
                 break;
             }
+			case OPERAND_INDEX_IMMEDIATE32_PLUS_RELATIVE:
+			{
+                psOperand->ui32RegisterNumber = *(pui32Tokens+ui32NumTokens);
+                psOperand->aui32ArraySizes[i] = psOperand->ui32RegisterNumber;
+
+                ui32NumTokens++;
+
+                psOperand->psSubOperand[i] = malloc(sizeof(Operand));
+                    DecodeOperand(pui32Tokens+ui32NumTokens, psOperand->psSubOperand[i]);
+
+				ui32NumTokens++;
+				break;
+			}
             default:
             {
                 ASSERT(0);
@@ -485,41 +496,30 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 		}
 		case OPCODE_CUSTOMDATA:
 		{
-			int iTupleSrc = 0, iTupleDest = 0;
-			const uint32_t ui32ConstCount = pui32Token[1] - 2;
-			const uint32_t ui32TupleCount = (ui32ConstCount / 4);
-			CUSTOMDATA_CLASS eClass = DecodeCustomDataClass(pui32Token[0]);
-
 			ui32TokenLength = pui32Token[1];
-
-			//According to docs
-			//The buffer will contain at least one value, but not more than 4096 values.
-			//Number of constants will also be a multiple of 4.
-
-			ASSERT(ui32ConstCount < MAX_IMMEDIATE_CONST_BUFFER_SIZE);
-
-			psDecl->ui32NumOperands = ui32ConstCount;
-
-
-			iTupleSrc = ui32TupleCount - 1;
-			iTupleDest = 0;
-
-			//Sequence of 4-tuples of DWORDs defining the Immediate Constant Buffer.
-			while(iTupleSrc >= 0)
 			{
-				const uint32_t ui32TupleOffset = iTupleSrc * 4;
-				const uint32_t ui32DestTupleOffset = iTupleDest;
+				int iTupleSrc = 0, iTupleDest = 0;
+				//const uint32_t ui32ConstCount = pui32Token[1] - 2;
+				//const uint32_t ui32TupleCount = (ui32ConstCount / 4);
+				CUSTOMDATA_CLASS eClass = DecodeCustomDataClass(pui32Token[0]);
 
-				psDecl->afImmediateConstBuffer[ui32DestTupleOffset][3] = *(float*)&pui32Token[2+ui32TupleOffset+3];
+				const uint32_t ui32NumVec4 = (ui32TokenLength - 2) / 4;
+				uint32_t uIdx = 0;
 
-				psDecl->afImmediateConstBuffer[ui32DestTupleOffset][2] = *(float*)&pui32Token[2+ui32TupleOffset+2];
+				ICBVec4 const *pVec4Array = (void*) (pui32Token + 2);
 
-				psDecl->afImmediateConstBuffer[ui32DestTupleOffset][1] = *(float*)&pui32Token[2+ui32TupleOffset+1];
+				//The buffer will contain at least one value, but not more than 4096 scalars/1024 vec4's.
+				ASSERT(ui32NumVec4 < MAX_IMMEDIATE_CONST_BUFFER_VEC4_SIZE);
+		
+				/* must be a multiple of 4 */
+				ASSERT(((ui32TokenLength - 2) % 4) == 0);
 
-				psDecl->afImmediateConstBuffer[ui32DestTupleOffset][0] = *(float*)&pui32Token[2+ui32TupleOffset];
+				for (uIdx = 0; uIdx < ui32NumVec4; uIdx++)
+				{
+					psDecl->asImmediateConstBuffer[uIdx] = pVec4Array[uIdx];
+				}
 
-				iTupleSrc--;
-				iTupleDest++;
+				psDecl->ui32NumOperands = ui32NumVec4;
 			}
 			break;
 		}
@@ -545,6 +545,8 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 #endif
 
     psInst->eOpcode = eOpcode;
+
+    psInst->bSaturate = DecodeInstructionSaturate(*pui32Token);
 
     if(bExtended)
     {
@@ -638,6 +640,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_FTOU:
 		case OPCODE_FTOI:
         case OPCODE_UTOF:
+		case OPCODE_ITOF:
         {
             psInst->ui32NumOperands = 2;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -648,6 +651,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         //Instructions with three operands go here
         case OPCODE_SINCOS:
 		case OPCODE_MIN:
+		case OPCODE_IMAX:
 		case OPCODE_MAX:
 		case OPCODE_MUL:
 		case OPCODE_DIV:
@@ -663,6 +667,12 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_AND:
         case OPCODE_GE:
         case OPCODE_IGE:
+		case OPCODE_EQ:
+		case OPCODE_ISHL:
+		case OPCODE_LD:
+		case OPCODE_IMUL:
+		case OPCODE_UDIV:
+		case OPCODE_ILT:
         {
             psInst->ui32NumOperands = 3;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -673,6 +683,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         //Instructions with four operands go here
 		case OPCODE_MAD:
         case OPCODE_MOVC:
+		case OPCODE_IMAD:
 		{
             psInst->ui32NumOperands = 4;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);

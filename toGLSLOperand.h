@@ -4,6 +4,7 @@
 #include "structs.h"
 
 void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
+void TranslateIntegerOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
 void TranslateSystemValueVariableName(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
 int GetMaxComponentFromComponentMask(const Operand* psOperand);
 void TranslateOperandIndex(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index);

@@ -29,7 +29,7 @@ typedef struct ResourceBinding_TAG
     uint32_t ui32BindPoint;
     uint32_t ui32BindCount;
     uint32_t ui32Flags;
-    uint32_t ui32Dimension;
+    RESOURCE_DIMENSION eDimension;
     uint32_t ui32ReturnType;
     uint32_t ui32NumSamples;
 } ResourceBinding;

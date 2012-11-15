@@ -3,6 +3,16 @@
 #include "toGLSLOperand.h"
 #include "bstrlib.h"
 #include "assert.h"
+#include <math.h>
+
+#include <float.h>
+
+#ifdef _MSC_VER
+#define isnan(x) _isnan(x)
+#define isinf(x) (!_finite(x))
+#endif
+
+#define fpcheck(x) (isnan(x) || isinf(x))
 
 #ifdef _DEBUG
 #define ASSERT(expr) assert(expr)
@@ -201,7 +211,14 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
         case OPCODE_DCL_INPUT:
         {
             const Operand* psOperand = &psDecl->asOperands[0];
-            int iNumComponents = GetMaxComponentFromComponentMask(psOperand);
+			//Force the number of components to be 4.
+/*dcl_output o3.xy
+  dcl_output o3.z
+
+Would generate a vec2 and a vec3. We discard the second one making .z invalid!
+
+*/
+            int iNumComponents = 4;//GetMaxComponentFromComponentMask(psOperand);
 			const char* StorageQualifier = "attribute";
 			const char* InputName = "Input";
 
@@ -219,6 +236,10 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 			{
 				StorageQualifier = "in";
 			}
+
+			//Prevent multiple declarations caused by register packing.
+			bformata(glsl, "#ifndef Input%d_CREATED\n", psDecl->asOperands[0].ui32RegisterNumber);
+			bformata(glsl, "#define Input%d_CREATED\n", psDecl->asOperands[0].ui32RegisterNumber);
 
             switch(psOperand->iIndexDims)
             {
@@ -262,6 +283,8 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 				bformata(glsl, "#define Input%d VtxOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber,
 					psDecl->asOperands[0].ui32RegisterNumber);
 			}
+
+			bcatcstr(glsl, "#endif\n");
             break;
         }
 		case OPCODE_DCL_INPUT_SIV:
@@ -271,7 +294,7 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
         case OPCODE_DCL_INPUT_PS:
         {
             const Operand* psOperand = &psDecl->asOperands[0];
-            int iNumComponents = GetMaxComponentFromComponentMask(psOperand);
+            int iNumComponents = 4;//GetMaxComponentFromComponentMask(psOperand);
 			const char* StorageQualifier = "varying";
 
 			if(InOutSupported(psContext->psShader->eTargetLanguage))
@@ -279,18 +302,15 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 				StorageQualifier = "in";
 			}
 
-			//VtxGeoOutput0 is gl_Position. There is not varying/out vec4 VtxGeoOutput0 in vertex shader.
-			//So remap VtxGeoOutputN to VtxGeoOutputN+1
-
             if(iNumComponents == 1)
             {
-                bformata(glsl, "%s float VtxGeoOutput%d;\n", StorageQualifier, psDecl->asOperands[0].ui32RegisterNumber+1);
-				bformata(glsl, "vec1 Input%d = vec1(VtxGeoOutput%d);\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber+1);
+                bformata(glsl, "%s float VtxGeoOutput%d;\n", StorageQualifier, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "vec1 Input%d = vec1(VtxGeoOutput%d);\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
             }
             else
             {
-                bformata(glsl, "%s vec%d VtxGeoOutput%d;\n", StorageQualifier, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber+1);
-				bformata(glsl, "#define Input%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber+1);
+                bformata(glsl, "%s vec%d VtxGeoOutput%d;\n", StorageQualifier, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "#define Input%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
             }
             
             break;
@@ -309,6 +329,34 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
         case OPCODE_DCL_CONSTANT_BUFFER:
         {
 			const Operand* psOperand = &psDecl->asOperands[0];
+            const char* StageName = "VS";
+            switch(psContext->psShader->eShaderType)
+            {
+                case PIXEL_SHADER:
+                {
+                    StageName = "PS";
+                    break;
+                }
+                case HULL_SHADER:
+                {
+                    StageName = "HS";
+                    break;
+                }
+                case DOMAIN_SHADER:
+                {
+                    StageName = "DS";
+                    break;
+                }
+                case GEOMETRY_SHADER:
+                {
+                    StageName = "GS";
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
             if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
             {
 				ResourceBinding* psBinding = 0;
@@ -329,14 +377,14 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 					}
 					else
 					{
-						bformata(glsl, "layout(std140) uniform Globals {\n\tvec4 ");
+						bformata(glsl, "layout(std140) uniform Globals%s {\n\tvec4 ", StageName);
 						TranslateOperand(psContext, psOperand);
 						bcatcstr(glsl, ";\n};\n");
 					}
 				}
 				else
 				{
-					bformata(glsl, "layout(std140) uniform %s {\n\tvec4 ", psBinding->Name);
+					bformata(glsl, "layout(std140) uniform %s%s {\n\tvec4 ", psBinding->Name, StageName);
 					TranslateOperand(psContext, psOperand);
 					bcatcstr(glsl, ";\n};\n");
 				}
@@ -428,6 +476,7 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 					{
 						case OPERAND_TYPE_OUTPUT_DEPTH:
 						{
+
 							break;
 						}
 						case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
@@ -462,7 +511,7 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 				}
 				case VERTEX_SHADER:
 				{
-					int iNumComponents = GetMaxComponentFromComponentMask(&psDecl->asOperands[0]);
+					int iNumComponents = 4;//GetMaxComponentFromComponentMask(&psDecl->asOperands[0]);
 
 					if(psContext->flags & HLSLCC_FLAG_GS_ENABLED)
 					{
@@ -485,8 +534,18 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 				}
 				case GEOMETRY_SHADER:
 				{
+					/*
+						The *_CREATED preprocessor code here is designed to ensure that if fxc 
+						packs multiple outputs into a vector and generates something like
+						dcl_output o3.xy
+						dcl_output o3.z
+						then the vector (output3 in the above case) will only be declared once.
+					*/
+					bformata(glsl, "#ifndef VtxGeoOutput%d_CREATED\n", psDecl->asOperands[0].ui32RegisterNumber);
+					bformata(glsl, "#define VtxGeoOutput%d_CREATED\n", psDecl->asOperands[0].ui32RegisterNumber);
 					bformata(glsl, "out vec4 VtxGeoOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
 					bformata(glsl, "#define Output%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+					bcatcstr(glsl, "#endif\n");
 					break;
 				}
 				case HULL_SHADER:
@@ -716,23 +775,104 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
         }
 		case OPCODE_CUSTOMDATA:
 		{
-			const  uint32_t ui32NumOperands = psDecl->ui32NumOperands;
+			const uint32_t ui32NumVec4 = psDecl->ui32NumOperands;
+			const uint32_t ui32NumVec4Minus1 = (ui32NumVec4-1);
 			uint32_t ui32ConstIndex = 0;
+			float x, y, z, w;
 
-			bformata(glsl, "vec4 immediateConstBuffer[%d] = vec4[%d] (\n", ui32NumOperands/4, ui32NumOperands/4);
-			for(;ui32ConstIndex < (ui32NumOperands-4)/4; ui32ConstIndex++)
+			//If ShaderBitEncodingSupported then 1 integer buffer, use intBitsToFloat to get float values. - More instructions.
+			//else 2 buffers - one integer and one float. - More data
+
+			if(ShaderBitEncodingSupported(psShader->eTargetLanguage) == 0)
 			{
-				bformata(glsl, "\tvec4(%f, %f, %f, %f), \n", psDecl->afImmediateConstBuffer[ui32ConstIndex][0],
-				psDecl->afImmediateConstBuffer[ui32ConstIndex][1],
-				psDecl->afImmediateConstBuffer[ui32ConstIndex][2],
-				psDecl->afImmediateConstBuffer[ui32ConstIndex][3]);
+				bcatcstr(glsl, "#define immediateConstBufferI(idx) immediateConstBufferInt[idx]\n");
+				bcatcstr(glsl, "#define immediateConstBufferF(idx) immediateConstBuffer[idx]\n");
+
+				bformata(glsl, "vec4 immediateConstBuffer[%d] = vec4[%d] (\n", ui32NumVec4, ui32NumVec4);
+				for(;ui32ConstIndex < ui32NumVec4Minus1; ui32ConstIndex++)
+				{
+					float loopLocalX, loopLocalY, loopLocalZ, loopLocalW;
+					loopLocalX = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].a;
+					loopLocalY = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].b;
+					loopLocalZ = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].c;
+					loopLocalW = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].d;
+
+					//A single vec4 can mix integer and float types.
+					//Forced NAN and INF to zero inside the immediate constant buffer. This will allow the shader to compile.
+					if(fpcheck(loopLocalX))
+					{
+						loopLocalX = 0;
+					}
+					if(fpcheck(loopLocalY))
+					{
+						loopLocalY = 0;
+					}
+					if(fpcheck(loopLocalZ))
+					{
+						loopLocalZ = 0;
+					}
+					if(fpcheck(loopLocalW))
+					{
+						loopLocalW = 0;
+					}
+
+					bformata(glsl, "\tvec4(%f, %f, %f, %f), \n", loopLocalX, loopLocalY, loopLocalZ, loopLocalW);
+				}
+				//No trailing comma on this one
+				x = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].a;
+				y = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].b;
+				z = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].c;
+				w = *(float*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].d;
+				if(fpcheck(x))
+				{
+					x = 0;
+				}
+				if(fpcheck(y))
+				{
+					y = 0;
+				}
+				if(fpcheck(z))
+				{
+					z = 0;
+				}
+				if(fpcheck(w))
+				{
+					w = 0;
+				}
+				bformata(glsl, "\tvec4(%f, %f, %f, %f)\n", x, y, z, w);
+				bcatcstr(glsl, ");\n");
+			}
+			else
+			{
+				bcatcstr(glsl, "#define immediateConstBufferI(idx) immediateConstBufferInt[idx]\n");
+				bcatcstr(glsl, "#define immediateConstBufferF(idx) intBitsToFloat(immediateConstBufferInt[idx])\n");
+			}
+
+			{
+			uint32_t ui32ConstIndex = 0;
+			int x, y, z, w;
+
+			bformata(glsl, "ivec4 immediateConstBufferInt[%d] = ivec4[%d] (\n", ui32NumVec4, ui32NumVec4);
+			for(;ui32ConstIndex < ui32NumVec4Minus1; ui32ConstIndex++)
+			{
+				int loopLocalX, loopLocalY, loopLocalZ, loopLocalW;
+				loopLocalX = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].a;
+				loopLocalY = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].b;
+				loopLocalZ = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].c;
+				loopLocalW = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].d;
+
+				bformata(glsl, "\tivec4(%d, %d, %d, %d), \n", loopLocalX, loopLocalY, loopLocalZ, loopLocalW);
 			}
 			//No trailing comma on this one
-			bformata(glsl, "\tvec4(%f, %f, %f, %f)\n", psDecl->afImmediateConstBuffer[ui32ConstIndex][0],
-			psDecl->afImmediateConstBuffer[ui32ConstIndex][1],
-			psDecl->afImmediateConstBuffer[ui32ConstIndex][2],
-			psDecl->afImmediateConstBuffer[ui32ConstIndex][3]);
+			x = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].a;
+			y = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].b;
+			z = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].c;
+			w = *(int*)&psDecl->asImmediateConstBuffer[ui32ConstIndex].d;
+
+			bformata(glsl, "\tivec4(%d, %d, %d, %d)\n", x, y, z, w);
 			bcatcstr(glsl, ");\n");
+			}
+
 			break;
 		}
         case OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT:

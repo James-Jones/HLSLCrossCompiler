@@ -52,13 +52,21 @@ typedef struct Instruction_TAG
     uint32_t ui32NumOperands;
     Operand asOperands[4];
     uint32_t ui32FunctionIDToCall;
+    uint32_t bSaturate;
 
 #ifdef _DEBUG
     uint64_t id;
 #endif
 } Instruction;
 
-static enum{ MAX_IMMEDIATE_CONST_BUFFER_SIZE = 4096 };
+static enum{ MAX_IMMEDIATE_CONST_BUFFER_VEC4_SIZE = 1024};
+
+typedef struct ICBVec4_TAG {
+	uint32_t a;
+	uint32_t b;
+	uint32_t c;
+	uint32_t d;
+} ICBVec4;
 
 typedef struct Declaration_TAG
 {
@@ -68,8 +76,7 @@ typedef struct Declaration_TAG
 
     Operand asOperands[1];
 
-	float afImmediateConstBuffer[1024][4];
-
+	ICBVec4 asImmediateConstBuffer[MAX_IMMEDIATE_CONST_BUFFER_VEC4_SIZE];
     //The declaration can set one of these
     //values depending on the opcode.
     union {

@@ -26,6 +26,10 @@ mk/*.dir
 mk/ipch/
 mk/Win32/
 
+tests/apps/*/mk/*.dir
+tests/apps/*/mk/ipch/
+tests/apps/*/mk/Win32/
+
 # Compiled source #
 ###################
 *.com
