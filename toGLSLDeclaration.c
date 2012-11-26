@@ -352,6 +352,11 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                     StageName = "GS";
                     break;
                 }
+				case COMPUTE_SHADER:
+				{
+					StageName = "CS";
+					break;
+				}
                 default:
                 {
                     break;
