@@ -5,6 +5,15 @@
 #include <assert.h>
 #define ASSERT(x) assert(x)
 
+#include <float.h>
+
+#ifdef _MSC_VER
+#define isnan(x) _isnan(x)
+#define isinf(x) (!_finite(x))
+#endif
+
+#define fpcheck(x) (isnan(x) || isinf(x))
+
 extern void AddIndentation(HLSLCrossCompilerContext* psContext);
 
 int GetMaxComponentFromComponentMask(const Operand* psOperand)
@@ -421,7 +430,7 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         {
             if(psOperand->iNumComponents == 1)
             {
-				if(psOperand->iIntegerImmediate)
+				if(psOperand->iIntegerImmediate || fpcheck(psOperand->afImmediates[0]))
 				{
 					bformata(glsl, "%d",
 						*((int*)(&psOperand->afImmediates[0])));
@@ -520,7 +529,7 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 			{
 				//Each uniform block is given the HLSL consant buffer name.
 				//Within each uniform block is a constant array named ConstN
-				bformata(glsl, "Const%d[%d]", psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
+				bformata(glsl, "Const%s%d[%d]", StageName, psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
 			}
 			else
 			{
