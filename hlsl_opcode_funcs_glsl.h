@@ -42,6 +42,10 @@ const char* psz_hlsl_opcode_funcs_glsl = {
 	    dest = vec4(lessThan(a, b));\n \
 	}\n \
 	\n \
+	void HLSL_lt(out vec3 dest, vec4 a, vec4 b) {\n \
+	    dest = vec3(lessThan(a, b));\n \
+	}\n \
+	\n \
 	void HLSL_lt(out float dest, float a, float b) {\n \
 	    dest = (a < b) ? 1 : 0;\n \
 	}\n \

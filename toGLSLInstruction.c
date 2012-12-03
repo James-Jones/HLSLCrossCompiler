@@ -786,20 +786,75 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
             psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
 			CallHelper3(psContext, "texture2DLod", psInst, 0, 2, 1, 4);
-
-            /*AddIndentation(psContext);
-            bcatcstr(glsl, "HLSL_sample_l");
-            bcatcstr(glsl, "(");
-            TranslateOperand(psContext, &psInst->asOperands[0]);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[2]);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[1]);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[4]);
-            bcatcstr(glsl, ");\n");*/
             break;
         }
+		case OPCODE_SAMPLE_C:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//SAMPLE_C\n");
+#endif
+
+			//For non-cubeMap Arrays the reference value comes from the
+			//texture coord vector in GLSL. For cubmap arrays there is a
+			//separate parameter.
+			//It is always separate paramter in HLSL.
+
+            //Texture coord cannot be vec4
+            //Determining if it is a vec3 for vec2 yet to be done.
+            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+
+			AddIndentation(psContext);
+			TranslateOperand(psContext, &psInst->asOperands[0]);
+			bcatcstr(glsl, " = vec4(");
+			bcatcstr(glsl, "texture2D(");
+			TranslateOperand(psContext, &psInst->asOperands[2]);
+			bcatcstr(glsl, ", vec3(");
+			TranslateOperand(psContext, &psInst->asOperands[1]);
+			bcatcstr(glsl, ",");
+			//.z = reference. TODO - this only handles 2D textures at the moment.
+			TranslateOperand(psContext, &psInst->asOperands[4]);
+			bcatcstr(glsl, ")))");
+			AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+			bcatcstr(glsl, ";\n");
+
+			break;
+		}
+		case OPCODE_SAMPLE_C_LZ:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//SAMPLE_C_LZ\n");
+#endif
+
+			//For non-cubeMap Arrays the reference value comes from the
+			//texture coord vector in GLSL. For cubmap arrays there is a
+			//separate parameter.
+			//It is always separate paramter in HLSL.
+
+            //Texture coord cannot be vec4
+            //Determining if it is a vec3 for vec2 yet to be done.
+            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+
+			AddIndentation(psContext);
+			TranslateOperand(psContext, &psInst->asOperands[0]);
+			bcatcstr(glsl, " = vec4(");
+			bcatcstr(glsl, "texture2DLod(");
+			TranslateOperand(psContext, &psInst->asOperands[2]);
+			bcatcstr(glsl, ", vec3(");
+			TranslateOperand(psContext, &psInst->asOperands[1]);
+			bcatcstr(glsl, ",");
+			//.z = reference. TODO - this only handles 2D textures at the moment.
+			TranslateOperand(psContext, &psInst->asOperands[4]);
+			bcatcstr(glsl, ")");
+			bcatcstr(glsl, ", 0))");
+			AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+			bcatcstr(glsl, ";\n");
+
+			break;
+		}
 		case OPCODE_RET:
 		{
 #ifdef _DEBUG
@@ -1297,6 +1352,28 @@ src3
 					break;
 				}
 			}
+			break;
+		}
+		case OPCODE_DISCARD:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//DISCARD\n");
+#endif
+            AddIndentation(psContext);
+            if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
+            {
+                bcatcstr(glsl, "if((");
+                TranslateOperand(psContext, &psInst->asOperands[0]);
+                bcatcstr(glsl, ")==0){discard;}\n");
+            }
+            else
+            {
+                ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
+                bcatcstr(glsl, "if((");
+                TranslateOperand(psContext, &psInst->asOperands[0]);
+                bcatcstr(glsl, ")!=0){discard;}\n");
+            }
 			break;
 		}
         default:

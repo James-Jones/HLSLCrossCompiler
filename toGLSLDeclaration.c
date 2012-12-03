@@ -416,7 +416,10 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
                 case RESOURCE_DIMENSION_TEXTURE2D:
                 {
-                    bcatcstr(glsl, "uniform sampler2D ");
+					if(psDecl->ui32IsShadowTex)
+						bcatcstr(glsl, "uniform sampler2DShadow ");
+					else
+						bcatcstr(glsl, "uniform sampler2D ");
                     TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }

@@ -552,8 +552,17 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         case OPERAND_TYPE_RESOURCE:
         {
             ResourceBinding* psBinding = 0;
-            GetResourceFromBindingPoint(RTYPE_TEXTURE, psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
-            bformata(glsl, "%s", psBinding->Name);
+			int found;
+            found = GetResourceFromBindingPoint(RTYPE_TEXTURE, psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
+
+			if(found)
+			{
+				bformata(glsl, "%s", psBinding->Name);
+			}
+			else
+			{
+				bformata(glsl, "UnkownResource%d", psOperand->ui32RegisterNumber);
+			}
             break;
         }
         case OPERAND_TYPE_SAMPLER:
