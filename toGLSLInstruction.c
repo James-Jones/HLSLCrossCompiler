@@ -1155,12 +1155,31 @@ src3
             CallHLSLOpcodeFunc2(psContext, "HLSL_eq", psInst);
 			break;
 		}
+		case OPCODE_USHR:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//USHR\n");
+#endif
+			CallUnsignedIntegerBinaryOp(psContext, ">>", psInst, 0, 1, 2);
+			break;
+		}
 		case OPCODE_ISHL:
 		{
 #ifdef _DEBUG
             AddIndentation(psContext);
-            bcatcstr(glsl, "//ISH - TODO\n");
+            bcatcstr(glsl, "//ISHL\n");
 #endif
+			CallIntegerBinaryOp(psContext, "<<", psInst, 0, 1, 2);
+			break;
+		}
+		case OPCODE_ISHR:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//ISHR\n");
+#endif
+			CallIntegerBinaryOp(psContext, ">>", psInst, 0, 1, 2);
 			break;
 		}
 		case OPCODE_LD:

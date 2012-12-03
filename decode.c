@@ -668,7 +668,9 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_GE:
         case OPCODE_IGE:
 		case OPCODE_EQ:
+		case OPCODE_USHR:
 		case OPCODE_ISHL:
+		case OPCODE_ISHR:
 		case OPCODE_LD:
 		case OPCODE_IMUL:
 		case OPCODE_ILT:
