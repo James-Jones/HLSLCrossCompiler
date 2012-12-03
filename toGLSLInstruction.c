@@ -252,6 +252,26 @@ void CallHelper2(HLSLCrossCompilerContext* psContext, const char* name, Instruct
     bcatcstr(glsl, ";\n");
 }
 
+void CallHelper2UInt(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
+ int dest, int src0, int src1)
+{
+    bstring glsl = psContext->glsl;
+    AddIndentation(psContext);
+
+	TranslateOperand(psContext, &psInst->asOperands[dest]);
+
+	bcatcstr(glsl, " = uvec4(");
+
+    bcatcstr(glsl, name);
+    bcatcstr(glsl, "(");
+    TranslateIntegerOperand(psContext, &psInst->asOperands[src0]);
+    bcatcstr(glsl, ", ");
+    TranslateIntegerOperand(psContext, &psInst->asOperands[src1]);
+    bcatcstr(glsl, "))");
+    AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[dest]));
+    bcatcstr(glsl, ";\n");
+}
+
 void CallHelper1(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0)
 {
@@ -269,6 +289,7 @@ void CallHelper1(HLSLCrossCompilerContext* psContext, const char* name, Instruct
     AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[dest]));
     bcatcstr(glsl, ";\n");
 }
+
 
 void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psInst)
 {
@@ -445,7 +466,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
 			//destQuotient, destRemainder, src0, src1
 			CallUnsignedIntegerBinaryOp(psContext, "/", psInst, 0, 2, 3);
-			CallUnsignedIntegerBinaryOp(psContext, "%%", psInst, 1, 2, 3);
+			CallHelper2UInt(psContext, "mod", psInst, 1, 2, 3);
             break;
         }
         case OPCODE_DIV:
