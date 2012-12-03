@@ -557,11 +557,19 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 
 			if(found)
 			{
-				bformata(glsl, "%s", psBinding->Name);
+				uint32_t ui32ArrayOffset = psOperand->ui32RegisterNumber - psBinding->ui32BindPoint;
+				if(ui32ArrayOffset)
+				{
+					bformata(glsl, "%s%d", psBinding->Name, ui32ArrayOffset);
+				}
+				else
+				{
+					bformata(glsl, "%s", psBinding->Name);
+				}
 			}
 			else
 			{
-				bformata(glsl, "UnkownResource%d", psOperand->ui32RegisterNumber);
+				bformata(glsl, "UnknownResource%d", psOperand->ui32RegisterNumber);
 			}
             break;
         }
