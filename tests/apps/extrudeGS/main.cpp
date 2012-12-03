@@ -4,24 +4,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <string>
+#include <string.h>
 #include <toGLSL.h>
 #include <Shader.h>
 #include <vectormath_aos.h>
 #include <debug.h>
 #include <model.h>
-#include <iostream>
-
-using namespace Vectormath::Aos;
-
-Matrix4 gWorld;
-Matrix4 gView;
-Matrix4 gProjection;
-Model gModel;
-ShaderEffect gExtrudeShader;
-
-int WindowWidth = 640;
-int WindowHeight = 480;
+#include <itransform.h>
 
 struct Vertex
 {
@@ -36,6 +25,8 @@ struct cbConstant
 	float padding;
 };
 
+const size_t ConstantVec4Count = sizeof(cbConstant)/sizeof(float)/4;
+
 struct cbChangesEveryFrame
 {
 	float World[16];
@@ -45,91 +36,124 @@ struct cbChangesEveryFrame
 	float padding[3];
 };
 
+const size_t ChangesEveryFrameVec4Count = sizeof(cbChangesEveryFrame)/sizeof(float)/4;
+
 struct cbUserChanges
 {
     float Explode;
 	float padding[3];
 };
 
-cbConstant gConstant;
-cbChangesEveryFrame gChangesEveryFrame;
-cbUserChanges gUserChanges;
+const size_t UserChangesVec4Count = sizeof(cbUserChanges)/sizeof(float)/4;
 
-GLuint gConstantUBO;
-GLuint gChangesEveryFrameUBO;
-GLuint gUserChangesUBO;
+using namespace Vectormath::Aos;
 
-void UpdateConstantUBO()
-{
-	glBindBuffer(GL_UNIFORM_BUFFER, gConstantUBO);
-	//cbConstant* ptr = static_cast<cbConstant*>(glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(cbConstant), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
-	cbConstant* ptr = static_cast<cbConstant*>(glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY));
-	*ptr = gConstant;
-	glUnmapBuffer(GL_UNIFORM_BUFFER);
-	
-}
-void UpdateChangesEveryFrameUBO()
-{
-	glBindBuffer(GL_UNIFORM_BUFFER, gChangesEveryFrameUBO);
-	cbChangesEveryFrame* ptr = static_cast<cbChangesEveryFrame*>(glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(cbChangesEveryFrame), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
-	*ptr = gChangesEveryFrame;
-	glUnmapBuffer(GL_UNIFORM_BUFFER);
-}
-void UpdateUserChangesUBO()
-{
-	glBindBuffer(GL_UNIFORM_BUFFER, gUserChangesUBO);
-	cbUserChanges* ptr = static_cast<cbUserChanges*>(glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(cbUserChanges), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
-	*ptr = gUserChanges;
-	glUnmapBuffer(GL_UNIFORM_BUFFER);
-}
+int WindowWidth = 640;
+int WindowHeight = 480;
 
-void SetFloatArray(Vector4& vec, float* farray)
+class Demo : public ITransform
 {
-    farray[0] = vec.getX();
-    farray[1] = vec.getY();
-    farray[2] = vec.getZ();
-    farray[3] = vec.getW();
-}
-void SetFloatArray(Matrix4& matrix, float* farray)
-{
-    for(int row = 0; row < 4; row++)
-    {
-        Vector4 r = matrix.getRow(row);
-        SetFloatArray(r, &farray[row*4]);
-    }
+public:
+	void Init();
+	void Display(float t);
+	void ResizeDisplay(int w, int h) {
+	   glViewport (0, 0, (GLsizei) w, (GLsizei) h);
+		gProjection = Matrix4::perspective(3.14159f * 0.25f, w / ( float )h, 0.1f, 100.0f);
+	}
+	const Matrix4& GetWorldMatrix() const {
+		return gWorld;
+	}
+	void SetWorldMatrix(Matrix4& newWorld) {
+		gWorld = newWorld;
+		UpdateShaderConstants();
+	}
+
+	void UpdateShaderConstants() {
+
+		SetFloatArray(gWorld, gChangesEveryFrame.World);
+		SetFloatArray(gView, gChangesEveryFrame.View);
+		SetFloatArray(gProjection, gChangesEveryFrame.Projection);
+		//gTime = gChangesEveryFrame.Time;
+		gChangesEveryFrame.Time = gTime;
+		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrame"), ChangesEveryFrameVec4Count, (float*)&gChangesEveryFrame);
+
+		SetFloatArray(vLightDirs, &gConstant.vLightDir[0]);
+		mExtrudeEffect.SetVec4(std::string("cbConstant"), ConstantVec4Count, (float*)&gConstant);
+
+		//gExplode = gUserChanges.Explode;
+		gUserChanges.Explode = gExplode;
+		mExtrudeEffect.SetVec4(std::string("cbUserChanges"), UserChangesVec4Count, (float*)&gUserChanges);
+	}
+private:
+	ShaderEffect mExtrudeEffect;
+	Matrix4 gWorld;
+	Matrix4 gView;
+	Matrix4 gProjection;
+	GLuint gIndexBuffer;
+	GLuint gVertexBuffer;
+
+	cbConstant gConstant;
+	cbChangesEveryFrame gChangesEveryFrame;
+	cbUserChanges gUserChanges;
+
+	Model gModel;
+
+	Vector4 vLightDirs;
+	float gExplode;
+	float gTime;
+
+	GLuint mColTex;
+	GLuint mDepthTex;
+	GLuint mFramebuffer;
+};
+
+Demo gDemo;
+
+void Demo::Display(float t) {
+
+	glBindFramebuffer(GL_FRAMEBUFFER, mFramebuffer);
+	gWorld = Matrix4::rotationY(t);
+
+	gTime = t;
+	gExplode = 0.001 * t;
+
+    vLightDirs = Vector4(-0.577f, 0.577f, -0.577f, 1.0f);
+
+    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glEnable(GL_DEPTH_TEST);
+
+    mExtrudeEffect.Enable();
+
+	gModel.Draw(*this);
+
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, mFramebuffer);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+	glBlitFramebuffer(0, 0, WindowWidth, WindowHeight,
+						 0, 0, WindowWidth, WindowHeight,
+						 GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }
 
 void display(void)
 {
-    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Update our time
+    static float t = 0.0f;
 
-	gExtrudeShader.Enable();
+    static uint32_t dwTimeStart = 0;
+    uint32_t dwTimeCur = GetTickCount();
+    if( dwTimeStart == 0 )
+        dwTimeStart = dwTimeCur;
+    t = ( dwTimeCur - dwTimeStart ) / 1000.0f;
 
-    SetFloatArray(gWorld, gChangesEveryFrame.World);
-    SetFloatArray(gView, gChangesEveryFrame.View);
-    SetFloatArray(gProjection, gChangesEveryFrame.Projection);
-
-	UpdateConstantUBO();
-	UpdateChangesEveryFrameUBO();
-	UpdateUserChangesUBO();
-
-	std::string cbConstantString("cbConstant");
-	std::string cbChangesEveryFrameString("cbChangesEveryFrame");
-	std::string cbUserChangesString("cbUserChanges");
-
-	gExtrudeShader.SetUniformBlock(cbConstantString, 0, gConstantUBO);
-	gExtrudeShader.SetUniformBlock(cbChangesEveryFrameString, 1, gChangesEveryFrameUBO);
-	gExtrudeShader.SetUniformBlock(cbUserChangesString, 2, gUserChangesUBO);
-
-	gModel.Draw();
+	gDemo.Display(t);
 
     glutSwapBuffers();
 }
 
 void reshape (int w, int h)
 {
-	glViewport (0, 0, (GLsizei) w, (GLsizei) h);
-    gProjection = Matrix4::perspective(3.14159f * 0.25f, w / ( float )h, 0.1f, 5000.0f);
+	gDemo.ResizeDisplay(w, h);
 }
 
 void keyboard(unsigned char key, int x, int y)
@@ -139,6 +163,48 @@ void keyboard(unsigned char key, int x, int y)
          exit(0);
          break;
    }
+}
+
+void Demo::Init() {
+
+	glGenTextures(1, &mColTex);
+	glBindTexture(GL_TEXTURE_2D, mColTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, WindowWidth, WindowHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+	glGenTextures(1, &mDepthTex);
+	glBindTexture(GL_TEXTURE_2D, mDepthTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, WindowWidth, WindowHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
+
+	glGenFramebuffers(1, &mFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, mFramebuffer);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mColTex, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, mDepthTex, 0);
+
+	ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
+    glFrontFace(GL_CCW);
+    glCullFace(GL_BACK);
+    glEnable(GL_CULL_FACE);
+
+    glClearColor(0.0f, 0.125f, 0.3f, 1.0f);
+
+    mExtrudeEffect.Create();
+	mExtrudeEffect.SetCompileFlags(HLSLCC_FLAG_GS_ENABLED);
+    mExtrudeEffect.FromVertexByteFile(std::string("../shaders/ExtrudeVS.o"));
+    mExtrudeEffect.FromPixelByteFile(std::string("../shaders/ExtrudePS.o"));
+	mExtrudeEffect.FromGeometryByteFile(std::string("../shaders/ExtrudeGS.o"));
+
+    gWorld = Matrix4::identity();
+
+	Point3 Eye( 0.0f, 0.0f, 3.0f );
+
+	Point3 At( 0.0f, 0.0f, -5.0f );
+    Vector3 Up( 0.0f, 1.0f, 0.0f );
+
+    gView = Matrix4::lookAt(Eye, At, Up);
+    gProjection = Matrix4::perspective(3.14159f * 0.25f, WindowWidth / ( float )WindowHeight, 0.1f, 5000.0f);
+
+	gModel.Import3DFromFile("../models/Tiny.x");
 }
 
 void Init(int argc, char** argv)
@@ -153,7 +219,7 @@ void Init(int argc, char** argv)
     glutInitContextFlags (GLUT_DEBUG);
 #endif
     glutInitWindowSize (WindowWidth, WindowHeight); 
-    glutInitWindowPosition (0, 100);
+    glutInitWindowPosition(50, 50);
     glutCreateWindow (argv[0]);
     glutDisplayFunc(display); 
     glutReshapeFunc(reshape);
@@ -165,60 +231,7 @@ void Init(int argc, char** argv)
     SetupOpenGLDebugCallback();
 #endif
 
-	std::cout << "Loading model" <<std::endl;
-	gModel.Import3DFromFile("../models/tiny.x");
-
-	gConstant.vLightDir[0] = -0.577;
-	gConstant.vLightDir[1] = 0.577;
-	gConstant.vLightDir[2] = -0.577;
-
-	gUserChanges.Explode = 0.0f;
-
-    gExtrudeShader.Create();
-
-	gExtrudeShader.SetCompileFlags(HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT | HLSLCC_FLAG_GS_ENABLED);
-
-	std::cout << "Compiling shaders" <<std::endl;
-    gExtrudeShader.FromVertexByteFile(std::string("../shaders/ExtrudeVS.o"));
-    gExtrudeShader.FromPixelByteFile(std::string("../shaders/ExtrudePS.o"));
-	gExtrudeShader.FromGeometryByteFile(std::string("../shaders/ExtrudeGS.o"));
-
-    glGenBuffers(1, &gConstantUBO);
-    glBindBuffer(GL_UNIFORM_BUFFER, gConstantUBO);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(cbConstant),
-                    NULL, GL_DYNAMIC_DRAW);
-
-    glGenBuffers(1, &gChangesEveryFrameUBO);
-    glBindBuffer(GL_UNIFORM_BUFFER, gChangesEveryFrameUBO);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(cbChangesEveryFrame),
-                    NULL, GL_DYNAMIC_DRAW);
-
-    glGenBuffers(1, &gUserChangesUBO);
-    glBindBuffer(GL_UNIFORM_BUFFER, gUserChangesUBO);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(cbUserChanges),
-                    NULL, GL_DYNAMIC_DRAW);
-
-	gExtrudeShader.CreateUniformBlock(std::string("cbConstant"), gConstantUBO);
-	gExtrudeShader.CreateUniformBlock(std::string("cbChangesEveryFrame"), gChangesEveryFrameUBO);
-	gExtrudeShader.CreateUniformBlock(std::string("cbUserChanges"), gUserChangesUBO);
-
-    gWorld = Matrix4::identity();
-
-    Point3 Eye( 0.0f, 0.0f, -800.0f );
-    Point3 At( 0.0f, 0.0f, 0.0f );
-    Vector3 Up( 0.0f, 1.0f, 0.0f );
-
-    gView = Matrix4::lookAt(Eye, At, Up);
-    gProjection = Matrix4::perspective(3.14159f * 0.25f, WindowWidth / ( float )WindowHeight, 0.1f, 5000.0f);
-
-
-    glFrontFace(GL_CCW);
-    glCullFace(GL_BACK);
-    glEnable(GL_CULL_FACE);
-
-    glClearColor(0.0f, 0.125f, 0.3f, 1.0f);
-
-	std::cout << "Finished init" <<std::endl;
+	gDemo.Init();
 }
 
 int main(int argc, char** argv)

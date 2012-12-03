@@ -5,12 +5,19 @@
 #include "assimp/LogStream.hpp"
 
 #include <pstdint.h>
+#include <vectormath_aos.h>
+
+#include <Shader.h>
+#include <itransform.h>
 
 class Model
 {
 public:
 	bool Import3DFromFile( const std::string& pFile);
-	void Draw();
+	void Draw(ITransform& World);
+	
+protected:
+	void DrawR(ITransform& World, const  aiNode* nd);
 private:
 	void CreateBuffers();
 	const aiScene* mScene;
@@ -20,4 +27,8 @@ private:
 	int mHaveTexCoords;
 	int mVertexSize;
 	int mNumIndices;
+
+	Assimp::Importer importer;
+
+    GLuint mVAO;
 };

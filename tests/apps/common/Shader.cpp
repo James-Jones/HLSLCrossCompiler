@@ -34,6 +34,14 @@ void ShaderEffect::FromByteFile(std::string& path)
             glAttachShader(mProgram, mPixel);
             break;
         }
+        case GL_GEOMETRY_SHADER:
+        {
+            mPixel = glCreateShader(GL_GEOMETRY_SHADER);
+            glShaderSource(mGeometry, 1, (const char **)&result.sourceCode, 0);
+            glCompileShader(mGeometry);
+            glAttachShader(mProgram, mGeometry);
+            break;
+        }
         default:
         {
             break;
