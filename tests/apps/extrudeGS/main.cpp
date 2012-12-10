@@ -83,6 +83,8 @@ public:
 		//gExplode = gUserChanges.Explode;
 		gUserChanges.Explode = gExplode;
 		mExtrudeEffect.SetVec4(std::string("cbUserChanges"), UserChangesVec4Count, (float*)&gUserChanges);
+
+        mExtrudeEffect.SetTexture(std::string("g_txDiffuse"), 0);
 	}
 private:
 	ShaderEffect mExtrudeEffect;

@@ -2,7 +2,224 @@
 #include "model.h"
 #include "debug.h"
 #include <fstream>
+#include <Image.h>
 
+
+static const GLint internalFormats[] = {
+	0,
+	// Unsigned formats
+	GL_INTENSITY8,
+	GL_LUMINANCE8_ALPHA8,
+	GL_RGB8,
+	GL_RGBA8,
+
+	GL_INTENSITY16,
+	GL_LUMINANCE16_ALPHA16,
+	GL_RGB16,
+	GL_RGBA16,
+
+	// Signed formats
+	0,
+	0,
+	0,
+	0,
+
+	0,
+	0,
+	0,
+	0,
+
+	// Float formats
+	GL_INTENSITY_FLOAT16_ATI,
+	GL_LUMINANCE_ALPHA_FLOAT16_ATI,
+	GL_RGB_FLOAT16_ATI,
+	GL_RGBA_FLOAT16_ATI,
+
+	GL_INTENSITY_FLOAT32_ATI,
+	GL_LUMINANCE_ALPHA_FLOAT32_ATI,
+	GL_RGB_FLOAT32_ATI,
+	GL_RGBA_FLOAT32_ATI,
+
+	// Signed integer formats
+	0, // GL_INTENSITY16I_EXT,
+	0, // GL_LUMINANCE_ALPHA16I_EXT,
+	0, // GL_RGB16I_EXT,
+	0, // GL_RGBA16I_EXT,
+
+	0, // GL_INTENSITY32I_EXT,
+	0, // GL_LUMINANCE_ALPHA32I_EXT,
+	0, // GL_RGB32I_EXT,
+	0, // GL_RGBA32I_EXT,
+
+	// Unsigned integer formats
+	0, // GL_INTENSITY16UI_EXT,
+	0, // GL_LUMINANCE_ALPHA16UI_EXT,
+	0, // GL_RGB16UI_EXT,
+	0, // GL_RGBA16UI_EXT,
+
+	0, // GL_INTENSITY32UI_EXT,
+	0, // GL_LUMINANCE_ALPHA32UI_EXT,
+	0, // GL_RGB32UI_EXT,
+	0, // GL_RGBA32UI_EXT,
+
+	// Packed formats
+	0, // RGBE8 not directly supported
+	0, // GL_RGB9_E5,
+	0, // GL_R11F_G11F_B10F,
+	GL_RGB5,
+	GL_RGBA4,
+	GL_RGB10_A2,
+
+	// Depth formats
+	GL_DEPTH_COMPONENT16,
+	GL_DEPTH_COMPONENT24,
+	GL_DEPTH24_STENCIL8_EXT,
+	0, // GL_DEPTH_COMPONENT32F,
+
+	// Compressed formats
+	GL_COMPRESSED_RGB_S3TC_DXT1_EXT,
+	GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,
+	GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,
+	0, // ATI1N not yet supported
+	GL_COMPRESSED_LUMINANCE_ALPHA_3DC_ATI,
+};
+
+static const GLenum srcFormats[] = { 0, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
+
+static const GLenum srcTypes[] = {
+	0,
+	// Unsigned formats
+	GL_UNSIGNED_BYTE,
+	GL_UNSIGNED_BYTE,
+	GL_UNSIGNED_BYTE,
+	GL_UNSIGNED_BYTE,
+
+	GL_UNSIGNED_SHORT,
+	GL_UNSIGNED_SHORT,
+	GL_UNSIGNED_SHORT,
+	GL_UNSIGNED_SHORT,
+
+	// Signed formats
+	0,
+	0,
+	0,
+	0,
+
+	0,
+	0,
+	0,
+	0,
+
+	// Float formats
+	0,//GL_HALF_FLOAT_ARB,
+	0,//GL_HALF_FLOAT_ARB,
+	0,//GL_HALF_FLOAT_ARB,
+	0,//GL_HALF_FLOAT_ARB,
+
+	GL_FLOAT,
+	GL_FLOAT,
+	GL_FLOAT,
+	GL_FLOAT,
+
+	// Signed integer formats
+	0,
+	0,
+	0,
+	0,
+
+	0,
+	0,
+	0,
+	0,
+
+	// Unsigned integer formats
+	0,
+	0,
+	0,
+	0,
+
+	0,
+	0,
+	0,
+	0,
+
+	// Packed formats
+	0, // RGBE8 not directly supported
+	0, // RGBE9E5 not supported
+	0, // RG11B10F not supported
+	GL_UNSIGNED_SHORT_5_6_5,
+	GL_UNSIGNED_SHORT_4_4_4_4_REV,
+	GL_UNSIGNED_INT_2_10_10_10_REV,
+
+	// Depth formats
+	GL_UNSIGNED_SHORT,
+	GL_UNSIGNED_INT,
+	GL_UNSIGNED_INT_24_8_EXT,
+	0, // D32F not supported
+
+	// Compressed formats
+	0,
+	0,
+	0,
+	0,
+	0,
+};
+
+void Material::SetDiffuseTexture(const char* path)
+{
+    Image img;
+    GLenum eTarget = GL_TEXTURE_2D;
+
+    glGenTextures(1, &mTexID);
+    glBindTexture(eTarget, mTexID);
+
+    img.loadImage(path);
+
+    FORMAT format = img.getFormat();
+    GLenum srcFormat = srcFormats[getChannelCount(format)];
+    GLenum srcType = srcTypes[format];
+    GLint internalFormat = internalFormats[format];
+
+	// Upload it all
+	uint8_t *src;
+	int mipMapLevel = 0;
+	while ((src = img.getPixels(mipMapLevel)) != NULL){
+		if (img.isCube()){
+			int size = img.getMipMappedSize(mipMapLevel, 1) / 6;
+			for (uint32_t i = 0; i < 6; i++){
+				if (isCompressedFormat(format)){
+					glCompressedTexImage2DARB(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, mipMapLevel, internalFormat, img.getWidth(mipMapLevel), img.getHeight(mipMapLevel), 0, size, src + i * size);
+				} else {
+					glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, mipMapLevel, internalFormat, img.getWidth(mipMapLevel), img.getHeight(mipMapLevel), 0, srcFormat, srcType, src + i * size);
+				}
+			}
+		} else if (img.is3D()){
+			if (isCompressedFormat(format)){
+				glCompressedTexImage3DARB(eTarget, mipMapLevel, internalFormat, img.getWidth(mipMapLevel), img.getHeight(mipMapLevel), img.getDepth(mipMapLevel), 0, img.getMipMappedSize(mipMapLevel, 1), src);
+			} else {
+				glTexImage3D(eTarget, mipMapLevel, internalFormat, img.getWidth(mipMapLevel), img.getHeight(mipMapLevel), img.getDepth(mipMapLevel), 0, srcFormat, srcType, src);
+			}
+		} else if (img.is2D()){
+			if (isCompressedFormat(format)){
+				glCompressedTexImage2DARB(eTarget, mipMapLevel, internalFormat, img.getWidth(mipMapLevel), img.getHeight(mipMapLevel), 0, img.getMipMappedSize(mipMapLevel, 1), src);
+			} else {
+				glTexImage2D(eTarget, mipMapLevel, internalFormat, img.getWidth(mipMapLevel), img.getHeight(mipMapLevel), 0, srcFormat, srcType, src);
+			}
+		} else {
+			glTexImage1D(eTarget, mipMapLevel, internalFormat, img.getWidth(mipMapLevel), 0, srcFormat, srcType, src);
+		}
+		mipMapLevel++;
+	}
+
+}
+void Material::Apply()
+{
+    glBindTexture(GL_TEXTURE_2D, mTexID);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+}
 
 bool Model::Import3DFromFile( const std::string& pFile)
 {
@@ -31,8 +248,25 @@ bool Model::Import3DFromFile( const std::string& pFile)
     glBindVertexArray(mVAO);
 
 	CreateBuffers();
+    CreateMaterial();
 
 	return true;
+}
+
+void Model::CreateMaterial()
+{
+    const struct aiMesh* mesh = mScene->mMeshes[0];
+    const aiMaterial *mtl = mScene->mMaterials[mesh->mMaterialIndex];
+
+    aiString texPath;	//contains filename of texture
+
+    if(AI_SUCCESS == mtl->GetTexture(aiTextureType_DIFFUSE, 0, &texPath))
+    {
+        //Textures for models currently reside in ../models
+        std::string fullPath ("../models/");
+        fullPath += texPath.C_Str();
+        mMaterial.SetDiffuseTexture(fullPath.c_str());
+    }
 }
 
 void Model::CreateBuffers()
@@ -92,7 +326,7 @@ void Model::CreateBuffers()
 		if(mHaveTexCoords)
 		{
 			*verticesPtr++ = mesh->mTextureCoords[0][vtx].x;
-			*verticesPtr++ = mesh->mTextureCoords[0][vtx].y;
+			*verticesPtr++ = 1.0f - mesh->mTextureCoords[0][vtx].y;
 		}
 	}
 
@@ -168,14 +402,14 @@ void Model::DrawR(ITransform& world, const  aiNode* nd)
 	
 		glEnableVertexAttribArray(0);
 		glEnableVertexAttribArray(1);
-		//glEnableVertexAttribArray(2);
 
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, mVertexSize, 0);
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, mVertexSize, (void*)(sizeof(float)*3));
-		/*if(mHaveTexCoords)
+		if(mHaveTexCoords)
 		{
+            glEnableVertexAttribArray(2);
 			glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, mVertexSize, (void*)(sizeof(float)*6));
-		}*/
+		}
 
 		world.SetWorldMatrix(localWorld);
 
@@ -214,6 +448,8 @@ void Model::Draw(ITransform& world)
 	glBindVertexArray(mVAO);
 
 	world.SetWorldMatrix(localWorld);
+
+    mMaterial.Apply();
 
 	DrawR(world, mScene->mRootNode);
 

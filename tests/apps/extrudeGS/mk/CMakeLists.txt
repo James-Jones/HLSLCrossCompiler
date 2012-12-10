@@ -50,7 +50,7 @@ file(GLOB ASSIMP_CFILES ${ASSIMP_DIR}/contrib/ConvertUTF/*.c ${ASSIMP_DIR}/contr
 ADD_LIBRARY(assimp STATIC ${ASSIMP_CPPFILES} ${ASSIMP_CFILES})
 
 
-ADD_EXECUTABLE(Extrude ${TEST_DIR}/main.cpp ${APP_DIR}/common/debug.cpp ${APP_DIR}/common/model.cpp ${APP_DIR}/common/Shader.cpp ${APP_DIR}/common/glew/glew.c)
+ADD_EXECUTABLE(Extrude ${TEST_DIR}/main.cpp ${APP_DIR}/common/debug.cpp ${APP_DIR}/common/model.cpp ${APP_DIR}/common/Shader.cpp ${APP_DIR}/common/glew/glew.c ${APP_DIR}/common/Image.cpp)
 
 add_dependencies(Extrude fglib assimp)
 

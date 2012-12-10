@@ -10,6 +10,18 @@
 #include <Shader.h>
 #include <itransform.h>
 
+class Material
+{
+public:
+    Material () : mTexID(0) {
+    }
+    void SetDiffuseTexture(const char* path);
+    void Apply();
+
+protected:
+    unsigned int mTexID;
+};
+
 class Model
 {
 public:
@@ -20,6 +32,7 @@ protected:
 	void DrawR(ITransform& World, const  aiNode* nd);
 private:
 	void CreateBuffers();
+    void CreateMaterial();
 	const aiScene* mScene;
 	uint32_t mVtxBuf;
 	uint32_t mIdxBuf;
@@ -27,6 +40,8 @@ private:
 	int mHaveTexCoords;
 	int mVertexSize;
 	int mNumIndices;
+
+    Material mMaterial;
 
 	Assimp::Importer importer;
 
