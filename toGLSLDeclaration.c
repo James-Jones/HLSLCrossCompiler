@@ -410,7 +410,10 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
                 case RESOURCE_DIMENSION_TEXTURE1D:
                 {
-                    bcatcstr(glsl, "uniform sampler1D ");
+					if(psDecl->ui32IsShadowTex)
+						bcatcstr(glsl, "uniform sampler1DShadow ");
+					else
+						bcatcstr(glsl, "uniform sampler1D ");
                     TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }
@@ -437,19 +440,28 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBE:
                 {
-                    bcatcstr(glsl, "uniform samplerCube ");
+					if(psDecl->ui32IsShadowTex)
+						bcatcstr(glsl, "uniform samplerCubeShadow ");
+					else
+						bcatcstr(glsl, "uniform samplerCube ");
                     TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE1DARRAY:
                 {
-                    bcatcstr(glsl, "uniform sampler1DArray ");
+					if(psDecl->ui32IsShadowTex)
+						bcatcstr(glsl, "uniform sampler1DArrayShadow ");
+					else
+						bcatcstr(glsl, "uniform sampler1DArray ");
                     TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DARRAY:
                 {
-                    bcatcstr(glsl, "uniform sampler2DArray ");
+					if(psDecl->ui32IsShadowTex)
+						bcatcstr(glsl, "uniform sampler2DArrayShadow");
+					else
+						bcatcstr(glsl, "uniform sampler2DArray ");
                     TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }
@@ -461,7 +473,10 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
                 {
-                    bcatcstr(glsl, "uniform samplerCubeArray ");
+					if(psDecl->ui32IsShadowTex)
+						bcatcstr(glsl, "uniform samplerCubeArrayShadow ");
+					else
+						bcatcstr(glsl, "uniform samplerCubeArray ");
                     TranslateOperand(psContext, &psDecl->asOperands[0]);
                     break;
                 }
