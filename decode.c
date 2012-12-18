@@ -970,7 +970,6 @@ const uint32_t* DecodeHullShaderControlPointPhase(const uint32_t* pui32Tokens, S
 #endif
 
         pui32CurrentToken = nextInstr;
-        psShader->ui32HSControlPointInstrCount++;
 
 		if(psInst->eOpcode == OPCODE_HS_FORK_PHASE)
 		{
@@ -983,6 +982,7 @@ const uint32_t* DecodeHullShaderControlPointPhase(const uint32_t* pui32Tokens, S
 			return pui32CurrentToken;
 		}
         psInst++;
+        psShader->ui32HSControlPointInstrCount++;
     }
 
 	return pui32CurrentToken;
@@ -1004,7 +1004,6 @@ const uint32_t* DecodeHullShader(const uint32_t* pui32Tokens, Shader* psShader)
         if(pui32Result)
         {
             pui32CurrentToken = pui32Result;
-            psShader->ui32DeclCount++;
 
 			if(psDecl->eOpcode == OPCODE_HS_CONTROL_POINT_PHASE)
 			{
@@ -1023,6 +1022,7 @@ const uint32_t* DecodeHullShader(const uint32_t* pui32Tokens, Shader* psShader)
 			}
 
             psDecl++;
+            psShader->ui32HSDeclCount++;
 
             if(pui32CurrentToken >= (psShader->pui32FirstToken + ui32ShaderLength))
             {

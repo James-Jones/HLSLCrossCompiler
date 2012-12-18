@@ -208,6 +208,16 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
 
     AddVersionDependentCode(psContext);
 
+    //Special case. Can have multiple phases.
+    if(psShader->eShaderType == HULL_SHADER)
+    {
+        for(i=0; i < psShader->ui32HSDeclCount; ++i)
+        {
+            TranslateDeclaration(psContext, psShader->psHSDecl+i);
+        }
+        return;
+    }
+
     for(i=0; i < ui32DeclCount; ++i)
     {
         TranslateDeclaration(psContext, psShader->psDecl+i);
@@ -219,13 +229,6 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
 
     psContext->indent++;
 
-    if(psContext->psShader->eShaderType == HULL_SHADER)
-    {
-        AddIndentation(psContext);
-        bcatcstr(glsl, "for(int forkInstanceID = 0; forkInstanceID < HullPhaseInstanceCount; ++forkInstanceID) {\n");
-        psContext->indent++;
-    }
-
 	bconcat(glsl, psContext->earlyMain);
 
     for(i=0; i < ui32InstCount; ++i)
@@ -234,13 +237,6 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
     }
 
     psContext->indent--;
-
-    if(psContext->psShader->eShaderType == HULL_SHADER)
-    {
-        AddIndentation(psContext);
-        bcatcstr(glsl, "}\n");
-        psContext->indent--;
-    }
 
     bcatcstr(glsl, "}\n");
 }
@@ -303,6 +299,13 @@ int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language
 
         bdestroy(sContext.glsl);
 		bdestroy(sContext.earlyMain);
+
+        free(psShader->psHSControlPointPhaseDecl);
+        free(psShader->psHSControlPointPhaseInstr);
+        free(psShader->psHSForkPhaseDecl);
+        free(psShader->psHSForkPhaseInstr);
+        free(psShader->psHSJoinPhaseDecl);
+        free(psShader->psHSJoinPhaseInstr);
 
         free(psShader->psDecl);
         free(psShader->psInst);
