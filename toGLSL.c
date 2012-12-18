@@ -211,6 +211,8 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
     //Special case. Can have multiple phases.
     if(psShader->eShaderType == HULL_SHADER)
     {
+        ConsolidateHullTempVars(psShader);
+
         for(i=0; i < psShader->ui32HSDeclCount; ++i)
         {
             TranslateDeclaration(psContext, psShader->psHSDecl+i);

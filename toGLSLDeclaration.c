@@ -935,3 +935,60 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
     }
 }
 
+//Convert from per-phase temps to global temps for GLSL.
+void ConsolidateHullTempVars(Shader* psShader)
+{
+    uint32_t i, k;
+    const uint32_t ui32NumDeclLists = 4;
+    Declaration* pasDeclArray[4];
+    uint32_t aui32DeclCounts[4];
+    uint32_t ui32NumTemps = 0;
+
+    pasDeclArray[0] = psShader->psHSDecl;
+    pasDeclArray[1] = psShader->psHSControlPointPhaseDecl;
+    pasDeclArray[2] = psShader->psHSForkPhaseDecl;
+    pasDeclArray[3] = psShader->psHSJoinPhaseDecl;
+
+    aui32DeclCounts[0] = psShader->ui32HSDeclCount;
+    aui32DeclCounts[1] = psShader->ui32HSControlPointDeclCount;
+    aui32DeclCounts[2] = psShader->ui32HSForkDeclCount;
+    aui32DeclCounts[3] = psShader->ui32HSJoinDeclCount;
+
+    for(k = 0; k < ui32NumDeclLists; ++k)
+    {
+        for(i=0; i < aui32DeclCounts[k]; ++i)
+        {
+            Declaration* psDecl = pasDeclArray[k]+i;
+ 
+            if(psDecl->eOpcode == OPCODE_DCL_TEMPS)
+            {
+                if(ui32NumTemps < psDecl->value.ui32NumTemps)
+                {
+                    //Find the total max number of temps needed by the entire
+                    //shader.
+                    ui32NumTemps = psDecl->value.ui32NumTemps;
+                }
+                //Only want one global temp declaration.
+                psDecl->value.ui32NumTemps = 0;
+            }
+        }
+    }
+
+    //First the first temp declaration and make it
+    //declare the max needed amount of temps.
+
+    for(k = 0; k < ui32NumDeclLists; ++k)
+    {
+        for(i=0; i < aui32DeclCounts[k]; ++i)
+        {
+            Declaration* psDecl = pasDeclArray[k]+i;
+ 
+            if(psDecl->eOpcode == OPCODE_DCL_TEMPS)
+            {
+                psDecl->value.ui32NumTemps = ui32NumTemps;
+                return;
+            }
+        }
+    }
+}
+
