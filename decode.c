@@ -815,7 +815,7 @@ const uint32_t* DecodeHullShaderJoinPhase(const uint32_t* pui32Tokens, Shader* p
             psShader->ui32HSJoinDeclCount++;
             psDecl++;
 
-            if(pui32CurrentToken >= (pui32Tokens + ui32ShaderLength))
+            if(pui32CurrentToken >= (psShader->pui32FirstToken + ui32ShaderLength))
             {
                 break;
             }
@@ -832,7 +832,7 @@ const uint32_t* DecodeHullShaderJoinPhase(const uint32_t* pui32Tokens, Shader* p
     psShader->psHSJoinPhaseInstr = psInst;
     psShader->ui32HSJoinInstrCount = 0;
 
-    while (pui32CurrentToken < (pui32Tokens + ui32ShaderLength))
+    while (pui32CurrentToken < (psShader->pui32FirstToken + ui32ShaderLength))
     {
         const uint32_t* nextInstr = DeocdeInstruction(pui32CurrentToken, psInst, psShader);
 
@@ -876,7 +876,7 @@ const uint32_t* DecodeHullShaderForkPhase(const uint32_t* pui32Tokens, Shader* p
             psShader->ui32HSForkDeclCount++;
             psDecl++;
 
-            if(pui32CurrentToken >= (pui32Tokens + ui32ShaderLength))
+            if(pui32CurrentToken >= (psShader->pui32FirstToken + ui32ShaderLength))
             {
                 break;
             }
@@ -893,7 +893,7 @@ const uint32_t* DecodeHullShaderForkPhase(const uint32_t* pui32Tokens, Shader* p
     psShader->psHSForkPhaseInstr = psInst;
     psShader->ui32HSForkInstrCount = 0;
 
-    while (pui32CurrentToken < (pui32Tokens + ui32ShaderLength))
+    while (pui32CurrentToken < (psShader->pui32FirstToken + ui32ShaderLength))
     {
         const uint32_t* nextInstr = DeocdeInstruction(pui32CurrentToken, psInst, psShader);
 
@@ -940,7 +940,7 @@ const uint32_t* DecodeHullShaderControlPointPhase(const uint32_t* pui32Tokens, S
             psShader->ui32HSControlPointDeclCount++;
             psDecl++;
 
-            if(pui32CurrentToken >= (pui32Tokens + ui32ShaderLength))
+            if(pui32CurrentToken >= (psShader->pui32FirstToken + ui32ShaderLength))
             {
                 break;
             }
@@ -957,7 +957,7 @@ const uint32_t* DecodeHullShaderControlPointPhase(const uint32_t* pui32Tokens, S
     psShader->psHSControlPointPhaseInstr = psInst;
     psShader->ui32HSControlPointInstrCount = 0;
 
-    while (pui32CurrentToken < (pui32Tokens + ui32ShaderLength))
+    while (pui32CurrentToken < (psShader->pui32FirstToken + ui32ShaderLength))
     {
         const uint32_t* nextInstr = DeocdeInstruction(pui32CurrentToken, psInst, psShader);
 
@@ -1024,7 +1024,7 @@ const uint32_t* DecodeHullShader(const uint32_t* pui32Tokens, Shader* psShader)
 
             psDecl++;
 
-            if(pui32CurrentToken >= (pui32Tokens + ui32ShaderLength))
+            if(pui32CurrentToken >= (psShader->pui32FirstToken + ui32ShaderLength))
             {
                 break;
             }
@@ -1054,6 +1054,8 @@ void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Resources, Shader*
 
     ReadResources(pui32Resources, &psShader->sInfo);
 
+    psShader->pui32FirstToken = pui32Tokens;
+
 	if(psShader->eShaderType == HULL_SHADER)
 	{
 		pui32CurrentToken = DecodeHullShader(pui32CurrentToken, psShader);
@@ -1081,7 +1083,7 @@ void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Resources, Shader*
             psShader->ui32DeclCount++;
             psDecl++;
 
-            if(pui32CurrentToken >= (pui32Tokens + ui32ShaderLength))
+            if(pui32CurrentToken >= (psShader->pui32FirstToken + ui32ShaderLength))
             {
                 break;
             }
@@ -1092,7 +1094,7 @@ void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Resources, Shader*
         }
     }
 
-    while (pui32CurrentToken < (pui32Tokens + ui32ShaderLength))
+    while (pui32CurrentToken < (psShader->pui32FirstToken + ui32ShaderLength))
     {
         const uint32_t* nextInstr = DeocdeInstruction(pui32CurrentToken, psInst, psShader);
 

@@ -132,6 +132,7 @@ typedef struct Shader_TAG
     uint32_t ui32InstCount;
     Instruction* psInst;
 
+    const uint32_t* pui32FirstToken;//Reference for calculating current position in token stream.
 
 	//Hull shader declarations and instructions.
 	//psDecl, psInst are null for hull shaders.
