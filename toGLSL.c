@@ -211,12 +211,16 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
     //Special case. Can have multiple phases.
     if(psShader->eShaderType == HULL_SHADER)
     {
+        int haveInstancedForkPhase = 0;
+
         ConsolidateHullTempVars(psShader);
 
         for(i=0; i < psShader->ui32HSDeclCount; ++i)
         {
             TranslateDeclaration(psContext, psShader->psHSDecl+i);
         }
+
+        AddOpcodeFuncs(psContext);
 
         //control
         bcatcstr(glsl, "//Control point phase declarations\n");
@@ -240,23 +244,33 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
         for(i=0; i < psShader->ui32HSForkDeclCount; ++i)
         {
             TranslateDeclaration(psContext, psShader->psHSForkPhaseDecl+i);
+            if(psShader->psHSForkPhaseDecl[i].eOpcode == OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT)
+            {
+                haveInstancedForkPhase = 1;
+            }
         }
 
         bcatcstr(glsl, "void fork_phase()\n{\n");
         psContext->indent++;
 
-            AddIndentation(psContext);
-            bcatcstr(glsl, "for(int forkInstanceID = 0; forkInstanceID < HullPhaseInstanceCount; ++forkInstanceID) {\n");
-            psContext->indent++;
+            if(haveInstancedForkPhase)
+            {
+                AddIndentation(psContext);
+                bcatcstr(glsl, "for(int forkInstanceID = 0; forkInstanceID < HullPhaseInstanceCount; ++forkInstanceID) {\n");
+                psContext->indent++;
+            }
 
                 for(i=0; i < psShader->ui32HSForkInstrCount; ++i)
                 {
                     TranslateInstruction(psContext, psShader->psHSForkPhaseInstr+i);
                 }
 
-            psContext->indent--;
-            AddIndentation(psContext);
-            bcatcstr(glsl, "}\n");
+            if(haveInstancedForkPhase)
+            {
+                psContext->indent--;
+                AddIndentation(psContext);
+                bcatcstr(glsl, "}\n");
+            }
 
         psContext->indent--;
         bcatcstr(glsl, "}\n");
