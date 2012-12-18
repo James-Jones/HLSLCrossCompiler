@@ -92,6 +92,7 @@ typedef struct Declaration_TAG
         TESSELLATOR_OUTPUT_PRIMITIVE eTessOutPrim;
         uint32_t aui32WorkGroupSize[3];
         uint32_t ui32HullPhaseInstanceCount;
+        float fMaxTessFactor;
 
         struct Interface_TAG
         {

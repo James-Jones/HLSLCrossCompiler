@@ -558,6 +558,11 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 			}
 			break;
 		}
+        case OPCODE_DCL_HS_MAX_TESSFACTOR:
+        {
+            psDecl->value.fMaxTessFactor = *((float*)&pui32Token[1]);
+            break;
+        }
         default:
         {
             //Reached end of declarations

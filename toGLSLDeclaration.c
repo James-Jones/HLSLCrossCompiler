@@ -927,6 +927,11 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 		{
 			break;
 		}
+        case OPCODE_DCL_HS_MAX_TESSFACTOR:
+        {
+            //For GLSL the max tessellation factor is fixed to the value of gl_MaxTessGenLevel. 
+            break;
+        }
         default:
         {
             ASSERT(0);
