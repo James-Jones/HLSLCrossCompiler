@@ -611,27 +611,30 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
         case OPCODE_DCL_TESS_OUTPUT_PRIMITIVE:
         {
-            switch(psDecl->value.eTessOutPrim)
+            if(psContext->psShader->eShaderType == DOMAIN_SHADER)
             {
-                case TESSELLATOR_OUTPUT_TRIANGLE_CW:
+                switch(psDecl->value.eTessOutPrim)
                 {
-                    bcatcstr(glsl, "layout(cw) in;\n");
-                    break;
-                }
-                case TESSELLATOR_OUTPUT_TRIANGLE_CCW:
-                {
-                    bcatcstr(glsl, "layout(ccw) in;\n");
-                    break;
-                }
-                case TESSELLATOR_OUTPUT_POINT:
-                {
-                    bcatcstr(glsl, "layout(point_mode) in;\n");
-                    break;
-                }
-                case TESSELLATOR_OUTPUT_LINE:
-                {
-                    bcatcstr(glsl, "//TESSELLATOR_OUTPUT_LINE\n");
-                    break;
+                    case TESSELLATOR_OUTPUT_TRIANGLE_CW:
+                    {
+                        bcatcstr(glsl, "layout(cw) in;\n");
+                        break;
+                    }
+                    case TESSELLATOR_OUTPUT_TRIANGLE_CCW:
+                    {
+                        bcatcstr(glsl, "layout(ccw) in;\n");
+                        break;
+                    }
+                    case TESSELLATOR_OUTPUT_POINT:
+                    {
+                        bcatcstr(glsl, "layout(point_mode) in;\n");
+                        break;
+                    }
+                    case TESSELLATOR_OUTPUT_LINE:
+                    {
+                        bcatcstr(glsl, "//TESSELLATOR_OUTPUT_LINE\n");
+                        break;
+                    }
                 }
             }
             break;
@@ -667,31 +670,34 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
         case OPCODE_DCL_TESS_PARTITIONING:
         {
-            switch(psDecl->value.eTessPartitioning)
+            if(psContext->psShader->eShaderType == DOMAIN_SHADER)
             {
-                case TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
+                switch(psDecl->value.eTessPartitioning)
                 {
-                    bcatcstr(glsl, "layout(fractional_odd_spacing) in;\n");
-                    break;
-                }
-                case TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
-                {
-                    bcatcstr(glsl, "layout(fractional_even_spacing) in;\n");
-                    break;
-                }
-                case TESSELLATOR_PARTITIONING_INTEGER:
-                {
-                    bcatcstr(glsl, "//TESSELLATOR_PARTITIONING_INTEGER not supported\n");
-                    break;
-                }
-                case TESSELLATOR_PARTITIONING_POW2:
-                {
-                    bcatcstr(glsl, "//TESSELLATOR_PARTITIONING_POW2 not supported\n");
-                    break;
-                }
-                default:
-                {
-                    break;
+                    case TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
+                    {
+                        bcatcstr(glsl, "layout(fractional_odd_spacing) in;\n");
+                        break;
+                    }
+                    case TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
+                    {
+                        bcatcstr(glsl, "layout(fractional_even_spacing) in;\n");
+                        break;
+                    }
+                    case TESSELLATOR_PARTITIONING_INTEGER:
+                    {
+                        bcatcstr(glsl, "//TESSELLATOR_PARTITIONING_INTEGER not supported\n");
+                        break;
+                    }
+                    case TESSELLATOR_PARTITIONING_POW2:
+                    {
+                        bcatcstr(glsl, "//TESSELLATOR_PARTITIONING_POW2 not supported\n");
+                        break;
+                    }
+                    default:
+                    {
+                        break;
+                    }
                 }
             }
             break;
