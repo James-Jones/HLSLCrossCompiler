@@ -974,9 +974,8 @@ void ConsolidateHullTempVars(Shader* psShader)
         }
     }
 
-    //First the first temp declaration and make it
+    //Find the first temp declaration and make it
     //declare the max needed amount of temps.
-
     for(k = 0; k < ui32NumDeclLists; ++k)
     {
         for(i=0; i < aui32DeclCounts[k]; ++i)
