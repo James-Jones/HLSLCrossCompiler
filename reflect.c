@@ -82,10 +82,13 @@ int GetResourceFromBindingPoint(ResourceType eType, uint32_t ui32BindPoint, Shad
 
     for(i=0; i<ui32NumBindings; ++i)
     {
-        if(psBindings[i].ui32BindPoint == ui32BindPoint && psBindings[i].eType == eType)
+        if(psBindings[i].eType == eType)
         {
-            *ppsOutBinding = psBindings + i;
-            return 1;
+			if(ui32BindPoint >= psBindings[i].ui32BindPoint && ui32BindPoint < (psBindings[i].ui32BindPoint + psBindings[i].ui32BindCount))
+			{
+				*ppsOutBinding = psBindings + i;
+				return 1;
+			}
         }
     }
     return 0;

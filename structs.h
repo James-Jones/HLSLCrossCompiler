@@ -103,6 +103,8 @@ typedef struct Declaration_TAG
 
     uint32_t ui32TableLength;
 
+	uint32_t ui32IsShadowTex;
+
 } Declaration;
 
 //FIXME decide the best value.

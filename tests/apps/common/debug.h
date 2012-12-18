@@ -13,6 +13,9 @@
 
 void SetupOpenGLDebugCallback();
 
+#else
+#define ASSERT(X)
+#define OutputDebugString(X)
 #endif
 #endif
 

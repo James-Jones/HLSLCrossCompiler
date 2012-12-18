@@ -53,9 +53,12 @@ file(GLOB CBSTRING_CFILES ../cbstring/*.c)
 file(GLOB CBSTRING_HFILES ../cbstring/*.h)
 source_group("CBString Files" FILES ${CBSTRING_CFILES} ${CBSTRING_HFILES})
 
-ADD_EXECUTABLE( HLSLByteCodeToGLSLStandalone ../decode.c ../reflect.c ../toGLSLStandalone.c ../toGLSL.c ../toGLSLInstruction.c ../toGLSLOperand.c ../toGLSLDeclaration.c ${CBSTRING_CFILES} ${CBSTRING_HFILES} )
+ADD_LIBRARY( libHLSLcc STATIC ../decode.c ../reflect.c ../toGLSL.c ../toGLSLInstruction.c ../toGLSLOperand.c ../toGLSLDeclaration.c ${CBSTRING_CFILES} ${CBSTRING_HFILES} )
 
-ADD_LIBRARY( HLSLByteCodeToGLSL STATIC ../decode.c ../reflect.c ../toGLSL.c ../toGLSLInstruction.c ../toGLSLOperand.c ../toGLSLDeclaration.c ${CBSTRING_CFILES} ${CBSTRING_HFILES} )
+ADD_EXECUTABLE( HLSLcc ../toGLSLStandalone.c )
+
+TARGET_LINK_LIBRARIES( HLSLcc libHLSLcc)
+
 
 # ADD_EXECUTABLE( Reflect ../reflect.cpp )
 

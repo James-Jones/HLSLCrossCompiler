@@ -5,6 +5,15 @@
 #include <assert.h>
 #define ASSERT(x) assert(x)
 
+#include <float.h>
+
+#ifdef _MSC_VER
+#define isnan(x) _isnan(x)
+#define isinf(x) (!_finite(x))
+#endif
+
+#define fpcheck(x) (isnan(x) || isinf(x))
+
 extern void AddIndentation(HLSLCrossCompilerContext* psContext);
 
 int GetMaxComponentFromComponentMask(const Operand* psOperand)
@@ -421,7 +430,7 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         {
             if(psOperand->iNumComponents == 1)
             {
-				if(psOperand->iIntegerImmediate)
+				if(psOperand->iIntegerImmediate || fpcheck(psOperand->afImmediates[0]))
 				{
 					bformata(glsl, "%d",
 						*((int*)(&psOperand->afImmediates[0])));
@@ -548,8 +557,25 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         case OPERAND_TYPE_RESOURCE:
         {
             ResourceBinding* psBinding = 0;
-            GetResourceFromBindingPoint(RTYPE_TEXTURE, psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
-            bformata(glsl, "%s", psBinding->Name);
+			int found;
+            found = GetResourceFromBindingPoint(RTYPE_TEXTURE, psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
+
+			if(found)
+			{
+				uint32_t ui32ArrayOffset = psOperand->ui32RegisterNumber - psBinding->ui32BindPoint;
+				if(ui32ArrayOffset)
+				{
+					bformata(glsl, "%s%d", psBinding->Name, ui32ArrayOffset);
+				}
+				else
+				{
+					bformata(glsl, "%s", psBinding->Name);
+				}
+			}
+			else
+			{
+				bformata(glsl, "UnknownResource%d", psOperand->ui32RegisterNumber);
+			}
             break;
         }
         case OPERAND_TYPE_SAMPLER:
@@ -748,11 +774,39 @@ void TranslateIntegerOperand(HLSLCrossCompilerContext* psContext, const Operand*
         }
         case OPERAND_TYPE_CONSTANT_BUFFER:
         {
+            const char* StageName = "VS";
+            switch(psContext->psShader->eShaderType)
+            {
+                case PIXEL_SHADER:
+                {
+                    StageName = "PS";
+                    break;
+                }
+                case HULL_SHADER:
+                {
+                    StageName = "HS";
+                    break;
+                }
+                case DOMAIN_SHADER:
+                {
+                    StageName = "DS";
+                    break;
+                }
+                case GEOMETRY_SHADER:
+                {
+                    StageName = "GS";
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
 			if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
 			{
 				//Each uniform block is given the HLSL consant buffer name.
 				//Within each uniform block is a constant array named ConstN
-				bformata(glsl, "Const%d[%d]", psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
+				bformata(glsl, "Const%s%d[%d]", StageName, psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
 			}
 			else
 			{
@@ -763,11 +817,11 @@ void TranslateIntegerOperand(HLSLCrossCompilerContext* psContext, const Operand*
 				//$Globals.
 				if(psBinding->Name[0] == '$')
 				{
-					bformata(glsl, "Globals[%d]", psOperand->aui32ArraySizes[1]);
+					bformata(glsl, "Globals%s[%d]", StageName, psOperand->aui32ArraySizes[1]);
 				}
 				else
 				{
-					bformata(glsl, "%s[%d]", psBinding->Name, psOperand->aui32ArraySizes[1]);
+					bformata(glsl, "%s%s[%d]", psBinding->Name, StageName, psOperand->aui32ArraySizes[1]);
 				}
 			}
             break;

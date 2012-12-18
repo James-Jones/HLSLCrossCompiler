@@ -34,6 +34,14 @@ void ShaderEffect::FromByteFile(std::string& path)
             glAttachShader(mProgram, mPixel);
             break;
         }
+        case GL_GEOMETRY_SHADER:
+        {
+            mPixel = glCreateShader(GL_GEOMETRY_SHADER);
+            glShaderSource(mGeometry, 1, (const char **)&result.sourceCode, 0);
+            glCompileShader(mGeometry);
+            glAttachShader(mProgram, mGeometry);
+            break;
+        }
         default:
         {
             break;
@@ -136,6 +144,11 @@ void ShaderEffect::Enable()
 #endif
 
     glUseProgram(mProgram);
+}
+
+void ShaderEffect::SetTexture(std::string& name, int imageUnit) {
+    int loc = glGetUniformLocation(mProgram, (name).c_str());
+    glUniform1i(loc, imageUnit);
 }
 
 void ShaderEffect::SetVec4(std::string& name, int count, float* v) {
