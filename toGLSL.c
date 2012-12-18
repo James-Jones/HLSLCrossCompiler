@@ -215,6 +215,20 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
         {
             TranslateDeclaration(psContext, psShader->psHSDecl+i);
         }
+
+        for(i=0; i < psShader->ui32HSControlPointDeclCount; ++i)
+        {
+            TranslateDeclaration(psContext, psShader->psHSControlPointPhaseDecl+i);
+        }
+
+        bcatcstr(glsl, "void control_point_phase()\n{\n");
+        psContext->indent++;
+        for(i=0; i < psShader->ui32HSControlPointInstrCount; ++i)
+        {
+            TranslateInstruction(psContext, psShader->psHSControlPointPhaseInstr+i);
+        }
+        psContext->indent--;
+        bcatcstr(glsl, "}\n");
         return;
     }
 

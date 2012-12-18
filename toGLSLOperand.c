@@ -626,6 +626,11 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 			bcatcstr(glsl, "//null");
 			break;
 		}
+        case OPERAND_TYPE_OUTPUT_CONTROL_POINT_ID:
+        {
+            bcatcstr(glsl, "gl_InvocationID");
+            break;
+        }
         default:
         {
             ASSERT(0);
