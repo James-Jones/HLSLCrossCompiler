@@ -192,9 +192,9 @@ void Demo::Init() {
 
     mExtrudeEffect.Create();
 	mExtrudeEffect.SetCompileFlags(HLSLCC_FLAG_GS_ENABLED);
-    mExtrudeEffect.FromVertexByteFile(std::string("../shaders/ExtrudeVS.o"));
-    mExtrudeEffect.FromPixelByteFile(std::string("../shaders/ExtrudePS.o"));
-	mExtrudeEffect.FromGeometryByteFile(std::string("../shaders/ExtrudeGS.o"));
+    mExtrudeEffect.FromVertexByteFile(std::string("shaders/ExtrudeVS.o"));
+    mExtrudeEffect.FromPixelByteFile(std::string("shaders/ExtrudePS.o"));
+	mExtrudeEffect.FromGeometryByteFile(std::string("shaders/ExtrudeGS.o"));
 
     gWorld = Matrix4::identity();
 
@@ -206,7 +206,7 @@ void Demo::Init() {
     gView = Matrix4::lookAt(Eye, At, Up);
     gProjection = Matrix4::perspective(3.14159f * 0.25f, WindowWidth / ( float )WindowHeight, 0.1f, 5000.0f);
 
-	gModel.Import3DFromFile("../models/Tiny.x");
+	gModel.Import3DFromFile("models/Tiny.x");
 }
 
 void Init(int argc, char** argv)
