@@ -223,12 +223,42 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
             TranslateDeclaration(psContext, psShader->psHSControlPointPhaseDecl+i);
         }
 
+        bcatcstr(glsl, "void control_point_phase()\n{\n");
+        psContext->indent++;
+            for(i=0; i < psShader->ui32HSControlPointInstrCount; ++i)
+            {
+                TranslateInstruction(psContext, psShader->psHSControlPointPhaseInstr+i);
+            }
+        psContext->indent--;
+        bcatcstr(glsl, "}\n");
+
+
         //fork
         bcatcstr(glsl, "//Fork phase declarations\n");
         for(i=0; i < psShader->ui32HSForkDeclCount; ++i)
         {
             TranslateDeclaration(psContext, psShader->psHSForkPhaseDecl+i);
         }
+
+        bcatcstr(glsl, "void fork_phase()\n{\n");
+        psContext->indent++;
+
+            AddIndentation(psContext);
+            bcatcstr(glsl, "for(int forkInstanceID = 0; forkInstanceID < HullPhaseInstanceCount; ++forkInstanceID) {\n");
+            psContext->indent++;
+
+                for(i=0; i < psShader->ui32HSForkInstrCount; ++i)
+                {
+                    TranslateInstruction(psContext, psShader->psHSForkPhaseInstr+i);
+                }
+
+            psContext->indent--;
+            AddIndentation(psContext);
+            bcatcstr(glsl, "}\n");
+
+        psContext->indent--;
+        bcatcstr(glsl, "}\n");
+
 
         //join
         bcatcstr(glsl, "//Join phase declarations\n");
@@ -237,53 +267,33 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
             TranslateDeclaration(psContext, psShader->psHSJoinPhaseDecl+i);
         }
 
-        //control
-        bcatcstr(glsl, "void control_point_phase()\n{\n");
-        psContext->indent++;
-        for(i=0; i < psShader->ui32HSControlPointInstrCount; ++i)
-        {
-            TranslateInstruction(psContext, psShader->psHSControlPointPhaseInstr+i);
-        }
-        psContext->indent--;
-        bcatcstr(glsl, "}\n");
-
-        //fork
-        bcatcstr(glsl, "void fork_phase()\n{\n");
-        psContext->indent++;
-        for(i=0; i < psShader->ui32HSForkInstrCount; ++i)
-        {
-            TranslateInstruction(psContext, psShader->psHSForkPhaseInstr+i);
-        }
-        psContext->indent--;
-        bcatcstr(glsl, "}\n");
-
-
-        //join
         bcatcstr(glsl, "void join_phase()\n{\n");
         psContext->indent++;
-        for(i=0; i < psShader->ui32HSJoinInstrCount; ++i)
-        {
-            TranslateInstruction(psContext, psShader->psHSJoinPhaseInstr+i);
-        }
+
+            for(i=0; i < psShader->ui32HSJoinInstrCount; ++i)
+            {
+                TranslateInstruction(psContext, psShader->psHSJoinPhaseInstr+i);
+            }
+
         psContext->indent--;
         bcatcstr(glsl, "}\n");
 
         bcatcstr(glsl, "void main()\n{\n");
 
-        psContext->indent++;
+            psContext->indent++;
 
-        AddIndentation(psContext);
-        bcatcstr(glsl, "control_point_phase();\n");
-        AddIndentation(psContext);
-        bcatcstr(glsl, "barrier();\n");
-        AddIndentation(psContext);
-        bcatcstr(glsl, "fork_phase();\n");
-        AddIndentation(psContext);
-        bcatcstr(glsl, "barrier();\n");
-        AddIndentation(psContext);
-        bcatcstr(glsl, "join_phase();\n");
+            AddIndentation(psContext);
+            bcatcstr(glsl, "control_point_phase();\n");
+            AddIndentation(psContext);
+            bcatcstr(glsl, "barrier();\n");
+            AddIndentation(psContext);
+            bcatcstr(glsl, "fork_phase();\n");
+            AddIndentation(psContext);
+            bcatcstr(glsl, "barrier();\n");
+            AddIndentation(psContext);
+            bcatcstr(glsl, "join_phase();\n");
 
-        psContext->indent--;
+            psContext->indent--;
 
         bcatcstr(glsl, "}\n");
         return;
