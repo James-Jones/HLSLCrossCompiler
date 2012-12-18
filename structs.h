@@ -93,6 +93,7 @@ typedef struct Declaration_TAG
         uint32_t aui32WorkGroupSize[3];
         uint32_t ui32HullPhaseInstanceCount;
         float fMaxTessFactor;
+        uint32_t ui32IndexRange;
 
         struct Interface_TAG
         {
@@ -163,6 +164,8 @@ typedef struct Shader_TAG
 	int abIntegerOutput[MAX_SHADER_VEC4_OUTPUT];
 	int abScalarOutput[MAX_SHADER_VEC4_OUTPUT];
 	int abScalarInput[MAX_SHADER_VEC4_INPUT];
+
+    int aIndexedOutput[MAX_SHADER_VEC4_OUTPUT];
 
 	int aiOpcodeUsed[NUM_OPCODES];
 

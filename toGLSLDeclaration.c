@@ -171,29 +171,124 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                     break;
                 }
 		        case NAME_FINAL_QUAD_U_EQ_0_EDGE_TESSFACTOR:
+                {
+					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
+                    bcatcstr(glsl, "#define ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+
+                    if(psContext->psShader->aIndexedOutput[psDecl->asOperands[0].ui32RegisterNumber])
+                    {
+                        bformata(glsl, " gl_TessLevelOuter\n");
+                    }
+                    else
+                    {
+                        bformata(glsl, " gl_TessLevelOuter[0]\n");
+                    }
+                    break;
+                }
 		        case NAME_FINAL_QUAD_V_EQ_0_EDGE_TESSFACTOR: 
+                {
+					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
+                    bcatcstr(glsl, "#define ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+                    bformata(glsl, " gl_TessLevelOuter[1]\n");
+                    break;
+                }
 		        case NAME_FINAL_QUAD_U_EQ_1_EDGE_TESSFACTOR: 
+                {
+					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
+                    bcatcstr(glsl, "#define ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+                    bformata(glsl, " gl_TessLevelOuter[2]\n");
+                    break;
+                }
 		        case NAME_FINAL_QUAD_V_EQ_1_EDGE_TESSFACTOR:
+                {
+					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
+                    bcatcstr(glsl, "#define ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+                    bformata(glsl, " gl_TessLevelOuter[3]\n");
+                    break;
+                }
 		        case NAME_FINAL_TRI_U_EQ_0_EDGE_TESSFACTOR:
+                {
+					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
+                    bcatcstr(glsl, "#define ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+
+                    if(psContext->psShader->aIndexedOutput[psDecl->asOperands[0].ui32RegisterNumber])
+                    {
+                        bformata(glsl, " gl_TessLevelOuter\n");
+                    }
+                    else
+                    {
+                        bformata(glsl, " gl_TessLevelOuter[0]\n");
+                    }
+                    break;
+                }
 		        case NAME_FINAL_TRI_V_EQ_0_EDGE_TESSFACTOR:
+                {
+					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
+                    bcatcstr(glsl, "#define ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+                    bformata(glsl, " gl_TessLevelOuter[1]\n");
+                    break;
+                }
 		        case NAME_FINAL_TRI_W_EQ_0_EDGE_TESSFACTOR:
-		        case NAME_FINAL_LINE_DETAIL_TESSFACTOR:
+                {
+					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
+                    bcatcstr(glsl, "#define ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+                    bformata(glsl, " gl_TessLevelOuter[2]\n");
+                    break;
+                }
 		        case NAME_FINAL_LINE_DENSITY_TESSFACTOR:
                 {
 					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
                     bcatcstr(glsl, "#define ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
-                    bformata(glsl, " gl_TessLevelOuter\n");
+
+                    if(psContext->psShader->aIndexedOutput[psDecl->asOperands[0].ui32RegisterNumber])
+                    {
+                        bformata(glsl, " gl_TessLevelOuter\n");
+                    }
+                    else
+                    {
+                        bformata(glsl, " gl_TessLevelOuter[0]\n");
+                    }
                     break;
                 }
-		        case NAME_FINAL_QUAD_U_INSIDE_TESSFACTOR:
-		        case NAME_FINAL_QUAD_V_INSIDE_TESSFACTOR:
-                case NAME_FINAL_TRI_INSIDE_TESSFACTOR:
+		        case NAME_FINAL_LINE_DETAIL_TESSFACTOR:
                 {
 					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
                     bcatcstr(glsl, "#define ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
-                    bformata(glsl, " gl_TessLevelInner\n");
+                    bformata(glsl, " gl_TessLevelOuter[1]\n");
+                    break;
+                }
+                case NAME_FINAL_TRI_INSIDE_TESSFACTOR:
+		        case NAME_FINAL_QUAD_U_INSIDE_TESSFACTOR:
+                {
+					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
+                    bcatcstr(glsl, "#define ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+
+                    if(psContext->psShader->aIndexedOutput[psDecl->asOperands[0].ui32RegisterNumber])
+                    {
+                        bformata(glsl, " gl_TessLevelInner\n");
+                    }
+                    else
+                    {
+                        bformata(glsl, " gl_TessLevelInner[0]\n");
+                    }
+                    break;
+                }
+		        case NAME_FINAL_QUAD_V_INSIDE_TESSFACTOR:
+                {
+					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
+                    bcatcstr(glsl, "#define ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+                    bformata(glsl, " gl_TessLevelInner[1]\n");
                     break;
                 }
                 default:

@@ -361,6 +361,15 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_INDEX_RANGE:
         {
+            uint32_t indexRange = 0;
+            psDecl->ui32NumOperands = 1;
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
+            psDecl->value.ui32IndexRange = pui32Token[ui32OperandOffset];
+
+            if(psDecl->asOperands[0].eType == OPERAND_TYPE_OUTPUT)
+            {
+                psShader->aIndexedOutput[psDecl->asOperands[0].ui32RegisterNumber] = psDecl->value.ui32IndexRange;
+            }
             break;
         }
         case OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY:
