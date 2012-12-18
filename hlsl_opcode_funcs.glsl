@@ -40,6 +40,10 @@ void HLSL_lt(out vec4 dest, vec4 a, vec4 b) {
     dest = vec4(lessThan(a, b));
 }
 
+void HLSL_lt(out vec3 dest, vec4 a, vec4 b) {
+    dest = vec3(lessThan(a, b));
+}
+
 void HLSL_lt(out float dest, float a, float b) {
     dest = (a < b) ? 1 : 0;
 }

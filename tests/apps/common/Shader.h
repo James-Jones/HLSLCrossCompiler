@@ -1,3 +1,6 @@
+#ifndef SHADER_H_
+#define SHADER_H_
+
 extern "C" {
 #include "toGLSL.h"
 #include "languages.h"
@@ -6,6 +9,8 @@ extern "C" {
 #include <string>
 #include <pstdint.h>
 typedef unsigned int uint_t;
+
+#include <vectormath_aos.h>
 
 class ShaderEffect
 {
@@ -31,10 +36,9 @@ public:
 
     void Enable();
 
-    //GLuint GetVariableByName(std::string* name);
-
 	void CreateUniformBlock(std::string& name, uint_t& ubo);
 
+    void SetTexture(std::string& name, int imageUnit);
     void SetVec4(std::string& name, int count, float* v);
     void SetUniformBlock(std::string& name, uint_t bufIndex);
     void SetUniformBlock(std::string& name, uint_t bufIndex, uint_t ubo);
@@ -54,6 +58,7 @@ public:
     uint_t CompileFlags() const {
         return mCompileFlags;
     }
+
 protected:
 
 private:
@@ -65,3 +70,20 @@ private:
 	uint_t mGeometry;
 };
 
+static void SetFloatArray(Vectormath::Aos::Vector4& vec, float* farray)
+{
+    farray[0] = vec.getX();
+    farray[1] = vec.getY();
+    farray[2] = vec.getZ();
+    farray[3] = vec.getW();
+}
+static void SetFloatArray(Vectormath::Aos::Matrix4& matrix, float* farray)
+{
+    for(int row = 0; row < 4; row++)
+    {
+        Vectormath::Aos::Vector4 r = matrix.getRow(row);
+        SetFloatArray(r, &farray[row*4]);
+    }
+}
+
+#endif

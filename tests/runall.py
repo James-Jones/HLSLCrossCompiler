@@ -19,17 +19,17 @@ options = parser.parse_args()
 def FindExecutable():
 	global executable
 
-	if os.path.isfile("../bin/HLSLByteCodeToGLSLStandalone.exe") or os.path.isfile("../bin/HLSLByteCodeToGLSLStandalone"):
-		executable = "../bin//HLSLByteCodeToGLSLStandalone"
-	elif os.path.isfile("../bin/Release/HLSLByteCodeToGLSLStandalone.exe") or os.path.isfile("../bin/Release/HLSLByteCodeToGLSLStandalone"):
-		executable = "../bin/Release/HLSLByteCodeToGLSLStandalone"
-	elif os.path.isfile("../bin/Debug/HLSLByteCodeToGLSLStandalone.exe") or os.path.isfile("../bin/Debug/HLSLByteCodeToGLSLStandalone"):
-		executable = "../bin/Debug/HLSLByteCodeToGLSLStandalone"
+	if os.path.isfile("../bin/HLSLcc.exe") or os.path.isfile("../bin/HLSLcc"):
+		executable = "../bin//HLSLcc"
+	elif os.path.isfile("../bin/Release/HLSLcc.exe") or os.path.isfile("../bin/Release/HLSLcc"):
+		executable = "../bin/Release/HLSLcc"
+	elif os.path.isfile("../bin/Debug/HLSLcc.exe") or os.path.isfile("../bin/Debug/HLSLcc"):
+		executable = "../bin/Debug/HLSLcc"
 	else:
 		#Search system paths
 		for path in os.environ["PATH"].split(os.pathsep):
-			win_exe_file = os.path.join(path, "HLSLByteCodeToGLSLStandalone.exe")
-			otheros_exe_file = os.path.join(path, "HLSLByteCodeToGLSLStandalone")
+			win_exe_file = os.path.join(path, "HLSLcc.exe")
+			otheros_exe_file = os.path.join(path, "HLSLcc")
 			if os.path.isfile(win_exe_file) or os.path.isfile(otheros_exe_file):
 				executable = otheros_exe_file #okay on windows as well.
 				return

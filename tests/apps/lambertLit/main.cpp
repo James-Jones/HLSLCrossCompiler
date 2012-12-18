@@ -38,22 +38,6 @@ GLuint gIndexBuffer;
 GLuint gVertexBuffer;
 Globals gGlobals;
 
-void SetFloatArray(Vector4& vec, float* farray)
-{
-    farray[0] = vec.getX();
-    farray[1] = vec.getY();
-    farray[2] = vec.getZ();
-    farray[3] = vec.getW();
-}
-void SetFloatArray(Matrix4& matrix, float* farray)
-{
-    for(int row = 0; row < 4; row++)
-    {
-        Vector4 r = matrix.getRow(row);
-        SetFloatArray(r, &farray[row*4]);
-    }
-}
-
 int WindowWidth = 640;
 int WindowHeight = 480;
 
@@ -188,12 +172,12 @@ void Init(int argc, char** argv)
     glEnableVertexAttribArray(1);
 
     mLambertLitEffect.Create();
-    mLambertLitEffect.FromVertexByteFile(std::string("../shaders/LambertLitVS.o"));
-    mLambertLitEffect.FromPixelByteFile(std::string("../shaders/LambertLitPS.o"));
+    mLambertLitEffect.FromVertexByteFile(std::string("shaders/LambertLitVS.o"));
+    mLambertLitEffect.FromPixelByteFile(std::string("shaders/LambertLitPS.o"));
 
     mSolidColour.Create();
-    mSolidColour.FromVertexByteFile(std::string("../shaders/LambertLitVS.o"));
-    mSolidColour.FromPixelByteFile(std::string("../shaders/LambertLitSolidPS.o"));
+    mSolidColour.FromVertexByteFile(std::string("shaders/LambertLitVS.o"));
+    mSolidColour.FromPixelByteFile(std::string("shaders/LambertLitSolidPS.o"));
 
     gWorld = Matrix4::identity();
 
