@@ -268,7 +268,10 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
                     psContext->indent++;
                 }
 
-                    for(i=0; i < psShader->aui32HSForkInstrCount[forkIndex]; ++i)
+                    //The minus one here is remove the return statement at end of phases.
+                    //This is needed otherwise the for loop will only run once.
+                    ASSERT(psShader->apsHSForkPhaseInstr[forkIndex][psShader->aui32HSForkInstrCount[forkIndex]-1].eOpcode == OPCODE_RET);
+                    for(i=0; i < psShader->aui32HSForkInstrCount[forkIndex]-1; ++i)
                     {
                         TranslateInstruction(psContext, psShader->apsHSForkPhaseInstr[forkIndex]+i);
                     }
