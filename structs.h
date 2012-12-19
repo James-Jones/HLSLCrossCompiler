@@ -91,7 +91,8 @@ typedef struct Declaration_TAG
         TESSELLATOR_PARTITIONING eTessPartitioning;
         TESSELLATOR_OUTPUT_PRIMITIVE eTessOutPrim;
         uint32_t aui32WorkGroupSize[3];
-        uint32_t ui32HullPhaseInstanceCount;
+        //Fork phase index followed by the instance count.
+        uint32_t aui32HullPhaseInstanceInfo[2];
         float fMaxTessFactor;
         uint32_t ui32IndexRange;
 
@@ -112,6 +113,7 @@ typedef struct Declaration_TAG
 //FIXME decide the best value.
 static enum {MAX_SHADER_VEC4_OUTPUT = 512};
 static enum {MAX_SHADER_VEC4_INPUT = 512};
+static enum {MAX_FORK_PHASES = 2};
 
 typedef struct Shader_TAG
 {
@@ -147,11 +149,13 @@ typedef struct Shader_TAG
 	uint32_t ui32HSControlPointInstrCount;
 	Instruction* psHSControlPointPhaseInstr;
 
-	uint32_t ui32HSForkDeclCount;
-	Declaration* psHSForkPhaseDecl;
+    uint32_t ui32ForkPhaseCount;
 
-	uint32_t ui32HSForkInstrCount;
-	Instruction* psHSForkPhaseInstr;
+	uint32_t aui32HSForkDeclCount[MAX_FORK_PHASES];
+	Declaration* apsHSForkPhaseDecl[MAX_FORK_PHASES];
+
+	uint32_t aui32HSForkInstrCount[MAX_FORK_PHASES];
+	Instruction* apsHSForkPhaseInstr[MAX_FORK_PHASES];
 
 	uint32_t ui32HSJoinDeclCount;
 	Declaration* psHSJoinPhaseDecl;

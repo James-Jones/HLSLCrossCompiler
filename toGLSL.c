@@ -212,6 +212,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
     if(psShader->eShaderType == HULL_SHADER)
     {
         int haveInstancedForkPhase = 0;
+        uint32_t forkIndex = 0;
 
         ConsolidateHullTempVars(psShader);
 
@@ -238,42 +239,44 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
         psContext->indent--;
         bcatcstr(glsl, "}\n");
 
-
         //fork
-        bcatcstr(glsl, "//Fork phase declarations\n");
-        for(i=0; i < psShader->ui32HSForkDeclCount; ++i)
+        for(forkIndex = 0; forkIndex < psShader->ui32ForkPhaseCount; ++forkIndex)
         {
-            TranslateDeclaration(psContext, psShader->psHSForkPhaseDecl+i);
-            if(psShader->psHSForkPhaseDecl[i].eOpcode == OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT)
+            bcatcstr(glsl, "//Fork phase declarations\n");
+            for(i=0; i < psShader->aui32HSForkDeclCount[forkIndex]; ++i)
             {
-                haveInstancedForkPhase = 1;
-            }
-        }
-
-        bcatcstr(glsl, "void fork_phase()\n{\n");
-        psContext->indent++;
-
-            if(haveInstancedForkPhase)
-            {
-                AddIndentation(psContext);
-                bcatcstr(glsl, "for(int forkInstanceID = 0; forkInstanceID < HullPhaseInstanceCount; ++forkInstanceID) {\n");
-                psContext->indent++;
-            }
-
-                for(i=0; i < psShader->ui32HSForkInstrCount; ++i)
+                TranslateDeclaration(psContext, psShader->apsHSForkPhaseDecl[forkIndex]+i);
+                if(psShader->apsHSForkPhaseDecl[forkIndex][i].eOpcode == OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT)
                 {
-                    TranslateInstruction(psContext, psShader->psHSForkPhaseInstr+i);
+                    haveInstancedForkPhase = 1;
+                }
+            }
+
+            bformata(glsl, "void fork_phase%d()\n{\n", forkIndex);
+            psContext->indent++;
+
+                if(haveInstancedForkPhase)
+                {
+                    AddIndentation(psContext);
+                    bformata(glsl, "for(int forkInstanceID = 0; forkInstanceID < HullPhase%dInstanceCount; ++forkInstanceID) {\n", forkIndex);
+                    psContext->indent++;
                 }
 
-            if(haveInstancedForkPhase)
-            {
-                psContext->indent--;
-                AddIndentation(psContext);
-                bcatcstr(glsl, "}\n");
-            }
+                    for(i=0; i < psShader->aui32HSForkInstrCount[forkIndex]; ++i)
+                    {
+                        TranslateInstruction(psContext, psShader->apsHSForkPhaseInstr[forkIndex]+i);
+                    }
 
-        psContext->indent--;
-        bcatcstr(glsl, "}\n");
+                if(haveInstancedForkPhase)
+                {
+                    psContext->indent--;
+                    AddIndentation(psContext);
+                    bcatcstr(glsl, "}\n");
+                }
+
+            psContext->indent--;
+            bcatcstr(glsl, "}\n");
+        }
 
 
         //join
@@ -302,10 +305,13 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
             bcatcstr(glsl, "control_point_phase();\n");
             AddIndentation(psContext);
             bcatcstr(glsl, "barrier();\n");
-            AddIndentation(psContext);
-            bcatcstr(glsl, "fork_phase();\n");
-            AddIndentation(psContext);
-            bcatcstr(glsl, "barrier();\n");
+            for(forkIndex = 0; forkIndex < psShader->ui32ForkPhaseCount; ++forkIndex)
+            {
+                AddIndentation(psContext);
+                bformata(glsl, "fork_phase%d();\n", forkIndex);
+                AddIndentation(psContext);
+                bcatcstr(glsl, "barrier();\n");
+            }
             AddIndentation(psContext);
             bcatcstr(glsl, "join_phase();\n");
 
@@ -345,6 +351,7 @@ int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language
     char* glslcstr = NULL;
     int GLSLShaderType = GL_FRAGMENT_SHADER_ARB;
 	int success = 0;
+    uint32_t i;
 
     tokens = (uint32_t*)shader;
 
@@ -399,8 +406,12 @@ int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language
 
         free(psShader->psHSControlPointPhaseDecl);
         free(psShader->psHSControlPointPhaseInstr);
-        free(psShader->psHSForkPhaseDecl);
-        free(psShader->psHSForkPhaseInstr);
+
+        for(i=0; i < psShader->ui32ForkPhaseCount; ++i)
+        {
+            free(psShader->apsHSForkPhaseDecl[i]);
+            free(psShader->apsHSForkPhaseInstr[i]);
+        }
         free(psShader->psHSJoinPhaseDecl);
         free(psShader->psHSJoinPhaseInstr);
 

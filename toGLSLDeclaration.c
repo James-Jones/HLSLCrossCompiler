@@ -996,8 +996,9 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 		}
         case OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT:
         {
-            const uint32_t instanceCount = psDecl->value.ui32HullPhaseInstanceCount;
-            bformata(glsl, "int HullPhaseInstanceCount = %d;\n", instanceCount);
+            const uint32_t forkPhaseNum = psDecl->value.aui32HullPhaseInstanceInfo[0];
+            const uint32_t instanceCount = psDecl->value.aui32HullPhaseInstanceInfo[1];
+            bformata(glsl, "const int HullPhase%dInstanceCount = %d;\n", forkPhaseNum, instanceCount);
             break;
         }
         case OPCODE_DCL_INDEX_RANGE:
@@ -1045,20 +1046,25 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 void ConsolidateHullTempVars(Shader* psShader)
 {
     uint32_t i, k;
-    const uint32_t ui32NumDeclLists = 4;
-    Declaration* pasDeclArray[4];
-    uint32_t aui32DeclCounts[4];
+    const uint32_t ui32NumDeclLists = 3+psShader->ui32ForkPhaseCount;
+    Declaration* pasDeclArray[3+MAX_FORK_PHASES];
+    uint32_t aui32DeclCounts[3+MAX_FORK_PHASES];
     uint32_t ui32NumTemps = 0;
 
-    pasDeclArray[0] = psShader->psHSDecl;
-    pasDeclArray[1] = psShader->psHSControlPointPhaseDecl;
-    pasDeclArray[2] = psShader->psHSForkPhaseDecl;
-    pasDeclArray[3] = psShader->psHSJoinPhaseDecl;
+    i = 0;
 
-    aui32DeclCounts[0] = psShader->ui32HSDeclCount;
-    aui32DeclCounts[1] = psShader->ui32HSControlPointDeclCount;
-    aui32DeclCounts[2] = psShader->ui32HSForkDeclCount;
-    aui32DeclCounts[3] = psShader->ui32HSJoinDeclCount;
+    pasDeclArray[i] = psShader->psHSDecl;
+    aui32DeclCounts[i++] = psShader->ui32HSDeclCount;
+
+    pasDeclArray[i] = psShader->psHSControlPointPhaseDecl;
+    aui32DeclCounts[i++] = psShader->ui32HSControlPointDeclCount;
+    for(k=0; k < psShader->ui32ForkPhaseCount; ++k)
+    {
+        pasDeclArray[i] = psShader->apsHSForkPhaseDecl[k];
+        aui32DeclCounts[i++] = psShader->aui32HSForkDeclCount[k];
+    }
+    pasDeclArray[i] = psShader->psHSJoinPhaseDecl;
+    aui32DeclCounts[i++] = psShader->ui32HSJoinDeclCount;
 
     for(k = 0; k < ui32NumDeclLists; ++k)
     {
