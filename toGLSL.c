@@ -9,9 +9,7 @@
 #include "toGLSLInstruction.h"
 #include "toGLSLOperand.h"
 #include "toGLSLDeclaration.h"
-
-#include <assert.h>
-#define ASSERT(x) assert(x)
+#include "debug.h"
 
 #ifndef GL_VERTEX_SHADER_ARB
 #define GL_VERTEX_SHADER_ARB              0x8B31

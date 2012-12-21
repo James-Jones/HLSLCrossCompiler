@@ -2,7 +2,7 @@
 #include "toGLSLDeclaration.h"
 #include "toGLSLOperand.h"
 #include "bstrlib.h"
-#include "assert.h"
+#include "debug.h"
 #include <math.h>
 
 #include <float.h>
@@ -13,12 +13,6 @@
 #endif
 
 #define fpcheck(x) (isnan(x) || isinf(x))
-
-#ifdef _DEBUG
-#define ASSERT(expr) assert(expr)
-#else
-#define ASSERT(expr)
-#endif
 
 extern void AddIndentation(HLSLCrossCompilerContext* psContext);
 

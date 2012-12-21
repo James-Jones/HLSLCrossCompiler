@@ -4,19 +4,13 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "reflect.h"
-#include "assert.h"
+#include "debug.h"
 
 #define FOURCC(a, b, c, d) ((uint32_t)(uint8_t)(a) | ((uint32_t)(uint8_t)(b) << 8) | ((uint32_t)(uint8_t)(c) << 16) | ((uint32_t)(uint8_t)(d) << 24 ))
 const uint32_t FOURCC_DXBC = FOURCC('D', 'X', 'B', 'C');
 const uint32_t FOURCC_SHDR = FOURCC('S', 'H', 'D', 'R');
 const uint32_t FOURCC_SHEX = FOURCC('S', 'H', 'E', 'X');
 const uint32_t FOURCC_RDEF = FOURCC('R', 'D', 'E', 'F');
-
-#ifdef _DEBUG
-#define ASSERT(expr) assert(expr)
-#else
-#define ASSERT(expr)
-#endif
 
 typedef struct DXBCContainerHeaderTAG
 {

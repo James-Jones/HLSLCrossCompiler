@@ -2,9 +2,7 @@
 #include "toGLSLOperand.h"
 #include "bstrlib.h"
 #include "stdio.h"
-
-#include <assert.h>
-#define ASSERT(x) assert(x)
+#include "debug.h"
 
 extern void AddIndentation(HLSLCrossCompilerContext* psContext);
 
