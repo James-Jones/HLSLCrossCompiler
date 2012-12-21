@@ -813,7 +813,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
                 }
                 default:
                 {
-
+                    ASSERT(0);
                     break;
                 }
             }
@@ -831,15 +831,72 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_SAMPLE_L:
         {
             //dest, coords, tex, sampler, lod
+            ResourceBinding* psBinding = 0;
+            const char* funcName = "";
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//SAMPLE_L\n");
 #endif
-            //Texture coord cannot be vec4
-            //Determining if it is a vec3 for vec2 yet to be done.
-            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-			CallHelper3(psContext, "texture2DLod", psInst, 0, 2, 1, 4);
+
+            GetResourceFromBindingPoint(RTYPE_TEXTURE, psInst->asOperands[2].ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
+
+            switch(psBinding->eDimension)
+            {
+                case RESOURCE_DIMENSION_TEXTURE1D:
+                {
+                    funcName = "texture1DLod";
+                    //Vec1 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[1] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2D:
+                {
+                    funcName = "texture2DLod";
+                    //Vec2 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURECUBE:
+                {
+                    funcName = "textureCubeLod";
+                    //Vec2 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE3D:
+                {
+                    funcName = "texture3DLod";
+                    //Vec3 texcoord. Mask out the other component.
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+                {
+                    funcName = "textureLod";
+                    //Vec2 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+                {
+                    funcName = "textureLod";
+                    //Vec3 texcoord. Mask out the other component.
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                default:
+                {
+                    ASSERT(0);
+                    break;
+                }
+            }
+
+			CallHelper3(psContext, funcName, psInst, 0, 2, 1, 4);
             break;
         }
 		case OPCODE_SAMPLE_C:
