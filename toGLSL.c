@@ -81,6 +81,10 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 
     /* After GLSL 120 and GLSL ES 100 texture function have overloaded parameters */
     bcatcstr(glsl, "#if __VERSION__ > 120 \n");
+        bcatcstr(glsl, "\t#define shadow2DLod textureLod\n");
+        bcatcstr(glsl, "\t#define shadow1DLod textureLod\n");
+        bcatcstr(glsl, "\t#define shadow2D texture\n");
+        bcatcstr(glsl, "\t#define shadow1D texture\n");
         bcatcstr(glsl, "\t#define texture3DLod textureLod\n");
         bcatcstr(glsl, "\t#define texture2DLod textureLod\n");
         bcatcstr(glsl, "\t#define texture1DLod textureLod\n");
