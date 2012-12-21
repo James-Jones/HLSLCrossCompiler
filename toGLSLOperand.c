@@ -1,9 +1,7 @@
 #include "toGLSLOperand.h"
 #include "bstrlib.h"
 #include "toGLSL.h"
-
-#include <assert.h>
-#define ASSERT(x) assert(x)
+#include "debug.h"
 
 #include <float.h>
 
