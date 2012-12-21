@@ -110,6 +110,7 @@ typedef struct Declaration_TAG
 //FIXME decide the best value.
 static enum {MAX_SHADER_VEC4_OUTPUT = 512};
 static enum {MAX_SHADER_VEC4_INPUT = 512};
+static enum {MAX_TEXTURES = 128};
 
 typedef struct Shader_TAG
 {
@@ -137,6 +138,8 @@ typedef struct Shader_TAG
 	int abIntegerOutput[MAX_SHADER_VEC4_OUTPUT];
 	int abScalarOutput[MAX_SHADER_VEC4_OUTPUT];
 	int abScalarInput[MAX_SHADER_VEC4_INPUT];
+
+    RESOURCE_DIMENSION aeResourceDims[MAX_TEXTURES];
 
 	int aiOpcodeUsed[NUM_OPCODES];
 

@@ -476,6 +476,8 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
             }
             bcatcstr(glsl, ";\n");
+            ASSERT(psDecl->asOperands[0].ui32RegisterNumber < MAX_TEXTURES);
+            psShader->aeResourceDims[psDecl->asOperands[0].ui32RegisterNumber] = psDecl->value.eResourceDimension;
             break;
         }
         case OPCODE_DCL_OUTPUT:

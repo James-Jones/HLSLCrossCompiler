@@ -751,16 +751,14 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_SAMPLE:
         {
             //dest, coords, tex, sampler
-            ResourceBinding* psBinding = 0;
             const char* funcName = "";
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//SAMPLE\n");
 #endif
 
-            GetResourceFromBindingPoint(RTYPE_TEXTURE, psInst->asOperands[2].ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
-
-            switch(psBinding->eDimension)
+            ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
+            switch(psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber])
             {
                 case RESOURCE_DIMENSION_TEXTURE1D:
                 {
@@ -829,16 +827,14 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_SAMPLE_L:
         {
             //dest, coords, tex, sampler, lod
-            ResourceBinding* psBinding = 0;
             const char* funcName = "";
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//SAMPLE_L\n");
 #endif
 
-            GetResourceFromBindingPoint(RTYPE_TEXTURE, psInst->asOperands[2].ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
-
-            switch(psBinding->eDimension)
+            ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
+            switch(psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber])
             {
                 case RESOURCE_DIMENSION_TEXTURE1D:
                 {
