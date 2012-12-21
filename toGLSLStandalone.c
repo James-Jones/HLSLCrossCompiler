@@ -20,10 +20,9 @@ typedef unsigned char uint8_t;
 
 	typedef char GLcharARB;		/* native character */
 	typedef unsigned int GLhandleARB;	/* shader object handle */
-#define GL_VERTEX_SHADER_ARB              0x8B31
-#define GL_FRAGMENT_SHADER_ARB            0x8B30
 #define GL_OBJECT_COMPILE_STATUS_ARB      0x8B81
 #define GL_OBJECT_LINK_STATUS_ARB         0x8B82
+#define GL_OBJECT_INFO_LOG_LENGTH_ARB        0x8B84
 	typedef void (WINAPI * PFNGLDELETEOBJECTARBPROC) (GLhandleARB obj);
 	typedef GLhandleARB (WINAPI * PFNGLCREATESHADEROBJECTARBPROC) (GLenum shaderType);
 	typedef void (WINAPI * PFNGLSHADERSOURCEARBPROC) (GLhandleARB shaderObj, GLsizei count, const GLcharARB* *string, const GLint *length);
@@ -34,7 +33,6 @@ typedef unsigned char uint8_t;
 	typedef void (WINAPI * PFNGLATTACHOBJECTARBPROC) (GLhandleARB containerObj, GLhandleARB obj);
 	typedef void (WINAPI * PFNGLLINKPROGRAMARBPROC) (GLhandleARB programObj);
 	typedef void (WINAPI * PFNGLUSEPROGRAMOBJECTARBPROC) (GLhandleARB programObj);
-    //typedef void (WINAPI * PFNGLGETSHADERIVPROC) (GLuint shader, GLenum pname, GLint* param);
     typedef void (WINAPI * PFNGLGETSHADERINFOLOGPROC) (GLuint shader, GLsizei bufSize, GLsizei* length, GLcharARB* infoLog);
 
 	static PFNGLDELETEOBJECTARBPROC glDeleteObjectARB;
@@ -47,7 +45,6 @@ typedef unsigned char uint8_t;
 	static PFNGLATTACHOBJECTARBPROC glAttachObjectARB;
 	static PFNGLLINKPROGRAMARBPROC glLinkProgramARB;
 	static PFNGLUSEPROGRAMOBJECTARBPROC glUseProgramObjectARB;
-    //static PFNGLGETSHADERIVPROC glGetShaderiv;
     static PFNGLGETSHADERINFOLOGPROC glGetShaderInfoLog;
 
 #define WGL_CONTEXT_DEBUG_BIT_ARB 0x0001
@@ -131,7 +128,6 @@ void InitOpenGL()
     glAttachObjectARB = (PFNGLATTACHOBJECTARBPROC)wglGetProcAddress("glAttachObjectARB");
     glLinkProgramARB = (PFNGLLINKPROGRAMARBPROC)wglGetProcAddress("glLinkProgramARB");
     glUseProgramObjectARB = (PFNGLUSEPROGRAMOBJECTARBPROC)wglGetProcAddress("glUseProgramObjectARB");
-    //glGetShaderiv = (PFNGLGETSHADERIVPROC)("glGetShaderiv");
     glGetShaderInfoLog = (PFNGLGETSHADERINFOLOGPROC)("glGetShaderInfoLog");
 }
 #endif
@@ -150,23 +146,23 @@ int TryCompileShader(GLenum eGLSLShaderType, char* inFilename, char* shader)
 
     /* Check it compiled OK */
     glGetObjectParameterivARB (hShader, GL_OBJECT_COMPILE_STATUS_ARB, &iCompileStatus);
-    //glGetShaderiv(hShader, GL_COMPILE_STATUS, &iCompileStatus); 
 
     if (iCompileStatus != GL_TRUE)
     {
         FILE* errorFile;
         GLint iInfoLogLength = 0;
-        char pszInfoLog[1024];
+        char* pszInfoLog;
 		bstring filename = bfromcstr(inFilename);
 		char* cstrFilename;
 
+        glGetObjectParameterivARB (hShader, GL_OBJECT_INFO_LOG_LENGTH_ARB, &iInfoLogLength);
+
+        pszInfoLog = malloc(iInfoLogLength);
+
         printf("Error: Failed to compile GLSL shader\n");
 
-		//char log[4096];
-		//GLsizei logLength;
-		glGetInfoLogARB (hShader, sizeof(pszInfoLog), &iInfoLogLength, pszInfoLog);
+		glGetInfoLogARB (hShader, iInfoLogLength, NULL, pszInfoLog);
 
-        //glGetShaderInfoLog(hShader, 1024, &iInfoLogLength, pszInfoLog);
         printf(pszInfoLog);
 
 		bcatcstr(filename, "_compileErrors.txt");
@@ -180,6 +176,7 @@ int TryCompileShader(GLenum eGLSLShaderType, char* inFilename, char* shader)
 
 		bdestroy(filename);
 		free(cstrFilename);
+        free(pszInfoLog);
 
         return 0;
     }
