@@ -122,6 +122,15 @@ int GetResourceFromBindingPoint(ResourceType eType, uint32_t ui32BindPoint, Shad
     return 0;
 }
 
+void FreeShaderInfo(ShaderInfo* psShaderInfo)
+{
+    free(psShaderInfo->psInputSignatures);
+    free(psShaderInfo->psResourceBindings);
+
+    psShaderInfo->ui32NumInputSignatures = 0;
+    psShaderInfo->ui32NumResourceBindings = 0;
+}
+
 #if 0
 switch(type)
 {

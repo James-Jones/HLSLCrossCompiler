@@ -61,6 +61,8 @@ void ReadResources(const uint32_t* pui32Tokens,//in
 
 int GetResourceFromBindingPoint(ResourceType eType, uint32_t ui32BindPoint, ShaderInfo* psShaderInfo, ResourceBinding** ppsOutBinding);
 
+void FreeShaderInfo(ShaderInfo* psShaderInfo);
+
 #if 0
 //--- Utility functions ---
 

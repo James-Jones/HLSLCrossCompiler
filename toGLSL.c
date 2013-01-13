@@ -315,6 +315,7 @@ int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language
 
         free(psShader->psDecl);
         free(psShader->psInst);
+        FreeShaderInfo(&psShader->sInfo);
         free(psShader);
 
 		success = 1;
