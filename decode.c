@@ -11,6 +11,7 @@ const uint32_t FOURCC_DXBC = FOURCC('D', 'X', 'B', 'C');
 const uint32_t FOURCC_SHDR = FOURCC('S', 'H', 'D', 'R');
 const uint32_t FOURCC_SHEX = FOURCC('S', 'H', 'E', 'X');
 const uint32_t FOURCC_RDEF = FOURCC('R', 'D', 'E', 'F');
+const uint32_t FOURCC_ISGN = FOURCC('I', 'S', 'G', 'N');
 
 typedef struct DXBCContainerHeaderTAG
 {
@@ -784,7 +785,8 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
     return pui32Token + ui32TokenLength;
 }
 
-void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Resources, Shader* psShader)
+void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Inputs,
+            const uint32_t* pui32Resources, Shader* psShader)
 {
 	const uint32_t* pui32CurrentToken = pui32Tokens;
     const uint32_t ui32ShaderLength = pui32Tokens[1];
@@ -809,6 +811,7 @@ void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Resources, Shader*
     psShader->psDecl = psDecl;
     psShader->ui32DeclCount = 0;
 
+    ReadInputSignatures(pui32Inputs, &psShader->sInfo);
     ReadResources(pui32Resources, &psShader->sInfo);
 
     while(1) //Keep going until we reach the first non-declaration token, or the end of the shader.
@@ -858,6 +861,7 @@ Shader* DecodeDXBC(uint32_t* data)
 	uint32_t chunkCount;
 	uint32_t* chunkOffsets;
     DXBCChunkHeader* rdefChunk = 0;
+    DXBCChunkHeader* isgnChunk = 0;
 
 	if(header->fourcc != FOURCC_DXBC)
 	{
@@ -874,6 +878,10 @@ Shader* DecodeDXBC(uint32_t* data)
 
 		DXBCChunkHeader* chunk = (DXBCChunkHeader*)((char*)data + offset);
 
+        if(chunk->fourcc == FOURCC_ISGN)
+        {
+            isgnChunk = chunk;
+        }
         if(chunk->fourcc == FOURCC_RDEF)
         {
             rdefChunk = chunk;
@@ -883,7 +891,7 @@ Shader* DecodeDXBC(uint32_t* data)
 			chunk->fourcc == FOURCC_SHEX)
 		{
             psShader = calloc(1, sizeof(Shader));
-			Decode((uint32_t*)(chunk + 1), (uint32_t*)(rdefChunk + 1), psShader);
+			Decode((uint32_t*)(chunk + 1), (uint32_t*)(isgnChunk + 1), (uint32_t*)(rdefChunk + 1), psShader);
 			return psShader;
 		}
 	}

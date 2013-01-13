@@ -14,7 +14,7 @@ static void ReadStringFromTokenStream(const uint32_t* tokens, char* str)
 
         str[length++] = nextCharacter;
 
-        if(length > MAX_RESOURCE_BINDING_NAME_LENGTH)
+        if(length > MAX_REFLECT_STRING_LENGTH)
         {
             str[length-1] = '\0';
             return;
@@ -24,6 +24,34 @@ static void ReadStringFromTokenStream(const uint32_t* tokens, char* str)
     }
 
     str[length] = '\0';
+}
+
+void ReadInputSignatures(const uint32_t* pui32Tokens,
+                        ShaderInfo* psShaderInfo)
+{
+    uint32_t i;
+
+    InOutSignature* psSignatures;
+    const uint32_t* pui32FirstSignatureToken = pui32Tokens;
+    const uint32_t ui32ElementCount = *pui32Tokens++;
+    const uint32_t ui32Key = *pui32Tokens++;
+
+    psSignatures = malloc(sizeof(InOutSignature) * ui32ElementCount);
+    psShaderInfo->psInputSignatures = psSignatures;
+    psShaderInfo->ui32NumInputSignatures = ui32ElementCount;
+
+    for(i=0; i<ui32ElementCount; ++i)
+    {
+        InOutSignature* psCurrentSignature = psSignatures + i;
+        const uint32_t ui32SemanticNameOffset = *pui32Tokens++;
+        psCurrentSignature->ui32SymanticIndex = *pui32Tokens++;
+        psCurrentSignature->ui32SymanticValueType = *pui32Tokens++;
+        psCurrentSignature->ui32ComponentType = *pui32Tokens++;
+        psCurrentSignature->ui32Register = *pui32Tokens++;
+        psCurrentSignature->ui32Mask = *pui32Tokens++;
+
+        ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstSignatureToken+ui32SemanticNameOffset), psCurrentSignature->SymanticName);
+    }
 }
 
 static const uint32_t* ReadResourceBinding(const uint32_t* pui32FirstResourceToken, const uint32_t* pui32Tokens, ResourceBinding* psBinding)
