@@ -165,7 +165,7 @@ typedef enum
 
 // -----------------------------------------------
 
-    OPCODE_RESERVED0,
+    OPCODE_RESERVED_10,
     
 // ---------- DX 10.1 op codes---------------------
 
@@ -177,7 +177,7 @@ typedef enum
 // -----------------------------------------------
 
     // This should be 10.1's version of NUM_OPCODES
-    OPCODE_RESERVED1,
+    OPCODE_RESERVED_10_1,
 
 // ---------- DX 11 op codes---------------------
     OPCODE_HS_DECLS, // token marks beginning of HS sub-shader
@@ -282,6 +282,30 @@ typedef enum
     OPCODE_EVAL_CENTROID,
     
     OPCODE_DCL_GS_INSTANCE_COUNT,
+
+    OPCODE_ABORT,
+    OPCODE_DEBUG_BREAK,
+
+// -----------------------------------------------
+
+    // This marks the end of D3D11.0 opcodes
+    OPCODE_RESERVED_11,
+
+    OPCODE_DDIV,
+    OPCODE_DFMA,
+    OPCODE_DRCP,
+
+    OPCODE_MSAD,
+
+    OPCODE_DTOI,
+    OPCODE_DTOU,
+    OPCODE_ITOD,
+    OPCODE_UTOD,
+
+// -----------------------------------------------
+
+    // This marks the end of D3D11.1 opcodes
+    OPCODE_RESERVED_11_1,
 
     NUM_OPCODES,
     OPCODE_INVAILD = NUM_OPCODES,
@@ -708,6 +732,7 @@ typedef enum CUSTOMDATA_CLASS
     CUSTOMDATA_DEBUGINFO,
     CUSTOMDATA_OPAQUE,
     CUSTOMDATA_DCL_IMMEDIATE_CONSTANT_BUFFER,
+    CUSTOMDATA_SHADER_MESSAGE,
 } CUSTOMDATA_CLASS;
 
 static CUSTOMDATA_CLASS DecodeCustomDataClass(uint32_t ui32Token)
