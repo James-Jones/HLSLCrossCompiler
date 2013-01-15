@@ -542,12 +542,15 @@ static const uint32_t GLOBAL_FLAG_REFACTORING_ALLOWED = (1<<11);
 static const uint32_t GLOBAL_FLAG_ENABLE_DOUBLE_PRECISION_FLOAT_OPS = (1<<12);
 static const uint32_t GLOBAL_FLAG_FORCE_EARLY_DEPTH_STENCIL = (1<<13);
 static const uint32_t GLOBAL_FLAG_ENABLE_RAW_AND_STRUCTURED_BUFFERS = (1<<14);
+static const uint32_t GLOBAL_FLAG_SKIP_OPTIMIZATION = (1<<15);
+static const uint32_t GLOBAL_FLAG_ENABLE_MINIMUM_PRECISION = (1<<16);
+static const uint32_t GLOBAL_FLAG_ENABLE_DOUBLE_EXTENSIONS = (1<<17);
+static const uint32_t GLOBAL_FLAG_ENABLE_SHADER_EXTENSIONS = (1<<18);
 
 static uint32_t DecodeGlobalFlags(uint32_t ui32Token)
 {
 	return (uint32_t)(ui32Token & 0x00fff800);
 }
-
 
 typedef enum INTERPOLATION_MODE
 {
@@ -715,6 +718,21 @@ static CUSTOMDATA_CLASS DecodeCustomDataClass(uint32_t ui32Token)
 static uint32_t DecodeInstructionSaturate(uint32_t ui32Token)
 {
     return (ui32Token & 0x00002000) ? 1 : 0;
+}
+
+typedef enum OPERAND_MIN_PRECISION
+{
+    OPERAND_MIN_PRECISION_DEFAULT    = 0, // Default precision 
+                                            // for the shader model
+    OPERAND_MIN_PRECISION_FLOAT_16   = 1, // Min 16 bit/component float
+    OPERAND_MIN_PRECISION_FLOAT_2_8  = 2, // Min 10(2.8)bit/comp. float
+    OPERAND_MIN_PRECISION_SINT_16    = 4, // Min 16 bit/comp. signed integer
+    OPERAND_MIN_PRECISION_UINT_16    = 5, // Min 16 bit/comp. unsigned integer
+} OPERAND_MIN_PRECISION;
+
+static uint32_t DecodeOperandMinPrecision(uint32_t ui32Token)
+{
+    return (ui32Token & 0x0001C000) >> 14;
 }
 
 #endif

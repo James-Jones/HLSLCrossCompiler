@@ -9,6 +9,7 @@
 struct PS_INPUT
 {
     float4 TexC : TEXCOORD0;
+    min10float4 offset : COLOR0;
 };
 SamplerState TextureSampler
 {
@@ -24,7 +25,7 @@ float4 main( PS_INPUT input ) : SV_Target
 {
     min16float4 base = TextureBase.Sample(TextureSampler, input.TexC);
     min16float4 detail = TextureDetail.Sample(TextureSampler, input.TexC);
-    return base * detail;
+    return base * detail + input.offset;
 }
 
 

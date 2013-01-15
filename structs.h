@@ -12,6 +12,7 @@ typedef struct Operand_TAG
     int iExtended;
     OPERAND_TYPE eType;
     OPERAND_MODIFIER eModifier;
+    OPERAND_MIN_PRECISION eMinPrecision;
     int iIndexDims;
     int indexRepresentation[4];
     int writeMask;

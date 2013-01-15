@@ -188,6 +188,7 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
         if(DecodeExtendedOperandType(pui32Tokens[1]) == EXTENDED_OPERAND_MODIFIER)
         {
             psOperand->eModifier = DecodeExtendedOperandModifier(pui32Tokens[1]);
+            psOperand->eMinPrecision = DecodeOperandMinPrecision(pui32Tokens[1]);
         }
 
 	}
@@ -811,8 +812,10 @@ void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Inputs,
     psShader->psDecl = psDecl;
     psShader->ui32DeclCount = 0;
 
-    ReadInputSignatures(pui32Inputs, &psShader->sInfo);
-    ReadResources(pui32Resources, &psShader->sInfo);
+    if(pui32Inputs)
+        ReadInputSignatures(pui32Inputs, &psShader->sInfo);
+    if(pui32Resources)
+        ReadResources(pui32Resources, &psShader->sInfo);
 
     while(1) //Keep going until we reach the first non-declaration token, or the end of the shader.
     {
@@ -891,7 +894,7 @@ Shader* DecodeDXBC(uint32_t* data)
 			chunk->fourcc == FOURCC_SHEX)
 		{
             psShader = calloc(1, sizeof(Shader));
-			Decode((uint32_t*)(chunk + 1), (uint32_t*)(isgnChunk + 1), (uint32_t*)(rdefChunk + 1), psShader);
+			Decode((uint32_t*)(chunk + 1), isgnChunk ? ((uint32_t*)(isgnChunk + 1)) : NULL, rdefChunk ? ((uint32_t*)(rdefChunk + 1)) : NULL, psShader);
 			return psShader;
 		}
 	}

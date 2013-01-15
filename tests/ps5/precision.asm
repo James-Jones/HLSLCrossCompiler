@@ -22,6 +22,7 @@
 // Name                 Index   Mask Register SysValue  Format   Used
 // -------------------- ----- ------ -------- -------- ------- ------
 // TEXCOORD                 0   xyzw        0     NONE   float   xy  
+// COLOR                    0   xyzw        1     NONE min2_8f   xyzw
 //
 //
 // Output signature:
@@ -36,11 +37,12 @@ dcl_sampler s0, mode_default
 dcl_resource_texture2d (float,float,float,float) t0
 dcl_resource_texture2d (float,float,float,float) t1
 dcl_input_ps linear v0.xy
+dcl_input_ps linear v1.xyzw {min2_8f}
 dcl_output o0.xyzw
 dcl_temps 2
 sample_indexable(texture2d)(float,float,float,float) r0.xyzw, v0.xyxx, t0.xyzw, s0
 sample_indexable(texture2d)(float,float,float,float) r1.xyzw, v0.xyxx, t1.xyzw, s0
-mul r0.xyzw {min16f}, r0.xyzw {def32 as min16f}, r1.xyzw {def32 as min16f}
+mad r0.xyzw {min16f}, r0.xyzw {def32 as min16f}, r1.xyzw {def32 as min16f}, v1.xyzw {min2_8f as min16f}
 mov o0.xyzw, r0.xyzw {min16f as def32}
 ret 
 // Approximately 5 instruction slots used

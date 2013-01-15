@@ -290,20 +290,53 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             const Operand* psOperand = &psDecl->asOperands[0];
             int iNumComponents = 4;//GetMaxComponentFromComponentMask(psOperand);
 			const char* StorageQualifier = "varying";
+            const char* Precision = "";
 
 			if(InOutSupported(psContext->psShader->eTargetLanguage))
 			{
 				StorageQualifier = "in";
 			}
 
+            if(HavePrecisionQualifers(psShader->eTargetLanguage))
+            {
+                switch(psOperand->eMinPrecision)
+                {
+                    case OPERAND_MIN_PRECISION_DEFAULT:
+                    {
+                        Precision = "highp";
+                        break;
+                    }
+                    case OPERAND_MIN_PRECISION_FLOAT_16:
+                    {
+                        Precision = "mediump";
+                        break;
+                    }
+                    case OPERAND_MIN_PRECISION_FLOAT_2_8:
+                    {
+                        Precision = "lowp";
+                        break;
+                    }
+                    case OPERAND_MIN_PRECISION_SINT_16:
+                    {
+                        Precision = "mediump";
+                        break;
+                    }
+                    case OPERAND_MIN_PRECISION_UINT_16:
+                    {
+                        Precision = "mediump";
+                        break;
+                    }
+                }
+            }
+
             if(iNumComponents == 1)
             {
-                bformata(glsl, "%s float VtxGeoOutput%d;\n", StorageQualifier, psDecl->asOperands[0].ui32RegisterNumber);
+                bformata(glsl, "%s %s float VtxGeoOutput%d;\n", StorageQualifier, Precision, psDecl->asOperands[0].ui32RegisterNumber);
 				bformata(glsl, "vec1 Input%d = vec1(VtxGeoOutput%d);\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
             }
             else
             {
-                bformata(glsl, "%s vec%d VtxGeoOutput%d;\n", StorageQualifier, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+                bformata(glsl, "%s %s vec%d VtxGeoOutput%d;\n", StorageQualifier, Precision, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
 				bformata(glsl, "#define Input%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
             }
             
