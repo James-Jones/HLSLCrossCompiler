@@ -1,9 +1,7 @@
 #ifndef TOKENS_H
 #define TOKENS_H
 
-typedef unsigned long long uint64_t;
-typedef unsigned int uint32_t;
-typedef unsigned char uint8_t;
+#include "pstdint.h"
 
 typedef enum
 {
@@ -165,7 +163,7 @@ typedef enum
 
 // -----------------------------------------------
 
-    OPCODE_RESERVED0,
+    OPCODE_RESERVED_10,
     
 // ---------- DX 10.1 op codes---------------------
 
@@ -177,7 +175,7 @@ typedef enum
 // -----------------------------------------------
 
     // This should be 10.1's version of NUM_OPCODES
-    OPCODE_RESERVED1,
+    OPCODE_RESERVED_10_1,
 
 // ---------- DX 11 op codes---------------------
     OPCODE_HS_DECLS, // token marks beginning of HS sub-shader
@@ -282,6 +280,30 @@ typedef enum
     OPCODE_EVAL_CENTROID,
     
     OPCODE_DCL_GS_INSTANCE_COUNT,
+
+    OPCODE_ABORT,
+    OPCODE_DEBUG_BREAK,
+
+// -----------------------------------------------
+
+    // This marks the end of D3D11.0 opcodes
+    OPCODE_RESERVED_11,
+
+    OPCODE_DDIV,
+    OPCODE_DFMA,
+    OPCODE_DRCP,
+
+    OPCODE_MSAD,
+
+    OPCODE_DTOI,
+    OPCODE_DTOU,
+    OPCODE_ITOD,
+    OPCODE_UTOD,
+
+// -----------------------------------------------
+
+    // This marks the end of D3D11.1 opcodes
+    OPCODE_RESERVED_11_1,
 
     NUM_OPCODES,
     OPCODE_INVAILD = NUM_OPCODES,
@@ -542,12 +564,15 @@ static const uint32_t GLOBAL_FLAG_REFACTORING_ALLOWED = (1<<11);
 static const uint32_t GLOBAL_FLAG_ENABLE_DOUBLE_PRECISION_FLOAT_OPS = (1<<12);
 static const uint32_t GLOBAL_FLAG_FORCE_EARLY_DEPTH_STENCIL = (1<<13);
 static const uint32_t GLOBAL_FLAG_ENABLE_RAW_AND_STRUCTURED_BUFFERS = (1<<14);
+static const uint32_t GLOBAL_FLAG_SKIP_OPTIMIZATION = (1<<15);
+static const uint32_t GLOBAL_FLAG_ENABLE_MINIMUM_PRECISION = (1<<16);
+static const uint32_t GLOBAL_FLAG_ENABLE_DOUBLE_EXTENSIONS = (1<<17);
+static const uint32_t GLOBAL_FLAG_ENABLE_SHADER_EXTENSIONS = (1<<18);
 
 static uint32_t DecodeGlobalFlags(uint32_t ui32Token)
 {
 	return (uint32_t)(ui32Token & 0x00fff800);
 }
-
 
 typedef enum INTERPOLATION_MODE
 {
@@ -705,6 +730,7 @@ typedef enum CUSTOMDATA_CLASS
     CUSTOMDATA_DEBUGINFO,
     CUSTOMDATA_OPAQUE,
     CUSTOMDATA_DCL_IMMEDIATE_CONSTANT_BUFFER,
+    CUSTOMDATA_SHADER_MESSAGE,
 } CUSTOMDATA_CLASS;
 
 static CUSTOMDATA_CLASS DecodeCustomDataClass(uint32_t ui32Token)
@@ -715,6 +741,21 @@ static CUSTOMDATA_CLASS DecodeCustomDataClass(uint32_t ui32Token)
 static uint32_t DecodeInstructionSaturate(uint32_t ui32Token)
 {
     return (ui32Token & 0x00002000) ? 1 : 0;
+}
+
+typedef enum OPERAND_MIN_PRECISION
+{
+    OPERAND_MIN_PRECISION_DEFAULT    = 0, // Default precision 
+                                            // for the shader model
+    OPERAND_MIN_PRECISION_FLOAT_16   = 1, // Min 16 bit/component float
+    OPERAND_MIN_PRECISION_FLOAT_2_8  = 2, // Min 10(2.8)bit/comp. float
+    OPERAND_MIN_PRECISION_SINT_16    = 4, // Min 16 bit/comp. signed integer
+    OPERAND_MIN_PRECISION_UINT_16    = 5, // Min 16 bit/comp. unsigned integer
+} OPERAND_MIN_PRECISION;
+
+static uint32_t DecodeOperandMinPrecision(uint32_t ui32Token)
+{
+    return (ui32Token & 0x0001C000) >> 14;
 }
 
 #endif

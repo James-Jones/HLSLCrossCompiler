@@ -11,6 +11,7 @@ const uint32_t FOURCC_DXBC = FOURCC('D', 'X', 'B', 'C');
 const uint32_t FOURCC_SHDR = FOURCC('S', 'H', 'D', 'R');
 const uint32_t FOURCC_SHEX = FOURCC('S', 'H', 'E', 'X');
 const uint32_t FOURCC_RDEF = FOURCC('R', 'D', 'E', 'F');
+const uint32_t FOURCC_ISGN = FOURCC('I', 'S', 'G', 'N');
 
 typedef struct DXBCContainerHeaderTAG
 {
@@ -187,6 +188,7 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
         if(DecodeExtendedOperandType(pui32Tokens[1]) == EXTENDED_OPERAND_MODIFIER)
         {
             psOperand->eModifier = DecodeExtendedOperandModifier(pui32Tokens[1]);
+            psOperand->eMinPrecision = DecodeOperandMinPrecision(pui32Tokens[1]);
         }
 
 	}
@@ -1060,7 +1062,8 @@ const uint32_t* DecodeHullShader(const uint32_t* pui32Tokens, Shader* psShader)
 	return pui32CurrentToken;
 }
 
-void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Resources, Shader* psShader)
+void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Inputs,
+            const uint32_t* pui32Resources, Shader* psShader)
 {
 	const uint32_t* pui32CurrentToken = pui32Tokens;
     const uint32_t ui32ShaderLength = pui32Tokens[1];
@@ -1094,6 +1097,11 @@ void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Resources, Shader*
     psDecl = malloc(sizeof(Declaration) * ui32ShaderLength);
     psShader->psDecl = psDecl;
     psShader->ui32DeclCount = 0;
+
+    if(pui32Inputs)
+        ReadInputSignatures(pui32Inputs, &psShader->sInfo);
+    if(pui32Resources)
+        ReadResources(pui32Resources, &psShader->sInfo);
 
     while(1) //Keep going until we reach the first non-declaration token, or the end of the shader.
     {
@@ -1142,6 +1150,7 @@ Shader* DecodeDXBC(uint32_t* data)
 	uint32_t chunkCount;
 	uint32_t* chunkOffsets;
     DXBCChunkHeader* rdefChunk = 0;
+    DXBCChunkHeader* isgnChunk = 0;
 
 	if(header->fourcc != FOURCC_DXBC)
 	{
@@ -1158,6 +1167,10 @@ Shader* DecodeDXBC(uint32_t* data)
 
 		DXBCChunkHeader* chunk = (DXBCChunkHeader*)((char*)data + offset);
 
+        if(chunk->fourcc == FOURCC_ISGN)
+        {
+            isgnChunk = chunk;
+        }
         if(chunk->fourcc == FOURCC_RDEF)
         {
             rdefChunk = chunk;
@@ -1167,7 +1180,7 @@ Shader* DecodeDXBC(uint32_t* data)
 			chunk->fourcc == FOURCC_SHEX)
 		{
             psShader = calloc(1, sizeof(Shader));
-			Decode((uint32_t*)(chunk + 1), (uint32_t*)(rdefChunk + 1), psShader);
+			Decode((uint32_t*)(chunk + 1), isgnChunk ? ((uint32_t*)(isgnChunk + 1)) : NULL, rdefChunk ? ((uint32_t*)(rdefChunk + 1)) : NULL, psShader);
 			return psShader;
 		}
 	}

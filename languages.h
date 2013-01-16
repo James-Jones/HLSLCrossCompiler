@@ -37,11 +37,31 @@ static int WriteToFragData(GLLang eLang)
 
 static int ShaderBitEncodingSupported(GLLang eLang)
 {
-	if(eLang < LANG_330)
+	if(eLang != LANG_ES_300 && eLang < LANG_330)
 	{
 		return 0;
 	}
 	return 1;
+}
+
+static int HaveOverloadedTextureFuncs(GLLang eLang)
+{
+	if(eLang == LANG_ES_100 || eLang == LANG_120)
+	{
+		return 0;
+	}
+	return 1;
+}
+
+//Only enable for ES.
+//Not present in 120, ignored in other desktop languages.
+static int HavePrecisionQualifers(GLLang eLang)
+{
+	if(eLang == LANG_ES_100 || eLang == LANG_ES_300)
+	{
+		return 1;
+	}
+	return 0;
 }
 
 #endif

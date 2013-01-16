@@ -48,14 +48,16 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 	//Enable conservative depth if the extension is defined by the GLSL compiler.
 	bcatcstr(glsl,"#ifdef GL_ARB_conservative_depth\n\t#extension GL_ARB_conservative_depth : enable\n#endif\n");
 
-    if(psContext->flags & HLSLCC_FLAG_ORIGIN_UPPER_LEFT)
+    if((psContext->flags & HLSLCC_FLAG_ORIGIN_UPPER_LEFT)
+        && (psContext->psShader->eTargetLanguage >= LANG_150))
     {
-        bcatcstr(glsl,"#if __VERSION__ >= 150\n layout(origin_upper_left) in vec4 gl_FragCoord; \n#endif\n");
+        bcatcstr(glsl,"layout(origin_upper_left) in vec4 gl_FragCoord;\n");
     }
 
-    if(psContext->flags & HLSLCC_FLAG_PIXEL_CENTER_INTEGER)
+    if((psContext->flags & HLSLCC_FLAG_PIXEL_CENTER_INTEGER)
+        && (psContext->psShader->eTargetLanguage >= LANG_150))
     {
-        bcatcstr(glsl,"#if __VERSION__ >= 150\n layout(pixel_center_integer) in vec4 gl_FragCoord; \n#endif\n");
+        bcatcstr(glsl,"layout(pixel_center_integer) in vec4 gl_FragCoord;\n");
     }
 
     /* For versions which do not support a vec1 (currently all versions) */
@@ -68,32 +70,56 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
         To use any built-in input or output in the gl_PerVertex block in separable
         program objects, shader code must redeclare that block prior to use.
     */
-    if(psContext->psShader->eShaderType == VERTEX_SHADER)
+    if(psContext->psShader->eShaderType == VERTEX_SHADER && psContext->psShader->eTargetLanguage >= LANG_410)
     {
-        bcatcstr(glsl, "#if __VERSION__ >= 410\n");
-            bcatcstr(glsl, "\tout gl_PerVertex {\n");
-            bcatcstr(glsl, "\tvec4 gl_Position;\n");
-            bcatcstr(glsl, "\tfloat gl_PointSize;\n");
-            bcatcstr(glsl, "\tfloat gl_ClipDistance[];");
-            bcatcstr(glsl, "};\n");
-        bcatcstr(glsl, "#endif \n");
+        bcatcstr(glsl, "out gl_PerVertex {\n");
+        bcatcstr(glsl, "vec4 gl_Position;\n");
+        bcatcstr(glsl, "float gl_PointSize;\n");
+        bcatcstr(glsl, "float gl_ClipDistance[];");
+        bcatcstr(glsl, "};\n");
     }
 
-    /* After GLSL 120 and GLSL ES 100 texture function have overloaded parameters */
-    bcatcstr(glsl, "#if __VERSION__ > 120 \n");
-        bcatcstr(glsl, "\t#define shadow2DLod textureLod\n");
-        bcatcstr(glsl, "\t#define shadow1DLod textureLod\n");
-        bcatcstr(glsl, "\t#define shadow2D texture\n");
-        bcatcstr(glsl, "\t#define shadow1D texture\n");
-        bcatcstr(glsl, "\t#define texture3DLod textureLod\n");
-        bcatcstr(glsl, "\t#define texture2DLod textureLod\n");
-        bcatcstr(glsl, "\t#define texture1DLod textureLod\n");
-        bcatcstr(glsl, "\t#define textureCubeLod textureLod\n");
-        bcatcstr(glsl, "\t#define texture3D texture\n");
-        bcatcstr(glsl, "\t#define texture2D texture\n");
-        bcatcstr(glsl, "\t#define texture1D texture\n");
-        bcatcstr(glsl, "\t#define textureCube texture\n");
-    bcatcstr(glsl, "#endif \n");
+    /* Texture functions have overloaded parameters */
+    if(HaveOverloadedTextureFuncs(psContext->psShader->eTargetLanguage))
+    {
+        bcatcstr(glsl, "#define shadow2DLod textureLod\n");
+        bcatcstr(glsl, "#define shadow1DLod textureLod\n");
+        bcatcstr(glsl, "#define shadow2D texture\n");
+        bcatcstr(glsl, "#define shadow1D texture\n");
+        bcatcstr(glsl, "#define texture3DLod textureLod\n");
+        bcatcstr(glsl, "#define texture2DLod textureLod\n");
+        bcatcstr(glsl, "#define texture1DLod textureLod\n");
+        bcatcstr(glsl, "#define textureCubeLod textureLod\n");
+        bcatcstr(glsl, "#define texture3D texture\n");
+        bcatcstr(glsl, "#define texture2D texture\n");
+        bcatcstr(glsl, "#define texture1D texture\n");
+        bcatcstr(glsl, "#define textureCube texture\n");
+    }
+
+    //The fragment language has no default precision qualifier for floating point types.
+    if(psContext->psShader->eShaderType == PIXEL_SHADER &&
+        psContext->psShader->eTargetLanguage == LANG_ES_100 || psContext->psShader->eTargetLanguage == LANG_ES_300 )
+    {
+        bcatcstr(glsl,"precision highp float;\n");
+    }
+
+    /* There is no default precision qualifier for the following sampler types in either the vertex or fragment language: */
+    if(psContext->psShader->eTargetLanguage == LANG_ES_300 )
+    {
+        bcatcstr(glsl,"precision lowp sampler3D;\n");
+        bcatcstr(glsl,"precision lowp samplerCubeShadow;\n");
+        bcatcstr(glsl,"precision lowp sampler2DShadow;\n");
+        bcatcstr(glsl,"precision lowp sampler2DArray;\n");
+        bcatcstr(glsl,"precision lowp sampler2DArrayShadow;\n");
+        bcatcstr(glsl,"precision lowp isampler2D;\n");
+        bcatcstr(glsl,"precision lowp isampler3D;\n");
+        bcatcstr(glsl,"precision lowp isamplerCube;\n");
+        bcatcstr(glsl,"precision lowp isampler2DArray;\n");
+        bcatcstr(glsl,"precision lowp usampler2D;\n");
+        bcatcstr(glsl,"precision lowp usampler3D;\n");
+        bcatcstr(glsl,"precision lowp usamplerCube;\n");
+        bcatcstr(glsl,"precision lowp usampler2DArray;\n");
+    }
 }
 
 void AddOpcodeFuncs(HLSLCrossCompilerContext* psContext)
@@ -455,6 +481,7 @@ int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language
 
         free(psShader->psDecl);
         free(psShader->psInst);
+        FreeShaderInfo(&psShader->sInfo);
         free(psShader);
 
 		success = 1;
