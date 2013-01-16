@@ -12,6 +12,7 @@ typedef struct Operand_TAG
     int iExtended;
     OPERAND_TYPE eType;
     OPERAND_MODIFIER eModifier;
+    OPERAND_MIN_PRECISION eMinPrecision;
     int iIndexDims;
     int indexRepresentation[4];
     int writeMask;
@@ -50,7 +51,7 @@ typedef struct Instruction_TAG
     INSTRUCTION_TEST_BOOLEAN eBooleanTestType;
     uint32_t ui32SyncFlags;
     uint32_t ui32NumOperands;
-    Operand asOperands[4];
+    Operand asOperands[5];
     uint32_t ui32FunctionIDToCall;
     uint32_t bSaturate;
 
@@ -91,7 +92,10 @@ typedef struct Declaration_TAG
         TESSELLATOR_PARTITIONING eTessPartitioning;
         TESSELLATOR_OUTPUT_PRIMITIVE eTessOutPrim;
         uint32_t aui32WorkGroupSize[3];
-        uint32_t ui32HullPhaseInstanceCount;
+        //Fork phase index followed by the instance count.
+        uint32_t aui32HullPhaseInstanceInfo[2];
+        float fMaxTessFactor;
+        uint32_t ui32IndexRange;
 
         struct Interface_TAG
         {
@@ -110,6 +114,8 @@ typedef struct Declaration_TAG
 //FIXME decide the best value.
 static enum {MAX_SHADER_VEC4_OUTPUT = 512};
 static enum {MAX_SHADER_VEC4_INPUT = 512};
+static enum {MAX_TEXTURES = 128};
+static enum {MAX_FORK_PHASES = 2};
 
 typedef struct Shader_TAG
 {
@@ -132,11 +138,42 @@ typedef struct Shader_TAG
     uint32_t ui32InstCount;
     Instruction* psInst;
 
+    const uint32_t* pui32FirstToken;//Reference for calculating current position in token stream.
+
+	//Hull shader declarations and instructions.
+	//psDecl, psInst are null for hull shaders.
+	uint32_t ui32HSDeclCount;
+	Declaration* psHSDecl;
+
+	uint32_t ui32HSControlPointDeclCount;
+	Declaration* psHSControlPointPhaseDecl;
+
+	uint32_t ui32HSControlPointInstrCount;
+	Instruction* psHSControlPointPhaseInstr;
+
+    uint32_t ui32ForkPhaseCount;
+
+	uint32_t aui32HSForkDeclCount[MAX_FORK_PHASES];
+	Declaration* apsHSForkPhaseDecl[MAX_FORK_PHASES];
+
+	uint32_t aui32HSForkInstrCount[MAX_FORK_PHASES];
+	Instruction* apsHSForkPhaseInstr[MAX_FORK_PHASES];
+
+	uint32_t ui32HSJoinDeclCount;
+	Declaration* psHSJoinPhaseDecl;
+
+	uint32_t ui32HSJoinInstrCount;
+	Instruction* psHSJoinPhaseInstr;
+
     ShaderInfo sInfo;
 
 	int abIntegerOutput[MAX_SHADER_VEC4_OUTPUT];
 	int abScalarOutput[MAX_SHADER_VEC4_OUTPUT];
 	int abScalarInput[MAX_SHADER_VEC4_INPUT];
+
+    int aIndexedOutput[MAX_SHADER_VEC4_OUTPUT];
+
+    RESOURCE_DIMENSION aeResourceDims[MAX_TEXTURES];
 
 	int aiOpcodeUsed[NUM_OPCODES];
 

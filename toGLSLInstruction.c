@@ -2,9 +2,7 @@
 #include "toGLSLOperand.h"
 #include "bstrlib.h"
 #include "stdio.h"
-
-#include <assert.h>
-#define ASSERT(x) assert(x)
+#include "debug.h"
 
 extern void AddIndentation(HLSLCrossCompilerContext* psContext);
 
@@ -753,67 +751,260 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_SAMPLE:
         {
             //dest, coords, tex, sampler
+            const char* funcName = "";
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//SAMPLE\n");
 #endif
-            AddIndentation(psContext);//1=temp??
-            TranslateOperand(psContext, &psInst->asOperands[0]);//??
-            bcatcstr(glsl, " = texture2D(");
 
+            ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
+            switch(psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber])
+            {
+                case RESOURCE_DIMENSION_TEXTURE1D:
+                {
+                    funcName = "texture1D";
+                    //Vec1 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[1] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2D:
+                {
+                    funcName = "texture2D";
+                    //Vec2 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURECUBE:
+                {
+                    funcName = "textureCube";
+                    //Vec2 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE3D:
+                {
+                    funcName = "texture3D";
+                    //Vec3 texcoord. Mask out the other component.
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+                {
+                    funcName = "texture";
+                    //Vec2 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+                {
+                    funcName = "texture";
+                    //Vec3 texcoord. Mask out the other component.
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+                {
+                    funcName = "texture";
+                    break;
+                }
+                default:
+                {
+                    ASSERT(0);
+                    break;
+                }
+            }
+
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bformata(glsl, " = %s(", funcName);
             TranslateOperand(psContext, &psInst->asOperands[2]);//resource
             bcatcstr(glsl, ", ");
-            //Texture coord cannot be vec4
-            //Determining if it is a vec3 for vec2 yet to be done.
-            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-            TranslateOperand(psContext, &psInst->asOperands[1]);//in
+            TranslateOperand(psContext, &psInst->asOperands[1]);//texcoord
             bcatcstr(glsl, ");\n");
+
             break;
         }
         case OPCODE_SAMPLE_L:
         {
             //dest, coords, tex, sampler, lod
-
-			
-
+            const char* funcName = "";
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//SAMPLE_L\n");
 #endif
-            //Texture coord cannot be vec4
-            //Determining if it is a vec3 for vec2 yet to be done.
-            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-			CallHelper3(psContext, "texture2DLod", psInst, 0, 2, 1, 4);
+
+            ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
+            switch(psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber])
+            {
+                case RESOURCE_DIMENSION_TEXTURE1D:
+                {
+                    funcName = "texture1DLod";
+                    //Vec1 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[1] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2D:
+                {
+                    funcName = "texture2DLod";
+                    //Vec2 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURECUBE:
+                {
+                    funcName = "textureCubeLod";
+                    //Vec2 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE3D:
+                {
+                    funcName = "texture3DLod";
+                    //Vec3 texcoord. Mask out the other component.
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+                {
+                    funcName = "textureLod";
+                    //Vec2 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+                {
+                    funcName = "textureLod";
+                    //Vec3 texcoord. Mask out the other component.
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+                {
+                    funcName = "textureLod";
+                    break;
+                }
+                default:
+                {
+                    ASSERT(0);
+                    break;
+                }
+            }
+
+			CallHelper3(psContext, funcName, psInst, 0, 2, 1, 4);
             break;
         }
 		case OPCODE_SAMPLE_C:
 		{
-#ifdef _DEBUG
-            AddIndentation(psContext);
-            bcatcstr(glsl, "//SAMPLE_C\n");
-#endif
-
 			//For non-cubeMap Arrays the reference value comes from the
 			//texture coord vector in GLSL. For cubmap arrays there is a
 			//separate parameter.
 			//It is always separate paramter in HLSL.
 
-            //Texture coord cannot be vec4
-            //Determining if it is a vec3 for vec2 yet to be done.
-            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+            const char* funcName = "";
+            const char* coordType = "";
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//SAMPLE_C\n");
+#endif
+            ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
+            switch(psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber])
+            {
+                case RESOURCE_DIMENSION_TEXTURE1D:
+                {
+                    funcName = "shadow1D";
+                    coordType = "vec2";
+                    //Vec1 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[1] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2D:
+                {
+                    funcName = "shadow2D";
+                    coordType = "vec3";
+                    //Vec2 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURECUBE:
+                {
+                    funcName = "texture";
+                    coordType = "vec3";
+                    //Vec2 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE3D:
+                {
+                    funcName = "texture";
+                    coordType = "vec4";
+                    //Vec3 texcoord. Mask out the other component.
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+                {
+                    funcName = "texture";
+                    coordType = "vec3";
+                    //Vec2 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+                {
+                    funcName = "texture";
+                    coordType = "vec4";
+                    //Vec3 texcoord. Mask out the other component.
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+                {
+                    //Special. Reference is a separate argument.
+			        AddIndentation(psContext);
+			        TranslateOperand(psContext, &psInst->asOperands[0]);
+			        bcatcstr(glsl, " = vec4(");
+			        bcatcstr(glsl, "texture(");
+			        TranslateOperand(psContext, &psInst->asOperands[2]);
+			        bcatcstr(glsl, ",");
+			        TranslateOperand(psContext, &psInst->asOperands[1]);
+			        bcatcstr(glsl, ",");
+			        //.z = reference.
+			        TranslateOperand(psContext, &psInst->asOperands[4]);
+			        bcatcstr(glsl, "))");
+			        AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+			        bcatcstr(glsl, ";\n");
+                }
+                default:
+                {
+                    ASSERT(0);
+                    break;
+                }
+            }
 
 			AddIndentation(psContext);
 			TranslateOperand(psContext, &psInst->asOperands[0]);
 			bcatcstr(glsl, " = vec4(");
-			bcatcstr(glsl, "texture2D(");
+			bformata(glsl, "%s(", funcName);
 			TranslateOperand(psContext, &psInst->asOperands[2]);
-			bcatcstr(glsl, ", vec3(");
+			bformata(glsl, ", %s(", coordType);
 			TranslateOperand(psContext, &psInst->asOperands[1]);
 			bcatcstr(glsl, ",");
-			//.z = reference. TODO - this only handles 2D textures at the moment.
+			//.z = reference.
 			TranslateOperand(psContext, &psInst->asOperands[4]);
 			bcatcstr(glsl, ")))");
 			AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
@@ -823,36 +1014,113 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		}
 		case OPCODE_SAMPLE_C_LZ:
 		{
-#ifdef _DEBUG
-            AddIndentation(psContext);
-            bcatcstr(glsl, "//SAMPLE_C_LZ\n");
-#endif
-
 			//For non-cubeMap Arrays the reference value comes from the
 			//texture coord vector in GLSL. For cubmap arrays there is a
 			//separate parameter.
 			//It is always separate paramter in HLSL.
 
-            //Texture coord cannot be vec4
-            //Determining if it is a vec3 for vec2 yet to be done.
-            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+            const char* funcName = "";
+            const char* coordType = "";
+
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//SAMPLE_C_LZ\n");
+#endif
+
+            ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
+            switch(psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber])
+            {
+                case RESOURCE_DIMENSION_TEXTURE1D:
+                {
+                    funcName = "shadow1DLod";
+                    coordType = "vec2";
+                    //Vec1 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[1] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2D:
+                {
+                    funcName = "shadow2DLod";
+                    coordType = "vec3";
+                    //Vec2 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURECUBE:
+                {
+                    funcName = "textureLod";
+                    coordType = "vec3";
+                    //Vec2 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE3D:
+                {
+                    funcName = "textureLod";
+                    coordType = "vec4";
+                    //Vec3 texcoord. Mask out the other component.
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+                {
+                    funcName = "textureLod";
+                    coordType = "vec3";
+                    //Vec2 texcoord. Mask out the other components.
+                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+                {
+                    funcName = "textureLod";
+                    coordType = "vec4";
+                    //Vec3 texcoord. Mask out the other component.
+                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+                {
+                    //Special. Reference is a separate argument.
+			        AddIndentation(psContext);
+			        TranslateOperand(psContext, &psInst->asOperands[0]);
+			        bcatcstr(glsl, " = vec4(");
+			        bcatcstr(glsl, "textureLod(");
+			        TranslateOperand(psContext, &psInst->asOperands[2]);
+			        bcatcstr(glsl, ",");
+			        TranslateOperand(psContext, &psInst->asOperands[1]);
+			        bcatcstr(glsl, ",");
+			        //.z = reference.
+			        TranslateOperand(psContext, &psInst->asOperands[4]);
+			        bcatcstr(glsl, ", 0))");
+			        AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+			        bcatcstr(glsl, ";\n");
+                }
+                default:
+                {
+                    ASSERT(0);
+                    break;
+                }
+            }
 
 			AddIndentation(psContext);
 			TranslateOperand(psContext, &psInst->asOperands[0]);
 			bcatcstr(glsl, " = vec4(");
-			bcatcstr(glsl, "texture2DLod(");
+			bformata(glsl, "%s(", funcName);
 			TranslateOperand(psContext, &psInst->asOperands[2]);
-			bcatcstr(glsl, ", vec3(");
+			bformata(glsl, ", %s(", coordType);
 			TranslateOperand(psContext, &psInst->asOperands[1]);
 			bcatcstr(glsl, ",");
-			//.z = reference. TODO - this only handles 2D textures at the moment.
+			//.z = reference.
 			TranslateOperand(psContext, &psInst->asOperands[4]);
 			bcatcstr(glsl, ")");
 			bcatcstr(glsl, ", 0))");
 			AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
 			bcatcstr(glsl, ";\n");
-
 			break;
 		}
 		case OPCODE_RET:

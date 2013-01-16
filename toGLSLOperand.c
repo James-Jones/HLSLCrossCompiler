@@ -1,9 +1,7 @@
 #include "toGLSLOperand.h"
 #include "bstrlib.h"
 #include "toGLSL.h"
-
-#include <assert.h>
-#define ASSERT(x) assert(x)
+#include "debug.h"
 
 #include <float.h>
 
@@ -631,6 +629,11 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 			bcatcstr(glsl, "//null");
 			break;
 		}
+        case OPERAND_TYPE_OUTPUT_CONTROL_POINT_ID:
+        {
+            bcatcstr(glsl, "gl_InvocationID");
+            break;
+        }
 		case OPERAND_TYPE_INPUT_THREAD_ID://SV_DispatchThreadID
 		{
 			bcatcstr(glsl, "gl_GlobalInvocationID");

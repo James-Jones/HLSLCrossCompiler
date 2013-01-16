@@ -4,6 +4,18 @@
 #include "tokens.h"
 #include "bstrlib.h"
 
+#define MAX_REFLECT_STRING_LENGTH 512
+
+typedef struct InOutSignature_TAG
+{
+    char SymanticName[MAX_REFLECT_STRING_LENGTH];
+    uint32_t ui32SymanticIndex;
+    uint32_t ui32SymanticValueType;
+    uint32_t ui32ComponentType;
+    uint32_t ui32Register;
+    uint32_t ui32Mask;
+} InOutSignature;
+
 typedef enum ResourceType_TAG
 {
     RTYPE_CBUFFER,//0
@@ -20,11 +32,9 @@ typedef enum ResourceType_TAG
     RTYPE_UAV_RWSTRUCTURED_WITH_COUNTER,//11
 } ResourceType;
 
-#define MAX_RESOURCE_BINDING_NAME_LENGTH 512
-
 typedef struct ResourceBinding_TAG
 {
-    char Name[MAX_RESOURCE_BINDING_NAME_LENGTH];
+    char Name[MAX_REFLECT_STRING_LENGTH];
     ResourceType eType;
     uint32_t ui32BindPoint;
     uint32_t ui32BindCount;
@@ -36,14 +46,22 @@ typedef struct ResourceBinding_TAG
 
 typedef struct ShaderInfo_TAG
 {
+    uint32_t ui32NumInputSignatures;
+    InOutSignature* psInputSignatures;
+
     uint32_t ui32NumResourceBindings;
     ResourceBinding* psResourceBindings;
 } ShaderInfo;
+
+void ReadInputSignatures(const uint32_t* pui32Tokens,
+                        ShaderInfo* psShaderInfo);
 
 void ReadResources(const uint32_t* pui32Tokens,//in
                    ShaderInfo* psShaderInfo);//out
 
 int GetResourceFromBindingPoint(ResourceType eType, uint32_t ui32BindPoint, ShaderInfo* psShaderInfo, ResourceBinding** ppsOutBinding);
+
+void FreeShaderInfo(ShaderInfo* psShaderInfo);
 
 #if 0
 //--- Utility functions ---
