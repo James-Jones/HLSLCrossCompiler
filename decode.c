@@ -675,6 +675,19 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 
         //Instructions with two operands go here
         case OPCODE_MOV:
+        {
+            psInst->ui32NumOperands = 2;
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
+
+            //Mov with an integer dest. If src is an immediate then it must be encoded as an integer.
+            if(psInst->asOperands[0].eMinPrecision == OPERAND_MIN_PRECISION_SINT_16 ||
+                psInst->asOperands[0].eMinPrecision == OPERAND_MIN_PRECISION_UINT_16)
+            {
+                psInst->asOperands[1].iIntegerImmediate = 1;
+            }
+            break;
+        }
 		case OPCODE_LOG:
 		case OPCODE_RSQ:
 		case OPCODE_EXP:
