@@ -55,6 +55,7 @@ typedef struct ConstantBuffer_TAG
 {
     char Name[MAX_REFLECT_STRING_LENGTH];
 
+    uint32_t ui32NumVars;
     ShaderVar asVars [MAX_SHADER_VARS];
 } ConstantBuffer;
 

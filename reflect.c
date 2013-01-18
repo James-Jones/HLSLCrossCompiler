@@ -81,6 +81,8 @@ static const uint32_t* ReadConstantBuffer(const uint32_t* pui32FirstConstBufToke
 
     ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstConstBufToken+ui32NameOffset), psBuffer->Name);
 
+    psBuffer->ui32NumVars = ui32VarCount;
+
     for(i=0; i<ui32VarCount; ++i)
     {
         ShaderVar * const psVar = &psBuffer->asVars[i];
@@ -191,9 +193,11 @@ void FreeShaderInfo(ShaderInfo* psShaderInfo)
 {
     free(psShaderInfo->psInputSignatures);
     free(psShaderInfo->psResourceBindings);
+    free(psShaderInfo->psConstantBuffers);
 
     psShaderInfo->ui32NumInputSignatures = 0;
     psShaderInfo->ui32NumResourceBindings = 0;
+    psShaderInfo->ui32NumConstantBuffers = 0;
 }
 
 #if 0
