@@ -71,34 +71,99 @@ static const uint32_t* ReadResourceBinding(const uint32_t* pui32FirstResourceTok
     return pui32Tokens;
 }
 
+static const uint32_t* ReadConstantBuffer(const uint32_t* pui32FirstConstBufToken, const uint32_t* pui32Tokens, ConstantBuffer* psBuffer)
+{
+    uint32_t i;
+    uint32_t ui32NameOffset = *pui32Tokens++;    
+    uint32_t ui32VarCount = *pui32Tokens++;
+    uint32_t ui32VarOffset = *pui32Tokens++;
+    const uint32_t* pui32VarToken = (const uint32_t*)((const char*)pui32FirstConstBufToken+ui32VarOffset);
+
+    ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstConstBufToken+ui32NameOffset), psBuffer->Name);
+
+    for(i=0; i<ui32VarCount; ++i)
+    {
+        ShaderVar * const psVar = &psBuffer->asVars[i];
+
+        uint32_t ui32StartOffset;
+        uint32_t ui32Size;
+        uint32_t ui32Flags;
+        uint32_t ui32TypeOffset;
+        uint32_t ui32DefaultValueOffset;
+
+        ui32NameOffset = *pui32VarToken++;
+
+        ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstConstBufToken+ui32NameOffset), psVar->Name);
+
+        ui32StartOffset = *pui32VarToken++;
+        ui32Size = *pui32VarToken++;
+        ui32Flags = *pui32VarToken++;
+        ui32TypeOffset = *pui32VarToken++;
+
+        ui32DefaultValueOffset = *pui32VarToken++;
+
+        if(ui32DefaultValueOffset)
+        {
+            if(ui32Size == 4)
+            {
+                const uint32_t* DefaultValToken = (const uint32_t*)((const char*)pui32FirstConstBufToken+ui32DefaultValueOffset);
+
+                psVar->ui32DefaultValue = *DefaultValToken;
+            }
+        }
+    }
+
+    {
+        uint32_t ui32Size = *pui32Tokens++;
+        uint32_t ui32Flags = *pui32Tokens++;
+        uint32_t ui32BufferType = *pui32Tokens++;
+    }
+
+    return pui32Tokens;
+}
+
 void ReadResources(const uint32_t* pui32Tokens,//in
                    ShaderInfo* psShaderInfo)//out
 {
-    ResourceBinding* psBindings;
+    ResourceBinding* psResBindings;
+    ConstantBuffer* psConstantBuffers;
     const uint32_t* pui32ConstantBuffers;
     const uint32_t* pui32ResourceBindings;
     const uint32_t* pui32FirstToken = pui32Tokens;
     uint32_t i;
 
-    uint32_t ui32NumConstantBuffers = *pui32Tokens++;
-    uint32_t ui32ConstantBufferOffset = *pui32Tokens++;
+    const uint32_t ui32NumConstantBuffers = *pui32Tokens++;
+    const uint32_t ui32ConstantBufferOffset = *pui32Tokens++;
 
     uint32_t ui32NumResourceBindings = *pui32Tokens++;
     uint32_t ui32ResourceBindingOffset = *pui32Tokens++;
     uint32_t ui32ShaderModel = *pui32Tokens++;
     uint32_t ui32CompileFlags = *pui32Tokens++;//D3DCompile flags? http://msdn.microsoft.com/en-us/library/gg615083(v=vs.85).aspx
 
-    pui32ConstantBuffers = (const uint32_t*)((const char*)pui32FirstToken + ui32ConstantBufferOffset);
+    //Resources
     pui32ResourceBindings = (const uint32_t*)((const char*)pui32FirstToken + ui32ResourceBindingOffset);
 
-    psBindings = malloc(sizeof(ResourceBinding)*ui32NumResourceBindings);
+    psResBindings = malloc(sizeof(ResourceBinding)*ui32NumResourceBindings);
 
     psShaderInfo->ui32NumResourceBindings = ui32NumResourceBindings;
-    psShaderInfo->psResourceBindings = psBindings;
+    psShaderInfo->psResourceBindings = psResBindings;
 
     for(i=0; i < ui32NumResourceBindings; ++i)
     {
-        pui32ResourceBindings = ReadResourceBinding(pui32FirstToken, pui32ResourceBindings, psBindings+i);
+        pui32ResourceBindings = ReadResourceBinding(pui32FirstToken, pui32ResourceBindings, psResBindings+i);
+    }
+
+    //Constant buffers
+    pui32ConstantBuffers = (const uint32_t*)((const char*)pui32FirstToken + ui32ConstantBufferOffset);
+
+    psConstantBuffers = malloc(sizeof(ConstantBuffer) * ui32NumConstantBuffers);
+
+    psShaderInfo->ui32NumConstantBuffers = ui32NumConstantBuffers;
+    psShaderInfo->psConstantBuffers = psConstantBuffers;
+
+    for(i=0; i < ui32NumConstantBuffers; ++i)
+    {
+        pui32ConstantBuffers = ReadConstantBuffer(pui32FirstToken, pui32ConstantBuffers, psConstantBuffers+i);
     }
 }
 

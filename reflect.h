@@ -5,6 +5,7 @@
 #include "bstrlib.h"
 
 #define MAX_REFLECT_STRING_LENGTH 512
+#define MAX_SHADER_VARS 256
 
 typedef struct InOutSignature_TAG
 {
@@ -44,6 +45,19 @@ typedef struct ResourceBinding_TAG
     uint32_t ui32NumSamples;
 } ResourceBinding;
 
+typedef struct ShaderVar_TAG
+{
+    char Name[MAX_REFLECT_STRING_LENGTH];
+    uint32_t ui32DefaultValue;
+} ShaderVar;
+
+typedef struct ConstantBuffer_TAG
+{
+    char Name[MAX_REFLECT_STRING_LENGTH];
+
+    ShaderVar asVars [MAX_SHADER_VARS];
+} ConstantBuffer;
+
 typedef struct ShaderInfo_TAG
 {
     uint32_t ui32NumInputSignatures;
@@ -51,6 +65,9 @@ typedef struct ShaderInfo_TAG
 
     uint32_t ui32NumResourceBindings;
     ResourceBinding* psResourceBindings;
+
+    uint32_t ui32NumConstantBuffers;
+    ConstantBuffer* psConstantBuffers;
 } ShaderInfo;
 
 void ReadInputSignatures(const uint32_t* pui32Tokens,
