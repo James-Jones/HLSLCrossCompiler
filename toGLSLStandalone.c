@@ -5,10 +5,6 @@
 #include "stdio.h"
 #include "bstrlib.h"
 
-typedef unsigned long long uint64_t;
-typedef unsigned int uint32_t;
-typedef unsigned char uint8_t;
-
 #define VALIDATE_OUTPUT
 
 #if defined(VALIDATE_OUTPUT) && defined(_WIN32)

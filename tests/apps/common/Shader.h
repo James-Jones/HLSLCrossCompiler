@@ -3,11 +3,10 @@
 
 extern "C" {
 #include "toGLSL.h"
-#include "languages.h"
 }
 
 #include <string>
-#include <pstdint.h>
+#include "pstdint.h"
 typedef unsigned int uint_t;
 
 #include <vectormath_aos.h>
@@ -30,9 +29,6 @@ public:
     }
 
     void FromByteFile(std::string& path);
-    void FromVertexByteFile(std::string& path);
-    void FromPixelByteFile(std::string& path);
-	void FromGeometryByteFile(std::string& path);
 
     void Enable();
 
@@ -52,6 +48,12 @@ public:
     uint_t GS() const {
         return mGeometry;
     }
+    uint_t HS() const {
+        return mHull;
+    }
+    uint_t DS() const {
+        return mDomain;
+    }
     uint_t Language() const {
         return mLang;
     }
@@ -68,6 +70,8 @@ private:
     uint_t mVertex;
     uint_t mPixel;
 	uint_t mGeometry;
+    uint_t mHull;
+    uint_t mDomain;
 };
 
 static void SetFloatArray(Vectormath::Aos::Vector4& vec, float* farray)

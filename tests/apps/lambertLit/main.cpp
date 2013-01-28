@@ -5,10 +5,9 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
-#include <toGLSL.h>
 #include <Shader.h>
 #include <vectormath_aos.h>
-#include <debug.h>
+#include "common/debug.h"
 
 struct SimpleVertex
 {
@@ -172,12 +171,12 @@ void Init(int argc, char** argv)
     glEnableVertexAttribArray(1);
 
     mLambertLitEffect.Create();
-    mLambertLitEffect.FromVertexByteFile(std::string("shaders/LambertLitVS.o"));
-    mLambertLitEffect.FromPixelByteFile(std::string("shaders/LambertLitPS.o"));
+    mLambertLitEffect.FromByteFile(std::string("shaders/LambertLitVS.o"));
+    mLambertLitEffect.FromByteFile(std::string("shaders/LambertLitPS.o"));
 
     mSolidColour.Create();
-    mSolidColour.FromVertexByteFile(std::string("shaders/LambertLitVS.o"));
-    mSolidColour.FromPixelByteFile(std::string("shaders/LambertLitSolidPS.o"));
+    mSolidColour.FromByteFile(std::string("shaders/LambertLitVS.o"));
+    mSolidColour.FromByteFile(std::string("shaders/LambertLitSolidPS.o"));
 
     gWorld = Matrix4::identity();
 

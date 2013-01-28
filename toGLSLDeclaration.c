@@ -512,6 +512,34 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                     break;
                 }
             }
+
+#if CBUFFER_USE_STRUCT_AND_NAMES
+            {
+                ConstantBuffer* psCBuf = NULL;
+                uint32_t ui32Member = 0;
+                char* pszContBuffName;
+                GetConstantBufferFromBindingPoint(psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
+
+                pszContBuffName = psCBuf->Name;
+                
+                if(psCBuf->Name[0] == '$')//$Global or $Param
+                    pszContBuffName++;
+
+                if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
+                    bformata(glsl, "uniform %s%s_TAG {\n", pszContBuffName, StageName);
+
+                bformata(glsl, "uniform struct %s%s_TAG {\n", pszContBuffName, StageName);
+                
+                for(ui32Member=0; ui32Member < psCBuf->ui32NumVars; ++ui32Member)
+                {
+                    ShaderVar* psVar = &psCBuf->asVars[ui32Member];
+
+                    bformata(glsl, "\t vec4 %s;\n", psVar->Name);
+                }
+
+                bformata(glsl, "} %s%s;\n", pszContBuffName, StageName);
+            }
+#else
             if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
             {
 				ResourceBinding* psBinding = 0;
@@ -551,6 +579,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 TranslateOperand(psContext, psOperand);
                 bcatcstr(glsl, ";\n");
             }
+#endif
             break;
         }
         case OPCODE_DCL_RESOURCE:
@@ -645,6 +674,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         {
             const Operand* psOperand = &psDecl->asOperands[0];
             const char* Precision = "";
+            const char* type = "vec";
 
             if(HavePrecisionQualifers(psShader->eTargetLanguage))
             {
@@ -668,11 +698,13 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                     case OPERAND_MIN_PRECISION_SINT_16:
                     {
                         Precision = "mediump";
+                        //type = "ivec";
                         break;
                     }
                     case OPERAND_MIN_PRECISION_UINT_16:
                     {
                         Precision = "mediump";
+                        //type = "uvec";
                         break;
                     }
                 }
@@ -711,7 +743,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 							}
 							else
 							{
-								bformata(glsl, "out %s vec4 PixOutput%d;\n", Precision, psDecl->asOperands[0].ui32RegisterNumber);
+								bformata(glsl, "out %s %s4 PixOutput%d;\n", Precision, type, psDecl->asOperands[0].ui32RegisterNumber);
 								bformata(glsl, "#define Output%d PixOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
 							}
 							break;
@@ -736,7 +768,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 						}
 						else
 						{
-							bformata(glsl, "varying %s vec%d VtxGeoOutput%d;\n", Precision, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+							bformata(glsl, "varying %s %s%d VtxGeoOutput%d;\n", Precision, type, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
 						}
 						bformata(glsl, "#define Output%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
 					}
@@ -1108,10 +1140,14 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
         case OPCODE_DCL_INPUT_CONTROL_POINT_COUNT:
         {
-             break;
+            break;
         }
         case OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT:
         {
+            if(psContext->psShader->eShaderType == HULL_SHADER)
+            {
+                bformata(glsl, "layout(vertices=%d) out;\n", psDecl->value.ui32MaxOutputVertexCount);
+            }
             break;
         }
         case OPCODE_HS_FORK_PHASE:

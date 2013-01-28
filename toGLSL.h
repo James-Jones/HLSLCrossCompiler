@@ -2,11 +2,13 @@
 #define TO_GLSL_H
 
 #include "languages.h"
+#include "reflect.h"
 
 typedef struct
 {
     int shaderType; //One of the GL enums.
     char* sourceCode;
+    ShaderInfo reflection;
 } GLSLShader;
 
 /*HLSL constant buffers are treated as default-block unform arrays by default. This is done
@@ -31,5 +33,7 @@ static const unsigned int HLSLCC_FLAG_GS_ENABLED = 0x10;
 
 int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang language, GLSLShader* result);
 int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language, GLSLShader* result);
+
+void FreeGLSLShader(GLSLShader*);
 
 #endif

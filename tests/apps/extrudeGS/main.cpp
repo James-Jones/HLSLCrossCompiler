@@ -5,10 +5,9 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
-#include <toGLSL.h>
 #include <Shader.h>
 #include <vectormath_aos.h>
-#include <debug.h>
+#include "common/debug.h"
 #include <model.h>
 #include <itransform.h>
 
@@ -192,9 +191,9 @@ void Demo::Init() {
 
     mExtrudeEffect.Create();
 	mExtrudeEffect.SetCompileFlags(HLSLCC_FLAG_GS_ENABLED);
-    mExtrudeEffect.FromVertexByteFile(std::string("shaders/ExtrudeVS.o"));
-    mExtrudeEffect.FromPixelByteFile(std::string("shaders/ExtrudePS.o"));
-	mExtrudeEffect.FromGeometryByteFile(std::string("shaders/ExtrudeGS.o"));
+    mExtrudeEffect.FromByteFile(std::string("shaders/ExtrudeVS.o"));
+    mExtrudeEffect.FromByteFile(std::string("shaders/ExtrudePS.o"));
+	mExtrudeEffect.FromByteFile(std::string("shaders/ExtrudeGS.o"));
 
     gWorld = Matrix4::identity();
 

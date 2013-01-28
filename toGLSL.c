@@ -481,7 +481,9 @@ int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language
 
         free(psShader->psDecl);
         free(psShader->psInst);
-        FreeShaderInfo(&psShader->sInfo);
+        
+        result->reflection = psShader->sInfo;
+
         free(psShader);
 
 		success = 1;
@@ -531,5 +533,12 @@ int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang langu
     free(shader);
 
     return success;
+}
+
+void FreeGLSLShader(GLSLShader* s)
+{
+    bcstrfree(s->sourceCode);
+    s->sourceCode = NULL;
+    FreeShaderInfo(&s->reflection);
 }
 

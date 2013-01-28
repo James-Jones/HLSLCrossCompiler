@@ -1,6 +1,6 @@
 #include "Shader.h"
 #include <GL/glew.h>
-#include "debug.h"
+#include "common/debug.h"
 
 ShaderEffect::ShaderEffect() : mCompileFlags(0), mLang(LANG_DEFAULT)
 {
@@ -14,32 +14,42 @@ void ShaderEffect::Create()
 void ShaderEffect::FromByteFile(std::string& path)
 {
     GLSLShader result;
-    TranslateHLSLFromFile(path.c_str(), mCompileFlags, mLang, &result);
+    int translated = TranslateHLSLFromFile(path.c_str(), mCompileFlags, mLang, &result);
+
+    ASSERT(translated);
+
+    uint_t shader = 0;
 
     switch(result.shaderType)
     {
         case GL_VERTEX_SHADER:
         {
             mVertex = glCreateShader(GL_VERTEX_SHADER);
-            glShaderSource(mVertex, 1, (const char **)&result.sourceCode, 0);
-            glCompileShader(mVertex);
-            glAttachShader(mProgram, mVertex);
+            shader = mVertex;
             break;
         }
         case GL_FRAGMENT_SHADER:
         {
             mPixel = glCreateShader(GL_FRAGMENT_SHADER);
-            glShaderSource(mPixel, 1, (const char **)&result.sourceCode, 0);
-            glCompileShader(mPixel);
-            glAttachShader(mProgram, mPixel);
+            shader = mPixel;
             break;
         }
         case GL_GEOMETRY_SHADER:
         {
-            mPixel = glCreateShader(GL_GEOMETRY_SHADER);
-            glShaderSource(mGeometry, 1, (const char **)&result.sourceCode, 0);
-            glCompileShader(mGeometry);
-            glAttachShader(mProgram, mGeometry);
+            mGeometry = glCreateShader(GL_GEOMETRY_SHADER);
+            shader = mGeometry;
+            break;
+        }
+        case GL_TESS_CONTROL_SHADER:
+        {
+            mHull = glCreateShader(GL_TESS_CONTROL_SHADER);
+            shader = mHull;
+            break;
+        }
+        case GL_TESS_EVALUATION_SHADER:
+        {
+            mDomain = glCreateShader(GL_TESS_EVALUATION_SHADER);
+            shader = mDomain;
             break;
         }
         default:
@@ -47,79 +57,46 @@ void ShaderEffect::FromByteFile(std::string& path)
             break;
         }
     }
-}
 
-void ShaderEffect::FromVertexByteFile(std::string& path)
-{
-    GLSLShader result;
-    TranslateHLSLFromFile(path.c_str(), mCompileFlags, mLang, &result);
-
-    ASSERT(result.shaderType == GL_VERTEX_SHADER);
-
-    mVertex = glCreateShader(GL_VERTEX_SHADER);
-
-    glShaderSource(mVertex, 1, (const char **)&result.sourceCode, 0);
-    glCompileShader(mVertex);
+    glShaderSource(shader, 1, (const char **)&result.sourceCode, 0);
+    glCompileShader(shader);
+    glAttachShader(mProgram, shader);
 
 #ifdef _DEBUG
     GLint compiled = GL_FALSE;
-    glGetShaderiv(mVertex, GL_COMPILE_STATUS, &compiled);
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
     if(!compiled)
     {
+        char* log;
+        GLint length = 0;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+        log = new char[length];
+        glGetShaderInfoLog(shader, length, NULL, log);
+        ASSERT(0);
+        delete [] log;
+
         ASSERT(0);
     }
 #endif
 
-    glAttachShader(mProgram, mVertex);
-}
 
-void ShaderEffect::FromPixelByteFile(std::string& path)
-{
-    GLSLShader result;
-    TranslateHLSLFromFile(path.c_str(), mCompileFlags, mLang, &result);
-
-    ASSERT(result.shaderType == GL_FRAGMENT_SHADER);
-
-    mPixel = glCreateShader(GL_FRAGMENT_SHADER);
-
-    glShaderSource(mPixel, 1, (const char **)&result.sourceCode, 0);
-    glCompileShader(mPixel);
-
-#ifdef _DEBUG
-    GLint compiled = GL_FALSE;
-    glGetShaderiv(mPixel, GL_COMPILE_STATUS, &compiled);
-    if(!compiled)
+#if 0
+    //Set the default values for constants.
+    for(uint32_t i = 0; i < result.reflection.ui32NumConstantBuffers; ++i)
     {
-        ASSERT(0);
+        ConstantBuffer* cbuf = result.reflection.psConstantBuffers+i;
+
+        for(uint32_t k = 0; k < cbuf->ui32NumVars; ++k)
+        {
+            uint32_t loc = glGetUniformLocation(mProgram, cbuf->asVars[k].Name);
+            glUniform1f(loc, *(float*)&cbuf->asVars[k].ui32DefaultValue);
+        }
     }
 #endif
 
-    glAttachShader(mProgram, mPixel);
+    FreeGLSLShader(&result);
 }
 
-void ShaderEffect::FromGeometryByteFile(std::string& path)
-{
-    GLSLShader result;
-    TranslateHLSLFromFile(path.c_str(), mCompileFlags, mLang, &result);
-
-    ASSERT(result.shaderType == GL_GEOMETRY_SHADER);
-
-    mGeometry = glCreateShader(GL_GEOMETRY_SHADER);
-
-    glShaderSource(mGeometry, 1, (const char **)&result.sourceCode, 0);
-    glCompileShader(mGeometry);
-
-#ifdef _DEBUG
-    GLint compiled = GL_FALSE;
-    glGetShaderiv(mGeometry, GL_COMPILE_STATUS, &compiled);
-    if(!compiled)
-    {
-        ASSERT(0);
-    }
-#endif
-
-    glAttachShader(mProgram, mGeometry);
-}
 
 void ShaderEffect::Enable()
 {

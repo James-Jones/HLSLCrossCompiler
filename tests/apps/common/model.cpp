@@ -1,6 +1,6 @@
 #include <GL/glew.h>
 #include "model.h"
-#include "debug.h"
+#include "common/debug.h"
 #include <fstream>
 #include <Image.h>
 

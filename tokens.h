@@ -48,7 +48,7 @@ typedef enum EXTENDED_OPCODE_TYPE
 
 static EXTENDED_OPCODE_TYPE DecodeExtendedOpcodeType(uint32_t ui32Token)
 {
-    return (ui32Token & 0x0000003f);
+    return (EXTENDED_OPCODE_TYPE)(ui32Token & 0x0000003f);
 }
 
 typedef enum
@@ -756,6 +756,11 @@ typedef enum OPERAND_MIN_PRECISION
 static uint32_t DecodeOperandMinPrecision(uint32_t ui32Token)
 {
     return (ui32Token & 0x0001C000) >> 14;
+}
+
+static uint32_t DecodeOutputControlPointCount(uint32_t ui32Token)
+{
+	return ((ui32Token & 0x0001f800) >> 11);
 }
 
 #endif

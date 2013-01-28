@@ -71,13 +71,12 @@ typedef struct ShaderInfo_TAG
     ConstantBuffer* psConstantBuffers;
 } ShaderInfo;
 
-void ReadInputSignatures(const uint32_t* pui32Tokens,
-                        ShaderInfo* psShaderInfo);
-
-void ReadResources(const uint32_t* pui32Tokens,//in
-                   ShaderInfo* psShaderInfo);//out
-
 int GetResourceFromBindingPoint(ResourceType eType, uint32_t ui32BindPoint, ShaderInfo* psShaderInfo, ResourceBinding** ppsOutBinding);
+
+void GetConstantBufferFromBindingPoint(const uint32_t ui32BindPoint, const ShaderInfo* psShaderInfo, ConstantBuffer** ppsConstBuf);
+
+void LoadShaderInfo(const uint32_t* pui32Inputs, const uint32_t* pui32Resources,
+    ShaderInfo* psInfo);
 
 void FreeShaderInfo(ShaderInfo* psShaderInfo);
 

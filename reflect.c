@@ -1,5 +1,6 @@
 
 #include "reflect.h"
+#include "debug.h"
 #include <stdlib.h>
 
 static void ReadStringFromTokenStream(const uint32_t* tokens, char* str)
@@ -26,7 +27,7 @@ static void ReadStringFromTokenStream(const uint32_t* tokens, char* str)
     str[length] = '\0';
 }
 
-void ReadInputSignatures(const uint32_t* pui32Tokens,
+static void ReadInputSignatures(const uint32_t* pui32Tokens,
                         ShaderInfo* psShaderInfo)
 {
     uint32_t i;
@@ -124,7 +125,7 @@ static const uint32_t* ReadConstantBuffer(const uint32_t* pui32FirstConstBufToke
     return pui32Tokens;
 }
 
-void ReadResources(const uint32_t* pui32Tokens,//in
+static void ReadResources(const uint32_t* pui32Tokens,//in
                    ShaderInfo* psShaderInfo)//out
 {
     ResourceBinding* psResBindings;
@@ -169,6 +170,12 @@ void ReadResources(const uint32_t* pui32Tokens,//in
     }
 }
 
+void GetConstantBufferFromBindingPoint(const uint32_t ui32BindPoint, const ShaderInfo* psShaderInfo, ConstantBuffer** ppsConstBuf)
+{
+    ASSERT(ui32BindPoint < psShaderInfo->ui32NumConstantBuffers);
+    *ppsConstBuf = psShaderInfo->psConstantBuffers + ui32BindPoint;
+}
+
 int GetResourceFromBindingPoint(ResourceType eType, uint32_t ui32BindPoint, ShaderInfo* psShaderInfo, ResourceBinding** ppsOutBinding)
 {
     uint32_t i;
@@ -187,6 +194,15 @@ int GetResourceFromBindingPoint(ResourceType eType, uint32_t ui32BindPoint, Shad
         }
     }
     return 0;
+}
+
+void LoadShaderInfo(const uint32_t* pui32Inputs, const uint32_t* pui32Resources,
+    ShaderInfo* psInfo)
+{
+    if(pui32Inputs)
+        ReadInputSignatures(pui32Inputs, psInfo);
+    if(pui32Resources)
+        ReadResources(pui32Resources, psInfo);
 }
 
 void FreeShaderInfo(ShaderInfo* psShaderInfo)

@@ -523,6 +523,24 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
                     break;
                 }
             }
+
+
+#if CBUFFER_USE_STRUCT_AND_NAMES
+            {
+                ConstantBuffer* psCBuf = NULL;
+                char* pszContBuffName;
+                GetConstantBufferFromBindingPoint(psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
+
+                pszContBuffName = psCBuf->Name;
+                
+                if(psCBuf->Name[0] == '$')//$Global or $Param
+                    pszContBuffName++;
+
+                ASSERT(psOperand->aui32ArraySizes[1] < psCBuf->ui32NumVars);
+                
+                bformata(glsl, "%s%s.%s", pszContBuffName, StageName, psCBuf->asVars[psOperand->aui32ArraySizes[1]].Name);
+            }
+#else
 			if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
 			{
 				//Each uniform block is given the HLSL consant buffer name.
@@ -532,7 +550,7 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 			else
 			{
 				//Arrays of constants. Each array is given the HLSL constant buffer name.
-				ResourceBinding* psBinding = 0;
+				ResourceBinding* psBinding = NULL;
 				GetResourceFromBindingPoint(RTYPE_CBUFFER, psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psBinding);
 
 				//$Globals.
@@ -545,6 +563,7 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 					bformata(glsl, "%s%s[%d]", psBinding->Name, StageName, psOperand->aui32ArraySizes[1]);
 				}
 			}
+#endif
             break;
         }
         case OPERAND_TYPE_RESOURCE:
@@ -616,6 +635,10 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 			{
 				bformata(glsl, "gl_in[%d].gl_Position", psOperand->aui32ArraySizes[0]);
 			}
+            else
+            {
+                bformata(glsl, "Input%d[%d]", psOperand->aui32ArraySizes[1], psOperand->aui32ArraySizes[0]);
+            }
             break;
 		}
 		case OPERAND_TYPE_NULL:
@@ -856,6 +879,10 @@ void TranslateIntegerOperand(HLSLCrossCompilerContext* psContext, const Operand*
 			{
 				bformata(glsl, "gl_in[%d].gl_Position", psOperand->aui32ArraySizes[0]);
 			}
+            else
+            {
+                bformata(glsl, "Input%d[%d]", psOperand->aui32ArraySizes[1], psOperand->aui32ArraySizes[0]);
+            }
             break;
 		}
 		case OPERAND_TYPE_NULL:

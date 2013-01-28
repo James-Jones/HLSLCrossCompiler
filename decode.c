@@ -520,7 +520,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 		}
 		case OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT:
 		{
-			//const uint32_t ui32OutputControlPointCount = *(pui32Token+ui32OperandOffset);
+			psDecl->value.ui32MaxOutputVertexCount = DecodeOutputControlPointCount(*pui32Token);
 			break;
 		}
 		case OPCODE_HS_JOIN_PHASE:
@@ -1075,8 +1075,7 @@ const uint32_t* DecodeHullShader(const uint32_t* pui32Tokens, Shader* psShader)
 	return pui32CurrentToken;
 }
 
-void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Inputs,
-            const uint32_t* pui32Resources, Shader* psShader)
+void Decode(const uint32_t* pui32Tokens, Shader* psShader)
 {
 	const uint32_t* pui32CurrentToken = pui32Tokens;
     const uint32_t ui32ShaderLength = pui32Tokens[1];
@@ -1089,8 +1088,6 @@ void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Inputs,
 	pui32CurrentToken++;//Move to shader length
 	psShader->ui32ShaderLength = ui32ShaderLength;
     pui32CurrentToken++;//Move to after shader length (usually a declaration)
-
-    ReadResources(pui32Resources, &psShader->sInfo);
 
     psShader->pui32FirstToken = pui32Tokens;
 
@@ -1110,11 +1107,6 @@ void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Inputs,
     psDecl = malloc(sizeof(Declaration) * ui32ShaderLength);
     psShader->psDecl = psDecl;
     psShader->ui32DeclCount = 0;
-
-    if(pui32Inputs)
-        ReadInputSignatures(pui32Inputs, &psShader->sInfo);
-    if(pui32Resources)
-        ReadResources(pui32Resources, &psShader->sInfo);
 
     while(1) //Keep going until we reach the first non-declaration token, or the end of the shader.
     {
@@ -1193,7 +1185,8 @@ Shader* DecodeDXBC(uint32_t* data)
 			chunk->fourcc == FOURCC_SHEX)
 		{
             psShader = calloc(1, sizeof(Shader));
-			Decode((uint32_t*)(chunk + 1), isgnChunk ? ((uint32_t*)(isgnChunk + 1)) : NULL, rdefChunk ? ((uint32_t*)(rdefChunk + 1)) : NULL, psShader);
+            LoadShaderInfo(isgnChunk ? ((uint32_t*)(isgnChunk + 1)) : NULL, rdefChunk ? ((uint32_t*)(rdefChunk + 1)) : NULL, &psShader->sInfo);
+			Decode((uint32_t*)(chunk + 1), psShader);
 			return psShader;
 		}
 	}
