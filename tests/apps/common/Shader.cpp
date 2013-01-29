@@ -11,6 +11,99 @@ void ShaderEffect::Create()
     mProgram = glCreateProgram();
 }
 
+void ShaderEffect::FromGLSLFile(uint_t eShaderType, std::string& path)
+{
+
+    char* shaderSrc;
+
+    {
+        FILE* shaderFile;
+        int length;
+        int readLength;
+	    int success = 0;
+
+        shaderFile = fopen(path.c_str(), "rb");
+
+        ASSERT(shaderFile);
+
+        fseek(shaderFile, 0, SEEK_END);
+        length = ftell(shaderFile);
+        fseek(shaderFile, 0, SEEK_SET);
+
+        shaderSrc = (char*)malloc(length+1);
+
+        readLength = fread(shaderSrc, 1, length, shaderFile);
+
+        fclose(shaderFile);
+        shaderFile = 0;
+
+        shaderSrc[readLength] = '\0';
+    }
+
+    uint_t shader = 0;
+
+    switch(eShaderType)
+    {
+        case GL_VERTEX_SHADER:
+        {
+            mVertex = glCreateShader(GL_VERTEX_SHADER);
+            shader = mVertex;
+            break;
+        }
+        case GL_FRAGMENT_SHADER:
+        {
+            mPixel = glCreateShader(GL_FRAGMENT_SHADER);
+            shader = mPixel;
+            break;
+        }
+        case GL_GEOMETRY_SHADER:
+        {
+            mGeometry = glCreateShader(GL_GEOMETRY_SHADER);
+            shader = mGeometry;
+            break;
+        }
+        case GL_TESS_CONTROL_SHADER:
+        {
+            mHull = glCreateShader(GL_TESS_CONTROL_SHADER);
+            shader = mHull;
+            break;
+        }
+        case GL_TESS_EVALUATION_SHADER:
+        {
+            mDomain = glCreateShader(GL_TESS_EVALUATION_SHADER);
+            shader = mDomain;
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+
+    glShaderSource(shader, 1, (const char **)&shaderSrc, 0);
+    glCompileShader(shader);
+    glAttachShader(mProgram, shader);
+
+#ifdef _DEBUG
+    GLint compiled = GL_FALSE;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+    if(!compiled)
+    {
+        char* log;
+        GLint length = 0;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+        log = new char[length];
+        glGetShaderInfoLog(shader, length, NULL, log);
+        ASSERT(0);
+        delete [] log;
+
+        ASSERT(0);
+    }
+#endif
+
+    delete [] shaderSrc;
+}
+
 void ShaderEffect::FromByteFile(std::string& path)
 {
     GLSLShader result;
@@ -132,10 +225,22 @@ void ShaderEffect::SetVec4(std::string& name, int count, float* v) {
     int loc = glGetUniformLocation(mProgram, (name + std::string("VS")).c_str());
     glUniform4fv(loc, count, v);
 
-    loc = glGetUniformLocation(mProgram, (name + std::string("PS")).c_str());
-    glUniform4fv(loc, count, v);
+    if(mDomain)
+    {
+        loc = glGetUniformLocation(mProgram, (name + std::string("HS")).c_str());
+        glUniform4fv(loc, count, v);
 
-    loc = glGetUniformLocation(mProgram, (name + std::string("GS")).c_str());
+        loc = glGetUniformLocation(mProgram, (name + std::string("DS")).c_str());
+        glUniform4fv(loc, count, v);
+    }
+
+    if(mGeometry)
+    {
+        loc = glGetUniformLocation(mProgram, (name + std::string("GS")).c_str());
+        glUniform4fv(loc, count, v);
+    }
+
+    loc = glGetUniformLocation(mProgram, (name + std::string("PS")).c_str());
     glUniform4fv(loc, count, v);
 }
 

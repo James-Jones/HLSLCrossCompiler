@@ -1,22 +1,27 @@
 struct IA_OUTPUT
 {
-    float2 cpoint : CPOINT;
+    float4 cpoint : CPOINT;
     float4 colour : COLOR;
 };
 
 struct VS_OUTPUT
 {
-    float4 cpoint : CPOINT;
+    float4 cpoint : SV_Position;
     float4 colour : COLOR;
 };
 
-float4x4 MVP;
+matrix World;
+matrix View;
+matrix Projection;
 
 VS_OUTPUT VS(IA_OUTPUT input)
 {
     VS_OUTPUT output;
 
-    output.cpoint = mul(float4(input.cpoint.x, input.cpoint.y, 0, 1), MVP);
+    output.cpoint = mul( input.cpoint, World );
+    output.cpoint = mul( output.cpoint, View );
+    output.cpoint = mul( output.cpoint, Projection );
+
     output.colour = input.colour;
     return output;
 }
@@ -29,7 +34,7 @@ struct HS_CONSTANT_OUTPUT
 
 struct HS_OUTPUT
 {
-    float4 cpoint : CPOINT;
+    float4 cpoint : SV_Position;
     float4 colour : COLOR;
 };
 

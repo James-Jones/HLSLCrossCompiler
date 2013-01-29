@@ -167,7 +167,12 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 		        case NAME_FINAL_QUAD_U_EQ_0_EDGE_TESSFACTOR:
                 {
 					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-                    bcatcstr(glsl, "#define ");
+
+
+                    bcatcstr(glsl, "#undef ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+
+                    bcatcstr(glsl, "\n#define ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
 
                     if(psContext->psShader->aIndexedOutput[psDecl->asOperands[0].ui32RegisterNumber])
@@ -183,7 +188,11 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 		        case NAME_FINAL_QUAD_V_EQ_0_EDGE_TESSFACTOR: 
                 {
 					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-                    bcatcstr(glsl, "#define ");
+
+                    bcatcstr(glsl, "#undef ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+
+                    bcatcstr(glsl, "\n#define ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_TessLevelOuter[1]\n");
                     break;
@@ -191,7 +200,11 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 		        case NAME_FINAL_QUAD_U_EQ_1_EDGE_TESSFACTOR: 
                 {
 					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-                    bcatcstr(glsl, "#define ");
+
+                    bcatcstr(glsl, "#undef ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+
+                    bcatcstr(glsl, "\n#define ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_TessLevelOuter[2]\n");
                     break;
@@ -199,7 +212,11 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 		        case NAME_FINAL_QUAD_V_EQ_1_EDGE_TESSFACTOR:
                 {
 					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-                    bcatcstr(glsl, "#define ");
+
+                    bcatcstr(glsl, "#undef ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+
+                    bcatcstr(glsl, "\n#define ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_TessLevelOuter[3]\n");
                     break;
@@ -207,7 +224,11 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 		        case NAME_FINAL_TRI_U_EQ_0_EDGE_TESSFACTOR:
                 {
 					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-                    bcatcstr(glsl, "#define ");
+
+                    bcatcstr(glsl, "#undef ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+
+                    bcatcstr(glsl, "\n#define ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
 
                     if(psContext->psShader->aIndexedOutput[psDecl->asOperands[0].ui32RegisterNumber])
@@ -223,7 +244,11 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 		        case NAME_FINAL_TRI_V_EQ_0_EDGE_TESSFACTOR:
                 {
 					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-                    bcatcstr(glsl, "#define ");
+
+                    bcatcstr(glsl, "#undef ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+
+                    bcatcstr(glsl, "\n#define ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_TessLevelOuter[1]\n");
                     break;
@@ -231,7 +256,11 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 		        case NAME_FINAL_TRI_W_EQ_0_EDGE_TESSFACTOR:
                 {
 					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-                    bcatcstr(glsl, "#define ");
+
+                    bcatcstr(glsl, "#undef ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+
+                    bcatcstr(glsl, "\n#define ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_TessLevelOuter[2]\n");
                     break;
@@ -239,7 +268,11 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 		        case NAME_FINAL_LINE_DENSITY_TESSFACTOR:
                 {
 					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-                    bcatcstr(glsl, "#define ");
+
+                    bcatcstr(glsl, "#undef ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+
+                    bcatcstr(glsl, "\n#define ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
 
                     if(psContext->psShader->aIndexedOutput[psDecl->asOperands[0].ui32RegisterNumber])
@@ -255,7 +288,11 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 		        case NAME_FINAL_LINE_DETAIL_TESSFACTOR:
                 {
 					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-                    bcatcstr(glsl, "#define ");
+
+                    bcatcstr(glsl, "#undef ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+
+                    bcatcstr(glsl, "\n#define ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_TessLevelOuter[1]\n");
                     break;
@@ -264,7 +301,11 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 		        case NAME_FINAL_QUAD_U_INSIDE_TESSFACTOR:
                 {
 					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-                    bcatcstr(glsl, "#define ");
+
+                    bcatcstr(glsl, "#undef ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+
+                    bcatcstr(glsl, "\n#define ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
 
                     if(psContext->psShader->aIndexedOutput[psDecl->asOperands[0].ui32RegisterNumber])
@@ -280,7 +321,11 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 		        case NAME_FINAL_QUAD_V_INSIDE_TESSFACTOR:
                 {
 					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-                    bcatcstr(glsl, "#define ");
+
+                    bcatcstr(glsl, "#undef ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+
+                    bcatcstr(glsl, "\n#define ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
                     bformata(glsl, " gl_TessLevelInner[1]\n");
                     break;
@@ -317,10 +362,25 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				break;
 			}
 
+            if(psOperand->eType == OPERAND_TYPE_OUTPUT_CONTROL_POINT_ID)
+            {
+                break;
+            }
+
 			if(psShader->eShaderType == GEOMETRY_SHADER)
 			{
 				InputName = "VtxOutput";
 			}
+
+            if(psShader->eShaderType == HULL_SHADER)
+            {
+                InputName = "VtxGeoOutput";
+            }
+
+            if(psShader->eShaderType == DOMAIN_SHADER)
+            {
+                InputName = "HullOutput";
+            }
 
 			if(InOutSupported(psContext->psShader->eTargetLanguage))
 			{
@@ -406,6 +466,18 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 					psDecl->asOperands[0].ui32RegisterNumber);
 			}
 
+            if(psShader->eShaderType == HULL_SHADER)
+            {
+				bformata(glsl, "#define Input%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber,
+					psDecl->asOperands[0].ui32RegisterNumber);
+            }
+
+            if(psShader->eShaderType == DOMAIN_SHADER)
+            {
+				bformata(glsl, "#define Input%d HullOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber,
+					psDecl->asOperands[0].ui32RegisterNumber);
+            }
+
 			bcatcstr(glsl, "#endif\n");
             break;
         }
@@ -419,6 +491,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             int iNumComponents = 4;//GetMaxComponentFromComponentMask(psOperand);
 			const char* StorageQualifier = "varying";
             const char* Precision = "";
+            const char* InputName = "VtxGeoOutput";
 
 			if(InOutSupported(psContext->psShader->eTargetLanguage))
 			{
@@ -457,15 +530,20 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
             }
 
+            if(psContext->flags & HLSLCC_FLAG_TESS_ENABLED)
+            {
+                InputName = "DomOutput";
+            }
+
             if(iNumComponents == 1)
             {
-                bformata(glsl, "%s %s float VtxGeoOutput%d;\n", StorageQualifier, Precision, psDecl->asOperands[0].ui32RegisterNumber);
-				bformata(glsl, "vec1 Input%d = vec1(VtxGeoOutput%d);\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+                bformata(glsl, "%s %s float %s%d;\n", StorageQualifier, Precision, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "vec1 Input%d = vec1(%s%d);\n", psDecl->asOperands[0].ui32RegisterNumber, InputName, psDecl->asOperands[0].ui32RegisterNumber);
             }
             else
             {
-                bformata(glsl, "%s %s vec%d VtxGeoOutput%d;\n", StorageQualifier, Precision, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
-				bformata(glsl, "#define Input%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+                bformata(glsl, "%s %s vec%d %s%d;\n", StorageQualifier, Precision, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "#define Input%d %s%d\n", psDecl->asOperands[0].ui32RegisterNumber, InputName, psDecl->asOperands[0].ui32RegisterNumber);
             }
             
             break;
@@ -792,8 +870,15 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				}
 				case HULL_SHADER:
 				{
-					bformata(glsl, "out vec4 HullOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
-					bformata(glsl, "#define Output%d HullOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+                    if(psDecl->asOperands[0].ui32RegisterNumber==0)
+                    {
+                       bcatcstr(glsl, "#define Output0 gl_out[gl_InvocationID].gl_Position\n");
+                    }
+                    else
+                    {
+					    bformata(glsl, "out vec4 HullOutput%d[];\n", psDecl->asOperands[0].ui32RegisterNumber);
+					    bformata(glsl, "#define Output%d HullOutput%d[gl_InvocationID]\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+                    }
 					break;
 				}
 				case DOMAIN_SHADER:

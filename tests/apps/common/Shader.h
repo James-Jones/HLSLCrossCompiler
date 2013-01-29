@@ -30,6 +30,8 @@ public:
 
     void FromByteFile(std::string& path);
 
+    void FromGLSLFile(uint_t eShaderType, std::string& path);
+
     void Enable();
 
 	void CreateUniformBlock(std::string& name, uint_t& ubo);

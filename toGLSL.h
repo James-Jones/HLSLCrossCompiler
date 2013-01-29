@@ -31,6 +31,8 @@ static const unsigned int HLSLCC_FLAG_GLOBAL_CONSTS_NEVER_IN_UBO = 0x8;
 //Vs outputs VtxOutput if GS enabled. VtxGeoOutput otherwise.
 static const unsigned int HLSLCC_FLAG_GS_ENABLED = 0x10;
 
+static const unsigned int HLSLCC_FLAG_TESS_ENABLED = 0x20;
+
 int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang language, GLSLShader* result);
 int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language, GLSLShader* result);
 
