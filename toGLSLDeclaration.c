@@ -610,22 +610,35 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 ConstantBuffer* psCBuf = NULL;
                 uint32_t ui32Member = 0;
                 char* pszContBuffName;
+                int iUseUniformBlock = 0;
                 GetConstantBufferFromBindingPoint(ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
 
                 pszContBuffName = psCBuf->Name;
+
+                if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
+                {
+                    iUseUniformBlock = 1;
+                }
                 
                 if(psCBuf->Name[0] == '$')//$Global or $Param
+                {
                     pszContBuffName++;
+
+                    if(psContext->flags & HLSLCC_FLAG_GLOBAL_CONSTS_NEVER_IN_UBO)
+                    {
+                        iUseUniformBlock = 0;
+                    }
+                }
 
                 if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
                 {
-                    if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
+                    if(iUseUniformBlock)
                         bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
                     else
                         bformata(glsl, "layout(location = %d) ", ui32BindingPoint);
                 }
 
-                if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
+                if(iUseUniformBlock)
                     bformata(glsl, "uniform %s%s_TAG {\n", pszContBuffName, StageName);
 
                 bformata(glsl, "uniform struct %s%s_TAG {\n", pszContBuffName, StageName);
