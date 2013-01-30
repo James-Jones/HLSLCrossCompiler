@@ -574,6 +574,8 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         case OPCODE_DCL_CONSTANT_BUFFER:
         {
 			const Operand* psOperand = &psDecl->asOperands[0];
+            const uint32_t ui32BindingPoint = psOperand->aui32ArraySizes[0];
+
             const char* StageName = "VS";
             switch(psContext->psShader->eShaderType)
             {
@@ -608,7 +610,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 ConstantBuffer* psCBuf = NULL;
                 uint32_t ui32Member = 0;
                 char* pszContBuffName;
-                GetConstantBufferFromBindingPoint(psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
+                GetConstantBufferFromBindingPoint(ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
 
                 pszContBuffName = psCBuf->Name;
                 
@@ -633,9 +635,9 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
             {
 				ResourceBinding* psBinding = 0;
-				GetResourceFromBindingPoint(RTYPE_CBUFFER, psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psBinding);
+				GetResourceFromBindingPoint(RTYPE_CBUFFER, ui32BindingPoint, &psContext->psShader->sInfo, &psBinding);
                 /*
-                    layout(std140) uniform UniformBufferName
+                    layout(std140 [, binding = X]) uniform UniformBufferName
                     {
                         vec4 ConstsX[numConsts];
                     };
@@ -644,27 +646,37 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				{
 					if(psContext->flags & HLSLCC_FLAG_GLOBAL_CONSTS_NEVER_IN_UBO)
 					{
+                        if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
+                            bformata(glsl, "layout(location = %d) ", ui32BindingPoint);
 						bcatcstr(glsl, "uniform vec4 ");
 						TranslateOperand(psContext, psOperand);
 						bcatcstr(glsl, ";\n");
 					}
 					else
 					{
-						bformata(glsl, "layout(std140) uniform Globals%s {\n\tvec4 ", StageName);
+                        if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
+                            bformata(glsl, "layout(std140, binding = %d) uniform Globals%s {\n\tvec4 ", ui32BindingPoint, StageName);
+                        else
+						    bformata(glsl, "layout(std140) uniform Globals%s {\n\tvec4 ", StageName);
 						TranslateOperand(psContext, psOperand);
 						bcatcstr(glsl, ";\n};\n");
 					}
 				}
 				else
 				{
-					bformata(glsl, "layout(std140) uniform %s%s {\n\tvec4 ", psBinding->Name, StageName);
+                    if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
+                        bformata(glsl, "layout(std140, binding = %d) uniform %s%s {\n\tvec4 ", ui32BindingPoint, psBinding->Name, StageName);
+                    else
+					    bformata(glsl, "layout(std140) uniform %s%s {\n\tvec4 ", psBinding->Name, StageName);
 					TranslateOperand(psContext, psOperand);
 					bcatcstr(glsl, ";\n};\n");
 				}
             }
             else
             {
-                /* uniform vec4 HLSLConstantBufferName[numConsts]; */
+                /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
+                if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
+                    bformata(glsl, "layout(location = %d) ", ui32BindingPoint);
                 bcatcstr(glsl, "uniform vec4 ");
                 TranslateOperand(psContext, psOperand);
                 bcatcstr(glsl, ";\n");

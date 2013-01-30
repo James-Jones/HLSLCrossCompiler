@@ -11,6 +11,8 @@
 //Improve type/swizzle checking to allow hlsl_opcode_funcs to be removed.
 //Use real integer types (ivec*) where appropriate.
 //Improving support for integer immediates on MOV instructions by checking if next usage is with an integer opcode.
+//Finish interfaces/subroutines.
+//Try to make use of patch in/patch out. Patch out should be join phase outputs. How to match up with domain inputs?
 
 typedef struct
 {
