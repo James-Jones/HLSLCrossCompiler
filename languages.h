@@ -64,4 +64,14 @@ static int HavePrecisionQualifers(GLLang eLang)
 	return 0;
 }
 
+//Support in 400 is limited, so 410/300+
+static int HaveInOutLocationQualifier(GLLang eLang)
+{
+    if(eLang >= LANG_410 || eLang == LANG_ES_300)
+    {
+        return 1;
+    }
+    return 0;
+}
+
 #endif

@@ -423,6 +423,12 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			bformata(glsl, "#ifndef Input%d_CREATED\n", psDecl->asOperands[0].ui32RegisterNumber);
 			bformata(glsl, "#define Input%d_CREATED\n", psDecl->asOperands[0].ui32RegisterNumber);
 
+            if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
+            {
+                //TODO: arrays not handled - increment location by number of elements in array.
+                bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
+            }
+
             switch(psOperand->iIndexDims)
             {
                 case INDEX_2D:
@@ -533,6 +539,12 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             if(psContext->flags & HLSLCC_FLAG_TESS_ENABLED)
             {
                 InputName = "DomOutput";
+            }
+
+            if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
+            {
+                //TODO: arrays not handled - increment location by number of elements in array.
+                bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
             }
 
             if(iNumComponents == 1)
@@ -786,6 +798,12 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                         break;
                     }
                 }
+            }
+
+            if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
+            {
+                //TODO: arrays not handled - increment location by number of elements in array.
+                bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
             }
 
 			switch(psShader->eShaderType)
