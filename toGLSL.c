@@ -385,6 +385,26 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
         return;
     }
 
+    if(psShader->eShaderType == DOMAIN_SHADER)
+    {
+        if(psContext->flags & HLSLCC_FLAG_FRACTIONAL_ODD_SPACING)
+        {
+            bcatcstr(glsl, "layout(fractional_odd_spacing) in;\n");
+        }
+        if(psContext->flags & HLSLCC_FLAG_FRACTIONAL_EVEN_SPACING)
+        {
+            bcatcstr(glsl, "layout(fractional_even_spacing) in;\n");
+        }
+        if(psContext->flags & HLSLCC_FLAG_CW)
+        {
+            bcatcstr(glsl, "layout(cw) in;\n");
+        }
+        if(psContext->flags & HLSLCC_FLAG_TESS_POINT_MODE)
+        {
+            bcatcstr(glsl, "layout(point_mode) in;\n");
+        }
+    }
+
     for(i=0; i < ui32DeclCount; ++i)
     {
         TranslateDeclaration(psContext, psShader->psDecl+i);

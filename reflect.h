@@ -69,6 +69,9 @@ typedef struct ShaderInfo_TAG
 
     uint32_t ui32NumConstantBuffers;
     ConstantBuffer* psConstantBuffers;
+
+    TESSELLATOR_PARTITIONING eTessPartitioning;
+    TESSELLATOR_OUTPUT_PRIMITIVE eTessOutPrim;
 } ShaderInfo;
 
 int GetResourceFromBindingPoint(ResourceType eType, uint32_t ui32BindPoint, ShaderInfo* psShaderInfo, ResourceBinding** ppsOutBinding);

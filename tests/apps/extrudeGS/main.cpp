@@ -190,7 +190,7 @@ void Demo::Init() {
     glClearColor(0.0f, 0.125f, 0.3f, 1.0f);
 
     mExtrudeEffect.Create();
-	mExtrudeEffect.SetCompileFlags(HLSLCC_FLAG_GS_ENABLED);
+	mExtrudeEffect.AddCompileFlags(HLSLCC_FLAG_GS_ENABLED);
     mExtrudeEffect.FromByteFile(std::string("shaders/ExtrudeVS.o"));
     mExtrudeEffect.FromByteFile(std::string("shaders/ExtrudePS.o"));
 	mExtrudeEffect.FromByteFile(std::string("shaders/ExtrudeGS.o"));

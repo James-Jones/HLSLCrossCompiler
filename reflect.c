@@ -199,6 +199,9 @@ int GetResourceFromBindingPoint(ResourceType eType, uint32_t ui32BindPoint, Shad
 void LoadShaderInfo(const uint32_t* pui32Inputs, const uint32_t* pui32Resources,
     ShaderInfo* psInfo)
 {
+    psInfo->eTessOutPrim = TESSELLATOR_OUTPUT_UNDEFINED;
+    psInfo->eTessPartitioning = TESSELLATOR_PARTITIONING_UNDEFINED;
+
     if(pui32Inputs)
         ReadInputSignatures(pui32Inputs, psInfo);
     if(pui32Resources)

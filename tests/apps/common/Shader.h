@@ -11,6 +11,9 @@ typedef unsigned int uint_t;
 
 #include <vectormath_aos.h>
 
+//Hull shader must be compiled before domain in order
+//to ensure correct partitioning and primitive type information
+//is encoded in the domain shader.
 class ShaderEffect
 {
 public:
@@ -20,8 +23,11 @@ public:
 
     //Bitwise OR of the HLSLCC_FLAG_ values
     //defined in toGLSL.h
-    void SetCompileFlags(uint_t flags) {
-        mCompileFlags = flags;
+    void AddCompileFlags(uint_t flags) {
+        mCompileFlags |= flags;
+    }
+    void RemoveCompileFlags(uint_t flags) {
+        mCompileFlags &= ~flags;
     }
 
     void SetLanguage(GLLang lang) {

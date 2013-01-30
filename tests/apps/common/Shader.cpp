@@ -107,6 +107,7 @@ void ShaderEffect::FromGLSLFile(uint_t eShaderType, std::string& path)
 void ShaderEffect::FromByteFile(std::string& path)
 {
     GLSLShader result;
+
     int translated = TranslateHLSLFromFile(path.c_str(), mCompileFlags, mLang, &result);
 
     ASSERT(translated);
@@ -137,12 +138,58 @@ void ShaderEffect::FromByteFile(std::string& path)
         {
             mHull = glCreateShader(GL_TESS_CONTROL_SHADER);
             shader = mHull;
+
+            switch(result.reflection.eTessOutPrim)
+            {
+                case TESSELLATOR_OUTPUT_TRIANGLE_CW:
+                {
+                    mCompileFlags |= HLSLCC_FLAG_CW;
+                    break;
+                }
+                case TESSELLATOR_OUTPUT_POINT:
+                {
+                    mCompileFlags |= HLSLCC_FLAG_TESS_POINT_MODE;
+                    break;
+                }
+                case TESSELLATOR_OUTPUT_TRIANGLE_CCW:
+                case TESSELLATOR_OUTPUT_LINE:
+                default:
+                {
+                    break;
+                }
+            }
+
+            switch(result.reflection.eTessPartitioning)
+            {
+                case TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
+                {
+                    mCompileFlags |= HLSLCC_FLAG_FRACTIONAL_ODD_SPACING;
+                    break;
+                }
+                case TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
+                {
+                    mCompileFlags |= HLSLCC_FLAG_FRACTIONAL_EVEN_SPACING;
+                    break;
+                }
+                case TESSELLATOR_PARTITIONING_INTEGER:
+                case TESSELLATOR_PARTITIONING_POW2:
+                default:
+                {
+                    break;
+                }
+            }
             break;
         }
         case GL_TESS_EVALUATION_SHADER:
         {
             mDomain = glCreateShader(GL_TESS_EVALUATION_SHADER);
             shader = mDomain;
+
+            //Hull shader must be compiled before domain in order
+            //to ensure correct partitioning and primitive type information
+            //is OR'ed into mCompileFlags.
+            ASSERT(mHull);
+
             break;
         }
         default:
@@ -272,8 +319,19 @@ void ShaderEffect::SetUniformBlock(std::string& name, uint_t bufIndex)
     int uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("VS")).c_str());
     glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
 
-    uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("GS")).c_str());
-    glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
+    if(mDomain)
+    {
+        uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("HS")).c_str());
+        glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
+
+        uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("DS")).c_str());
+        glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
+    }
+    if(mGeometry)
+    {
+        uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("GS")).c_str());
+        glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
+    }
 
     uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("PS")).c_str());
     glUniformBlockBinding(mProgram, uniformIndex, bufIndex);

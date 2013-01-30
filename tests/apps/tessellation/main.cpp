@@ -127,7 +127,7 @@ void Init(int argc, char** argv)
 
     mTessEffect.Create();
     mTessEffect.SetLanguage(LANG_400);
-    mTessEffect.SetCompileFlags(HLSLCC_FLAG_TESS_ENABLED);
+    mTessEffect.AddCompileFlags(HLSLCC_FLAG_TESS_ENABLED);
    
     mTessEffect.FromByteFile(std::string("shaders/tessellationVS.o"));
     mTessEffect.FromByteFile(std::string("shaders/tessellationHS.o"));
