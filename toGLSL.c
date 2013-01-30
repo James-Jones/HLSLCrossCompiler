@@ -243,6 +243,11 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
 
     AddVersionDependentCode(psContext);
 
+    if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
+    {
+        bcatcstr(glsl, "layout(std140) uniform;\n");
+    }
+
     //Special case. Can have multiple phases.
     if(psShader->eShaderType == HULL_SHADER)
     {

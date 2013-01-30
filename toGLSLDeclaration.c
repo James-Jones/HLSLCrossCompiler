@@ -617,6 +617,14 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 if(psCBuf->Name[0] == '$')//$Global or $Param
                     pszContBuffName++;
 
+                if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
+                {
+                    if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
+                        bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
+                    else
+                        bformata(glsl, "layout(location = %d) ", ui32BindingPoint);
+                }
+
                 if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
                     bformata(glsl, "uniform %s%s_TAG {\n", pszContBuffName, StageName);
 
@@ -637,7 +645,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				ResourceBinding* psBinding = 0;
 				GetResourceFromBindingPoint(RTYPE_CBUFFER, ui32BindingPoint, &psContext->psShader->sInfo, &psBinding);
                 /*
-                    layout(std140 [, binding = X]) uniform UniformBufferName
+                    [layout(binding = X)] uniform UniformBufferName
                     {
                         vec4 ConstsX[numConsts];
                     };
@@ -655,9 +663,9 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 					else
 					{
                         if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
-                            bformata(glsl, "layout(std140, binding = %d) uniform Globals%s {\n\tvec4 ", ui32BindingPoint, StageName);
-                        else
-						    bformata(glsl, "layout(std140) uniform Globals%s {\n\tvec4 ", StageName);
+                            bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
+
+						bformata(glsl, "uniform Globals%s {\n\tvec4 ", StageName);
 						TranslateOperand(psContext, psOperand);
 						bcatcstr(glsl, ";\n};\n");
 					}
@@ -665,9 +673,9 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				else
 				{
                     if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
-                        bformata(glsl, "layout(std140, binding = %d) uniform %s%s {\n\tvec4 ", ui32BindingPoint, psBinding->Name, StageName);
-                    else
-					    bformata(glsl, "layout(std140) uniform %s%s {\n\tvec4 ", psBinding->Name, StageName);
+                        bformata(glsl, "layout(binding = %d)", ui32BindingPoint);
+
+					bformata(glsl, "uniform %s%s {\n\tvec4 ", psBinding->Name, StageName);
 					TranslateOperand(psContext, psOperand);
 					bcatcstr(glsl, ";\n};\n");
 				}
@@ -686,6 +694,13 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
         case OPCODE_DCL_RESOURCE:
         {
+            if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
+            {
+                //Constant buffer locations start at 0. Resource locations start at ui32NumConstantBuffers.
+                bformata(glsl, "layout(location = %d) ", 
+                    psContext->psShader->sInfo.ui32NumConstantBuffers + psDecl->asOperands[0].ui32RegisterNumber);
+            }
+
             switch(psDecl->value.eResourceDimension)
             {
                 case RESOURCE_DIMENSION_BUFFER:
