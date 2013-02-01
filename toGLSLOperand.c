@@ -496,6 +496,9 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         case OPERAND_TYPE_CONSTANT_BUFFER:
         {
             const char* StageName = "VS";
+            ConstantBuffer* psCBuf = NULL;
+            GetConstantBufferFromBindingPoint(psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
+
             switch(psContext->psShader->eShaderType)
             {
                 case PIXEL_SHADER:
@@ -527,9 +530,7 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 
 #if CBUFFER_USE_STRUCT_AND_NAMES
             {
-                ConstantBuffer* psCBuf = NULL;
                 char* pszContBuffName;
-                GetConstantBufferFromBindingPoint(psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
 
                 pszContBuffName = psCBuf->Name;
                 
@@ -543,24 +544,27 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 #else
 			if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
 			{
-				//Each uniform block is given the HLSL consant buffer name.
-				//Within each uniform block is a constant array named ConstN
-				bformata(glsl, "Const%d[%d]", psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
+                if((psCBuf->Name[0] == '$') && (psContext->flags & HLSLCC_FLAG_GLOBAL_CONSTS_NEVER_IN_UBO))
+                {
+                    bformata(glsl, "Globals%s[%d]", StageName, psOperand->aui32ArraySizes[1]);
+                }
+                else
+                {
+				    //Each uniform block is given the HLSL consant buffer name.
+				    //Within each uniform block is a constant array named ConstN
+				    bformata(glsl, "Const%d[%d]", psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
+                }
 			}
 			else
 			{
-				//Arrays of constants. Each array is given the HLSL constant buffer name.
-				ResourceBinding* psBinding = NULL;
-				GetResourceFromBindingPoint(RTYPE_CBUFFER, psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psBinding);
-
 				//$Globals.
-				if(psBinding->Name[0] == '$')
+				if(psCBuf->Name[0] == '$')
 				{
 					bformata(glsl, "Globals%s[%d]", StageName, psOperand->aui32ArraySizes[1]);
 				}
 				else
 				{
-					bformata(glsl, "%s%s[%d]", psBinding->Name, StageName, psOperand->aui32ArraySizes[1]);
+					bformata(glsl, "%s%s[%d]", psCBuf->Name, StageName, psOperand->aui32ArraySizes[1]);
 				}
 			}
 #endif

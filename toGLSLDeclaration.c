@@ -679,9 +679,8 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                         if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
                             bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
 
-						bcatcstr(glsl, "uniform Globals {\n\tvec4 ");
-                        //Make it the same size accross all shader types by using the constant buffer total size rather than the largest-used-in-this-shader size.
-                        bformata(glsl, "Const%d[%d]", psOperand->aui32ArraySizes[0], (int)ceil(psCBuf->ui32TotalSizeInBytes / 16.0f));//16 bytes in a vec4 float.
+						bformata(glsl, "uniform Globals%s {\n\tvec4 ", StageName);
+                        TranslateOperand(psContext, psOperand);
 						bcatcstr(glsl, ";\n};\n");
 					}
 				}
