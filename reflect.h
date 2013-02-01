@@ -6,6 +6,7 @@
 
 #define MAX_REFLECT_STRING_LENGTH 512
 #define MAX_SHADER_VARS 256
+#define MAX_CBUFFERS 256
 
 typedef struct InOutSignature_TAG
 {
@@ -73,6 +74,8 @@ typedef struct ShaderInfo_TAG
 
     uint32_t ui32NumConstantBuffers;
     ConstantBuffer* psConstantBuffers;
+
+    uint32_t aui32ConstBufferBindpointRemap[MAX_CBUFFERS];
 
     TESSELLATOR_PARTITIONING eTessPartitioning;
     TESSELLATOR_OUTPUT_PRIMITIVE eTessOutPrim;

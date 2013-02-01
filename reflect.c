@@ -154,7 +154,7 @@ static void ReadResources(const uint32_t* pui32Tokens,//in
     const uint32_t* pui32ConstantBuffers;
     const uint32_t* pui32ResourceBindings;
     const uint32_t* pui32FirstToken = pui32Tokens;
-    uint32_t i;
+    uint32_t i, k;
 
     const uint32_t ui32NumConstantBuffers = *pui32Tokens++;
     const uint32_t ui32ConstantBufferOffset = *pui32Tokens++;
@@ -172,9 +172,16 @@ static void ReadResources(const uint32_t* pui32Tokens,//in
     psShaderInfo->ui32NumResourceBindings = ui32NumResourceBindings;
     psShaderInfo->psResourceBindings = psResBindings;
 
+    k=0;
     for(i=0; i < ui32NumResourceBindings; ++i)
     {
         pui32ResourceBindings = ReadResourceBinding(pui32FirstToken, pui32ResourceBindings, psResBindings+i);
+
+        if(psResBindings[i].eType == RTYPE_CBUFFER)
+        {
+            ASSERT(k < MAX_CBUFFERS);
+            psShaderInfo->aui32ConstBufferBindpointRemap[psResBindings[i].ui32BindPoint] = k++;
+        }
     }
 
     //Constant buffers
@@ -193,8 +200,15 @@ static void ReadResources(const uint32_t* pui32Tokens,//in
 
 void GetConstantBufferFromBindingPoint(const uint32_t ui32BindPoint, const ShaderInfo* psShaderInfo, ConstantBuffer** ppsConstBuf)
 {
-    ASSERT(ui32BindPoint < psShaderInfo->ui32NumConstantBuffers);
-    *ppsConstBuf = psShaderInfo->psConstantBuffers + ui32BindPoint;
+    uint32_t index;
+    
+    ASSERT(ui32BindPoint < MAX_CBUFFERS);
+    
+    index = psShaderInfo->aui32ConstBufferBindpointRemap[ui32BindPoint]; 
+    
+    ASSERT(index < psShaderInfo->ui32NumConstantBuffers);
+    
+    *ppsConstBuf = psShaderInfo->psConstantBuffers + index;
 }
 
 int GetResourceFromBindingPoint(ResourceType eType, uint32_t ui32BindPoint, ShaderInfo* psShaderInfo, ResourceBinding** ppsOutBinding)
