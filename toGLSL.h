@@ -13,6 +13,7 @@
 //Improving support for integer immediates on MOV instructions by checking if next usage is with an integer opcode.
 //Finish interfaces/subroutines.
 //Try to make use of patch in/patch out. Patch out should be join phase outputs. How to match up with domain inputs?
+//Provide the used-size of constant buffers to calling application so it can use glBindBufferRange to restrict the ubo map range range and maybe help performance.
 
 typedef struct
 {

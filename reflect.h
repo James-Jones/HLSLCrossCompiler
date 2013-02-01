@@ -49,6 +49,8 @@ typedef struct ShaderVar_TAG
 {
     char Name[MAX_REFLECT_STRING_LENGTH];
     uint32_t ui32DefaultValue;
+    uint32_t ui32StartOffset;
+    uint32_t ui32Size;
 } ShaderVar;
 
 typedef struct ConstantBuffer_TAG
@@ -57,6 +59,8 @@ typedef struct ConstantBuffer_TAG
 
     uint32_t ui32NumVars;
     ShaderVar asVars [MAX_SHADER_VARS];
+
+    uint32_t ui32TotalSizeInBytes;
 } ConstantBuffer;
 
 typedef struct ShaderInfo_TAG

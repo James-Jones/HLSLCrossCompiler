@@ -86,10 +86,9 @@ static const uint32_t* ReadConstantBuffer(const uint32_t* pui32FirstConstBufToke
 
     for(i=0; i<ui32VarCount; ++i)
     {
+        //D3D11_SHADER_VARIABLE_DESC
         ShaderVar * const psVar = &psBuffer->asVars[i];
 
-        uint32_t ui32StartOffset;
-        uint32_t ui32Size;
         uint32_t ui32Flags;
         uint32_t ui32TypeOffset;
         uint32_t ui32DefaultValueOffset;
@@ -98,8 +97,8 @@ static const uint32_t* ReadConstantBuffer(const uint32_t* pui32FirstConstBufToke
 
         ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstConstBufToken+ui32NameOffset), psVar->Name);
 
-        ui32StartOffset = *pui32VarToken++;
-        ui32Size = *pui32VarToken++;
+        psVar->ui32StartOffset = *pui32VarToken++;
+        psVar->ui32Size = *pui32VarToken++;
         ui32Flags = *pui32VarToken++;
         ui32TypeOffset = *pui32VarToken++;
 
@@ -107,19 +106,41 @@ static const uint32_t* ReadConstantBuffer(const uint32_t* pui32FirstConstBufToke
 
         if(ui32DefaultValueOffset)
         {
-            if(ui32Size == 4)
+            if(psVar->ui32Size == 4)
             {
-                const uint32_t* DefaultValToken = (const uint32_t*)((const char*)pui32FirstConstBufToken+ui32DefaultValueOffset);
+                const uint32_t* pui32DefaultValToken = (const uint32_t*)((const char*)pui32FirstConstBufToken+ui32DefaultValueOffset);
 
-                psVar->ui32DefaultValue = *DefaultValToken;
+                psVar->ui32DefaultValue = *pui32DefaultValToken;
             }
+        }
+
+        if(ui32TypeOffset)
+        {
+            //D3D11_SHADER_TYPE_DESC
+            const uint16_t* pui16TypeToken = (const uint16_t*)((const char*)pui32FirstConstBufToken+ui32TypeOffset);
+
+            uint16_t varClass = *pui16TypeToken++;
+            uint16_t varType = *pui16TypeToken++;
+
+            uint16_t varRows = *pui16TypeToken++;
+            uint16_t varCols = *pui16TypeToken++;
+
+            uint16_t varElemCount = *pui16TypeToken++;
+            uint16_t varMemberCount = *pui16TypeToken++;
+
+            uint32_t varMemberOffset = *pui16TypeToken++ << 16;
+            varMemberOffset |= *pui16TypeToken++;
         }
     }
 
+
     {
-        uint32_t ui32Size = *pui32Tokens++;
-        uint32_t ui32Flags = *pui32Tokens++;
-        uint32_t ui32BufferType = *pui32Tokens++;
+        uint32_t ui32Flags;
+        uint32_t ui32BufferType;
+
+        psBuffer->ui32TotalSizeInBytes = *pui32Tokens++;
+        ui32Flags = *pui32Tokens++;
+        ui32BufferType = *pui32Tokens++;
     }
 
     return pui32Tokens;

@@ -545,7 +545,7 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 			{
 				//Each uniform block is given the HLSL consant buffer name.
 				//Within each uniform block is a constant array named ConstN
-				bformata(glsl, "Const%s%d[%d]", StageName, psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
+				bformata(glsl, "Const%d[%d]", psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
 			}
 			else
 			{

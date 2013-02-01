@@ -655,15 +655,16 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 #else
             if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
             {
-				ResourceBinding* psBinding = 0;
-				GetResourceFromBindingPoint(RTYPE_CBUFFER, ui32BindingPoint, &psContext->psShader->sInfo, &psBinding);
+                ConstantBuffer* psCBuf = NULL;
+                GetConstantBufferFromBindingPoint(ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
+
                 /*
                     [layout(binding = X)] uniform UniformBufferName
                     {
                         vec4 ConstsX[numConsts];
                     };
                 */
-				if(psBinding->Name[0] == '$')
+				if(psCBuf->Name[0] == '$')
 				{
 					if(psContext->flags & HLSLCC_FLAG_GLOBAL_CONSTS_NEVER_IN_UBO)
 					{
@@ -678,8 +679,9 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                         if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
                             bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
 
-						bformata(glsl, "uniform Globals%s {\n\tvec4 ", StageName);
-						TranslateOperand(psContext, psOperand);
+						bcatcstr(glsl, "uniform Globals {\n\tvec4 ");
+                        //Make it the same size accross all shader types by using the constant buffer total size rather than the largest-used-in-this-shader size.
+                        bformata(glsl, "Const%d[%d]", psOperand->aui32ArraySizes[0], (int)ceil(psCBuf->ui32TotalSizeInBytes / 16.0f));//16 bytes in a vec4 float.
 						bcatcstr(glsl, ";\n};\n");
 					}
 				}
@@ -688,8 +690,9 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                     if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
                         bformata(glsl, "layout(binding = %d)", ui32BindingPoint);
 
-					bformata(glsl, "uniform %s%s {\n\tvec4 ", psBinding->Name, StageName);
-					TranslateOperand(psContext, psOperand);
+					bformata(glsl, "uniform %s {\n\tvec4 ", psCBuf->Name);
+                        //Make it the same size accross all shader types by using the constant buffer total size rather than the largest-used-in-this-shader size.
+                        bformata(glsl, "Const%d[%d]", psOperand->aui32ArraySizes[0], (int)ceil(psCBuf->ui32TotalSizeInBytes / 16.0f));//16 bytes in a vec4 float.
 					bcatcstr(glsl, ";\n};\n");
 				}
             }
