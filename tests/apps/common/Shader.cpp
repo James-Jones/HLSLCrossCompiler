@@ -316,24 +316,7 @@ void ShaderEffect::CreateUniformBlock(std::string& name, uint_t& ubo)
 
 void ShaderEffect::SetUniformBlock(std::string& name, uint_t bufIndex)
 {
-    int uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("VS")).c_str());
-    glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
-
-    if(mDomain)
-    {
-        uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("HS")).c_str());
-        glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
-
-        uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("DS")).c_str());
-        glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
-    }
-    if(mGeometry)
-    {
-        uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("GS")).c_str());
-        glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
-    }
-
-    uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("PS")).c_str());
+    int uniformIndex = glGetUniformBlockIndex(mProgram, (name).c_str());
     glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
 }
 

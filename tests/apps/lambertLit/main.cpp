@@ -37,6 +37,11 @@ GLuint gIndexBuffer;
 GLuint gVertexBuffer;
 Globals gGlobals;
 
+#define UBO 1
+
+GLuint ubo;
+GLuint ubo2;
+
 int WindowWidth = 640;
 int WindowHeight = 480;
 
@@ -81,8 +86,13 @@ void display(void)
     SetFloatArray(vLightColors[0], &gGlobals.vLightColor[0]);
     SetFloatArray(vLightColors[1], &gGlobals.vLightColor[4]);
 
-    mLambertLitEffect.SetVec4(std::string("Globals"), GlobalsVec4Count, (float*)&gGlobals);
-
+#if UBO
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(gGlobals), &gGlobals);
+    mLambertLitEffect.SetUniformBlock(std::string("SharedConsts"), 0, ubo);
+#else
+    mLambertLitEffect.SetVec4(std::string("SharedConsts"), GlobalsVec4Count, (float*)&gGlobals);
+#endif 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gIndexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, gVertexBuffer);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(SimpleVertex), 0);
@@ -104,8 +114,13 @@ void display(void)
         SetFloatArray(light, gGlobals.World);
         SetFloatArray(vLightColors[m], &gGlobals.vOutputColor[0]);
 
-        mSolidColour.SetVec4(std::string("Globals"), GlobalsVec4Count, (float*)&gGlobals);
-
+#if UBO
+        glBindBuffer(GL_UNIFORM_BUFFER, ubo2);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(gGlobals), &gGlobals);
+        mSolidColour.SetUniformBlock(std::string("SharedConsts"), 1, ubo2);
+#else
+        mSolidColour.SetVec4(std::string("SharedConsts"), GlobalsVec4Count, (float*)&gGlobals);
+#endif
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
     }
 
@@ -145,7 +160,7 @@ void Init(int argc, char** argv)
     glutInitContextFlags (GLUT_DEBUG);
 #endif
     glutInitWindowSize (WindowWidth, WindowHeight); 
-    glutInitWindowPosition (0, 0);
+    glutInitWindowPosition (50, 50);
     glutCreateWindow (argv[0]);
     glutDisplayFunc(display); 
     glutReshapeFunc(reshape);
@@ -171,12 +186,28 @@ void Init(int argc, char** argv)
     glEnableVertexAttribArray(1);
 
     mLambertLitEffect.Create();
+#if UBO
+    mLambertLitEffect.AddCompileFlags(HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT);
+#endif
     mLambertLitEffect.FromByteFile(std::string("shaders/LambertLitVS.o"));
     mLambertLitEffect.FromByteFile(std::string("shaders/LambertLitPS.o"));
 
     mSolidColour.Create();
+#if UBO
+    mSolidColour.AddCompileFlags(HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT);
+#endif
     mSolidColour.FromByteFile(std::string("shaders/LambertLitVS.o"));
     mSolidColour.FromByteFile(std::string("shaders/LambertLitSolidPS.o"));
+
+#if UBO
+    mLambertLitEffect.Enable();//Must be linked in order to call CreateUniformBlock.
+    mLambertLitEffect.CreateUniformBlock(std::string("SharedConsts"), ubo);
+    mLambertLitEffect.SetUniformBlock(std::string("SharedConsts"), 0, ubo);
+
+    mSolidColour.Enable();
+    mSolidColour.CreateUniformBlock(std::string("SharedConsts"), ubo2);
+    mSolidColour.SetUniformBlock(std::string("SharedConsts"), 1, ubo2);
+#endif
 
     gWorld = Matrix4::identity();
 
