@@ -168,6 +168,11 @@ uint32_t GetNumSwizzleElements(HLSLCrossCompilerContext* psContext, const Operan
 		//Component Select 1
 	}
 
+    if(!count)
+    {
+        return psOperand->iNumComponents;
+    }
+
 	return count;
 }
 
@@ -442,11 +447,26 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
             else
             if(psOperand->iNumComponents == 4)
             {
-                bformata(glsl, "vec4(%f, %f, %f, %f)",
-                    psOperand->afImmediates[0],
-                    psOperand->afImmediates[1],
-                    psOperand->afImmediates[2],
-                    psOperand->afImmediates[3]);
+                if(psOperand->iIntegerImmediate ||
+                    fpcheck(psOperand->afImmediates[0]) ||
+                    fpcheck(psOperand->afImmediates[1]) ||
+                    fpcheck(psOperand->afImmediates[2]) ||
+                    fpcheck(psOperand->afImmediates[3]))
+                {
+                    bformata(glsl, "vec4(%d, %d, %d, %d)",
+                        *(int*)&psOperand->afImmediates[0],
+                        *(int*)&psOperand->afImmediates[1],
+                        *(int*)&psOperand->afImmediates[2],
+                        *(int*)&psOperand->afImmediates[3]);
+                }
+                else
+                {
+                    bformata(glsl, "vec4(%f, %f, %f, %f)",
+                        psOperand->afImmediates[0],
+                        psOperand->afImmediates[1],
+                        psOperand->afImmediates[2],
+                        psOperand->afImmediates[3]);
+                }
             }
             break;
         }

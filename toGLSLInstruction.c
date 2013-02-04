@@ -6,6 +6,118 @@
 
 extern void AddIndentation(HLSLCrossCompilerContext* psContext);
 
+typedef enum
+{
+    CMP_EQ,
+    CMP_LT,
+    CMP_GE,
+    CMP_NE,
+} ComparisonType;
+
+static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psInst, ComparisonType eType)
+{
+    bstring glsl = psContext->glsl;
+    const uint32_t destElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[0]);
+    const uint32_t s0ElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[1]);
+    const uint32_t s1ElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[2]);
+
+    uint32_t minElemCount = destElemCount < s0ElemCount ? destElemCount : s0ElemCount;
+
+    minElemCount = s1ElemCount < minElemCount ? s1ElemCount : minElemCount;
+
+    if(destElemCount > 1)
+    {
+        const char* glslOpcode [] = {
+            "equal",
+            "lessThan",
+            "greaterThanEqual",
+            "notEqual",
+        };
+
+        //Component-wise compare
+        AddIndentation(psContext);
+        TranslateOperand(psContext, &psInst->asOperands[0]);
+        bformata(glsl, " = vec%d(%s((", minElemCount, glslOpcode[eType]);
+        TranslateOperand(psContext, &psInst->asOperands[1]);
+        bcatcstr(glsl, ")");
+        AddSwizzleUsingElementCount(psContext, minElemCount);
+        bcatcstr(glsl, ", (");
+        TranslateOperand(psContext, &psInst->asOperands[2]);
+        bcatcstr(glsl, ")");
+        AddSwizzleUsingElementCount(psContext, minElemCount);
+        bcatcstr(glsl, "));\n");
+    }
+    else
+    {
+        const char* glslOpcode [] = {
+            "==",
+            "<",
+            ">=",
+            "!=",
+        };
+
+        //Scalar compare
+        AddIndentation(psContext);
+        TranslateOperand(psContext, &psInst->asOperands[0]);
+        bcatcstr(glsl, " = ((");
+        TranslateOperand(psContext, &psInst->asOperands[1]);
+        bcatcstr(glsl, ")");
+        if(s0ElemCount > minElemCount)
+            AddSwizzleUsingElementCount(psContext, minElemCount);
+        bformata(glsl, "%s (", glslOpcode[eType]);
+        TranslateOperand(psContext, &psInst->asOperands[2]);
+        bcatcstr(glsl, ")");
+        if(s1ElemCount > minElemCount)
+            AddSwizzleUsingElementCount(psContext, minElemCount);
+        bcatcstr(glsl, ") ? 1 : 0;\n");
+    }
+}
+
+static void AddEqual(HLSLCrossCompilerContext* psContext, Instruction* psInst)
+{
+    bstring glsl = psContext->glsl;
+    const uint32_t destElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[0]);
+    const uint32_t s0ElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[1]);
+    const uint32_t s1ElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[2]);
+
+    uint32_t minElemCount = destElemCount < s0ElemCount ? destElemCount : s0ElemCount;
+
+    minElemCount = s1ElemCount < minElemCount ? s1ElemCount : minElemCount;
+
+    if(destElemCount > 1)
+    {
+        //Component-wise compare
+        AddIndentation(psContext);
+        TranslateOperand(psContext, &psInst->asOperands[0]);
+        bformata(glsl, " = vec%d(equal((", minElemCount);
+        TranslateOperand(psContext, &psInst->asOperands[1]);
+        bcatcstr(glsl, ")");
+        AddSwizzleUsingElementCount(psContext, minElemCount);
+        bcatcstr(glsl, ", (");
+        TranslateOperand(psContext, &psInst->asOperands[2]);
+        bcatcstr(glsl, ")");
+        AddSwizzleUsingElementCount(psContext, minElemCount);
+        bcatcstr(glsl, "));\n");
+    }
+    else
+    {
+        //Scalar compare
+        AddIndentation(psContext);
+        TranslateOperand(psContext, &psInst->asOperands[0]);
+        bcatcstr(glsl, " = ((");
+        TranslateOperand(psContext, &psInst->asOperands[1]);
+        bcatcstr(glsl, ")");
+        if(s0ElemCount > minElemCount)
+            AddSwizzleUsingElementCount(psContext, minElemCount);
+        bcatcstr(glsl, "== (");
+        TranslateOperand(psContext, &psInst->asOperands[2]);
+        bcatcstr(glsl, ")");
+        if(s1ElemCount > minElemCount)
+            AddSwizzleUsingElementCount(psContext, minElemCount);
+        bcatcstr(glsl, ") ? 1 : 0;\n");
+    }
+}
+
 void CallHLSLOpcodeFunc1(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst)
 {
     bstring glsl = psContext->glsl;
@@ -435,7 +547,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//GE\n");
 #endif
-            CallHLSLOpcodeFunc2(psContext, "HLSL_ge", psInst);
+            AddComparision(psContext, psInst, CMP_GE);
             break;
         }
         case OPCODE_MUL:
@@ -548,13 +660,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//NE\n");
 #endif
-            AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
-            bcatcstr(glsl, " = (");
-            TranslateOperand(psContext, &psInst->asOperands[1]);
-            bcatcstr(glsl, " != ");
-            TranslateOperand(psContext, &psInst->asOperands[2]);
-            bcatcstr(glsl, ") ? 1 : 0;\n");
+            AddComparision(psContext, psInst, CMP_NE);
             break;
         }
         case OPCODE_IGE:
@@ -581,7 +687,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//LT\n");
 #endif
-            CallHLSLOpcodeFunc2(psContext, "HLSL_lt", psInst);
+            AddComparision(psContext, psInst, CMP_LT);
             break;
         }
         case OPCODE_IEQ:
@@ -1570,7 +1676,7 @@ src3
             AddIndentation(psContext);
             bcatcstr(glsl, "//EQ\n");
 #endif
-            CallHLSLOpcodeFunc2(psContext, "HLSL_eq", psInst);
+            AddComparision(psContext, psInst, CMP_EQ);
 			break;
 		}
 		case OPCODE_USHR:
