@@ -262,8 +262,8 @@ void Model::CreateMaterial()
 
     if(AI_SUCCESS == mtl->GetTexture(aiTextureType_DIFFUSE, 0, &texPath))
     {
-        //Textures for models currently reside in ../models
-        std::string fullPath ("../models/");
+        //Textures for models currently reside in ./models
+        std::string fullPath ("models/");
         fullPath += texPath.C_Str();
         mMaterial.SetDiffuseTexture(fullPath.c_str());
     }
