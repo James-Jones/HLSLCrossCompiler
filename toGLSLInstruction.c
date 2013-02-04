@@ -1181,7 +1181,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			        TranslateOperand(psContext, &psInst->asOperands[0]);
 			        bcatcstr(glsl, " = vec4(");
 			        bcatcstr(glsl, "textureLod(");
-			        TranslateOperand(psContext, &psInst->asOperands[2]);
+			        TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 			        bcatcstr(glsl, ",");
 			        TranslateOperand(psContext, &psInst->asOperands[1]);
 			        bcatcstr(glsl, ",");
@@ -1190,6 +1190,8 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			        bcatcstr(glsl, ", 0))");
 			        AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
 			        bcatcstr(glsl, ";\n");
+
+                    goto OPCODE_SAMPLE_C_LZ_end;
                 }
                 default:
                 {
@@ -1202,7 +1204,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			TranslateOperand(psContext, &psInst->asOperands[0]);
 			bcatcstr(glsl, " = vec4(");
 			bformata(glsl, "%s(", funcName);
-			TranslateOperand(psContext, &psInst->asOperands[2]);
+			TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 			bformata(glsl, ", %s(", coordType);
 			TranslateOperand(psContext, &psInst->asOperands[1]);
 			bcatcstr(glsl, ",");
@@ -1212,6 +1214,8 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			bcatcstr(glsl, ", 0))");
 			AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
 			bcatcstr(glsl, ";\n");
+
+            OPCODE_SAMPLE_C_LZ_end:
 			break;
 		}
 		case OPCODE_RET:
