@@ -765,6 +765,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
             break;
         }
+        case OPCODE_GATHER4_PO:
         case OPCODE_SAMPLE_L:
         case OPCODE_BFI:
         {
@@ -776,6 +777,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[4]);
             break;
         }
+        case OPCODE_GATHER4_C:
 		case OPCODE_SAMPLE_C:
 		case OPCODE_SAMPLE_C_LZ:
 		{
@@ -789,6 +791,19 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 			MarkTextureAsShadow(&psShader->sInfo, psShader->psDecl, psShader->ui32DeclCount, &psInst->asOperands[2]);
             break;
 		}
+        case OPCODE_GATHER4_PO_C:
+        {
+            psInst->ui32NumOperands = 6;
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[4]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[5]);
+
+			MarkTextureAsShadow(&psShader->sInfo, psShader->psDecl, psShader->ui32DeclCount, &psInst->asOperands[2]);
+            break;
+        }
         case OPCODE_IF:
         case OPCODE_BREAKC:
         case OPCODE_CALLC:

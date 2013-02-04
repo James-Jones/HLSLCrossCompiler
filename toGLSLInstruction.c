@@ -748,6 +748,93 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, ");\n");
             break;
         }
+        case OPCODE_GATHER4_PO_C:
+        {
+            //dest, coords, offset, tex, sampler, srcReferenceValue
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//GATHER4_PO_C\n");
+#endif
+
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, " = textureGatherOffset(");
+
+            TextureName(psContext, psInst->asOperands[3].ui32RegisterNumber, 1);
+
+            bcatcstr(glsl, ", ");
+            //Texture coord cannot be vec4
+            //Determining if it is a vec3 for vec2 yet to be done.
+            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+            TranslateOperand(psContext, &psInst->asOperands[1]);
+
+            bcatcstr(glsl, ", ");
+            TranslateOperand(psContext, &psInst->asOperands[5]);
+
+            bcatcstr(glsl, ", ivec2(");
+            //ivec2 offset
+            psInst->asOperands[2].aui32Swizzle[2] = 0xFFFFFFFF;
+            psInst->asOperands[2].aui32Swizzle[3] = 0xFFFFFFFF;
+            TranslateOperand(psContext, &psInst->asOperands[2]);
+            bcatcstr(glsl, "));\n");
+            break;
+        }
+        case OPCODE_GATHER4_PO:
+        {
+            //dest, coords, offset, tex, sampler
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//GATHER4_PO\n");
+#endif
+
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, " = textureGatherOffset(");
+
+            TextureName(psContext, psInst->asOperands[3].ui32RegisterNumber, 0);
+
+            bcatcstr(glsl, ", ");
+            //Texture coord cannot be vec4
+            //Determining if it is a vec3 for vec2 yet to be done.
+            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+            TranslateOperand(psContext, &psInst->asOperands[1]);
+
+            bcatcstr(glsl, ", ivec2(");
+            //ivec2 offset
+            psInst->asOperands[2].aui32Swizzle[2] = 0xFFFFFFFF;
+            psInst->asOperands[2].aui32Swizzle[3] = 0xFFFFFFFF;
+            TranslateOperand(psContext, &psInst->asOperands[2]);
+            bcatcstr(glsl, "));\n");
+            break;
+        }
+        case OPCODE_GATHER4_C:
+        {
+            //dest, coords, tex, sampler srcReferenceValue
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//GATHER4_C\n");
+#endif
+
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, " = textureGather(");
+
+            TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
+
+            bcatcstr(glsl, ", ");
+            //Texture coord cannot be vec4
+            //Determining if it is a vec3 for vec2 yet to be done.
+            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
+            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
+            TranslateOperand(psContext, &psInst->asOperands[1]);
+
+            bcatcstr(glsl, ", ");
+            TranslateOperand(psContext, &psInst->asOperands[4]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
         case OPCODE_SAMPLE:
         {
             //dest, coords, tex, sampler
@@ -979,7 +1066,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			        TranslateOperand(psContext, &psInst->asOperands[0]);
 			        bcatcstr(glsl, " = vec4(");
 			        bcatcstr(glsl, "texture(");
-			        TranslateOperand(psContext, &psInst->asOperands[2]);
+                    TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 			        bcatcstr(glsl, ",");
 			        TranslateOperand(psContext, &psInst->asOperands[1]);
 			        bcatcstr(glsl, ",");
@@ -988,6 +1075,8 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			        bcatcstr(glsl, "))");
 			        AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
 			        bcatcstr(glsl, ";\n");
+
+                    goto OPCODE_SAMPLE_C_end;
                 }
                 default:
                 {
@@ -1000,7 +1089,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			TranslateOperand(psContext, &psInst->asOperands[0]);
 			bcatcstr(glsl, " = vec4(");
 			bformata(glsl, "%s(", funcName);
-			TranslateOperand(psContext, &psInst->asOperands[2]);
+            TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 			bformata(glsl, ", %s(", coordType);
 			TranslateOperand(psContext, &psInst->asOperands[1]);
 			bcatcstr(glsl, ",");
@@ -1009,6 +1098,8 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			bcatcstr(glsl, ")))");
 			AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
 			bcatcstr(glsl, ";\n");
+
+            OPCODE_SAMPLE_C_end:
 
 			break;
 		}

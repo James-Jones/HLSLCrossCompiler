@@ -51,7 +51,7 @@ typedef struct Instruction_TAG
     INSTRUCTION_TEST_BOOLEAN eBooleanTestType;
     uint32_t ui32SyncFlags;
     uint32_t ui32NumOperands;
-    Operand asOperands[5];
+    Operand asOperands[6];
     uint32_t ui32FunctionIDToCall;
     uint32_t bSaturate;
 

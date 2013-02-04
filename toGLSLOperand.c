@@ -572,26 +572,7 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         }
         case OPERAND_TYPE_RESOURCE:
         {
-            ResourceBinding* psBinding = 0;
-			int found;
-            found = GetResourceFromBindingPoint(RTYPE_TEXTURE, psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
-
-			if(found)
-			{
-				uint32_t ui32ArrayOffset = psOperand->ui32RegisterNumber - psBinding->ui32BindPoint;
-				if(ui32ArrayOffset)
-				{
-					bformata(glsl, "%s%d", psBinding->Name, ui32ArrayOffset);
-				}
-				else
-				{
-					bformata(glsl, "%s", psBinding->Name);
-				}
-			}
-			else
-			{
-				bformata(glsl, "UnknownResource%d", psOperand->ui32RegisterNumber);
-			}
+            TextureName(psContext, psOperand->ui32RegisterNumber, 0);
             break;
         }
         case OPERAND_TYPE_SAMPLER:
@@ -925,4 +906,34 @@ void TranslateIntegerOperand(HLSLCrossCompilerContext* psContext, const Operand*
             break;
         }
     }
+}
+
+void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32RegisterNumber, const int bZCompare)
+{
+    bstring glsl = psContext->glsl;
+    ResourceBinding* psBinding = 0;
+	int found;
+    found = GetResourceFromBindingPoint(RTYPE_TEXTURE, ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
+
+    if(bZCompare)
+    {
+        bcatcstr(glsl, "hlslcc_zcmp_");
+    }
+
+	if(found)
+	{
+		uint32_t ui32ArrayOffset = ui32RegisterNumber - psBinding->ui32BindPoint;
+		if(ui32ArrayOffset)
+		{
+			bformata(glsl, "%s%d", psBinding->Name, ui32ArrayOffset);
+		}
+		else
+		{
+			bformata(glsl, "%s", psBinding->Name);
+		}
+	}
+	else
+	{
+		bformata(glsl, "UnknownResource%d", ui32RegisterNumber);
+	}
 }

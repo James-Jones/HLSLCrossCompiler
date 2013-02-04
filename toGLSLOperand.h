@@ -12,4 +12,6 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
 uint32_t GetNumSwizzleElements(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
 void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t count);
 
+void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32RegisterNumber, const int bZCompare);
+
 #endif
