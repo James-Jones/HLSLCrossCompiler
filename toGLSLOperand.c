@@ -342,6 +342,13 @@ void TranslateOperandIndex(HLSLCrossCompilerContext* psContext, const Operand* p
             bcatcstr(glsl, ")]");
             break;
         }
+        case OPERAND_INDEX_IMMEDIATE32_PLUS_RELATIVE:
+        {
+            bcatcstr(glsl, "[int("); //Indexes must be integral.
+            TranslateOperand(psContext, psOperand->psSubOperand[i]);
+            bformata(glsl, ") + %d]", psOperand->aui32ArraySizes[i]);
+            break;
+        }
         default:
         {
             break;
@@ -491,7 +498,25 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
                 }
                 default:
                 {
-                    bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
+                    if(psOperand->eIndexRep[0] == OPERAND_INDEX_IMMEDIATE32_PLUS_RELATIVE)
+                    {
+                        bformata(glsl, "Input%d[int(", psOperand->ui32RegisterNumber);
+                        TranslateOperand(psContext, psOperand->psSubOperand[0]);
+                        bcatcstr(glsl, ")]");
+                    }
+                    else
+                    {
+                        if(psContext->psShader->aIndexedInput[psOperand->ui32RegisterNumber] != 0)
+                        {
+                            const uint32_t parentIndex = psContext->psShader->aIndexedInputParents[psOperand->ui32RegisterNumber];
+                            bformata(glsl, "Input%d[%d]", parentIndex,
+                                psOperand->ui32RegisterNumber - parentIndex);
+                        }
+                        else
+                        {
+                            bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
+                        }
+                    }
                     break;
                 }
             }

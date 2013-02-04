@@ -173,6 +173,9 @@ typedef struct Shader_TAG
 
     int aIndexedOutput[MAX_SHADER_VEC4_OUTPUT];
 
+    int aIndexedInput[MAX_SHADER_VEC4_INPUT];
+    int aIndexedInputParents[MAX_SHADER_VEC4_INPUT];
+
     RESOURCE_DIMENSION aeResourceDims[MAX_TEXTURES];
 
 	int aiOpcodeUsed[NUM_OPCODES];

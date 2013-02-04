@@ -357,10 +357,27 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_INDEX_RANGE:
         {
-            uint32_t indexRange = 0;
             psDecl->ui32NumOperands = 1;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             psDecl->value.ui32IndexRange = pui32Token[ui32OperandOffset];
+
+            if(psDecl->asOperands[0].eType == OPERAND_TYPE_INPUT)
+            {
+                uint32_t i;
+                const uint32_t indexRange = psDecl->value.ui32IndexRange;
+                const uint32_t reg = psDecl->asOperands[0].ui32RegisterNumber;
+
+                psShader->aIndexedInput[reg] = indexRange;
+                psShader->aIndexedInputParents[reg] = reg;
+
+                //-1 means don't declare this input because it falls in
+                //the range of an already declared array.
+                for(i=reg+1; i<reg+indexRange; ++i)
+                {
+                    psShader->aIndexedInput[i] = -1;
+                    psShader->aIndexedInputParents[i] = reg;
+                }
+            }
 
             if(psDecl->asOperands[0].eType == OPERAND_TYPE_OUTPUT)
             {

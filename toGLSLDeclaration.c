@@ -367,6 +367,12 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 break;
             }
 
+            //Already declared as part of an array.
+            if(psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber] == -1)
+            {
+                break;
+            }
+
 			if(psShader->eShaderType == GEOMETRY_SHADER)
 			{
 				InputName = "VtxOutput";
@@ -460,7 +466,14 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                     }
                     else
                     {
-                        bformata(glsl, "%s %s vec%d %s%d;\n", StorageQualifier, Precision, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+                        bformata(glsl, "%s %s vec%d %s%d", StorageQualifier, Precision, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+
+                        if(psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber])
+                        {
+                            bformata(glsl, "[%d]", psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber]);
+                        }
+
+                        bcatcstr(glsl, ";\n");
                     }
                     break;
                 }
