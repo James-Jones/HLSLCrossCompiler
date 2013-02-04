@@ -769,28 +769,46 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 case RESOURCE_DIMENSION_TEXTURECUBE:
                 {
 					if(psDecl->ui32IsShadowTex)
+                    {
+                        //Create shadow and non-shadow sampler.
+                        //HLSL does not have separate types for depth compare, just different functions.
 						bcatcstr(glsl, "uniform samplerCubeShadow ");
-					else
-						bcatcstr(glsl, "uniform samplerCube ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0]);
+                        TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 1);
+                        bcatcstr(glsl, ";\n");
+                    }
+
+					bcatcstr(glsl, "uniform samplerCube ");
+                    TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE1DARRAY:
                 {
 					if(psDecl->ui32IsShadowTex)
+                    {
+                        //Create shadow and non-shadow sampler.
+                        //HLSL does not have separate types for depth compare, just different functions.
 						bcatcstr(glsl, "uniform sampler1DArrayShadow ");
-					else
-						bcatcstr(glsl, "uniform sampler1DArray ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0]);
+                        TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 1);
+                        bcatcstr(glsl, ";\n");
+                    }
+
+					bcatcstr(glsl, "uniform sampler1DArray ");
+                    TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DARRAY:
                 {
 					if(psDecl->ui32IsShadowTex)
-						bcatcstr(glsl, "uniform sampler2DArrayShadow");
-					else
-						bcatcstr(glsl, "uniform sampler2DArray ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0]);
+                    {
+                        //Create shadow and non-shadow sampler.
+                        //HLSL does not have separate types for depth compare, just different functions.
+						bcatcstr(glsl, "uniform sampler2DArrayShadow ");
+                        TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 1);
+                        bcatcstr(glsl, ";\n");
+                    }
+
+					bcatcstr(glsl, "uniform sampler2DArray ");
+                    TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
@@ -802,10 +820,16 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
                 {
 					if(psDecl->ui32IsShadowTex)
+                    {
+                        //Create shadow and non-shadow sampler.
+                        //HLSL does not have separate types for depth compare, just different functions.
 						bcatcstr(glsl, "uniform samplerCubeArrayShadow ");
-					else
-						bcatcstr(glsl, "uniform samplerCubeArray ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0]);
+                        TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 1);
+                        bcatcstr(glsl, ";\n");
+                    }
+
+					bcatcstr(glsl, "uniform samplerCubeArray ");
+                    TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
                     break;
                 }
             }

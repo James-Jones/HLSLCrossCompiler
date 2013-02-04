@@ -814,9 +814,7 @@ void TranslateIntegerOperand(HLSLCrossCompilerContext* psContext, const Operand*
         }
         case OPERAND_TYPE_RESOURCE:
         {
-            ResourceBinding* psBinding = 0;
-            GetResourceFromBindingPoint(RTYPE_TEXTURE, psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
-            bformata(glsl, "%s", psBinding->Name);
+            TextureName(psContext, psOperand->ui32RegisterNumber, 0);
             break;
         }
         case OPERAND_TYPE_SAMPLER:
@@ -922,14 +920,33 @@ void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32Registe
 
 	if(found)
 	{
+        int i = 0;
+        char name[MAX_REFLECT_STRING_LENGTH];
 		uint32_t ui32ArrayOffset = ui32RegisterNumber - psBinding->ui32BindPoint;
+
+        while(psBinding->Name[i] != '\0' && i < (MAX_REFLECT_STRING_LENGTH-1))
+        {
+            name[i] = psBinding->Name[i];
+
+            //array syntax [X] becomes _0_
+            //Otherwise declarations could end up as:
+            //uniform sampler2D SomeTextures[0];
+            //uniform sampler2D SomeTextures[1];
+            if(name[i] == '[' || name[i] == ']')
+                name[i] = '_';
+
+            ++i;
+        }
+
+        name[i] = '\0';
+
 		if(ui32ArrayOffset)
 		{
-			bformata(glsl, "%s%d", psBinding->Name, ui32ArrayOffset);
+			bformata(glsl, "%s%d", name, ui32ArrayOffset);
 		}
 		else
 		{
-			bformata(glsl, "%s", psBinding->Name);
+			bformata(glsl, "%s", name);
 		}
 	}
 	else
