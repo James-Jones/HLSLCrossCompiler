@@ -1861,3 +1861,80 @@ src3
         bcatcstr(glsl, ", 0, 1);\n");
     }
 }
+
+static int IsIntegerOpcode(OPCODE_TYPE eOpcode)
+{
+    switch(eOpcode)
+    {
+        case OPCODE_IADD:
+        case OPCODE_IF:
+        case OPCODE_IEQ:
+        case OPCODE_IGE:
+        case OPCODE_ILT:
+        case OPCODE_IMAD:
+        case OPCODE_IMAX:
+        case OPCODE_IMIN:
+        case OPCODE_IMUL:
+        case OPCODE_INE:
+        case OPCODE_INEG:
+        case OPCODE_ISHL:
+        case OPCODE_ISHR:
+        case OPCODE_ITOF:
+        {
+            return 1;
+        }
+        default:
+        {
+            return 0;
+        }
+    }
+}
+
+int InstructionUsesRegister(const Instruction* psInst, const OPERAND_TYPE eOperand,
+    const uint32_t ui32RegisterNumber)
+{
+    uint32_t operand;
+    for(operand=0; operand < psInst->ui32NumOperands; ++operand)
+    {
+        if(psInst->asOperands[operand].eType == eOperand)
+        {
+            if(psInst->asOperands[operand].ui32RegisterNumber == ui32RegisterNumber)
+            {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+void MarkIntegerImmediates(HLSLCrossCompilerContext* psContext)
+{
+    const uint32_t count = psContext->psShader->ui32InstCount;
+    Instruction* psInst = psContext->psShader->psInst;
+    uint32_t i;
+
+    for(i=0; i < count;)
+    {
+        if(psInst[i].eOpcode == OPCODE_MOV && psInst[i].asOperands[1].eType == OPERAND_TYPE_IMMEDIATE32 &&
+            psInst[i].asOperands[0].eType == OPERAND_TYPE_TEMP)
+        {
+            const uint32_t ui32RegisterNumber = psInst[i].asOperands[0].ui32RegisterNumber;
+            uint32_t k;
+
+            for(k=i+1; k < count; ++k)
+            {
+                if(InstructionUsesRegister(&psInst[k], OPERAND_TYPE_TEMP, ui32RegisterNumber))
+                {
+                    if(IsIntegerOpcode(psInst[k].eOpcode))
+                    {
+                        psInst[i].asOperands[1].iIntegerImmediate = 1;
+                    }
+
+                    goto next_iteration;
+                }
+            }
+        }
+next_iteration:
+        ++i;
+    }
+}

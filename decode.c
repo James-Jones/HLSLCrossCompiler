@@ -645,14 +645,17 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_HS_FORK_PHASE:
 		case OPCODE_HS_JOIN_PHASE:
         {
+            psInst->ui32NumOperands = 0;
             break;
         }
 		case OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT:
 		{
+            psInst->ui32NumOperands = 0;
 			break;
 		}
         case OPCODE_SYNC:
         {
+            psInst->ui32NumOperands = 0;
             psInst->ui32SyncFlags = DecodeSyncFlags(*pui32Token);
             break;
         }
@@ -836,6 +839,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         }
 		case OPCODE_CUSTOMDATA:
 		{
+            psInst->ui32NumOperands = 0;
 			ui32TokenLength = pui32Token[1];
 			break;
 		}

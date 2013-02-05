@@ -425,6 +425,11 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
 
     for(i=0; i < ui32InstCount; ++i)
     {
+        MarkIntegerImmediates(psContext);
+    }
+
+    for(i=0; i < ui32InstCount; ++i)
+    {
         TranslateInstruction(psContext, psShader->psInst+i);
     }
 
