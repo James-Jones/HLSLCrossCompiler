@@ -429,9 +429,10 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			bformata(glsl, "#ifndef Input%d_CREATED\n", psDecl->asOperands[0].ui32RegisterNumber);
 			bformata(glsl, "#define Input%d_CREATED\n", psDecl->asOperands[0].ui32RegisterNumber);
 
-            if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
+            if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage) ||
+                
+              (psShader->eShaderType == VERTEX_SHADER && HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage)) )
             {
-                //TODO: arrays not handled - increment location by number of elements in array.
                 bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
             }
 
@@ -556,7 +557,6 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 
             if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
             {
-                //TODO: arrays not handled - increment location by number of elements in array.
                 bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
             }
 
@@ -924,11 +924,27 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 							}
 							else
 							{
-
-                                if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
+                                if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage) || HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage))
                                 {
-                                    //TODO: arrays not handled - increment location by number of elements in array.
-                                    bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
+                                    uint32_t index = 0;
+                                    uint32_t renderTarget = psDecl->asOperands[0].ui32RegisterNumber;
+
+                                    if(DualSourceBlendSupported(psContext->psShader->eTargetLanguage))
+                                    {
+                                        if(psContext->flags & HLSLCC_DUAL_SOURCE_BLENDING)
+                                        {
+                                            if(renderTarget > 0)
+                                            {
+                                                renderTarget = 0;
+                                                index = 1;
+                                            }
+                                        }
+                                        bformata(glsl, "layout(location = %d, index = %d) ", renderTarget, index);
+                                    }
+                                    else
+                                    {
+                                         bformata(glsl, "layout(location = %d) ", renderTarget);
+                                    }
                                 }
 
 								bformata(glsl, "out %s %s4 PixOutput%d;\n", Precision, type, psDecl->asOperands[0].ui32RegisterNumber);
@@ -945,7 +961,6 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 
                     if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
                     {
-                        //TODO: arrays not handled - increment location by number of elements in array.
                         bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                     }
 
@@ -982,7 +997,6 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 
                     if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
                     {
-                        //TODO: arrays not handled - increment location by number of elements in array.
                         bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                     }
 
@@ -1001,7 +1015,6 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                     {
                         if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
                         {
-                            //TODO: arrays not handled - increment location by number of elements in array.
                             bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                         }
 					    bformata(glsl, "out vec4 HullOutput%d[];\n", psDecl->asOperands[0].ui32RegisterNumber);
@@ -1013,7 +1026,6 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				{
                     if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
                     {
-                        //TODO: arrays not handled - increment location by number of elements in array.
                         bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                     }
 					bformata(glsl, "out vec4 DomOutput%d;\n", psDecl->asOperands[0].ui32RegisterNumber);

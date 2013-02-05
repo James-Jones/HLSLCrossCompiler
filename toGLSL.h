@@ -53,6 +53,8 @@ static const unsigned int HLSLCC_FLAG_FRACTIONAL_ODD_SPACING = 0x80;
 static const unsigned int HLSLCC_FLAG_CW = 0x100; //CCW is default.
 static const unsigned int HLSLCC_FLAG_TESS_POINT_MODE = 0x200;
 
+static const unsigned int HLSLCC_DUAL_SOURCE_BLENDING = 0x400;
+
 int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang language, GLSLShader* result);
 int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language, GLSLShader* result);
 

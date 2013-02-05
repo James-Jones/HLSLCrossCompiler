@@ -64,15 +64,22 @@ static int HavePrecisionQualifers(const GLLang eLang)
 	return 0;
 }
 
-//Support in 400 is limited, so 410/300+
-static int HaveInOutLocationQualifier(const GLLang eLang)
+//Only on vertex inputs and pixel outputs.
+static int HaveLimitedInOutLocationQualifier(const GLLang eLang)
 {
-#if defined(WORK_IN_PROGRESS)
-    if(eLang >= LANG_410 || eLang == LANG_ES_300)
+    if(eLang >= LANG_330 || eLang == LANG_ES_300)
     {
         return 1;
     }
-#endif
+    return 0;
+}
+
+static int HaveInOutLocationQualifier(const GLLang eLang)
+{
+    if(eLang >= LANG_410)
+    {
+        return 1;
+    }
     return 0;
 }
 
@@ -86,6 +93,15 @@ static int HaveUniformBindingsAndLocations(const GLLang eLang)
         return 1;
     }
 #endif
+    return 0;
+}
+
+static int DualSourceBlendSupported(const GLLang eLang)
+{
+    if(eLang >= LANG_330)
+    {
+        return 1;
+    }
     return 0;
 }
 
