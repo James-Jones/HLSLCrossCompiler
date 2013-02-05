@@ -682,6 +682,18 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
             bcatcstr(glsl, "gl_InvocationID");
             break;
         }
+        case OPERAND_TYPE_OUTPUT_COVERAGE_MASK:
+        {
+            bcatcstr(glsl, "gl_SampleMask[0]");
+            break;
+        }
+        case OPERAND_TYPE_INPUT_COVERAGE_MASK:
+        {
+            bcatcstr(glsl, "gl_SampleMaskIn[0]");
+            //Skip swizzle on scalar types.
+            goto skip_swizzle;
+            break;
+        }
         default:
         {
             ASSERT(0);
@@ -690,6 +702,8 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
     }
 
     TranslateOperandSwizzle(psContext, psOperand);
+
+    skip_swizzle:
 
     switch(psOperand->eModifier)
     {
@@ -919,6 +933,21 @@ void TranslateIntegerOperand(HLSLCrossCompilerContext* psContext, const Operand*
 			bcatcstr(glsl, "//null");
 			break;
 		}
+        case OPERAND_TYPE_OUTPUT_CONTROL_POINT_ID:
+        {
+            bcatcstr(glsl, "gl_InvocationID");
+            break;
+        }
+        case OPERAND_TYPE_OUTPUT_COVERAGE_MASK:
+        {
+            bcatcstr(glsl, "gl_SampleMask[0]");
+            break;
+        }
+        case OPERAND_TYPE_INPUT_COVERAGE_MASK:
+        {
+            bcatcstr(glsl, "gl_SampleMaskIn[0]");
+            break;
+        }
         default:
         {
             ASSERT(0);

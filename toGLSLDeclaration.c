@@ -44,7 +44,7 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                 {
                     bcatcstr(glsl, "vec1 ");
                     TranslateOperand(psContext, &psDecl->asOperands[0]);
-                    bformata(glsl, " = vec1(gl_Layer)\n");
+                    bformata(glsl, " = vec1(gl_Layer);\n");
                     break;
                 }
                 case NAME_CLIP_DISTANCE:
@@ -58,14 +58,14 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                 {
                     bcatcstr(glsl, "vec1 ");
                     TranslateOperand(psContext, &psDecl->asOperands[0]);
-                    bformata(glsl, " = vec1(gl_ViewportIndex)\n");
+                    bformata(glsl, " = vec1(gl_ViewportIndex);\n");
                     break;
                 }
                 case NAME_VERTEX_ID:
                 {
                     bcatcstr(glsl, "vec1 ");
                     TranslateOperand(psContext, &psDecl->asOperands[0]);
-                    bformata(glsl, " = vec1(gl_VertexID)\n");
+                    bformata(glsl, " = vec1(gl_VertexID);\n");
                     break;
                 }
                 case NAME_PRIMITIVE_ID:
@@ -79,14 +79,21 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                 {
                     bcatcstr(glsl, "vec1 ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
-                    bformata(glsl, " = vec1(gl_InstanceID)\n");
+                    bformata(glsl, " = vec1(gl_InstanceID);\n");
                     break;
                 }
                 case NAME_IS_FRONT_FACE:
                 {
                     bcatcstr(glsl, "vec1 ");
                     TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
-                    bformata(glsl, " = vec1(gl_FrontFacing)\n");
+                    bformata(glsl, " = vec1(gl_FrontFacing);\n");
+                    break;
+                }
+                case NAME_SAMPLE_INDEX:
+                {
+                    bcatcstr(glsl, "#define ");
+                    TranslateSystemValueVariableName(psContext, &psDecl->asOperands[0]);
+                    bformata(glsl, " vec1(gl_SampleID)\n");
                     break;
                 }
                 default:
@@ -363,6 +370,11 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			}
 
             if(psOperand->eType == OPERAND_TYPE_OUTPUT_CONTROL_POINT_ID)
+            {
+                break;
+            }
+
+            if(psOperand->eType == OPERAND_TYPE_INPUT_COVERAGE_MASK)
             {
                 break;
             }
@@ -897,6 +909,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				{
 					switch(psDecl->asOperands[0].eType)
 					{
+                        case OPERAND_TYPE_OUTPUT_COVERAGE_MASK:
 						case OPERAND_TYPE_OUTPUT_DEPTH:
 						{
 
@@ -929,21 +942,18 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                                     uint32_t index = 0;
                                     uint32_t renderTarget = psDecl->asOperands[0].ui32RegisterNumber;
 
-                                    if(DualSourceBlendSupported(psContext->psShader->eTargetLanguage))
+                                    if((psContext->flags & HLSLCC_DUAL_SOURCE_BLENDING) && DualSourceBlendSupported(psContext->psShader->eTargetLanguage))
                                     {
-                                        if(psContext->flags & HLSLCC_DUAL_SOURCE_BLENDING)
+                                        if(renderTarget > 0)
                                         {
-                                            if(renderTarget > 0)
-                                            {
-                                                renderTarget = 0;
-                                                index = 1;
-                                            }
+                                            renderTarget = 0;
+                                            index = 1;
                                         }
                                         bformata(glsl, "layout(location = %d, index = %d) ", renderTarget, index);
                                     }
                                     else
                                     {
-                                         bformata(glsl, "layout(location = %d) ", renderTarget);
+                                        bformata(glsl, "layout(location = %d) ", renderTarget);
                                     }
                                 }
 

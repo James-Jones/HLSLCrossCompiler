@@ -754,6 +754,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_LD:
 		case OPCODE_IMUL:
 		case OPCODE_ILT:
+        case OPCODE_INE:
         {
             psInst->ui32NumOperands = 3;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);

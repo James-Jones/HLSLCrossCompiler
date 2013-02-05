@@ -373,11 +373,11 @@ void CallHelper2UInt(HLSLCrossCompilerContext* psContext, const char* name, Inst
 	bcatcstr(glsl, " = uvec4(");
 
     bcatcstr(glsl, name);
-    bcatcstr(glsl, "(");
+    bcatcstr(glsl, "(uint(");
     TranslateIntegerOperand(psContext, &psInst->asOperands[src0]);
-    bcatcstr(glsl, ", ");
+    bcatcstr(glsl, "), uint(");
     TranslateIntegerOperand(psContext, &psInst->asOperands[src1]);
-    bcatcstr(glsl, "))");
+    bcatcstr(glsl, ")))");
     AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[dest]));
     bcatcstr(glsl, ";\n");
 }
@@ -651,6 +651,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//DP4\n");
 #endif
 			CallHelper2(psContext, "dot", psInst, 0, 1, 2);
+            break;
+        }
+        case OPCODE_INE:
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//INE\n");
+#endif
+            AddComparision(psContext, psInst, CMP_NE);
             break;
         }
         case OPCODE_NE:
