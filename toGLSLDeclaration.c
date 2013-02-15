@@ -524,11 +524,50 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			const char* StorageQualifier = "varying";
             const char* Precision = "";
             const char* InputName = "VtxGeoOutput";
+            const char* Interpolation = "";
 
 			if(InOutSupported(psContext->psShader->eTargetLanguage))
 			{
 				StorageQualifier = "in";
 			}
+
+            switch(psDecl->value.eInterpolation)
+            {
+                case INTERPOLATION_CONSTANT:
+                {
+                    Interpolation = "flat";
+                    break;
+                }
+                case INTERPOLATION_LINEAR:
+                {
+                    break;
+                }
+                case INTERPOLATION_LINEAR_CENTROID:
+                {
+                    Interpolation = "centroid";
+                    break;
+                }
+                case INTERPOLATION_LINEAR_NOPERSPECTIVE:
+                {
+                    Interpolation = "noperspective";
+                    break;
+                }
+                case INTERPOLATION_LINEAR_NOPERSPECTIVE_CENTROID:
+                {
+                    Interpolation = "noperspective centroid";
+                    break;
+                }
+                case INTERPOLATION_LINEAR_SAMPLE:
+                {
+                    Interpolation = "sample";
+                    break;
+                }
+                case INTERPOLATION_LINEAR_NOPERSPECTIVE_SAMPLE:
+                {
+                    Interpolation = "noperspective sample";
+                    break;
+                }
+            }
 
             if(HavePrecisionQualifers(psShader->eTargetLanguage))
             {
@@ -574,12 +613,12 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 
             if(iNumComponents == 1)
             {
-                bformata(glsl, "%s %s float %s%d;\n", StorageQualifier, Precision, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+                bformata(glsl, "%s %s %s float %s%d;\n", Interpolation, StorageQualifier, Precision, InputName, psDecl->asOperands[0].ui32RegisterNumber);
 				bformata(glsl, "vec1 Input%d = vec1(%s%d);\n", psDecl->asOperands[0].ui32RegisterNumber, InputName, psDecl->asOperands[0].ui32RegisterNumber);
             }
             else
             {
-                bformata(glsl, "%s %s vec%d %s%d;\n", StorageQualifier, Precision, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+                bformata(glsl, "%s %s %s vec%d %s%d;\n", Interpolation, StorageQualifier, Precision, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber);
 				bformata(glsl, "#define Input%d %s%d\n", psDecl->asOperands[0].ui32RegisterNumber, InputName, psDecl->asOperands[0].ui32RegisterNumber);
             }
             
