@@ -767,6 +767,9 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_MOVC:
 		case OPCODE_IMAD:
 		case OPCODE_UDIV:
+        case OPCODE_LOD:
+        case OPCODE_SAMPLE:
+        case OPCODE_GATHER4:
 		{
             psInst->ui32NumOperands = 4;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -775,17 +778,6 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
             break;
 		}
-        case OPCODE_SAMPLE:
-        case OPCODE_GATHER4:
-        {
-            psInst->ui32NumOperands = 4;
-
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
-            break;
-        }
         case OPCODE_GATHER4_PO:
         case OPCODE_SAMPLE_L:
         case OPCODE_BFI:

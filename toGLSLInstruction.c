@@ -401,6 +401,65 @@ void CallHelper1(HLSLCrossCompilerContext* psContext, const char* name, Instruct
 }
 
 
+//Make sure the texture coordinate swizzle is appropriate for the texture type.
+//i.e. vecX for X-dimension texture.
+static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand* psTexCoordOperand)
+{
+    switch(eResDim)
+    {
+        case RESOURCE_DIMENSION_TEXTURE1D:
+        {
+            //Vec1 texcoord. Mask out the other components.
+            psTexCoordOperand->aui32Swizzle[1] = 0xFFFFFFFF;
+            psTexCoordOperand->aui32Swizzle[2] = 0xFFFFFFFF;
+            psTexCoordOperand->aui32Swizzle[3] = 0xFFFFFFFF;
+            break;
+        }
+        case RESOURCE_DIMENSION_TEXTURE2D:
+        {
+            //Vec2 texcoord. Mask out the other components.
+            psTexCoordOperand->aui32Swizzle[2] = 0xFFFFFFFF;
+            psTexCoordOperand->aui32Swizzle[3] = 0xFFFFFFFF;
+            break;
+        }
+        case RESOURCE_DIMENSION_TEXTURECUBE:
+        {
+            //Vec2 texcoord. Mask out the other components.
+            psTexCoordOperand->aui32Swizzle[2] = 0xFFFFFFFF;
+            psTexCoordOperand->aui32Swizzle[3] = 0xFFFFFFFF;
+            break;
+        }
+        case RESOURCE_DIMENSION_TEXTURE3D:
+        {
+            //Vec3 texcoord. Mask out the other component.
+            psTexCoordOperand->aui32Swizzle[3] = 0xFFFFFFFF;
+            break;
+        }
+        case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+        {
+            //Vec2 texcoord. Mask out the other components.
+            psTexCoordOperand->aui32Swizzle[2] = 0xFFFFFFFF;
+            psTexCoordOperand->aui32Swizzle[3] = 0xFFFFFFFF;
+            break;
+        }
+        case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+        {
+            //Vec3 texcoord. Mask out the other component.
+            psTexCoordOperand->aui32Swizzle[3] = 0xFFFFFFFF;
+            break;
+        }
+        case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+        {
+            break;
+        }
+        default:
+        {
+            ASSERT(0);
+            break;
+        }
+    }
+}
+
 void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psInst)
 {
     bstring glsl = psContext->glsl;
@@ -1854,6 +1913,32 @@ src3
             }
 			break;
 		}
+        case OPCODE_LOD:
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//LOD\n");
+#endif
+            //LOD computes the following vector (ClampedLOD, NonClampedLOD, 0, 0)
+
+            MaskOutTexCoordComponents(psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber],
+                &psInst->asOperands[1]);
+
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, " = textureQueryLOD(");
+            TranslateOperand(psContext, &psInst->asOperands[2]);
+            bcatcstr(glsl, ",");
+            TranslateOperand(psContext, &psInst->asOperands[1]);
+            bcatcstr(glsl, ")");
+
+            //dest can be .x - write ClampedLOD,
+            //.y - write NonClampedLOD,
+            //.xy both.
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, ";\n");
+            break;
+        }
         default:
         {
             ASSERT(0);
