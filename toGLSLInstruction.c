@@ -1932,10 +1932,12 @@ src3
             TranslateOperand(psContext, &psInst->asOperands[1]);
             bcatcstr(glsl, ")");
 
-            //dest can be .x - write ClampedLOD,
-            //.y - write NonClampedLOD,
-            //.xy both.
-            TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+            //The swizzle on srcResource allows the returned values to be swizzled arbitrarily before they are written to the destination.
+
+            // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
+            // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
+            psInst->asOperands[2].iWriteMaskEnabled = 1;
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
             bcatcstr(glsl, ";\n");
             break;
         }

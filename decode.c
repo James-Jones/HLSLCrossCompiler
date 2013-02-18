@@ -196,12 +196,6 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 	psOperand->iIndexDims = DecodeOperandIndexDimension(*pui32Tokens);
     psOperand->eType = DecodeOperandType(*pui32Tokens);
 
-    if(psOperand->eType == OPERAND_TYPE_SAMPLER ||
-       psOperand->eType == OPERAND_TYPE_RESOURCE)
-    {
-        psOperand->iWriteMaskEnabled = 0;
-    }
-
     psOperand->ui32RegisterNumber = 0;
 
     eNumComponents = DecodeOperandNumComponents(*pui32Tokens);
@@ -316,7 +310,15 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 
     psOperand->pszSpecialName[0] ='\0';
 
-    //psOperand->ui32RegisterNumber = pui32Tokens[0] & 0x3FF;
+    //Because swizzle on GLSL sampler uniform does not make sense and
+    //is not permitted.
+    //TODO: Should really be done during the translation to
+    //GLSL to keep this function generic for any future non-glsl targets.
+    if(psOperand->eType == OPERAND_TYPE_SAMPLER ||
+       psOperand->eType == OPERAND_TYPE_RESOURCE)
+    {
+        psOperand->iWriteMaskEnabled = 0;
+    }
 
     return ui32NumTokens;
 }
