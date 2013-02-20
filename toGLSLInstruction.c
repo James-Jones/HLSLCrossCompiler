@@ -1404,14 +1404,27 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		}
         case OPCODE_INTERFACE_CALL:
         {
+            const char* name;
+            uint32_t varIndex;
+            ShaderVar* psVar;
+            uint32_t varFound;
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//INTERFACE_CALL\n");
 #endif
 
+            ASSERT(psInst->asOperands[0].eIndexRep[0] == OPERAND_INDEX_IMMEDIATE32);
+
+            varIndex = psInst->asOperands[0].aui32ArraySizes[0];
+
+            varFound = GetInterfaceVarFromOffset(varIndex, &psContext->psShader->sInfo, &psVar);
+
+            ASSERT(varFound);
+
+            name = &psVar->Name[0];
+
             AddIndentation(psContext);
-            bcatcstr(glsl, "InterfaceVar");
-            TranslateOperandIndex(psContext, &psInst->asOperands[0], 0);
+            bcatcstr(glsl, name);
             TranslateOperandIndex(psContext, &psInst->asOperands[0], 1);
             bcatcstr(glsl, "();\n");
             break;

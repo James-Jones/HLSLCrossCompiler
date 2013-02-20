@@ -72,7 +72,8 @@ static const uint32_t* ReadResourceBinding(const uint32_t* pui32FirstResourceTok
     return pui32Tokens;
 }
 
-static const uint32_t* ReadConstantBuffer(const uint32_t* pui32FirstConstBufToken, const uint32_t* pui32Tokens, ConstantBuffer* psBuffer)
+static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
+    const uint32_t* pui32FirstConstBufToken, const uint32_t* pui32Tokens, ConstantBuffer* psBuffer)
 {
     uint32_t i;
     uint32_t ui32NameOffset = *pui32Tokens++;    
@@ -103,6 +104,15 @@ static const uint32_t* ReadConstantBuffer(const uint32_t* pui32FirstConstBufToke
         ui32TypeOffset = *pui32VarToken++;
 
         ui32DefaultValueOffset = *pui32VarToken++;
+
+
+		if (psShaderInfo->ui32MajorVersion  >= 5)
+		{
+			uint32_t StartTexture = *pui32VarToken++;
+			uint32_t TextureSize = *pui32VarToken++;
+			uint32_t StartSampler = *pui32VarToken++;
+			uint32_t SamplerSize = *pui32VarToken++;
+		}
 
         if(ui32DefaultValueOffset)
         {
@@ -194,8 +204,83 @@ static void ReadResources(const uint32_t* pui32Tokens,//in
 
     for(i=0; i < ui32NumConstantBuffers; ++i)
     {
-        pui32ConstantBuffers = ReadConstantBuffer(pui32FirstToken, pui32ConstantBuffers, psConstantBuffers+i);
+        pui32ConstantBuffers = ReadConstantBuffer(psShaderInfo, pui32FirstToken, pui32ConstantBuffers, psConstantBuffers+i);
     }
+}
+
+static const uint16_t* ReadClassType(const uint32_t* pui32FirstInterfaceToken, const uint16_t* pui16Tokens, ClassType* psClassType)
+{
+    const uint32_t* pui32Tokens = (const uint32_t*)pui16Tokens;
+    uint32_t ui32NameOffset = *pui32Tokens;
+    pui16Tokens+= 2;
+
+    psClassType->ui16ID = *pui16Tokens++;
+    psClassType->ui16ConstBufStride = *pui16Tokens++;
+    psClassType->ui16Texture = *pui16Tokens++;
+    psClassType->ui16Sampler = *pui16Tokens++;
+
+    ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstInterfaceToken+ui32NameOffset), psClassType->Name);
+
+    return pui16Tokens;
+}
+
+static const uint16_t* ReadClassInstance(const uint32_t* pui32FirstInterfaceToken, const uint16_t* pui16Tokens, ClassInstance* psClassInstance)
+{
+    uint32_t ui32NameOffset = *pui16Tokens++ << 16;
+    ui32NameOffset |= *pui16Tokens++;
+
+    psClassInstance->ui16ID = *pui16Tokens++;
+    psClassInstance->ui16ConstBuf = *pui16Tokens++;
+    psClassInstance->ui16ConstBufOffset = *pui16Tokens++;
+    psClassInstance->ui16Texture = *pui16Tokens++;
+    psClassInstance->ui16Sampler = *pui16Tokens++;
+
+    ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstInterfaceToken+ui32NameOffset), psClassInstance->Name);
+
+    return pui16Tokens;
+}
+
+
+static void ReadInterfaces(const uint32_t* pui32Tokens,
+                        ShaderInfo* psShaderInfo)
+{
+    uint32_t i;
+    const uint32_t* pui32FirstInterfaceToken = pui32Tokens;
+    const uint32_t ui32ClassInstanceCount = *pui32Tokens++;
+    const uint32_t ui32ClassTypeCount = *pui32Tokens++;
+    const uint32_t ui32InterfaceSlotRecordCount = *pui32Tokens++;
+    const uint32_t ui32InterfaceSlotCount = *pui32Tokens++;
+    const uint32_t ui32Unused = *pui32Tokens++;
+    const uint32_t ui32ClassTypeOffset = *pui32Tokens++;
+    const uint32_t ui32InterfaceSlotOffset = *pui32Tokens++;
+
+    const uint16_t* pui16ClassTypes = (const uint16_t*)((const char*)pui32FirstInterfaceToken + ui32ClassTypeOffset);
+    const uint16_t* pui16ClassInstances = (const uint16_t*)((const char*)pui32FirstInterfaceToken + ui32Unused);
+
+    ClassType* psClassTypes;
+    ClassInstance* psClassInstances;
+
+    psClassTypes = malloc(sizeof(ClassType) * ui32ClassTypeCount);
+    for(i=0; i<ui32ClassTypeCount; ++i)
+    {
+        pui16ClassTypes = ReadClassType(pui32FirstInterfaceToken, pui16ClassTypes, psClassTypes+i);
+        psClassTypes[i].ui16ID = (uint16_t)i;
+    }
+
+    psClassInstances = malloc(sizeof(ClassType) * ui32ClassInstanceCount);
+    for(i=0; i<ui32ClassInstanceCount; ++i)
+    {
+        pui16ClassInstances = ReadClassInstance(pui32FirstInterfaceToken, pui16ClassInstances, psClassInstances+i);
+    }
+
+    //TODO: load slots.
+    //Slots map $ThisPointer cbuffer variable index to function table (interface name)
+
+    psShaderInfo->ui32NumClassInstances = ui32ClassInstanceCount;
+    psShaderInfo->psClassInstances = psClassInstances;
+
+    psShaderInfo->ui32NumClassTypes = ui32ClassTypeCount;
+    psShaderInfo->psClassTypes = psClassTypes;
 }
 
 void GetConstantBufferFromBindingPoint(const uint32_t ui32BindPoint, const ShaderInfo* psShaderInfo, ConstantBuffer** ppsConstBuf)
@@ -231,16 +316,56 @@ int GetResourceFromBindingPoint(ResourceType eType, uint32_t ui32BindPoint, Shad
     return 0;
 }
 
-void LoadShaderInfo(const uint32_t* pui32Inputs, const uint32_t* pui32Resources,
-    ShaderInfo* psInfo)
+int GetInterfaceVarFromOffset(uint32_t ui32Offset, ShaderInfo* psShaderInfo, ShaderVar** ppsShaderVar)
+{
+    uint32_t i;
+    ConstantBuffer* psThisPointerConstBuffer = psShaderInfo->psThisPointerConstBuffer;
+
+    const uint32_t ui32NumVars = psThisPointerConstBuffer->ui32NumVars;
+
+    for(i=0; i<ui32NumVars; ++i)
+    {
+        if(ui32Offset >= psThisPointerConstBuffer->asVars[i].ui32StartOffset && 
+            ui32Offset < (psThisPointerConstBuffer->asVars[i].ui32StartOffset + psThisPointerConstBuffer->asVars[i].ui32Size))
+	    {
+		    *ppsShaderVar = &psThisPointerConstBuffer->asVars[i];
+		    return 1;
+	    }
+    }
+    return 0;
+}
+
+void LoadShaderInfo(const uint32_t ui32MajorVersion,
+    const uint32_t ui32MinorVersion,
+    const uint32_t* pui32Inputs, const uint32_t* pui32Resources,
+    const uint32_t* pui32Interfaces, ShaderInfo* psInfo)
 {
     psInfo->eTessOutPrim = TESSELLATOR_OUTPUT_UNDEFINED;
     psInfo->eTessPartitioning = TESSELLATOR_PARTITIONING_UNDEFINED;
+
+    psInfo->ui32MajorVersion = ui32MajorVersion;
+    psInfo->ui32MinorVersion = ui32MinorVersion;
+
 
     if(pui32Inputs)
         ReadInputSignatures(pui32Inputs, psInfo);
     if(pui32Resources)
         ReadResources(pui32Resources, psInfo);
+    if(pui32Interfaces)
+        ReadInterfaces(pui32Interfaces, psInfo);
+
+    {
+        uint32_t i;
+        for(i=0; i<psInfo->ui32NumConstantBuffers;++i)
+        {
+            bstring cbufName = bfromcstr(&psInfo->psConstantBuffers[i].Name[0]);
+            bstring cbufThisPointer = bfromcstr("$ThisPointer");
+            if(bstrcmp(cbufName, cbufThisPointer) == 0)
+            {
+                psInfo->psThisPointerConstBuffer = &psInfo->psConstantBuffers[i];
+            }
+        }
+    }
 }
 
 void FreeShaderInfo(ShaderInfo* psShaderInfo)
@@ -248,10 +373,14 @@ void FreeShaderInfo(ShaderInfo* psShaderInfo)
     free(psShaderInfo->psInputSignatures);
     free(psShaderInfo->psResourceBindings);
     free(psShaderInfo->psConstantBuffers);
+    free(psShaderInfo->psClassTypes);
+    free(psShaderInfo->psClassInstances);
 
     psShaderInfo->ui32NumInputSignatures = 0;
     psShaderInfo->ui32NumResourceBindings = 0;
     psShaderInfo->ui32NumConstantBuffers = 0;
+    psShaderInfo->ui32NumClassTypes = 0;
+    psShaderInfo->ui32NumClassInstances = 0;
 }
 
 #if 0

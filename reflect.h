@@ -64,8 +64,30 @@ typedef struct ConstantBuffer_TAG
     uint32_t ui32TotalSizeInBytes;
 } ConstantBuffer;
 
+typedef struct ClassType_TAG
+{
+    char Name[MAX_REFLECT_STRING_LENGTH];
+    uint16_t ui16ID;
+    uint16_t ui16ConstBufStride;
+    uint16_t ui16Texture;
+    uint16_t ui16Sampler;
+} ClassType;
+
+typedef struct ClassInstance_TAG
+{
+    char Name[MAX_REFLECT_STRING_LENGTH];
+    uint16_t ui16ID;
+    uint16_t ui16ConstBuf;
+    uint16_t ui16ConstBufOffset;
+    uint16_t ui16Texture;
+    uint16_t ui16Sampler;
+} ClassInstance;
+
 typedef struct ShaderInfo_TAG
 {
+    uint32_t ui32MajorVersion;
+    uint32_t ui32MinorVersion;
+
     uint32_t ui32NumInputSignatures;
     InOutSignature* psInputSignatures;
 
@@ -74,6 +96,13 @@ typedef struct ShaderInfo_TAG
 
     uint32_t ui32NumConstantBuffers;
     ConstantBuffer* psConstantBuffers;
+    ConstantBuffer* psThisPointerConstBuffer;
+
+    uint32_t ui32NumClassTypes;
+    ClassType* psClassTypes;
+
+    uint32_t ui32NumClassInstances;
+    ClassInstance* psClassInstances;
 
     uint32_t aui32ConstBufferBindpointRemap[MAX_CBUFFERS];
 
@@ -85,8 +114,12 @@ int GetResourceFromBindingPoint(ResourceType eType, uint32_t ui32BindPoint, Shad
 
 void GetConstantBufferFromBindingPoint(const uint32_t ui32BindPoint, const ShaderInfo* psShaderInfo, ConstantBuffer** ppsConstBuf);
 
-void LoadShaderInfo(const uint32_t* pui32Inputs, const uint32_t* pui32Resources,
-    ShaderInfo* psInfo);
+int GetInterfaceVarFromOffset(uint32_t ui32Offset, ShaderInfo* psShaderInfo, ShaderVar** ppsShaderVar);
+
+void LoadShaderInfo(const uint32_t ui32MajorVersion,
+    const uint32_t ui32MinorVersion,
+    const uint32_t* pui32Inputs, const uint32_t* pui32Resources,
+    const uint32_t* pui32Interfaces, ShaderInfo* psInfo);
 
 void FreeShaderInfo(ShaderInfo* psShaderInfo);
 

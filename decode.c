@@ -12,6 +12,7 @@ const uint32_t FOURCC_SHDR = FOURCC('S', 'H', 'D', 'R');
 const uint32_t FOURCC_SHEX = FOURCC('S', 'H', 'E', 'X');
 const uint32_t FOURCC_RDEF = FOURCC('R', 'D', 'E', 'F');
 const uint32_t FOURCC_ISGN = FOURCC('I', 'S', 'G', 'N');
+const uint32_t FOURCC_IFCE = FOURCC('I', 'F', 'C', 'E');
 
 typedef struct DXBCContainerHeaderTAG
 {
@@ -1191,6 +1192,7 @@ Shader* DecodeDXBC(uint32_t* data)
 	uint32_t* chunkOffsets;
     DXBCChunkHeader* rdefChunk = 0;
     DXBCChunkHeader* isgnChunk = 0;
+    DXBCChunkHeader* ifceChunk = 0;
 
 	if(header->fourcc != FOURCC_DXBC)
 	{
@@ -1215,12 +1217,28 @@ Shader* DecodeDXBC(uint32_t* data)
         {
             rdefChunk = chunk;
         }
+        if(chunk->fourcc == FOURCC_IFCE)
+        {
+            ifceChunk = chunk;
+        }
 
 		if(chunk->fourcc == FOURCC_SHDR ||
 			chunk->fourcc == FOURCC_SHEX)
 		{
+            uint32_t ui32MajorVersion;
+            uint32_t ui32MinorVersion;
+
             psShader = calloc(1, sizeof(Shader));
-            LoadShaderInfo(isgnChunk ? ((uint32_t*)(isgnChunk + 1)) : NULL, rdefChunk ? ((uint32_t*)(rdefChunk + 1)) : NULL, &psShader->sInfo);
+
+            ui32MajorVersion = DecodeProgramMajorVersion(*(uint32_t*)(chunk + 1));
+            ui32MinorVersion = DecodeProgramMinorVersion(*(uint32_t*)(chunk + 1));
+
+            LoadShaderInfo(ui32MajorVersion,
+                ui32MinorVersion,
+                isgnChunk ? ((uint32_t*)(isgnChunk + 1)) : NULL,
+                rdefChunk ? ((uint32_t*)(rdefChunk + 1)) : NULL,
+                ifceChunk ? ((uint32_t*)(ifceChunk + 1)) : NULL,
+                &psShader->sInfo);
 			Decode((uint32_t*)(chunk + 1), psShader);
 			return psShader;
 		}
