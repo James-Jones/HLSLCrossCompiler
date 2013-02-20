@@ -1235,12 +1235,11 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         {
             uint32_t func = 0;
             const uint32_t interfaceID = psDecl->value.interface.ui32InterfaceID;
-            const uint32_t funcCount = psDecl->value.interface.ui32NumFunctions;
-            //for(;func < funcCount; ++func)
+            const uint32_t numUniforms = psDecl->value.interface.ui32ArraySize;
 
             bformata(glsl, "subroutine void Interface%d();\n", interfaceID);
 
-            bformata(glsl, "subroutine uniform Interface%d InterfaceVar%d;\n", interfaceID, interfaceID);
+            bformata(glsl, "subroutine uniform Interface%d InterfaceVar%d[%d];\n", interfaceID, interfaceID, numUniforms);
             break;
         }
         case OPCODE_DCL_FUNCTION_BODY:

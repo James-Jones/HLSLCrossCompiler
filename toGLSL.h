@@ -4,17 +4,6 @@
 #include "languages.h"
 #include "reflect.h"
 
-//Current tasks:
-//Support rendezvous by API resource use-case (GL_ARB_separate_shader_objects). Requires location qualifiers and possibly other changes.
-//Maybe use structs for constant buffers.
-//Further work on default values for constants.
-//Improve type/swizzle checking to allow hlsl_opcode_funcs to be removed.
-//Use real integer types (ivec*) where appropriate.
-//Improving support for integer immediates on MOV instructions by checking if next usage is with an integer opcode.
-//Finish interfaces/subroutines.
-//Try to make use of patch in/patch out. Patch out should be join phase outputs. How to match up with domain inputs?
-//Provide the used-size of constant buffers to calling application so it can use glBindBufferRange to restrict the ubo map range range and maybe help performance.
-
 typedef struct
 {
     int shaderType; //One of the GL enums.

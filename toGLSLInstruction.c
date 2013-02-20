@@ -1408,8 +1408,12 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//INTERFACE_CALL\n");
 #endif
+
             AddIndentation(psContext);
-            bformata(glsl, "InterfaceVar%d();\n", psInst->ui32FunctionIDToCall);
+            bcatcstr(glsl, "InterfaceVar");
+            TranslateOperandIndex(psContext, &psInst->asOperands[0], 0);
+            TranslateOperandIndex(psContext, &psInst->asOperands[0], 1);
+            bcatcstr(glsl, "();\n");
             break;
         }
         case OPCODE_LABEL:

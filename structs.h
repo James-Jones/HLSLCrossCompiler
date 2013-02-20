@@ -52,7 +52,6 @@ typedef struct Instruction_TAG
     uint32_t ui32SyncFlags;
     uint32_t ui32NumOperands;
     Operand asOperands[6];
-    uint32_t ui32FunctionIDToCall;
     uint32_t bSaturate;
 
 #ifdef _DEBUG
@@ -100,7 +99,7 @@ typedef struct Declaration_TAG
         struct Interface_TAG
         {
             uint32_t ui32InterfaceID;
-            uint32_t ui32NumFunctions;
+            uint32_t ui32ArraySize;
             uint32_t aui32Functions[128]; //FIXME dynamic alloc
         } interface;
     } value;

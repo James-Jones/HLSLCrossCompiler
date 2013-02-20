@@ -508,6 +508,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
             ui32OperandOffset++;
 
             psDecl->value.interface.ui32InterfaceID = interfaceID;
+            psDecl->value.interface.ui32ArraySize = arrayLen;
 
             for(;funcBody < tableLen; ++funcBody)
             {
@@ -687,9 +688,12 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 
         case OPCODE_INTERFACE_CALL:
         {
+            uint32_t ui32IndexIntoFuncTable;
             psInst->ui32NumOperands = 1;
+            ui32IndexIntoFuncTable = pui32Token[ui32OperandOffset];
+            ui32OperandOffset++;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
-            psInst->ui32FunctionIDToCall = pui32Token[1];
+            
             break;
         }
 
