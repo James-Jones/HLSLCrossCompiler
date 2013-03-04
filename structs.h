@@ -53,6 +53,7 @@ typedef struct Instruction_TAG
     uint32_t ui32NumOperands;
     Operand asOperands[6];
     uint32_t bSaturate;
+    uint32_t ui32FuncIndexWithinInterface;
 
 #ifdef _DEBUG
     uint64_t id;
@@ -99,8 +100,8 @@ typedef struct Declaration_TAG
         struct Interface_TAG
         {
             uint32_t ui32InterfaceID;
+            uint32_t ui32NumFuncTables;
             uint32_t ui32ArraySize;
-            uint32_t aui32Functions[128]; //FIXME dynamic alloc
         } interface;
     } value;
 
@@ -115,6 +116,9 @@ static enum {MAX_SHADER_VEC4_OUTPUT = 512};
 static enum {MAX_SHADER_VEC4_INPUT = 512};
 static enum {MAX_TEXTURES = 128};
 static enum {MAX_FORK_PHASES = 2};
+static enum {MAX_FUNCTION_BODIES = 1024};
+static enum {MAX_CLASS_TYPES = 1024};
+static enum {MAX_FUNCTION_POINTERS = 128};
 
 typedef struct Shader_TAG
 {
@@ -132,7 +136,19 @@ typedef struct Shader_TAG
 
     //Instruction* functions;//non-main subroutines
 
-    uint32_t functionToInterfaceRemap[1024];//FIXME dynamic alloc
+    uint32_t aui32FuncTableToFuncPointer[MAX_FUNCTION_TABLES];//FIXME dynamic alloc
+    uint32_t aui32FuncBodyToFuncTable[MAX_FUNCTION_BODIES];
+
+    struct {
+        uint32_t aui32FuncBodies[MAX_FUNCTION_BODIES];
+    }funcTable[MAX_FUNCTION_TABLES];
+
+    struct {
+        uint32_t aui32FuncTables[MAX_FUNCTION_TABLES];
+        uint32_t ui32NumBodiesPerTable;
+    }funcPointer[MAX_FUNCTION_POINTERS];
+
+    uint32_t ui32NextClassFuncName[MAX_CLASS_TYPES];
 
     uint32_t ui32InstCount;
     Instruction* psInst;

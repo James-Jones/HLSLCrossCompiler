@@ -7,6 +7,7 @@
 #define MAX_REFLECT_STRING_LENGTH 512
 #define MAX_SHADER_VARS 256
 #define MAX_CBUFFERS 256
+#define MAX_FUNCTION_TABLES 256
 
 typedef struct InOutSignature_TAG
 {
@@ -103,6 +104,9 @@ typedef struct ShaderInfo_TAG
 
     uint32_t ui32NumClassInstances;
     ClassInstance* psClassInstances;
+
+    //Func table ID to class name ID.
+    uint32_t aui32TableIDToTypeID[MAX_FUNCTION_TABLES];
 
     uint32_t aui32ConstBufferBindpointRemap[MAX_CBUFFERS];
 

@@ -105,4 +105,13 @@ static int DualSourceBlendSupported(const GLLang eLang)
     return 0;
 }
 
+static int SubroutinesSupported(const GLLang eLang)
+{
+    if(eLang >= LANG_400)
+    {
+        return 1;
+    }
+    return 0;
+}
+
 #endif

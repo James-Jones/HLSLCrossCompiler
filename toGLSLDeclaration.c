@@ -1236,22 +1236,17 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             uint32_t func = 0;
             const uint32_t interfaceID = psDecl->value.interface.ui32InterfaceID;
             const uint32_t numUniforms = psDecl->value.interface.ui32ArraySize;
+            const uint32_t ui32NumBodiesPerTable = psContext->psShader->funcPointer[interfaceID].ui32NumBodiesPerTable;
             ShaderVar* psVar;
             uint32_t varFound;
 
-            const char* name;
+            const char* uniformName;
             
             varFound = GetInterfaceVarFromOffset(interfaceID, &psContext->psShader->sInfo, &psVar);
-
             ASSERT(varFound);
+            uniformName = &psVar->Name[0];
 
-            name = &psVar->Name[0];
-
-            bformata(glsl, "subroutine void Interface%d();\n", interfaceID);
-
-            //bformata(glsl, "subroutine uniform Interface%d InterfaceVar%d[%d];\n", interfaceID, interfaceID, numUniforms);
-
-            bformata(glsl, "subroutine uniform Interface%d %s[%d];\n", interfaceID, name, numUniforms);
+            bformata(glsl, "subroutine uniform SubroutineType %s[%d*%d];\n", uniformName, numUniforms, ui32NumBodiesPerTable);
             break;
         }
         case OPCODE_DCL_FUNCTION_BODY:

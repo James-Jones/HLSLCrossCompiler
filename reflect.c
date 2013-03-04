@@ -245,17 +245,21 @@ static void ReadInterfaces(const uint32_t* pui32Tokens,
                         ShaderInfo* psShaderInfo)
 {
     uint32_t i;
+    uint32_t ui32StartSlot;
     const uint32_t* pui32FirstInterfaceToken = pui32Tokens;
     const uint32_t ui32ClassInstanceCount = *pui32Tokens++;
     const uint32_t ui32ClassTypeCount = *pui32Tokens++;
     const uint32_t ui32InterfaceSlotRecordCount = *pui32Tokens++;
     const uint32_t ui32InterfaceSlotCount = *pui32Tokens++;
-    const uint32_t ui32Unused = *pui32Tokens++;
+    const uint32_t ui32ClassInstanceOffset = *pui32Tokens++;
     const uint32_t ui32ClassTypeOffset = *pui32Tokens++;
     const uint32_t ui32InterfaceSlotOffset = *pui32Tokens++;
 
     const uint16_t* pui16ClassTypes = (const uint16_t*)((const char*)pui32FirstInterfaceToken + ui32ClassTypeOffset);
-    const uint16_t* pui16ClassInstances = (const uint16_t*)((const char*)pui32FirstInterfaceToken + ui32Unused);
+    const uint16_t* pui16ClassInstances = (const uint16_t*)((const char*)pui32FirstInterfaceToken + ui32ClassInstanceOffset);
+    const uint32_t* pui32InterfaceSlots = (const uint32_t*)((const char*)pui32FirstInterfaceToken + ui32InterfaceSlotOffset);
+
+    const uint32_t* pui32InterfaceSlotTokens = pui32InterfaceSlots;
 
     ClassType* psClassTypes;
     ClassInstance* psClassInstances;
@@ -273,8 +277,27 @@ static void ReadInterfaces(const uint32_t* pui32Tokens,
         pui16ClassInstances = ReadClassInstance(pui32FirstInterfaceToken, pui16ClassInstances, psClassInstances+i);
     }
 
-    //TODO: load slots.
-    //Slots map $ThisPointer cbuffer variable index to function table (interface name)
+    //Slots map function table to $ThisPointer cbuffer variable index
+    ui32StartSlot = 0;
+    for(i=0; i<ui32InterfaceSlotRecordCount;++i)
+    {
+        uint32_t k;
+        
+        const uint32_t ui32SlotSpan = *pui32InterfaceSlotTokens++;
+        const uint32_t ui32Count = *pui32InterfaceSlotTokens++;
+        const uint32_t ui32TypeIDOffset = *pui32InterfaceSlotTokens++;
+        const uint32_t ui32TableIDOffset = *pui32InterfaceSlotTokens++;
+
+        const uint16_t* pui16TypeID = (const uint16_t*)((const char*)pui32FirstInterfaceToken+ui32TypeIDOffset);
+        const uint32_t* pui32TableID = (const uint32_t*)((const char*)pui32FirstInterfaceToken+ui32TableIDOffset);
+
+        for(k=0; k < ui32Count; ++k)
+        {
+            psShaderInfo->aui32TableIDToTypeID[*pui32TableID++] = *pui16TypeID++;
+        }
+
+        ui32StartSlot += ui32SlotSpan;
+    }
 
     psShaderInfo->ui32NumClassInstances = ui32ClassInstanceCount;
     psShaderInfo->psClassInstances = psClassInstances;

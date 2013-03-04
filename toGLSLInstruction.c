@@ -1405,9 +1405,16 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_INTERFACE_CALL:
         {
             const char* name;
-            uint32_t varIndex;
             ShaderVar* psVar;
             uint32_t varFound;
+
+            uint32_t funcPointer;
+            uint32_t funcTableIndex;
+            uint32_t funcTable;
+            uint32_t funcBodyIndex;
+            uint32_t funcBody;
+            uint32_t ui32NumBodiesPerTable;
+
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//INTERFACE_CALL\n");
@@ -1415,9 +1422,17 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
             ASSERT(psInst->asOperands[0].eIndexRep[0] == OPERAND_INDEX_IMMEDIATE32);
 
-            varIndex = psInst->asOperands[0].aui32ArraySizes[0];
+            funcPointer = psInst->asOperands[0].aui32ArraySizes[0];
+            funcTableIndex = psInst->asOperands[0].aui32ArraySizes[1];
+            funcBodyIndex = psInst->ui32FuncIndexWithinInterface;
 
-            varFound = GetInterfaceVarFromOffset(varIndex, &psContext->psShader->sInfo, &psVar);
+            ui32NumBodiesPerTable = psContext->psShader->funcPointer[funcPointer].ui32NumBodiesPerTable;
+
+            funcTable = psContext->psShader->funcPointer[funcPointer].aui32FuncTables[funcTableIndex];
+
+            funcBody = psContext->psShader->funcTable[funcTable].aui32FuncBodies[funcBodyIndex];
+
+            varFound = GetInterfaceVarFromOffset(funcPointer, &psContext->psShader->sInfo, &psVar);
 
             ASSERT(varFound);
 
@@ -1425,22 +1440,20 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
             AddIndentation(psContext);
             bcatcstr(glsl, name);
-            TranslateOperandIndex(psContext, &psInst->asOperands[0], 1);
+            TranslateOperandIndexMAD(psContext, &psInst->asOperands[0], 1, ui32NumBodiesPerTable, funcBodyIndex);
+            //bformata(glsl, "[%d]", funcBodyIndex);
             bcatcstr(glsl, "();\n");
             break;
         }
         case OPCODE_LABEL:
         {
-            uint32_t funcID = psInst->asOperands[0].ui32RegisterNumber;
             --psContext->indent;
             AddIndentation(psContext);
             bcatcstr(glsl, "}\n"); //Closing brace ends the previous function.
             AddIndentation(psContext);
 
-            bformata(glsl, "subroutine(Interface%d)\n", psContext->psShader->functionToInterfaceRemap[funcID]);
-            
-
-            bcatcstr(glsl, "void "); //Closing brace ends the previous function.
+            bcatcstr(glsl, "subroutine(SubroutineType)\n");
+            bcatcstr(glsl, "void ");
             TranslateOperand(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, "(){\n");
             ++psContext->indent;

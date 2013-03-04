@@ -120,6 +120,11 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
         bcatcstr(glsl,"precision lowp usamplerCube;\n");
         bcatcstr(glsl,"precision lowp usampler2DArray;\n");
     }
+
+    if(SubroutinesSupported(psContext->psShader->eTargetLanguage))
+    {
+        bcatcstr(glsl, "subroutine void SubroutineType();\n");
+    }
 }
 
 void AddOpcodeFuncs(HLSLCrossCompilerContext* psContext)

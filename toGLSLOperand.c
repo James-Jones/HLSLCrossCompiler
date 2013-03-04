@@ -356,6 +356,50 @@ void TranslateOperandIndex(HLSLCrossCompilerContext* psContext, const Operand* p
     }
 }
 
+void TranslateOperandIndexMAD(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index, uint32_t multiply, uint32_t add)
+{
+    int i = index;
+    int isGeoShader = psContext->psShader->eShaderType == GEOMETRY_SHADER ? 1 : 0;
+
+    bstring glsl = psContext->glsl;
+
+    ASSERT(index < psOperand->iIndexDims);
+
+    switch(psOperand->eIndexRep[i])
+    {
+        case OPERAND_INDEX_IMMEDIATE32:
+        {
+            if(i > 0 || isGeoShader)
+            {
+                bformata(glsl, "[%d*%d+%d]", psOperand->aui32ArraySizes[i], multiply, add);
+            }
+            else
+            {
+                bformata(glsl, "%d*%d+%d", psOperand->aui32ArraySizes[i], multiply, add);
+            }
+            break;
+        }
+        case OPERAND_INDEX_RELATIVE:
+        {
+            bcatcstr(glsl, "[int("); //Indexes must be integral.
+            TranslateOperand(psContext, psOperand->psSubOperand[i]);
+            bformata(glsl, ")*%d+%d]", multiply, add);
+            break;
+        }
+        case OPERAND_INDEX_IMMEDIATE32_PLUS_RELATIVE:
+        {
+            bcatcstr(glsl, "[(int("); //Indexes must be integral.
+            TranslateOperand(psContext, psOperand->psSubOperand[i]);
+            bformata(glsl, ") + %d)*%d+%d]", psOperand->aui32ArraySizes[i], multiply, add);
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+}
+
 void TranslateSystemValueVariableName(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
 {
     bstring glsl = psContext->glsl;
@@ -634,7 +678,14 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         }
         case OPERAND_TYPE_FUNCTION_BODY:
         {
-            bformata(glsl, "Func%d", psOperand->ui32RegisterNumber);
+            const uint32_t ui32FuncBody = psOperand->ui32RegisterNumber;
+            const uint32_t ui32FuncTable = psContext->psShader->aui32FuncBodyToFuncTable[ui32FuncBody];
+            //const uint32_t ui32FuncPointer = psContext->psShader->aui32FuncTableToFuncPointer[ui32FuncTable];
+            const uint32_t ui32ClassType = psContext->psShader->sInfo.aui32TableIDToTypeID[ui32FuncTable];
+            const char* ClassTypeName = &psContext->psShader->sInfo.psClassTypes[ui32ClassType].Name[0];
+            const uint32_t ui32UniqueClassFuncIndex = psContext->psShader->ui32NextClassFuncName[ui32ClassType]++;
+
+            bformata(glsl, "%s_Func%d", ClassTypeName, ui32UniqueClassFuncIndex);
             break;
         }
 		case OPERAND_TYPE_INPUT_FORK_INSTANCE_ID:

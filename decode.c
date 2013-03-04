@@ -497,25 +497,29 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_INTERFACE:
         {
-            uint32_t funcBody = 0, tableLen, arrayLen, interfaceID;
+            uint32_t func = 0, numClassesImplementingThisInterface, arrayLen, interfaceID;
             interfaceID = pui32Token[ui32OperandOffset];
             ui32OperandOffset++;
             psDecl->ui32TableLength = pui32Token[ui32OperandOffset];
             ui32OperandOffset++;
 
-            tableLen = DecodeInterfaceTableLength(*(pui32Token+ui32OperandOffset));
+            numClassesImplementingThisInterface = DecodeInterfaceTableLength(*(pui32Token+ui32OperandOffset));
             arrayLen = DecodeInterfaceArrayLength(*(pui32Token+ui32OperandOffset));
 
             ui32OperandOffset++;
 
             psDecl->value.interface.ui32InterfaceID = interfaceID;
+            psDecl->value.interface.ui32NumFuncTables = numClassesImplementingThisInterface;
             psDecl->value.interface.ui32ArraySize = arrayLen;
 
-            for(;funcBody < tableLen; ++funcBody)
+            psShader->funcPointer[interfaceID].ui32NumBodiesPerTable = psDecl->ui32TableLength;
+
+            for(;func < numClassesImplementingThisInterface; ++func)
             {
-                uint32_t ui32FuncID = *(pui32Token+ui32OperandOffset);
-                psShader->functionToInterfaceRemap[ui32FuncID] = interfaceID;
-                psDecl->value.interface.aui32Functions[funcBody] = ui32FuncID;
+                uint32_t ui32FuncTable = *(pui32Token+ui32OperandOffset);
+                psShader->aui32FuncTableToFuncPointer[ui32FuncTable] = interfaceID;
+
+                psShader->funcPointer[interfaceID].aui32FuncTables[func] = ui32FuncTable;
                 ui32OperandOffset++;
             }
 
@@ -529,6 +533,27 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_FUNCTION_TABLE:
         {
+            uint32_t ui32Func;
+            const uint32_t ui32FuncTableID = pui32Token[ui32OperandOffset++];
+            const uint32_t ui32NumFuncsInTable = pui32Token[ui32OperandOffset++];
+
+            for(ui32Func=0; ui32Func<ui32NumFuncsInTable;++ui32Func)
+            {
+                const uint32_t ui32FuncBodyID = pui32Token[ui32OperandOffset++];
+
+                psShader->aui32FuncBodyToFuncTable[ui32FuncBodyID] = ui32FuncTableID;
+
+                psShader->funcTable[ui32FuncTableID].aui32FuncBodies[ui32Func] = ui32FuncBodyID;
+
+            }
+
+// OpcodeToken0 is followed by a DWORD that represents the function table
+// identifier and another DWORD (TableLength) that gives the number of
+// functions in the table.
+//
+// This is followed by TableLength DWORDs which are function body indices.
+//
+
             break;
         }
 		case OPCODE_DCL_INPUT_CONTROL_POINT_COUNT:
@@ -689,9 +714,8 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 
         case OPCODE_INTERFACE_CALL:
         {
-            uint32_t ui32IndexIntoFuncTable;
             psInst->ui32NumOperands = 1;
-            ui32IndexIntoFuncTable = pui32Token[ui32OperandOffset];
+            psInst->ui32FuncIndexWithinInterface = pui32Token[ui32OperandOffset];
             ui32OperandOffset++;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
             
