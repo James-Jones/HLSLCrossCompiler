@@ -910,7 +910,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 //gather4 r7.xyzw, r3.xyxx, t3.xyzw, s0.x
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
-            bcatcstr(glsl, " = textureGather(");
+            bcatcstr(glsl, " = (textureGather(");
 
             TranslateOperand(psContext, &psInst->asOperands[2]);
             bcatcstr(glsl, ", ");
@@ -919,7 +919,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
             psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
             TranslateOperand(psContext, &psInst->asOperands[1]);
-            bcatcstr(glsl, ");\n");
+            bcatcstr(glsl, ")");
+            // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
+            // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
+            psInst->asOperands[2].iWriteMaskEnabled = 1;
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
+            bcatcstr(glsl, ")");
+
+            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+            bcatcstr(glsl, ";\n");
             break;
         }
         case OPCODE_GATHER4_PO_C:
@@ -932,7 +940,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
-            bcatcstr(glsl, " = textureGatherOffset(");
+            bcatcstr(glsl, " = (textureGatherOffset(");
 
             TextureName(psContext, psInst->asOperands[3].ui32RegisterNumber, 1);
 
@@ -951,7 +959,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             psInst->asOperands[2].aui32Swizzle[2] = 0xFFFFFFFF;
             psInst->asOperands[2].aui32Swizzle[3] = 0xFFFFFFFF;
             TranslateOperand(psContext, &psInst->asOperands[2]);
-            bcatcstr(glsl, "));\n");
+            bcatcstr(glsl, "))");
+            // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
+            // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
+            psInst->asOperands[2].iWriteMaskEnabled = 1;
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[3]);
+            bcatcstr(glsl, ")");
+
+            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+            bcatcstr(glsl, ";\n");
             break;
         }
         case OPCODE_GATHER4_PO:
@@ -964,7 +980,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
-            bcatcstr(glsl, " = textureGatherOffset(");
+            bcatcstr(glsl, " = (textureGatherOffset(");
 
             TextureName(psContext, psInst->asOperands[3].ui32RegisterNumber, 0);
 
@@ -980,7 +996,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             psInst->asOperands[2].aui32Swizzle[2] = 0xFFFFFFFF;
             psInst->asOperands[2].aui32Swizzle[3] = 0xFFFFFFFF;
             TranslateOperand(psContext, &psInst->asOperands[2]);
-            bcatcstr(glsl, "));\n");
+            bcatcstr(glsl, "))");
+            // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
+            // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
+            psInst->asOperands[2].iWriteMaskEnabled = 1;
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[3]);
+            bcatcstr(glsl, ")");
+
+            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+            bcatcstr(glsl, ";\n");
             break;
         }
         case OPCODE_GATHER4_C:
@@ -993,7 +1017,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
-            bcatcstr(glsl, " = textureGather(");
+            bcatcstr(glsl, " = (textureGather(");
 
             TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 
@@ -1006,7 +1030,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
             bcatcstr(glsl, ", ");
             TranslateOperand(psContext, &psInst->asOperands[4]);
-            bcatcstr(glsl, ");\n");
+            bcatcstr(glsl, ")");
+            // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
+            // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
+            psInst->asOperands[2].iWriteMaskEnabled = 1;
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
+            bcatcstr(glsl, ")");
+
+            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+            bcatcstr(glsl, ";\n");
             break;
         }
         case OPCODE_SAMPLE:
@@ -1082,11 +1114,20 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0]);
-            bformata(glsl, " = %s(", funcName);
+            bformata(glsl, " = (%s(", funcName);
             TranslateOperand(psContext, &psInst->asOperands[2]);//resource
             bcatcstr(glsl, ", ");
             TranslateOperand(psContext, &psInst->asOperands[1]);//texcoord
-            bcatcstr(glsl, ");\n");
+            bcatcstr(glsl, ")");
+
+            // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
+            // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
+            psInst->asOperands[2].iWriteMaskEnabled = 1;
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
+            bcatcstr(glsl, ")");
+
+            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+            bcatcstr(glsl, ";\n");
 
             break;
         }
@@ -1161,7 +1202,24 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
                 }
             }
 
-			CallHelper3(psContext, funcName, psInst, 0, 2, 1, 4);
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bformata(glsl, " = (%s(", funcName);
+            TranslateOperand(psContext, &psInst->asOperands[2]);//resource
+            bcatcstr(glsl, ", ");
+            TranslateOperand(psContext, &psInst->asOperands[1]);//texcoord
+            bcatcstr(glsl, ", ");
+            TranslateOperand(psContext, &psInst->asOperands[4]);//lod
+            bcatcstr(glsl, ")");
+
+            // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
+            // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
+            psInst->asOperands[2].iWriteMaskEnabled = 1;
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
+            bcatcstr(glsl, ")");
+
+            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+            bcatcstr(glsl, ";\n");
             break;
         }
 		case OPCODE_SAMPLE_C:
@@ -1262,7 +1320,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			AddIndentation(psContext);
 			TranslateOperand(psContext, &psInst->asOperands[0]);
 			bcatcstr(glsl, " = vec4(");
-			bformata(glsl, "%s(", funcName);
+			bformata(glsl, "(%s(", funcName);
             TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 			bformata(glsl, ", %s(", coordType);
 			TranslateOperand(psContext, &psInst->asOperands[1]);
@@ -1270,8 +1328,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			//.z = reference.
 			TranslateOperand(psContext, &psInst->asOperands[4]);
 			bcatcstr(glsl, ")))");
-			AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
-			bcatcstr(glsl, ";\n");
+
+            // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
+            // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
+            psInst->asOperands[2].iWriteMaskEnabled = 1;
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
+            bcatcstr(glsl, ")");
+
+            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+            bcatcstr(glsl, ";\n");
 
             OPCODE_SAMPLE_C_end:
 
@@ -1353,8 +1418,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
                     //Special. Reference is a separate argument.
 			        AddIndentation(psContext);
 			        TranslateOperand(psContext, &psInst->asOperands[0]);
-			        bcatcstr(glsl, " = vec4(");
-			        bcatcstr(glsl, "textureLod(");
+			        bcatcstr(glsl, "= (vec4(textureLod(");
 			        TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 			        bcatcstr(glsl, ",");
 			        TranslateOperand(psContext, &psInst->asOperands[1]);
@@ -1362,8 +1426,14 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			        //.z = reference.
 			        TranslateOperand(psContext, &psInst->asOperands[4]);
 			        bcatcstr(glsl, ", 0))");
-			        AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
-			        bcatcstr(glsl, ";\n");
+                    // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
+                    // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
+                    psInst->asOperands[2].iWriteMaskEnabled = 1;
+                    TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
+                    bcatcstr(glsl, ")");
+
+                    AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+                    bcatcstr(glsl, ";\n");
 
                     goto OPCODE_SAMPLE_C_LZ_end;
                 }
@@ -1376,8 +1446,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
 			AddIndentation(psContext);
 			TranslateOperand(psContext, &psInst->asOperands[0]);
-			bcatcstr(glsl, " = vec4(");
-			bformata(glsl, "%s(", funcName);
+			bformata(glsl, " =(vec4(%s(", funcName);
 			TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 			bformata(glsl, ", %s(", coordType);
 			TranslateOperand(psContext, &psInst->asOperands[1]);
@@ -1386,8 +1455,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			TranslateOperand(psContext, &psInst->asOperands[4]);
 			bcatcstr(glsl, ")");
 			bcatcstr(glsl, ", 0))");
-			AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
-			bcatcstr(glsl, ";\n");
+
+            // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
+            // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
+            psInst->asOperands[2].iWriteMaskEnabled = 1;
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
+            bcatcstr(glsl, ")");
+
+            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+            bcatcstr(glsl, ";\n");
 
             OPCODE_SAMPLE_C_LZ_end:
 			break;
