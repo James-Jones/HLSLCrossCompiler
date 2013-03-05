@@ -2092,17 +2092,19 @@ static int IsIntegerOpcode(OPCODE_TYPE eOpcode)
     }
 }
 
-int InstructionUsesRegister(const Instruction* psInst, const OPERAND_TYPE eOperand,
-    const uint32_t ui32RegisterNumber)
+int InstructionUsesRegister(const Instruction* psInst, const Operand* psOperand)
 {
     uint32_t operand;
     for(operand=0; operand < psInst->ui32NumOperands; ++operand)
     {
-        if(psInst->asOperands[operand].eType == eOperand)
+        if(psInst->asOperands[operand].eType == psOperand->eType)
         {
-            if(psInst->asOperands[operand].ui32RegisterNumber == ui32RegisterNumber)
+            if(psInst->asOperands[operand].ui32RegisterNumber == psOperand->ui32RegisterNumber)
             {
-                return 1;
+                if(CompareOperandSwizzles(&psInst->asOperands[operand], psOperand))
+                {
+                    return 1;
+                }
             }
         }
     }
@@ -2120,12 +2122,15 @@ void MarkIntegerImmediates(HLSLCrossCompilerContext* psContext)
         if(psInst[i].eOpcode == OPCODE_MOV && psInst[i].asOperands[1].eType == OPERAND_TYPE_IMMEDIATE32 &&
             psInst[i].asOperands[0].eType == OPERAND_TYPE_TEMP)
         {
-            const uint32_t ui32RegisterNumber = psInst[i].asOperands[0].ui32RegisterNumber;
             uint32_t k;
 
             for(k=i+1; k < count; ++k)
             {
-                if(InstructionUsesRegister(&psInst[k], OPERAND_TYPE_TEMP, ui32RegisterNumber))
+                if(psInst[k].eOpcode == OPCODE_ILT)
+                {
+                    k = k;
+                }
+                if(InstructionUsesRegister(&psInst[k], &psInst[i].asOperands[0]))
                 {
                     if(IsIntegerOpcode(psInst[k].eOpcode))
                     {

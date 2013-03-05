@@ -15,4 +15,7 @@ void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t c
 
 void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32RegisterNumber, const int bZCompare);
 
+//Non-zero means the components overlap
+int CompareOperandSwizzles(const Operand* psOperandA, const Operand* psOperandB);
+
 #endif

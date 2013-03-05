@@ -428,10 +428,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
 
 	bconcat(glsl, psContext->earlyMain);
 
-    for(i=0; i < ui32InstCount; ++i)
-    {
-        MarkIntegerImmediates(psContext);
-    }
+    MarkIntegerImmediates(psContext);
 
     for(i=0; i < ui32InstCount; ++i)
     {

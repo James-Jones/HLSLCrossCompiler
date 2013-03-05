@@ -202,6 +202,90 @@ void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t c
 	}
 }
 
+static uint32_t ConvertOperandSwizzleToComponentMask(const Operand* psOperand)
+{
+    uint32_t mask = 0;
+
+    if(psOperand->iWriteMaskEnabled &&
+       psOperand->iNumComponents == 4)
+    {
+		//Comonent Mask
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+		{
+            mask = psOperand->ui32CompMask;
+		}
+		else
+		//Component Swizzle
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+		{
+			if(psOperand->ui32Swizzle != (NO_SWIZZLE))
+			{
+				uint32_t i;
+
+				for(i=0; i< 4; ++i)
+				{
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X)
+					{
+						mask |= OPERAND_4_COMPONENT_MASK_X;
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y)
+					{
+						mask |= OPERAND_4_COMPONENT_MASK_Y;
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z)
+					{
+						mask |= OPERAND_4_COMPONENT_MASK_Z;
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W)
+					{
+						mask |= OPERAND_4_COMPONENT_MASK_W;
+					}
+				}
+			}
+		}
+		else
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+		{
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_X)
+			{
+				mask |= OPERAND_4_COMPONENT_MASK_X;
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Y)
+			{
+				mask |= OPERAND_4_COMPONENT_MASK_Y;
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Z)
+			{
+				mask |= OPERAND_4_COMPONENT_MASK_Z;
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_W)
+			{
+				mask |= OPERAND_4_COMPONENT_MASK_W;
+			}
+		}
+
+		//Component Select 1
+	}
+
+    return mask;
+}
+
+//Non-zero means the components overlap
+int CompareOperandSwizzles(const Operand* psOperandA, const Operand* psOperandB)
+{
+    uint32_t maskA = ConvertOperandSwizzleToComponentMask(psOperandA);
+    uint32_t maskB = ConvertOperandSwizzleToComponentMask(psOperandB);
+
+    return maskA & maskB;
+}
+
+
 void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
 {
     bstring glsl = psContext->glsl;
