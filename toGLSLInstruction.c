@@ -2047,6 +2047,49 @@ src3
             bcatcstr(glsl, ";\n");
             break;
         }
+        case OPCODE_EVAL_CENTROID:
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//EVAL_CENTROID\n");
+#endif
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, " = interpolateAtCentroid(");
+            TranslateOperand(psContext, &psInst->asOperands[1]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_EVAL_SAMPLE_INDEX:
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//EVAL_SAMPLE_INDEX\n");
+#endif
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, " = interpolateAtSample(");
+            TranslateOperand(psContext, &psInst->asOperands[1]);
+            bcatcstr(glsl, ", ");
+            TranslateIntegerOperand(psContext, &psInst->asOperands[2]);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+        case OPCODE_EVAL_SNAPPED:
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//EVAL_SNAPPED\n");
+#endif
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, " = interpolateAtOffset(");
+            TranslateOperand(psContext, &psInst->asOperands[1]);
+            bcatcstr(glsl, ", ");
+            TranslateIntegerOperand(psContext, &psInst->asOperands[2]);
+            bcatcstr(glsl, ".xy);\n");
+            break;
+        }
         default:
         {
             ASSERT(0);
