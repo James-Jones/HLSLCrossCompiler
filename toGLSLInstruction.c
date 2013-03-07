@@ -465,6 +465,25 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
     bstring glsl = psContext->glsl;
     switch(psInst->eOpcode)
     {
+        case OPCODE_FTOI:
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//FTOI.  Use a MOV for now\n");
+#endif
+            // Rounding is always performed towards zero
+            //Use int constructor - int(float). This drops the fractional part.
+        }
+		case OPCODE_FTOU:
+		{
+#ifdef _DEBUG
+            if(psInst->eOpcode == OPCODE_FTOU) //Check for fallthrough from OPCODE_FTOI
+            {
+                AddIndentation(psContext);
+                bcatcstr(glsl, "//FTOU. Use a MOV for now\n");
+            }
+#endif
+		}
         case OPCODE_MOV:
         {
 			uint32_t srcCount = GetNumSwizzleElements(psContext, &psInst->asOperands[1]);
@@ -767,29 +786,69 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             CallHLSLIntegerOpcodeFunc2(psContext, "HLSL_ieq", psInst);
             break;
         }
-        case OPCODE_FTOI:
-        {
-#ifdef _DEBUG
-            AddIndentation(psContext);
-            bcatcstr(glsl, "//FTOI.  Use a MOV for now\n");
-#endif
-            // Rounding is always performed towards zero
-            //Use int constructor - int(float). This drops the fractional part.
-        }
-		case OPCODE_FTOU:
-		{
-#ifdef _DEBUG
-            AddIndentation(psContext);
-            bcatcstr(glsl, "//FTOU. Use a MOV for now\n");
-#endif
-		}
         case OPCODE_MOVC:
         {
+            const uint32_t destElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[0]);
+            const uint32_t s0ElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[1]);
+            const uint32_t s1ElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[2]);
+            const uint32_t s2ElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[3]);
+            uint32_t destElem;
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//MOVC\n");
 #endif
-            CallHLSLOpcodeFunc1(psContext, "HLSL_movc", psInst);
+/*
+            for each component in dest[.mask]
+                if the corresponding component in src0 (POS-swizzle)
+                    has any bit set
+                {
+                    copy this component (POS-swizzle) from src1 into dest
+                }
+                else
+                {
+                    copy this component (POS-swizzle) from src2 into dest
+                }
+            endfor
+*/
+            for(destElem=0; destElem < destElemCount; ++destElem)
+            {
+                const char* swizzle[] = {".x", ".y", ".z", ".w"};
+
+                AddIndentation(psContext);
+                bcatcstr(glsl, "if(");
+                TranslateOperand(psContext, &psInst->asOperands[1]);
+                if(s0ElemCount>1)
+                    bcatcstr(glsl, swizzle[destElem]);
+                bcatcstr(glsl, " != 0) {\n");
+
+                psContext->indent++;
+                AddIndentation(psContext);
+                TranslateOperand(psContext, &psInst->asOperands[0]);
+                if(destElemCount>1)
+                    bcatcstr(glsl, swizzle[destElem]);
+                bcatcstr(glsl, " = ");
+                TranslateOperand(psContext, &psInst->asOperands[2]);
+                if(s1ElemCount>1)
+                    bcatcstr(glsl, swizzle[destElem]);
+                bcatcstr(glsl, ";\n");
+
+                psContext->indent--;
+                AddIndentation(psContext);
+                bcatcstr(glsl, "} else {\n");
+                psContext->indent++;
+                AddIndentation(psContext);
+                TranslateOperand(psContext, &psInst->asOperands[0]);
+                if(destElemCount>1)
+                    bcatcstr(glsl, swizzle[destElem]);
+                bcatcstr(glsl, " = ");
+                TranslateOperand(psContext, &psInst->asOperands[3]);
+                if(s2ElemCount>1)
+                    bcatcstr(glsl, swizzle[destElem]);
+                bcatcstr(glsl, ";\n");
+                psContext->indent--;
+                AddIndentation(psContext);
+                bcatcstr(glsl, "}\n");
+            }
             break;
         }
 		case OPCODE_LOG:
