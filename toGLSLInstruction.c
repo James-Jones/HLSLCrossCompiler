@@ -460,6 +460,192 @@ static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand*
     }
 }
 
+#define TEXSMP_FLAG_NONE 0x0
+#define TEXSMP_FLAG_LOD 0x1 //LOD comes from operand
+#define TEXSMP_FLAG_DEPTHCOMPARE 0x2
+#define TEXSMP_FLAG_FIRSTLOD 0x4 //LOD is 0
+static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruction* psInst,
+    uint32_t ui32Flags)
+{
+    bstring glsl = psContext->glsl;
+
+    const char* funcName = "";
+    const char* coordType = "";
+
+    const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber];
+
+    ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
+
+    MaskOutTexCoordComponents(eResDim, &psInst->asOperands[1]);
+
+    switch(eResDim)
+    {
+        case RESOURCE_DIMENSION_TEXTURE1D:
+        {
+            coordType = "vec2";
+            funcName = "texture1D";
+            if(ui32Flags & TEXSMP_FLAG_DEPTHCOMPARE)
+            {
+                funcName = "shadow1D";
+            }
+            break;
+        }
+        case RESOURCE_DIMENSION_TEXTURE2D:
+        {
+            coordType = "vec3";
+            funcName = "texture2D";
+            if(ui32Flags & TEXSMP_FLAG_DEPTHCOMPARE)
+            {
+                funcName = "shadow2D";
+            }
+            break;
+        }
+        case RESOURCE_DIMENSION_TEXTURECUBE:
+        {
+            coordType = "vec3";
+            funcName = "textureCube";
+            break;
+        }
+        case RESOURCE_DIMENSION_TEXTURE3D:
+        {
+            coordType = "vec4";
+            funcName = "texture3D";
+            break;
+        }
+        case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+        {
+            coordType = "vec3";
+            funcName = "texture";
+            break;
+        }
+        case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+        {
+            coordType = "vec4";
+            funcName = "texture";
+            break;
+        }
+        case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+        {
+            funcName = "texture";
+
+            if(ui32Flags & TEXSMP_FLAG_DEPTHCOMPARE)
+            {
+                //Special. Reference is a separate argument.
+			    AddIndentation(psContext);
+			    TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+                if(ui32Flags & (TEXSMP_FLAG_LOD|TEXSMP_FLAG_FIRSTLOD))
+                {
+                    bcatcstr(glsl, "= (vec4(textureLod(");
+                }
+                else
+                {
+			        bcatcstr(glsl, "= (vec4(texture(");
+                }
+			    TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
+			    bcatcstr(glsl, ",");
+			    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+			    bcatcstr(glsl, ",");
+			    //.z = reference.
+			    TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
+
+                if(ui32Flags & TEXSMP_FLAG_FIRSTLOD)
+                {
+                    bcatcstr(glsl, ", 0");
+                }
+
+			    bcatcstr(glsl, "))");
+                // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
+                // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
+                psInst->asOperands[2].iWriteMaskEnabled = 1;
+                TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
+                bcatcstr(glsl, ")");
+
+                AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+                bcatcstr(glsl, ";\n");
+                return;
+            }
+
+            break;
+        }
+        default:
+        {
+            ASSERT(0);
+            break;
+        }
+    }
+
+    if(ui32Flags & TEXSMP_FLAG_DEPTHCOMPARE)
+    {
+		//For non-cubeMap Arrays the reference value comes from the
+		//texture coord vector in GLSL. For cubmap arrays there is a
+		//separate parameter.
+		//It is always separate paramter in HLSL.
+		AddIndentation(psContext);
+		TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+
+        if(ui32Flags & (TEXSMP_FLAG_LOD|TEXSMP_FLAG_FIRSTLOD))
+        {
+            bformata(glsl, " =(vec4(%sLod(", funcName);
+        }
+        else
+        {
+            bformata(glsl, " =(vec4(%s(", funcName);
+        }
+		TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
+		bformata(glsl, ", %s(", coordType);
+		TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+		bcatcstr(glsl, ",");
+		//.z = reference.
+		TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
+		bcatcstr(glsl, ")");
+
+        if(ui32Flags & TEXSMP_FLAG_FIRSTLOD)
+        {
+            bcatcstr(glsl, ", 0");
+        }
+
+        bcatcstr(glsl, "))");
+    }
+    else
+    {
+        AddIndentation(psContext);
+        TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+        if(ui32Flags & (TEXSMP_FLAG_LOD|TEXSMP_FLAG_FIRSTLOD))
+        {
+            bformata(glsl, " = (%sLod(", funcName);
+        }
+        else
+        {
+            bformata(glsl, " = (%s(", funcName);
+        }
+        TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);//resource
+        bcatcstr(glsl, ", ");
+        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);//texcoord
+
+        if(ui32Flags & TEXSMP_FLAG_LOD)
+        {
+            bcatcstr(glsl, ", ");
+            TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);//lod
+        }
+        if(ui32Flags & TEXSMP_FLAG_FIRSTLOD)
+        {
+            bcatcstr(glsl, ", 0");
+        }
+
+        bcatcstr(glsl, ")");
+    }
+
+    // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
+    // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
+    psInst->asOperands[2].iWriteMaskEnabled = 1;
+    TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
+    bcatcstr(glsl, ")");
+
+    AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+    bcatcstr(glsl, ";\n");
+}
+
+
 void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psInst)
 {
     bstring glsl = psContext->glsl;
@@ -1102,429 +1288,40 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_SAMPLE:
         {
-            //dest, coords, tex, sampler
-            const char* funcName = "";
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//SAMPLE\n");
 #endif
-
-            ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
-            switch(psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber])
-            {
-                case RESOURCE_DIMENSION_TEXTURE1D:
-                {
-                    funcName = "texture1D";
-                    //Vec1 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[1] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2D:
-                {
-                    funcName = "texture2D";
-                    //Vec2 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURECUBE:
-                {
-                    funcName = "textureCube";
-                    //Vec2 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE3D:
-                {
-                    funcName = "texture3D";
-                    //Vec3 texcoord. Mask out the other component.
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE1DARRAY:
-                {
-                    funcName = "texture";
-                    //Vec2 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2DARRAY:
-                {
-                    funcName = "texture";
-                    //Vec3 texcoord. Mask out the other component.
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
-                {
-                    funcName = "texture";
-                    break;
-                }
-                default:
-                {
-                    ASSERT(0);
-                    break;
-                }
-            }
-
-            AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-            bformata(glsl, " = (%s(", funcName);
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);//resource
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);//texcoord
-            bcatcstr(glsl, ")");
-
-            // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
-            // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
-            psInst->asOperands[2].iWriteMaskEnabled = 1;
-            TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
-            bcatcstr(glsl, ")");
-
-            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
-            bcatcstr(glsl, ";\n");
-
+            TranslateTextureSample(psContext, psInst, TEXSMP_FLAG_NONE);
             break;
         }
         case OPCODE_SAMPLE_L:
         {
-            //dest, coords, tex, sampler, lod
-            const char* funcName = "";
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//SAMPLE_L\n");
 #endif
-
-            ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
-            switch(psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber])
-            {
-                case RESOURCE_DIMENSION_TEXTURE1D:
-                {
-                    funcName = "texture1DLod";
-                    //Vec1 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[1] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2D:
-                {
-                    funcName = "texture2DLod";
-                    //Vec2 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURECUBE:
-                {
-                    funcName = "textureCubeLod";
-                    //Vec2 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE3D:
-                {
-                    funcName = "texture3DLod";
-                    //Vec3 texcoord. Mask out the other component.
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE1DARRAY:
-                {
-                    funcName = "textureLod";
-                    //Vec2 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2DARRAY:
-                {
-                    funcName = "textureLod";
-                    //Vec3 texcoord. Mask out the other component.
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
-                {
-                    funcName = "textureLod";
-                    break;
-                }
-                default:
-                {
-                    ASSERT(0);
-                    break;
-                }
-            }
-
-            AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-            bformata(glsl, " = (%s(", funcName);
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);//resource
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);//texcoord
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);//lod
-            bcatcstr(glsl, ")");
-
-            // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
-            // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
-            psInst->asOperands[2].iWriteMaskEnabled = 1;
-            TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
-            bcatcstr(glsl, ")");
-
-            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
-            bcatcstr(glsl, ";\n");
+            TranslateTextureSample(psContext, psInst, TEXSMP_FLAG_LOD);
             break;
         }
 		case OPCODE_SAMPLE_C:
 		{
-			//For non-cubeMap Arrays the reference value comes from the
-			//texture coord vector in GLSL. For cubmap arrays there is a
-			//separate parameter.
-			//It is always separate paramter in HLSL.
-
-            const char* funcName = "";
-            const char* coordType = "";
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//SAMPLE_C\n");
 #endif
-            ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
-            switch(psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber])
-            {
-                case RESOURCE_DIMENSION_TEXTURE1D:
-                {
-                    funcName = "shadow1D";
-                    coordType = "vec2";
-                    //Vec1 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[1] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2D:
-                {
-                    funcName = "shadow2D";
-                    coordType = "vec3";
-                    //Vec2 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURECUBE:
-                {
-                    funcName = "texture";
-                    coordType = "vec3";
-                    //Vec2 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE3D:
-                {
-                    funcName = "texture";
-                    coordType = "vec4";
-                    //Vec3 texcoord. Mask out the other component.
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE1DARRAY:
-                {
-                    funcName = "texture";
-                    coordType = "vec3";
-                    //Vec2 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2DARRAY:
-                {
-                    funcName = "texture";
-                    coordType = "vec4";
-                    //Vec3 texcoord. Mask out the other component.
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
-                {
-                    //Special. Reference is a separate argument.
-			        AddIndentation(psContext);
-			        TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-			        bcatcstr(glsl, " = vec4(");
-			        bcatcstr(glsl, "texture(");
-                    TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
-			        bcatcstr(glsl, ",");
-			        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-			        bcatcstr(glsl, ",");
-			        //.z = reference.
-			        TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
-			        bcatcstr(glsl, "))");
-			        AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
-			        bcatcstr(glsl, ";\n");
 
-                    goto OPCODE_SAMPLE_C_end;
-                }
-                default:
-                {
-                    ASSERT(0);
-                    break;
-                }
-            }
-
-			AddIndentation(psContext);
-			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-			bcatcstr(glsl, " = vec4(");
-			bformata(glsl, "(%s(", funcName);
-            TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
-			bformata(glsl, ", %s(", coordType);
-			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-			bcatcstr(glsl, ",");
-			//.z = reference.
-			TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
-			bcatcstr(glsl, ")))");
-
-            // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
-            // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
-            psInst->asOperands[2].iWriteMaskEnabled = 1;
-            TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
-            bcatcstr(glsl, ")");
-
-            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
-            bcatcstr(glsl, ";\n");
-
-            OPCODE_SAMPLE_C_end:
-
+            TranslateTextureSample(psContext, psInst, TEXSMP_FLAG_DEPTHCOMPARE);
 			break;
 		}
 		case OPCODE_SAMPLE_C_LZ:
 		{
-			//For non-cubeMap Arrays the reference value comes from the
-			//texture coord vector in GLSL. For cubmap arrays there is a
-			//separate parameter.
-			//It is always separate paramter in HLSL.
-
-            const char* funcName = "";
-            const char* coordType = "";
-
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//SAMPLE_C_LZ\n");
 #endif
 
-            ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
-            switch(psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber])
-            {
-                case RESOURCE_DIMENSION_TEXTURE1D:
-                {
-                    funcName = "shadow1DLod";
-                    coordType = "vec2";
-                    //Vec1 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[1] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2D:
-                {
-                    funcName = "shadow2DLod";
-                    coordType = "vec3";
-                    //Vec2 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURECUBE:
-                {
-                    funcName = "textureLod";
-                    coordType = "vec3";
-                    //Vec2 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE3D:
-                {
-                    funcName = "textureLod";
-                    coordType = "vec4";
-                    //Vec3 texcoord. Mask out the other component.
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE1DARRAY:
-                {
-                    funcName = "textureLod";
-                    coordType = "vec3";
-                    //Vec2 texcoord. Mask out the other components.
-                    psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2DARRAY:
-                {
-                    funcName = "textureLod";
-                    coordType = "vec4";
-                    //Vec3 texcoord. Mask out the other component.
-                    psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
-                {
-                    //Special. Reference is a separate argument.
-			        AddIndentation(psContext);
-			        TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-			        bcatcstr(glsl, "= (vec4(textureLod(");
-			        TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
-			        bcatcstr(glsl, ",");
-			        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-			        bcatcstr(glsl, ",");
-			        //.z = reference.
-			        TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
-			        bcatcstr(glsl, ", 0))");
-                    // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
-                    // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
-                    psInst->asOperands[2].iWriteMaskEnabled = 1;
-                    TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
-                    bcatcstr(glsl, ")");
-
-                    AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
-                    bcatcstr(glsl, ";\n");
-
-                    goto OPCODE_SAMPLE_C_LZ_end;
-                }
-                default:
-                {
-                    ASSERT(0);
-                    break;
-                }
-            }
-
-			AddIndentation(psContext);
-			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-			bformata(glsl, " =(vec4(%s(", funcName);
-			TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
-			bformata(glsl, ", %s(", coordType);
-			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-			bcatcstr(glsl, ",");
-			//.z = reference.
-			TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
-			bcatcstr(glsl, ")");
-			bcatcstr(glsl, ", 0))");
-
-            // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
-            // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
-            psInst->asOperands[2].iWriteMaskEnabled = 1;
-            TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
-            bcatcstr(glsl, ")");
-
-            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
-            bcatcstr(glsl, ";\n");
-
-            OPCODE_SAMPLE_C_LZ_end:
+            TranslateTextureSample(psContext, psInst, TEXSMP_FLAG_DEPTHCOMPARE | TEXSMP_FLAG_FIRSTLOD);
 			break;
 		}
 		case OPCODE_RET:
