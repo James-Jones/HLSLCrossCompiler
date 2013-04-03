@@ -464,6 +464,8 @@ static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand*
 #define TEXSMP_FLAG_LOD 0x1 //LOD comes from operand
 #define TEXSMP_FLAG_DEPTHCOMPARE 0x2
 #define TEXSMP_FLAG_FIRSTLOD 0x4 //LOD is 0
+#define TEXSMP_FLAG_BIAS 0x8
+#define TEXSMP_FLAGS_GRAD 0x10
 static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruction* psInst,
     uint32_t ui32Flags)
 {
@@ -471,6 +473,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
 
     const char* funcName = "texture";
     const char* coordType = "";
+    const char* gradSwizzle = "";
 
     const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber];
 
@@ -485,6 +488,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         case RESOURCE_DIMENSION_TEXTURE1D:
         {
             coordType = "vec2";
+            gradSwizzle = ".x";
             if(!iHaveOverloadedTexFuncs)
             {
                 funcName = "texture1D";
@@ -498,6 +502,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         case RESOURCE_DIMENSION_TEXTURE2D:
         {
             coordType = "vec3";
+            gradSwizzle = ".xy";
             if(!iHaveOverloadedTexFuncs)
             {
                 funcName = "texture2D";
@@ -511,6 +516,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         case RESOURCE_DIMENSION_TEXTURECUBE:
         {
             coordType = "vec3";
+            gradSwizzle = ".xyz";
             if(!iHaveOverloadedTexFuncs)
             {
                 funcName = "textureCube";
@@ -520,6 +526,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         case RESOURCE_DIMENSION_TEXTURE3D:
         {
             coordType = "vec4";
+            gradSwizzle = ".xyz";
 
             if(!iHaveOverloadedTexFuncs)
             {
@@ -530,15 +537,18 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         case RESOURCE_DIMENSION_TEXTURE1DARRAY:
         {
             coordType = "vec3";
+            gradSwizzle = ".x";
             break;
         }
         case RESOURCE_DIMENSION_TEXTURE2DARRAY:
         {
             coordType = "vec4";
+            gradSwizzle = ".xy";
             break;
         }
         case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
         {
+            gradSwizzle = ".xyz";
             if(ui32Flags & TEXSMP_FLAG_DEPTHCOMPARE)
             {
                 //Special. Reference is a separate argument.
@@ -626,6 +636,11 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
             bformata(glsl, " = (%sLod(", funcName);
         }
         else
+        if(ui32Flags & TEXSMP_FLAGS_GRAD)
+        {
+             bformata(glsl, " = (%sGrad(", funcName);
+        }
+        else
         {
             bformata(glsl, " = (%s(", funcName);
         }
@@ -641,6 +656,16 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         if(ui32Flags & TEXSMP_FLAG_FIRSTLOD)
         {
             bcatcstr(glsl, ", 0");
+        }
+
+        if(ui32Flags & TEXSMP_FLAGS_GRAD)
+        {
+            bcatcstr(glsl, ", ");
+            TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);//dx
+            bcatcstr(glsl, gradSwizzle);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(psContext, &psInst->asOperands[5], TO_FLAG_NONE);//dy
+            bcatcstr(glsl, gradSwizzle);
         }
 
         bcatcstr(glsl, ")");
@@ -1333,6 +1358,26 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
 
             TranslateTextureSample(psContext, psInst, TEXSMP_FLAG_DEPTHCOMPARE | TEXSMP_FLAG_FIRSTLOD);
+			break;
+		}
+		case OPCODE_SAMPLE_D:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//SAMPLE_D\n");
+#endif
+
+            TranslateTextureSample(psContext, psInst, TEXSMP_FLAGS_GRAD);
+			break;
+		}
+		case OPCODE_SAMPLE_B:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//SAMPLE_B\n");
+#endif
+
+            TranslateTextureSample(psContext, psInst, TEXSMP_FLAG_BIAS);
 			break;
 		}
 		case OPCODE_RET:
