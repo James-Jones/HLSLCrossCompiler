@@ -648,10 +648,10 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         bcatcstr(glsl, ", ");
         TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);//texcoord
 
-        if(ui32Flags & TEXSMP_FLAG_LOD)
+        if(ui32Flags & (TEXSMP_FLAG_LOD|TEXSMP_FLAG_BIAS))
         {
             bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);//lod
+            TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
         }
         if(ui32Flags & TEXSMP_FLAG_FIRSTLOD)
         {
