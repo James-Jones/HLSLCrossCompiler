@@ -469,10 +469,12 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
 {
     bstring glsl = psContext->glsl;
 
-    const char* funcName = "";
+    const char* funcName = "texture";
     const char* coordType = "";
 
     const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber];
+
+    const int iHaveOverloadedTexFuncs = HaveOverloadedTextureFuncs(psContext->psShader->eTargetLanguage);
 
     ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
 
@@ -483,51 +485,60 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         case RESOURCE_DIMENSION_TEXTURE1D:
         {
             coordType = "vec2";
-            funcName = "texture1D";
-            if(ui32Flags & TEXSMP_FLAG_DEPTHCOMPARE)
+            if(!iHaveOverloadedTexFuncs)
             {
-                funcName = "shadow1D";
+                funcName = "texture1D";
+                if(ui32Flags & TEXSMP_FLAG_DEPTHCOMPARE)
+                {
+                    funcName = "shadow1D";
+                }
             }
             break;
         }
         case RESOURCE_DIMENSION_TEXTURE2D:
         {
             coordType = "vec3";
-            funcName = "texture2D";
-            if(ui32Flags & TEXSMP_FLAG_DEPTHCOMPARE)
+            if(!iHaveOverloadedTexFuncs)
             {
-                funcName = "shadow2D";
+                funcName = "texture2D";
+                if(ui32Flags & TEXSMP_FLAG_DEPTHCOMPARE)
+                {
+                    funcName = "shadow2D";
+                }
             }
             break;
         }
         case RESOURCE_DIMENSION_TEXTURECUBE:
         {
             coordType = "vec3";
-            funcName = "textureCube";
+            if(!iHaveOverloadedTexFuncs)
+            {
+                funcName = "textureCube";
+            }
             break;
         }
         case RESOURCE_DIMENSION_TEXTURE3D:
         {
             coordType = "vec4";
-            funcName = "texture3D";
+
+            if(!iHaveOverloadedTexFuncs)
+            {
+                funcName = "texture3D";
+            }
             break;
         }
         case RESOURCE_DIMENSION_TEXTURE1DARRAY:
         {
             coordType = "vec3";
-            funcName = "texture";
             break;
         }
         case RESOURCE_DIMENSION_TEXTURE2DARRAY:
         {
             coordType = "vec4";
-            funcName = "texture";
             break;
         }
         case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
         {
-            funcName = "texture";
-
             if(ui32Flags & TEXSMP_FLAG_DEPTHCOMPARE)
             {
                 //Special. Reference is a separate argument.

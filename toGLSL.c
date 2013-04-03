@@ -79,23 +79,6 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
         bcatcstr(glsl, "};\n");
     }
 
-    /* Texture functions have overloaded parameters */
-    if(HaveOverloadedTextureFuncs(psContext->psShader->eTargetLanguage))
-    {
-        bcatcstr(glsl, "#define shadow2DLod textureLod\n");
-        bcatcstr(glsl, "#define shadow1DLod textureLod\n");
-        bcatcstr(glsl, "#define shadow2D texture\n");
-        bcatcstr(glsl, "#define shadow1D texture\n");
-        bcatcstr(glsl, "#define texture3DLod textureLod\n");
-        bcatcstr(glsl, "#define texture2DLod textureLod\n");
-        bcatcstr(glsl, "#define texture1DLod textureLod\n");
-        bcatcstr(glsl, "#define textureCubeLod textureLod\n");
-        bcatcstr(glsl, "#define texture3D texture\n");
-        bcatcstr(glsl, "#define texture2D texture\n");
-        bcatcstr(glsl, "#define texture1D texture\n");
-        bcatcstr(glsl, "#define textureCube texture\n");
-    }
-
     //The fragment language has no default precision qualifier for floating point types.
     if(psContext->psShader->eShaderType == PIXEL_SHADER &&
         psContext->psShader->eTargetLanguage == LANG_ES_100 || psContext->psShader->eTargetLanguage == LANG_ES_300 )
