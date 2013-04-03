@@ -910,11 +910,6 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
     }
 }
 
-void TranslateIntegerOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
-{
-    TranslateOperand(psContext, psOperand, 1);
-}
-
 void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32RegisterNumber, const int bZCompare)
 {
     bstring glsl = psContext->glsl;
