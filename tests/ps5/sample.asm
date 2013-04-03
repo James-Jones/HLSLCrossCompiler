@@ -41,7 +41,7 @@ dcl_temps 2
 sample_indexable(texture2d)(float,float,float,float) r0.xyzw, v0.xyxx, t0.xyzw, s0
 sample_aoffimmi_indexable(3,2,0)(texture2d)(float,float,float,float) r1.xyzw, v0.xyxx, t1.xyzw, s0
 mul o0.xyzw, r0.xyzw, r1.xyzw
-sample_d_aoffimmi_indexable(4,4,0)(texture2d)(float,float,float,float) r0.xyzw, v0.xyxx, t0.xyzw, s0, l(0.300000, 0.300000, 0.000000, 0.000000), l(0.400000, 0.400000, 0.000000, 0.000000)
+sample_d_indexable(texture2d)(float,float,float,float) r0.xyzw, v0.xyxx, t0.xyzw, s0, l(0.300000, 0.300000, 0.000000, 0.000000), l(0.400000, 0.400000, 0.000000, 0.000000)
 sample_d_aoffimmi_indexable(4,4,0)(texture2d)(float,float,float,float) r1.xyzw, v0.xyxx, t1.xyzw, s0, l(0.300000, 0.300000, 0.000000, 0.000000), l(0.400000, 0.400000, 0.000000, 0.000000)
 mul o1.xyzw, r0.xyzw, r1.xyzw
 sample_b_indexable(texture2d)(float,float,float,float) r0.xyzw, v0.xyxx, t0.xyzw, s0, l(0.200000)

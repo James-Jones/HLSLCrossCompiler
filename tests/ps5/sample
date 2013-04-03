@@ -26,7 +26,7 @@ PS_OUTPUT main( PS_INPUT input )
     float4 base = TextureBase.Sample(TextureSampler, input.TexC.xy);
     float4 detail = TextureDetail.Sample(TextureSampler, input.TexC.xy, int2(3, 2));
 
-    float4 grad_base = TextureBase.SampleGrad(TextureSampler, input.TexC.xy, 0.3, 0.4, 4);
+    float4 grad_base = TextureBase.SampleGrad(TextureSampler, input.TexC.xy, 0.3, 0.4);
     float4 grad_detail = TextureDetail.SampleGrad(TextureSampler, input.TexC.xy, 0.3, 0.4, 4);
 
     float4 bias_base = TextureBase.SampleBias(TextureSampler, input.TexC.xy, 0.2);

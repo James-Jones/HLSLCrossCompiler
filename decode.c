@@ -641,9 +641,26 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 
     psInst->bSaturate = DecodeInstructionSaturate(*pui32Token);
 
+    psInst->bAddressOffset = 0;
+
     if(bExtended)
     {
         do {
+            const uint32_t ui32ExtOpcodeToken = pui32Token[ui32OperandOffset];
+            const EXTENDED_OPCODE_TYPE eExtType = DecodeExtendedOpcodeType(ui32ExtOpcodeToken);
+
+            if(eExtType == EXTENDED_OPCODE_SAMPLE_CONTROLS)
+            {
+                psInst->bAddressOffset = 1;
+
+                psInst->iUAddrOffset = DecodeImmediateAddressOffset(
+							    IMMEDIATE_ADDRESS_OFFSET_U, ui32ExtOpcodeToken);
+			    psInst->iVAddrOffset = DecodeImmediateAddressOffset(
+							    IMMEDIATE_ADDRESS_OFFSET_V, ui32ExtOpcodeToken);
+			    psInst->iWAddrOffset = DecodeImmediateAddressOffset(
+							    IMMEDIATE_ADDRESS_OFFSET_W, ui32ExtOpcodeToken);
+            }
+
 			ui32OperandOffset++;
 		}
 		while(DecodeIsOpcodeExtended(pui32Token[ui32OperandOffset-1]));

@@ -55,6 +55,11 @@ typedef struct Instruction_TAG
     uint32_t bSaturate;
     uint32_t ui32FuncIndexWithinInterface;
 
+    int bAddressOffset;
+    int iUAddrOffset;
+    int iVAddrOffset;
+    int iWAddrOffset;
+
 #ifdef _DEBUG
     uint64_t id;
 #endif

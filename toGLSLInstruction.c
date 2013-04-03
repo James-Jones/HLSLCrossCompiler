@@ -472,8 +472,11 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
     bstring glsl = psContext->glsl;
 
     const char* funcName = "texture";
+    const char* offset = "";
     const char* coordType = "";
     const char* gradSwizzle = "";
+
+    uint32_t ui32NumOffsets = 0;
 
     const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber];
 
@@ -483,12 +486,18 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
 
     MaskOutTexCoordComponents(eResDim, &psInst->asOperands[1]);
 
+    if(psInst->bAddressOffset)
+    {
+        offset = "Offset";
+    }
+
     switch(eResDim)
     {
         case RESOURCE_DIMENSION_TEXTURE1D:
         {
             coordType = "vec2";
             gradSwizzle = ".x";
+            ui32NumOffsets = 1;
             if(!iHaveOverloadedTexFuncs)
             {
                 funcName = "texture1D";
@@ -503,6 +512,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         {
             coordType = "vec3";
             gradSwizzle = ".xy";
+            ui32NumOffsets = 2;
             if(!iHaveOverloadedTexFuncs)
             {
                 funcName = "texture2D";
@@ -517,6 +527,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         {
             coordType = "vec3";
             gradSwizzle = ".xyz";
+            ui32NumOffsets = 3;
             if(!iHaveOverloadedTexFuncs)
             {
                 funcName = "textureCube";
@@ -527,7 +538,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         {
             coordType = "vec4";
             gradSwizzle = ".xyz";
-
+            ui32NumOffsets = 3;
             if(!iHaveOverloadedTexFuncs)
             {
                 funcName = "texture3D";
@@ -538,17 +549,20 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         {
             coordType = "vec3";
             gradSwizzle = ".x";
+            ui32NumOffsets = 1;
             break;
         }
         case RESOURCE_DIMENSION_TEXTURE2DARRAY:
         {
             coordType = "vec4";
             gradSwizzle = ".xy";
+            ui32NumOffsets = 2;
             break;
         }
         case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
         {
             gradSwizzle = ".xyz";
+            ui32NumOffsets = 3;
             if(ui32Flags & TEXSMP_FLAG_DEPTHCOMPARE)
             {
                 //Special. Reference is a separate argument.
@@ -606,11 +620,11 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
 
         if(ui32Flags & (TEXSMP_FLAG_LOD|TEXSMP_FLAG_FIRSTLOD))
         {
-            bformata(glsl, " =(vec4(%sLod(", funcName);
+            bformata(glsl, " =(vec4(%sLod%s(", funcName, offset);
         }
         else
         {
-            bformata(glsl, " =(vec4(%s(", funcName);
+            bformata(glsl, " =(vec4(%s%s(", funcName, offset);
         }
 		TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 		bformata(glsl, ", %s(", coordType);
@@ -633,39 +647,72 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
         if(ui32Flags & (TEXSMP_FLAG_LOD|TEXSMP_FLAG_FIRSTLOD))
         {
-            bformata(glsl, " = (%sLod(", funcName);
+            bformata(glsl, " = (%sLod%s(", funcName, offset);
         }
         else
         if(ui32Flags & TEXSMP_FLAGS_GRAD)
         {
-             bformata(glsl, " = (%sGrad(", funcName);
+             bformata(glsl, " = (%sGrad%s(", funcName, offset);
         }
         else
         {
-            bformata(glsl, " = (%s(", funcName);
+            bformata(glsl, " = (%s%s(", funcName, offset);
         }
         TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);//resource
         bcatcstr(glsl, ", ");
         TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);//texcoord
 
-        if(ui32Flags & (TEXSMP_FLAG_LOD|TEXSMP_FLAG_BIAS))
+        if(ui32Flags & (TEXSMP_FLAG_LOD))
         {
             bcatcstr(glsl, ", ");
             TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
         }
+        else
         if(ui32Flags & TEXSMP_FLAG_FIRSTLOD)
         {
             bcatcstr(glsl, ", 0");
         }
-
+        else
         if(ui32Flags & TEXSMP_FLAGS_GRAD)
         {
-            bcatcstr(glsl, ", ");
+            bcatcstr(glsl, ", vec4(");
             TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);//dx
+            bcatcstr(glsl, ")");
             bcatcstr(glsl, gradSwizzle);
-            bcatcstr(glsl, ", ");
+            bcatcstr(glsl, ", vec4(");
             TranslateOperand(psContext, &psInst->asOperands[5], TO_FLAG_NONE);//dy
+            bcatcstr(glsl, ")");
             bcatcstr(glsl, gradSwizzle);
+        }
+
+        if(psInst->bAddressOffset)
+        {
+            if(ui32NumOffsets == 1)
+            {
+                bformata(glsl, ", %d",
+                    psInst->iUAddrOffset);
+            }
+            else
+            if(ui32NumOffsets == 2)
+            {
+                bformata(glsl, ", ivec2(%d, %d)",
+                    psInst->iUAddrOffset,
+                    psInst->iVAddrOffset);
+            }
+            else
+            if(ui32NumOffsets == 3)
+            {
+                bformata(glsl, ", ivec3(%d, %d, %d)",
+                    psInst->iUAddrOffset,
+                    psInst->iVAddrOffset,
+                    psInst->iWAddrOffset);
+            }
+        }
+
+        if(ui32Flags & (TEXSMP_FLAG_BIAS))
+        {
+            bcatcstr(glsl, ", ");
+            TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
         }
 
         bcatcstr(glsl, ")");
