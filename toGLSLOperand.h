@@ -3,9 +3,11 @@
 
 #include "structs.h"
 
-void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
-void TranslateIntegerOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
-void TranslateSystemValueVariableName(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
+#define TO_FLAG_NONE    0x0
+#define TO_FLAG_INTEGER 0x1
+#define TO_FLAG_NAME_ONLY 0x2
+void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag);
+
 int GetMaxComponentFromComponentMask(const Operand* psOperand);
 void TranslateOperandIndex(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index);
 void TranslateOperandIndexMAD(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index, uint32_t multiply, uint32_t add);

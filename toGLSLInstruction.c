@@ -36,13 +36,13 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
 
         //Component-wise compare
         AddIndentation(psContext);
-        TranslateOperand(psContext, &psInst->asOperands[0]);
+        TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
         bformata(glsl, " = vec%d(%s((", minElemCount, glslOpcode[eType]);
-        TranslateOperand(psContext, &psInst->asOperands[1]);
+        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
         bcatcstr(glsl, ")");
         AddSwizzleUsingElementCount(psContext, minElemCount);
         bcatcstr(glsl, ", (");
-        TranslateOperand(psContext, &psInst->asOperands[2]);
+        TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
         bcatcstr(glsl, ")");
         AddSwizzleUsingElementCount(psContext, minElemCount);
         bcatcstr(glsl, "));\n");
@@ -58,14 +58,14 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
 
         //Scalar compare
         AddIndentation(psContext);
-        TranslateOperand(psContext, &psInst->asOperands[0]);
+        TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
         bcatcstr(glsl, " = ((");
-        TranslateOperand(psContext, &psInst->asOperands[1]);
+        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
         bcatcstr(glsl, ")");
         if(s0ElemCount > minElemCount)
             AddSwizzleUsingElementCount(psContext, minElemCount);
         bformata(glsl, "%s (", glslOpcode[eType]);
-        TranslateOperand(psContext, &psInst->asOperands[2]);
+        TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
         bcatcstr(glsl, ")");
         if(s1ElemCount > minElemCount)
             AddSwizzleUsingElementCount(psContext, minElemCount);
@@ -88,13 +88,13 @@ static void AddEqual(HLSLCrossCompilerContext* psContext, Instruction* psInst)
     {
         //Component-wise compare
         AddIndentation(psContext);
-        TranslateOperand(psContext, &psInst->asOperands[0]);
+        TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
         bformata(glsl, " = vec%d(equal((", minElemCount);
-        TranslateOperand(psContext, &psInst->asOperands[1]);
+        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
         bcatcstr(glsl, ")");
         AddSwizzleUsingElementCount(psContext, minElemCount);
         bcatcstr(glsl, ", (");
-        TranslateOperand(psContext, &psInst->asOperands[2]);
+        TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
         bcatcstr(glsl, ")");
         AddSwizzleUsingElementCount(psContext, minElemCount);
         bcatcstr(glsl, "));\n");
@@ -103,14 +103,14 @@ static void AddEqual(HLSLCrossCompilerContext* psContext, Instruction* psInst)
     {
         //Scalar compare
         AddIndentation(psContext);
-        TranslateOperand(psContext, &psInst->asOperands[0]);
+        TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
         bcatcstr(glsl, " = ((");
-        TranslateOperand(psContext, &psInst->asOperands[1]);
+        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
         bcatcstr(glsl, ")");
         if(s0ElemCount > minElemCount)
             AddSwizzleUsingElementCount(psContext, minElemCount);
         bcatcstr(glsl, "== (");
-        TranslateOperand(psContext, &psInst->asOperands[2]);
+        TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
         bcatcstr(glsl, ")");
         if(s1ElemCount > minElemCount)
             AddSwizzleUsingElementCount(psContext, minElemCount);
@@ -125,9 +125,9 @@ void CallHLSLOpcodeFunc1(HLSLCrossCompilerContext* psContext, const char* name, 
     AddIndentation(psContext);
     bcatcstr(glsl, name);
     bcatcstr(glsl, "(");
-    TranslateOperand(psContext, &psInst->asOperands[0]);
+    TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
     bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[1]);
+    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
     bcatcstr(glsl, ");\n");
 }
 
@@ -137,11 +137,11 @@ void CallHLSLOpcodeFunc2(HLSLCrossCompilerContext* psContext, const char* name, 
     AddIndentation(psContext);
     bcatcstr(glsl, name);
     bcatcstr(glsl, "(");
-    TranslateOperand(psContext, &psInst->asOperands[0]);
+    TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
     bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[1]);
+    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
     bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[2]);
+    TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
     bcatcstr(glsl, ");\n");
 }
 
@@ -151,13 +151,13 @@ void CallHLSLOpcodeFunc3(HLSLCrossCompilerContext* psContext, const char* name, 
     AddIndentation(psContext);
     bcatcstr(glsl, name);
     bcatcstr(glsl, "(");
-    TranslateOperand(psContext, &psInst->asOperands[0]);
+    TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
     bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[1]);
+    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
     bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[2]);
+    TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
     bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[3]);
+    TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_NONE);
     bcatcstr(glsl, ");\n");
 }
 
@@ -167,11 +167,11 @@ void CallHLSLIntegerOpcodeFunc2(HLSLCrossCompilerContext* psContext, const char*
     AddIndentation(psContext);
     bcatcstr(glsl, name);
     bcatcstr(glsl, "(");
-    TranslateIntegerOperand(psContext, &psInst->asOperands[0]);
+    TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_INTEGER);
     bcatcstr(glsl, ", ");
-    TranslateIntegerOperand(psContext, &psInst->asOperands[1]);
+    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
     bcatcstr(glsl, ", ");
-    TranslateIntegerOperand(psContext, &psInst->asOperands[2]);
+    TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_INTEGER);
     bcatcstr(glsl, ");\n");
 }
 
@@ -187,20 +187,20 @@ void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruc
 
 	if(src1SwizCount == src0SwizCount == dstSwizCount)
 	{
-		TranslateOperand(psContext, &psInst->asOperands[dest]);
+		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_NONE);
 		bcatcstr(glsl, " = ");
-		TranslateOperand(psContext, &psInst->asOperands[src0]);
+		TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE);
 		bformata(glsl, " %s ", name);
-		TranslateOperand(psContext, &psInst->asOperands[src1]);
+		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE);
 		bcatcstr(glsl, ";\n");
 	}
 	else
 	{
-		TranslateOperand(psContext, &psInst->asOperands[dest]);
+		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_NONE);
 		bcatcstr(glsl, " = vec4(");
-		TranslateOperand(psContext, &psInst->asOperands[src0]);
+		TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE);
 		bformata(glsl, " %s ", name);
-		TranslateOperand(psContext, &psInst->asOperands[src1]);
+		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE);
 		bcatcstr(glsl, ")");
 		//Limit src swizzles based on dest swizzle
 		//e.g. given hlsl asm: add r0.xy, v0.xyxx, l(0.100000, 0.000000, 0.000000, 0.000000)
@@ -225,20 +225,20 @@ void CallIntegerBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, 
 
 	if(src1SwizCount == src0SwizCount == dstSwizCount)
 	{
-		TranslateIntegerOperand(psContext, &psInst->asOperands[dest]);
+		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_INTEGER);
 		bcatcstr(glsl, " = int(");
-		TranslateIntegerOperand(psContext, &psInst->asOperands[src0]);
+		TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_INTEGER);
 		bformata(glsl, ") %s int(", name);
-		TranslateIntegerOperand(psContext, &psInst->asOperands[src1]);
+		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_INTEGER);
 		bcatcstr(glsl, ");\n");
 	}
 	else
 	{
-		TranslateIntegerOperand(psContext, &psInst->asOperands[dest]);
+		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_INTEGER);
 		bcatcstr(glsl, " = vec4(int(");
-		TranslateIntegerOperand(psContext, &psInst->asOperands[src0]);
+		TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_INTEGER);
 		bformata(glsl, ") %s int(", name);
-		TranslateIntegerOperand(psContext, &psInst->asOperands[src1]);
+		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_INTEGER);
 		bcatcstr(glsl, "))");
 		AddSwizzleUsingElementCount(psContext, dstSwizCount);
 		bcatcstr(glsl, ";\n");
@@ -257,20 +257,20 @@ void CallUnsignedIntegerBinaryOp(HLSLCrossCompilerContext* psContext, const char
 
 	if(src1SwizCount == src0SwizCount == dstSwizCount)
 	{
-		TranslateIntegerOperand(psContext, &psInst->asOperands[dest]);
+		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_INTEGER);
 		bcatcstr(glsl, " = uint(");
-		TranslateIntegerOperand(psContext, &psInst->asOperands[src0]);
+		TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_INTEGER);
 		bformata(glsl, ") %s uint(", name);
-		TranslateIntegerOperand(psContext, &psInst->asOperands[src1]);
+		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_INTEGER);
 		bcatcstr(glsl, ");\n");
 	}
 	else
 	{
-		TranslateIntegerOperand(psContext, &psInst->asOperands[dest]);
+		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_INTEGER);
 		bcatcstr(glsl, " = vec4(uint(");
-		TranslateIntegerOperand(psContext, &psInst->asOperands[src0]);
+		TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_INTEGER);
 		bformata(glsl, ") %s uint(", name);
-		TranslateIntegerOperand(psContext, &psInst->asOperands[src1]);
+		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_INTEGER);
 		bcatcstr(glsl, "))");
 		AddSwizzleUsingElementCount(psContext, dstSwizCount);
 		bcatcstr(glsl, ";\n");
@@ -290,24 +290,24 @@ void CallTernaryOp(HLSLCrossCompilerContext* psContext, const char* op1, const c
 
 	if(src1SwizCount == src0SwizCount == src2SwizCount == dstSwizCount)
 	{
-		TranslateOperand(psContext, &psInst->asOperands[dest]);
+		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_NONE);
 		bcatcstr(glsl, " = ");
-		TranslateOperand(psContext, &psInst->asOperands[src0]);
+		TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE);
 		bformata(glsl, " %s ", op1);
-		TranslateOperand(psContext, &psInst->asOperands[src1]);
+		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE);
 		bformata(glsl, " %s ", op2);
-		TranslateOperand(psContext, &psInst->asOperands[src2]);
+		TranslateOperand(psContext, &psInst->asOperands[src2], TO_FLAG_NONE);
 		bcatcstr(glsl, ";\n");
 	}
 	else
 	{
-		TranslateOperand(psContext, &psInst->asOperands[dest]);
+		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_NONE);
 		bcatcstr(glsl, " = vec4(");
-		TranslateOperand(psContext, &psInst->asOperands[src0]);
+		TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE);
 		bformata(glsl, " %s ", op1);
-		TranslateOperand(psContext, &psInst->asOperands[src1]);
+		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE);
 		bformata(glsl, " %s ", op2);
-		TranslateOperand(psContext, &psInst->asOperands[src2]);
+		TranslateOperand(psContext, &psInst->asOperands[src2], TO_FLAG_NONE);
 		bcatcstr(glsl, ")");
 		//Limit src swizzles based on dest swizzle
 		//e.g. given hlsl asm: add r0.xy, v0.xyxx, l(0.100000, 0.000000, 0.000000, 0.000000)
@@ -326,17 +326,17 @@ void CallHelper3(HLSLCrossCompilerContext* psContext, const char* name, Instruct
     bstring glsl = psContext->glsl;
     AddIndentation(psContext);
 
-	TranslateOperand(psContext, &psInst->asOperands[dest]);
+	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_NONE);
 
 	bcatcstr(glsl, " = vec4(");
 
     bcatcstr(glsl, name);
     bcatcstr(glsl, "(");
-    TranslateOperand(psContext, &psInst->asOperands[src0]);
+    TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE);
     bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[src1]);
+    TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE);
     bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[src2]);
+    TranslateOperand(psContext, &psInst->asOperands[src2], TO_FLAG_NONE);
     bcatcstr(glsl, "))");
     AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[dest]));
     bcatcstr(glsl, ";\n");
@@ -348,15 +348,15 @@ void CallHelper2(HLSLCrossCompilerContext* psContext, const char* name, Instruct
     bstring glsl = psContext->glsl;
     AddIndentation(psContext);
 
-	TranslateOperand(psContext, &psInst->asOperands[dest]);
+	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_NONE);
 
 	bcatcstr(glsl, " = vec4(");
 
     bcatcstr(glsl, name);
     bcatcstr(glsl, "(");
-    TranslateOperand(psContext, &psInst->asOperands[src0]);
+    TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE);
     bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[src1]);
+    TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE);
     bcatcstr(glsl, "))");
     AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[dest]));
     bcatcstr(glsl, ";\n");
@@ -368,15 +368,15 @@ void CallHelper2UInt(HLSLCrossCompilerContext* psContext, const char* name, Inst
     bstring glsl = psContext->glsl;
     AddIndentation(psContext);
 
-	TranslateOperand(psContext, &psInst->asOperands[dest]);
+	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_NONE);
 
 	bcatcstr(glsl, " = uvec4(");
 
     bcatcstr(glsl, name);
     bcatcstr(glsl, "(uint(");
-    TranslateIntegerOperand(psContext, &psInst->asOperands[src0]);
+    TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_INTEGER);
     bcatcstr(glsl, "), uint(");
-    TranslateIntegerOperand(psContext, &psInst->asOperands[src1]);
+    TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_INTEGER);
     bcatcstr(glsl, ")))");
     AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[dest]));
     bcatcstr(glsl, ";\n");
@@ -388,13 +388,13 @@ void CallHelper1(HLSLCrossCompilerContext* psContext, const char* name, Instruct
     bstring glsl = psContext->glsl;
     AddIndentation(psContext);
 
-	TranslateOperand(psContext, &psInst->asOperands[dest]);
+	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_NONE);
 
 	bcatcstr(glsl, " = vec4(");
 
     bcatcstr(glsl, name);
     bcatcstr(glsl, "(");
-    TranslateOperand(psContext, &psInst->asOperands[src0]);
+    TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE);
     bcatcstr(glsl, "))");
     AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[dest]));
     bcatcstr(glsl, ";\n");
@@ -505,13 +505,13 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
 			if(srcCount == dstCount)
 			{
-				TranslateOperand(psContext, &psInst->asOperands[0]);
+				TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
 				bcatcstr(glsl, " = ");
 				if(intCast)
 				{
 					bcatcstr(glsl, "int(");
 				}
-				TranslateOperand(psContext, &psInst->asOperands[1]);
+				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 				if(intCast)
 				{
 					bcatcstr(glsl, ")");
@@ -520,9 +520,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			}
 			else
 			{
-				TranslateOperand(psContext, &psInst->asOperands[0]);
+				TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
 				bcatcstr(glsl, " = vec4(");
-				TranslateOperand(psContext, &psInst->asOperands[1]);
+				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 				bcatcstr(glsl, ")");
 				AddSwizzleUsingElementCount(psContext, dstCount);
 				bcatcstr(glsl, ";\n");
@@ -536,9 +536,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//ITOF\n");
 #endif
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, " = vec4(");
-            TranslateOperand(psContext, &psInst->asOperands[1]);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
             bcatcstr(glsl, ")");
             TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ";\n");
@@ -551,9 +551,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//UTOF\n");
 #endif
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, " = vec4(");
-            TranslateOperand(psContext, &psInst->asOperands[1]);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
             bcatcstr(glsl, ")");
             TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ";\n");
@@ -675,18 +675,18 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             if(psInst->asOperands[0].eType != OPERAND_TYPE_NULL)
             {
                 AddIndentation(psContext);
-                TranslateOperand(psContext, &psInst->asOperands[0]);//Dest sin
+                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);//Dest sin
                 bcatcstr(glsl, " = sin(");
-                TranslateOperand(psContext, &psInst->asOperands[2]);//angle
+                TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);//angle
                 bcatcstr(glsl, ");\n");
             }
 
             if(psInst->asOperands[1].eType != OPERAND_TYPE_NULL)
             {
                 AddIndentation(psContext);
-                TranslateOperand(psContext, &psInst->asOperands[1]);//Dest cos
+                TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);//Dest cos
                 bcatcstr(glsl, " = cos(");
-                TranslateOperand(psContext, &psInst->asOperands[2]);//angle
+                TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);//angle
                 bcatcstr(glsl, ");\n");
             }
             break;
@@ -699,11 +699,11 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//DP2\n");
 #endif
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, " = dot((");
-            TranslateOperand(psContext, &psInst->asOperands[1]);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
             bcatcstr(glsl, ").xy, (");
-            TranslateOperand(psContext, &psInst->asOperands[2]);
+            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
             bcatcstr(glsl, ").xy);\n");
             break;
         }
@@ -714,11 +714,11 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//DP3\n");
 #endif
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, " = dot((");
-            TranslateOperand(psContext, &psInst->asOperands[1]);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
             bcatcstr(glsl, ").xyz, (");
-            TranslateOperand(psContext, &psInst->asOperands[2]);
+            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
             bcatcstr(glsl, ").xyz);\n");
             break;
         }
@@ -816,18 +816,18 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
                 AddIndentation(psContext);
                 bcatcstr(glsl, "if(");
-                TranslateOperand(psContext, &psInst->asOperands[1]);
+                TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
                 if(s0ElemCount>1)
                     bcatcstr(glsl, swizzle[destElem]);
                 bcatcstr(glsl, " != 0) {\n");
 
                 psContext->indent++;
                 AddIndentation(psContext);
-                TranslateOperand(psContext, &psInst->asOperands[0]);
+                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
                 if(destElemCount>1)
                     bcatcstr(glsl, swizzle[destElem]);
                 bcatcstr(glsl, " = ");
-                TranslateOperand(psContext, &psInst->asOperands[2]);
+                TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
                 if(s1ElemCount>1)
                     bcatcstr(glsl, swizzle[destElem]);
                 bcatcstr(glsl, ";\n");
@@ -837,11 +837,11 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
                 bcatcstr(glsl, "} else {\n");
                 psContext->indent++;
                 AddIndentation(psContext);
-                TranslateOperand(psContext, &psInst->asOperands[0]);
+                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
                 if(destElemCount>1)
                     bcatcstr(glsl, swizzle[destElem]);
                 bcatcstr(glsl, " = ");
-                TranslateOperand(psContext, &psInst->asOperands[3]);
+                TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_NONE);
                 if(s2ElemCount>1)
                     bcatcstr(glsl, swizzle[destElem]);
                 bcatcstr(glsl, ";\n");
@@ -968,16 +968,16 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
 //gather4 r7.xyzw, r3.xyxx, t3.xyzw, s0.x
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, " = (textureGather(");
 
-            TranslateOperand(psContext, &psInst->asOperands[2]);
+            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
             bcatcstr(glsl, ", ");
             //Texture coord cannot be vec4
             //Determining if it is a vec3 for vec2 yet to be done.
             psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
             psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-            TranslateOperand(psContext, &psInst->asOperands[1]);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
             bcatcstr(glsl, ")");
             // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
             // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
@@ -998,7 +998,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
 
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, " = (textureGatherOffset(");
 
             TextureName(psContext, psInst->asOperands[3].ui32RegisterNumber, 1);
@@ -1008,16 +1008,16 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             //Determining if it is a vec3 for vec2 yet to be done.
             psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
             psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-            TranslateOperand(psContext, &psInst->asOperands[1]);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 
             bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[5]);
+            TranslateOperand(psContext, &psInst->asOperands[5], TO_FLAG_NONE);
 
             bcatcstr(glsl, ", ivec2(");
             //ivec2 offset
             psInst->asOperands[2].aui32Swizzle[2] = 0xFFFFFFFF;
             psInst->asOperands[2].aui32Swizzle[3] = 0xFFFFFFFF;
-            TranslateOperand(psContext, &psInst->asOperands[2]);
+            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
             bcatcstr(glsl, "))");
             // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
             // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
@@ -1038,7 +1038,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
 
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, " = (textureGatherOffset(");
 
             TextureName(psContext, psInst->asOperands[3].ui32RegisterNumber, 0);
@@ -1048,13 +1048,13 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             //Determining if it is a vec3 for vec2 yet to be done.
             psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
             psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-            TranslateOperand(psContext, &psInst->asOperands[1]);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 
             bcatcstr(glsl, ", ivec2(");
             //ivec2 offset
             psInst->asOperands[2].aui32Swizzle[2] = 0xFFFFFFFF;
             psInst->asOperands[2].aui32Swizzle[3] = 0xFFFFFFFF;
-            TranslateOperand(psContext, &psInst->asOperands[2]);
+            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
             bcatcstr(glsl, "))");
             // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
             // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
@@ -1075,7 +1075,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
 
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, " = (textureGather(");
 
             TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
@@ -1085,10 +1085,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             //Determining if it is a vec3 for vec2 yet to be done.
             psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
             psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-            TranslateOperand(psContext, &psInst->asOperands[1]);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 
             bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[4]);
+            TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
             bcatcstr(glsl, ")");
             // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
             // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
@@ -1172,11 +1172,11 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             }
 
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bformata(glsl, " = (%s(", funcName);
-            TranslateOperand(psContext, &psInst->asOperands[2]);//resource
+            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);//resource
             bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[1]);//texcoord
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);//texcoord
             bcatcstr(glsl, ")");
 
             // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
@@ -1262,13 +1262,13 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             }
 
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bformata(glsl, " = (%s(", funcName);
-            TranslateOperand(psContext, &psInst->asOperands[2]);//resource
+            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);//resource
             bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[1]);//texcoord
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);//texcoord
             bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[4]);//lod
+            TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);//lod
             bcatcstr(glsl, ")");
 
             // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
@@ -1354,15 +1354,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
                 {
                     //Special. Reference is a separate argument.
 			        AddIndentation(psContext);
-			        TranslateOperand(psContext, &psInst->asOperands[0]);
+			        TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
 			        bcatcstr(glsl, " = vec4(");
 			        bcatcstr(glsl, "texture(");
                     TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 			        bcatcstr(glsl, ",");
-			        TranslateOperand(psContext, &psInst->asOperands[1]);
+			        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 			        bcatcstr(glsl, ",");
 			        //.z = reference.
-			        TranslateOperand(psContext, &psInst->asOperands[4]);
+			        TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
 			        bcatcstr(glsl, "))");
 			        AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
 			        bcatcstr(glsl, ";\n");
@@ -1377,15 +1377,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             }
 
 			AddIndentation(psContext);
-			TranslateOperand(psContext, &psInst->asOperands[0]);
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
 			bcatcstr(glsl, " = vec4(");
 			bformata(glsl, "(%s(", funcName);
             TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 			bformata(glsl, ", %s(", coordType);
-			TranslateOperand(psContext, &psInst->asOperands[1]);
+			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 			bcatcstr(glsl, ",");
 			//.z = reference.
-			TranslateOperand(psContext, &psInst->asOperands[4]);
+			TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
 			bcatcstr(glsl, ")))");
 
             // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
@@ -1476,14 +1476,14 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
                 {
                     //Special. Reference is a separate argument.
 			        AddIndentation(psContext);
-			        TranslateOperand(psContext, &psInst->asOperands[0]);
+			        TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
 			        bcatcstr(glsl, "= (vec4(textureLod(");
 			        TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 			        bcatcstr(glsl, ",");
-			        TranslateOperand(psContext, &psInst->asOperands[1]);
+			        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 			        bcatcstr(glsl, ",");
 			        //.z = reference.
-			        TranslateOperand(psContext, &psInst->asOperands[4]);
+			        TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
 			        bcatcstr(glsl, ", 0))");
                     // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
                     // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
@@ -1504,14 +1504,14 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             }
 
 			AddIndentation(psContext);
-			TranslateOperand(psContext, &psInst->asOperands[0]);
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
 			bformata(glsl, " =(vec4(%s(", funcName);
 			TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 			bformata(glsl, ", %s(", coordType);
-			TranslateOperand(psContext, &psInst->asOperands[1]);
+			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 			bcatcstr(glsl, ",");
 			//.z = reference.
-			TranslateOperand(psContext, &psInst->asOperands[4]);
+			TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
 			bcatcstr(glsl, ")");
 			bcatcstr(glsl, ", 0))");
 
@@ -1589,7 +1589,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
             bcatcstr(glsl, "subroutine(SubroutineType)\n");
             bcatcstr(glsl, "void ");
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, "(){\n");
             ++psContext->indent;
             break;
@@ -1597,35 +1597,35 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_COUNTBITS:
         {
             bcatcstr(glsl, "bitCount(");
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ");\n");
             break;
         }
         case OPCODE_FIRSTBIT_HI:
         {
             bcatcstr(glsl, "findMSB(");
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ");\n");
             break;
         }
         case OPCODE_FIRSTBIT_LO:
         {
             bcatcstr(glsl, "findLSB(");
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ");\n");
             break;
         }
         case OPCODE_FIRSTBIT_SHI:
         {
             bcatcstr(glsl, "findMSB(");
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ");\n");
             break;
         }
         case OPCODE_BFREV:
         {
             bcatcstr(glsl, "bitfieldReverse(");
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ");\n");
             break;
         }
@@ -1646,17 +1646,17 @@ src3
             base, instert, offset, bits
             */
             bcatcstr(glsl, "bitfieldInsert(");
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[1]);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
             bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[2]);
+            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
             bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[3]);
+            TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_NONE);
             bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[4]);
+            TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
             bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[5]);
+            TranslateOperand(psContext, &psInst->asOperands[5], TO_FLAG_NONE);
             bcatcstr(glsl, ");\n");
             break;
         }
@@ -1699,7 +1699,7 @@ src3
 #endif
             AddIndentation(psContext);
 			bcatcstr(glsl, "EndStreamPrimitive(");
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ");\n");
 
 			break;
@@ -1712,7 +1712,7 @@ src3
 #endif
             AddIndentation(psContext);
 			bcatcstr(glsl, "EmitStreamVertex(");
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ");\n");
 			break;
         }
@@ -1724,10 +1724,10 @@ src3
 #endif
             AddIndentation(psContext);
 			bcatcstr(glsl, "EmitStreamVertex(");
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ");\n");
 			bcatcstr(glsl, "EndStreamPrimitive(");
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ");\n");
 			break;
         }
@@ -1773,14 +1773,14 @@ src3
             if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
             {
                 bcatcstr(glsl, "if((");
-                TranslateOperand(psContext, &psInst->asOperands[0]);
+                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
                 bcatcstr(glsl, ")==0){break;}\n");
             }
             else
             {
                 ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
                 bcatcstr(glsl, "if((");
-                TranslateOperand(psContext, &psInst->asOperands[0]);
+                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
                 bcatcstr(glsl, ")!=0){break;}\n");
             }
             break;
@@ -1795,14 +1795,14 @@ src3
             if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
             {
                 bcatcstr(glsl, "if((");
-                TranslateOperand(psContext, &psInst->asOperands[0]);
+                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
                 bcatcstr(glsl, ")==0){\n");
             }
             else
             {
                 ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
                 bcatcstr(glsl, "if((");
-                TranslateOperand(psContext, &psInst->asOperands[0]);
+                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
                 bcatcstr(glsl, ")!=0){\n");
             }
             ++psContext->indent;
@@ -1881,7 +1881,7 @@ src3
 #endif
             AddIndentation(psContext);
             bcatcstr(glsl, "switch(int(");
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ")){\n");
 
             psContext->indent += 2;
@@ -1897,7 +1897,7 @@ src3
             AddIndentation(psContext);
 
             bcatcstr(glsl, "case ");
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ":\n");
 
             ++psContext->indent;
@@ -1958,12 +1958,12 @@ src3
 				{
 					//texelFetch(samplerBuffer, int coord, level)
 					AddIndentation(psContext);
-					TranslateOperand(psContext, &psInst->asOperands[0]);
+					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
 					bcatcstr(glsl, " = texelFetch(");
 
-					TranslateOperand(psContext, &psInst->asOperands[2]);
+					TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 					bcatcstr(glsl, ", int((");
-					TranslateOperand(psContext, &psInst->asOperands[1]);
+					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 					bcatcstr(glsl, ").x), 0)");
 					AddSwizzleUsingElementCount(psContext, dstSwizCount);
 					bcatcstr(glsl, ";\n");
@@ -1974,12 +1974,12 @@ src3
 				{
 					//texelFetch(samplerBuffer, ivec3 coord, level)
 					AddIndentation(psContext);
-					TranslateOperand(psContext, &psInst->asOperands[0]);
+					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
 					bcatcstr(glsl, " = texelFetch(");
 
-					TranslateOperand(psContext, &psInst->asOperands[2]);
+					TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 					bcatcstr(glsl, ", ivec3((");
-					TranslateOperand(psContext, &psInst->asOperands[1]);
+					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 					bcatcstr(glsl, ").xyz), 0)");
 					AddSwizzleUsingElementCount(psContext, dstSwizCount);
 					bcatcstr(glsl, ";\n");
@@ -1989,12 +1989,12 @@ src3
 				{
 					//texelFetch(samplerBuffer, ivec2 coord, level)
 					AddIndentation(psContext);
-					TranslateOperand(psContext, &psInst->asOperands[0]);
+					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
 					bcatcstr(glsl, " = texelFetch(");
 
-					TranslateOperand(psContext, &psInst->asOperands[2]);
+					TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 					bcatcstr(glsl, ", ivec2((");
-					TranslateOperand(psContext, &psInst->asOperands[1]);
+					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 					bcatcstr(glsl, ").xy), 0)");
 					AddSwizzleUsingElementCount(psContext, dstSwizCount);
 					bcatcstr(glsl, ";\n");
@@ -2004,12 +2004,12 @@ src3
 				{
 					//texelFetch(samplerBuffer, scalar integer coord)
 					AddIndentation(psContext);
-					TranslateOperand(psContext, &psInst->asOperands[0]);
+					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
 					bcatcstr(glsl, " = texelFetch(");
 
-					TranslateOperand(psContext, &psInst->asOperands[2]);
+					TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 					bcatcstr(glsl, ", int((");
-					TranslateOperand(psContext, &psInst->asOperands[1]);
+					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 					bcatcstr(glsl, ").x))");
 					AddSwizzleUsingElementCount(psContext, dstSwizCount);
 					bcatcstr(glsl, ";\n");
@@ -2019,12 +2019,12 @@ src3
 				{
 					//texelFetch(samplerBuffer, ivec2 coord, sample)
 					AddIndentation(psContext);
-					TranslateOperand(psContext, &psInst->asOperands[0]);
+					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
 					bcatcstr(glsl, " = texelFetch(");
 
-					TranslateOperand(psContext, &psInst->asOperands[2]);
+					TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 					bcatcstr(glsl, ", ivec2((");
-					TranslateOperand(psContext, &psInst->asOperands[1]);
+					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 					bcatcstr(glsl, ").xy), 0)");
 					AddSwizzleUsingElementCount(psContext, dstSwizCount);
 					bcatcstr(glsl, ";\n");
@@ -2034,12 +2034,12 @@ src3
 				{
 					//texelFetch(samplerBuffer, ivec3 coord, sample)
 					AddIndentation(psContext);
-					TranslateOperand(psContext, &psInst->asOperands[0]);
+					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
 					bcatcstr(glsl, " = texelFetch(");
 
-					TranslateOperand(psContext, &psInst->asOperands[2]);
+					TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 					bcatcstr(glsl, ", ivec3((");
-					TranslateOperand(psContext, &psInst->asOperands[1]);
+					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 					bcatcstr(glsl, ").xyz), 0)");
 					AddSwizzleUsingElementCount(psContext, dstSwizCount);
 					bcatcstr(glsl, ";\n");
@@ -2066,14 +2066,14 @@ src3
             if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
             {
                 bcatcstr(glsl, "if((");
-                TranslateOperand(psContext, &psInst->asOperands[0]);
+                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
                 bcatcstr(glsl, ")==0){discard;}\n");
             }
             else
             {
                 ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
                 bcatcstr(glsl, "if((");
-                TranslateOperand(psContext, &psInst->asOperands[0]);
+                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
                 bcatcstr(glsl, ")!=0){discard;}\n");
             }
 			break;
@@ -2090,11 +2090,11 @@ src3
                 &psInst->asOperands[1]);
 
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, " = textureQueryLOD(");
-            TranslateOperand(psContext, &psInst->asOperands[2]);
+            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
             bcatcstr(glsl, ",");
-            TranslateOperand(psContext, &psInst->asOperands[1]);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
             bcatcstr(glsl, ")");
 
             //The swizzle on srcResource allows the returned values to be swizzled arbitrarily before they are written to the destination.
@@ -2113,9 +2113,9 @@ src3
             bcatcstr(glsl, "//EVAL_CENTROID\n");
 #endif
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, " = interpolateAtCentroid(");
-            TranslateOperand(psContext, &psInst->asOperands[1]);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
             bcatcstr(glsl, ");\n");
             break;
         }
@@ -2126,11 +2126,11 @@ src3
             bcatcstr(glsl, "//EVAL_SAMPLE_INDEX\n");
 #endif
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, " = interpolateAtSample(");
-            TranslateOperand(psContext, &psInst->asOperands[1]);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
             bcatcstr(glsl, ", ");
-            TranslateIntegerOperand(psContext, &psInst->asOperands[2]);
+            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_INTEGER);
             bcatcstr(glsl, ");\n");
             break;
         }
@@ -2141,11 +2141,11 @@ src3
             bcatcstr(glsl, "//EVAL_SNAPPED\n");
 #endif
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0]);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, " = interpolateAtOffset(");
-            TranslateOperand(psContext, &psInst->asOperands[1]);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
             bcatcstr(glsl, ", ");
-            TranslateIntegerOperand(psContext, &psInst->asOperands[2]);
+            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_INTEGER);
             bcatcstr(glsl, ".xy);\n");
             break;
         }
@@ -2159,9 +2159,9 @@ src3
     if(psInst->bSaturate)
     {
         AddIndentation(psContext);
-        TranslateOperand(psContext, &psInst->asOperands[0]);
+        TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
         bcatcstr(glsl ," = clamp(");
-        TranslateOperand(psContext, &psInst->asOperands[0]);
+        TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
         bcatcstr(glsl, ", 0, 1);\n");
     }
 }
