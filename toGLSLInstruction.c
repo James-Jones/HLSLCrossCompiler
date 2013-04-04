@@ -73,51 +73,6 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
     }
 }
 
-static void AddEqual(HLSLCrossCompilerContext* psContext, Instruction* psInst)
-{
-    bstring glsl = psContext->glsl;
-    const uint32_t destElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[0]);
-    const uint32_t s0ElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[1]);
-    const uint32_t s1ElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[2]);
-
-    uint32_t minElemCount = destElemCount < s0ElemCount ? destElemCount : s0ElemCount;
-
-    minElemCount = s1ElemCount < minElemCount ? s1ElemCount : minElemCount;
-
-    if(destElemCount > 1)
-    {
-        //Component-wise compare
-        AddIndentation(psContext);
-        TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-        bformata(glsl, " = vec%d(equal((", minElemCount);
-        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-        bcatcstr(glsl, ")");
-        AddSwizzleUsingElementCount(psContext, minElemCount);
-        bcatcstr(glsl, ", (");
-        TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-        bcatcstr(glsl, ")");
-        AddSwizzleUsingElementCount(psContext, minElemCount);
-        bcatcstr(glsl, "));\n");
-    }
-    else
-    {
-        //Scalar compare
-        AddIndentation(psContext);
-        TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-        bcatcstr(glsl, " = ((");
-        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-        bcatcstr(glsl, ")");
-        if(s0ElemCount > minElemCount)
-            AddSwizzleUsingElementCount(psContext, minElemCount);
-        bcatcstr(glsl, "== (");
-        TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-        bcatcstr(glsl, ")");
-        if(s1ElemCount > minElemCount)
-            AddSwizzleUsingElementCount(psContext, minElemCount);
-        bcatcstr(glsl, ") ? 1 : 0;\n");
-    }
-}
-
 void CallHLSLOpcodeFunc1(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst)
 {
     bstring glsl = psContext->glsl;
@@ -196,6 +151,7 @@ void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruc
 	}
 	else
 	{
+        //Upconvert the inputs to vec4 then apply the dest swizzle.
 		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_NONE);
 		bcatcstr(glsl, " = vec4(");
 		TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE);
@@ -208,7 +164,8 @@ void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruc
 		//Temp0.xy = Input0.xyxx + vec4(0.100000, 0.000000, 0.000000, 0.000000);
 		//becomes
 		//Temp0.xy = vec4(Input0.xyxx + vec4(0.100000, 0.000000, 0.000000, 0.000000)).xy;
-		AddSwizzleUsingElementCount(psContext, dstSwizCount);
+		
+        TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
 		bcatcstr(glsl, ";\n");
 	}
 }
@@ -240,7 +197,7 @@ void CallIntegerBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, 
 		bformata(glsl, ") %s int(", name);
 		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_INTEGER);
 		bcatcstr(glsl, "))");
-		AddSwizzleUsingElementCount(psContext, dstSwizCount);
+		TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
 		bcatcstr(glsl, ";\n");
 	}
 }
@@ -272,7 +229,7 @@ void CallUnsignedIntegerBinaryOp(HLSLCrossCompilerContext* psContext, const char
 		bformata(glsl, ") %s uint(", name);
 		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_INTEGER);
 		bcatcstr(glsl, "))");
-		AddSwizzleUsingElementCount(psContext, dstSwizCount);
+		TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
 		bcatcstr(glsl, ";\n");
 	}
 }
@@ -315,7 +272,7 @@ void CallTernaryOp(HLSLCrossCompilerContext* psContext, const char* op1, const c
 		//Temp0.xy = Input0.xyxx + vec4(0.100000, 0.000000, 0.000000, 0.000000);
 		//becomes
 		//Temp0.xy = vec4(Input0.xyxx + vec4(0.100000, 0.000000, 0.000000, 0.000000)).xy;
-		AddSwizzleUsingElementCount(psContext, dstSwizCount);
+		TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
 		bcatcstr(glsl, ";\n");
 	}
 }
@@ -338,7 +295,7 @@ void CallHelper3(HLSLCrossCompilerContext* psContext, const char* name, Instruct
     bcatcstr(glsl, ", ");
     TranslateOperand(psContext, &psInst->asOperands[src2], TO_FLAG_NONE);
     bcatcstr(glsl, "))");
-    AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[dest]));
+    TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
     bcatcstr(glsl, ";\n");
 }
 
@@ -358,7 +315,7 @@ void CallHelper2(HLSLCrossCompilerContext* psContext, const char* name, Instruct
     bcatcstr(glsl, ", ");
     TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE);
     bcatcstr(glsl, "))");
-    AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[dest]));
+    TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
     bcatcstr(glsl, ";\n");
 }
 
@@ -378,7 +335,7 @@ void CallHelper2UInt(HLSLCrossCompilerContext* psContext, const char* name, Inst
     bcatcstr(glsl, "), uint(");
     TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_INTEGER);
     bcatcstr(glsl, ")))");
-    AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[dest]));
+    TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
     bcatcstr(glsl, ";\n");
 }
 
@@ -396,7 +353,7 @@ void CallHelper1(HLSLCrossCompilerContext* psContext, const char* name, Instruct
     bcatcstr(glsl, "(");
     TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE);
     bcatcstr(glsl, "))");
-    AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[dest]));
+    TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
     bcatcstr(glsl, ";\n");
 }
 
@@ -595,7 +552,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
                 TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
                 bcatcstr(glsl, ")");
 
-                AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+                TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
                 bcatcstr(glsl, ";\n");
                 return;
             }
@@ -724,7 +681,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
     TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
     bcatcstr(glsl, ")");
 
-    AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+    TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
     bcatcstr(glsl, ";\n");
 }
 
@@ -793,7 +750,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 				bcatcstr(glsl, " = vec4(");
 				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 				bcatcstr(glsl, ")");
-				AddSwizzleUsingElementCount(psContext, dstCount);
+				TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
 				bcatcstr(glsl, ";\n");
 			}
             break;
@@ -1254,7 +1211,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
             bcatcstr(glsl, ")");
 
-            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ";\n");
             break;
         }
@@ -1294,7 +1251,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             TranslateOperandSwizzle(psContext, &psInst->asOperands[3]);
             bcatcstr(glsl, ")");
 
-            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ";\n");
             break;
         }
@@ -1331,7 +1288,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             TranslateOperandSwizzle(psContext, &psInst->asOperands[3]);
             bcatcstr(glsl, ")");
 
-            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ";\n");
             break;
         }
@@ -1365,7 +1322,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
             bcatcstr(glsl, ")");
 
-            AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psContext, &psInst->asOperands[0]));
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ";\n");
             break;
         }
@@ -1865,7 +1822,7 @@ src3
 					bcatcstr(glsl, ", int((");
 					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 					bcatcstr(glsl, ").x), 0)");
-					AddSwizzleUsingElementCount(psContext, dstSwizCount);
+					TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
 					bcatcstr(glsl, ";\n");
 					break;
 				}
@@ -1881,7 +1838,7 @@ src3
 					bcatcstr(glsl, ", ivec3((");
 					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 					bcatcstr(glsl, ").xyz), 0)");
-					AddSwizzleUsingElementCount(psContext, dstSwizCount);
+					TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
 					bcatcstr(glsl, ";\n");
 					break;
 				}
@@ -1896,7 +1853,7 @@ src3
 					bcatcstr(glsl, ", ivec2((");
 					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 					bcatcstr(glsl, ").xy), 0)");
-					AddSwizzleUsingElementCount(psContext, dstSwizCount);
+					TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
 					bcatcstr(glsl, ";\n");
 					break;
 				}
@@ -1911,7 +1868,7 @@ src3
 					bcatcstr(glsl, ", int((");
 					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 					bcatcstr(glsl, ").x))");
-					AddSwizzleUsingElementCount(psContext, dstSwizCount);
+					TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
 					bcatcstr(glsl, ";\n");
 					break;
 				}
@@ -1926,7 +1883,7 @@ src3
 					bcatcstr(glsl, ", ivec2((");
 					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 					bcatcstr(glsl, ").xy), 0)");
-					AddSwizzleUsingElementCount(psContext, dstSwizCount);
+					TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
 					bcatcstr(glsl, ";\n");
 					break;
 				}
@@ -1941,7 +1898,7 @@ src3
 					bcatcstr(glsl, ", ivec3((");
 					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 					bcatcstr(glsl, ").xyz), 0)");
-					AddSwizzleUsingElementCount(psContext, dstSwizCount);
+					TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
 					bcatcstr(glsl, ";\n");
 					break;
 				}
