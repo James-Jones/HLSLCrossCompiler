@@ -31,7 +31,7 @@ public:
     }
 
     void SetLanguage(GLLang lang) {
-        mLang = lang;
+        mRequestedLang = lang;
     }
 
     void FromByteFile(std::string& path);
@@ -63,7 +63,7 @@ public:
         return mDomain;
     }
     uint_t Language() const {
-        return mLang;
+        return mRequestedLang;
     }
     uint_t CompileFlags() const {
         return mCompileFlags;
@@ -72,7 +72,14 @@ public:
 protected:
 
 private:
-    GLLang mLang;
+    GLLang mRequestedLang;
+
+    GLLang mVSLang;
+    GLLang mGSLang;
+    GLLang mHSLang;
+    GLLang mDSLang;
+    GLLang mPSLang;
+
     uint_t mCompileFlags;
     uint_t mProgram;
     uint_t mVertex;

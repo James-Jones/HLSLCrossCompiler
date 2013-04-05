@@ -1,4 +1,5 @@
 #include "toGLSLOperand.h"
+#include "toGLSLDeclaration.h"
 #include "bstrlib.h"
 #include "toGLSL.h"
 #include "debug.h"
@@ -64,7 +65,7 @@ int GetMaxComponentFromComponentMask(const Operand* psOperand)
 //.yw = 2
 uint32_t GetNumSwizzleElements(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 	uint32_t count = 0;
 
 	switch(psOperand->eType)
@@ -178,7 +179,7 @@ uint32_t GetNumSwizzleElements(HLSLCrossCompilerContext* psContext, const Operan
 
 void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t count)
 {
-	bstring glsl = psContext->glsl;
+	bstring glsl = *psContext->currentGLSLString;
 	if(count)
 	{
 		bcatcstr(glsl, ".");
@@ -288,7 +289,7 @@ int CompareOperandSwizzles(const Operand* psOperandA, const Operand* psOperandB)
 
 void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 
 	if(psOperand->eType == OPERAND_TYPE_OUTPUT)
 	{
@@ -396,12 +397,118 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
 	}
 }
 
+int GetFirstOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
+{
+	if(psOperand->eType == OPERAND_TYPE_OUTPUT)
+	{
+		if(psContext->psShader->abScalarOutput[psOperand->ui32RegisterNumber])
+		{
+			return - 1;
+		}
+	}
+	if(psOperand->eType == OPERAND_TYPE_INPUT)
+	{
+		if(psContext->psShader->abScalarInput[psOperand->ui32RegisterNumber])
+		{
+			return - 1;
+		}
+	}
+
+    if(psOperand->iWriteMaskEnabled &&
+       psOperand->iNumComponents == 4)
+    {
+		//Comonent Mask
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+		{
+			if(psOperand->ui32CompMask != 0 && psOperand->ui32CompMask != (OPERAND_4_COMPONENT_MASK_X|OPERAND_4_COMPONENT_MASK_Y|OPERAND_4_COMPONENT_MASK_Z|OPERAND_4_COMPONENT_MASK_W))
+			{
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_X)
+				{
+					return 0;;
+				}
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Y)
+				{
+					return 1;
+				}
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Z)
+				{
+					return 2;
+				}
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_W)
+				{
+					return 3;
+				}
+			}
+		}
+		else
+		//Component Swizzle
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+		{
+			if(psOperand->ui32Swizzle != (NO_SWIZZLE))
+			{
+				uint32_t i;
+
+				for(i=0; i< 4; ++i)
+				{
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X)
+					{
+						return 0;
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y)
+					{
+						return 1;
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z)
+					{
+						return 2;
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W)
+					{
+						return 3;
+					}
+				}
+			}
+		}
+		else
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+		{
+
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_X)
+			{
+				return 0;
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Y)
+			{
+				return 1;
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Z)
+			{
+				return 2;
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_W)
+			{
+				return 3;
+			}
+		}
+
+		//Component Select 1
+	}
+
+    return -1;
+}
+
 void TranslateOperandIndex(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index)
 {
     int i = index;
     int isGeoShader = psContext->psShader->eShaderType == GEOMETRY_SHADER ? 1 : 0;
 
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 
     ASSERT(index < psOperand->iIndexDims);
 
@@ -445,7 +552,7 @@ void TranslateOperandIndexMAD(HLSLCrossCompilerContext* psContext, const Operand
     int i = index;
     int isGeoShader = psContext->psShader->eShaderType == GEOMETRY_SHADER ? 1 : 0;
 
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 
     ASSERT(index < psOperand->iIndexDims);
 
@@ -484,77 +591,9 @@ void TranslateOperandIndexMAD(HLSLCrossCompilerContext* psContext, const Operand
     }
 }
 
-//Returns 1 if the operand has a special name.
-static int TranslateSpecialInputName(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
-{
-    bstring glsl = psContext->glsl;
-    const SPECIAL_NAME eSpecialName = psContext->psShader->aSpecialInputs[psOperand->ui32RegisterNumber];
-
-    switch(eSpecialName)
-    {
-        case NAME_IS_FRONT_FACE:
-        {
-            /*
-                Cast to int used because
-                if(gl_FrontFacing != 0) failed to compiled on Intel HD 4000.
-                Suggests no implicit conversion for bool<->int.
-            */
-            bcatcstr(glsl, "int(gl_FrontFacing)");
-            return 1;
-        }
-        case NAME_PRIMITIVE_ID:
-        {
-            bcatcstr(glsl, "gl_PrimitiveID");
-            return 1;
-        }
-        case NAME_SAMPLE_INDEX:
-        {
-            bcatcstr(glsl, "gl_SampleID");
-            return 1;
-        }
-        case NAME_INSTANCE_ID:
-        {
-            bcatcstr(glsl, "gl_InstanceID");
-            return 1;
-        }
-        case NAME_VERTEX_ID:
-        {
-            bcatcstr(glsl, "gl_VertexID");
-            return 1;
-        }
-        case NAME_VIEWPORT_ARRAY_INDEX:
-        {
-            bcatcstr(glsl, "gl_ViewportIndex");
-            return 1;
-        }
-        case NAME_RENDER_TARGET_ARRAY_INDEX:
-        {
-            /*
-                HLSL allows .x on scalars. Upgrade scalar
-                system values to vec1 so .x works. Even when
-                GLSL allows a vec1, this will still be needed for
-                backwards compatiblility.
-            */
-            bcatcstr(glsl, "vec1(gl_Layer)");
-            return 1;
-        }
-        case NAME_CLIP_DISTANCE:
-        {
-            bcatcstr(glsl, "gl_ClipDistance");
-            return 1;
-        }
-        case NAME_POSITION:
-        {
-            bcatcstr(glsl, "gl_Position");
-            return 1;
-        }
-    }
-    return 0;
-}
-
 static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag, uint32_t* pui32IgnoreSwizzle)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 
     *pui32IgnoreSwizzle = 0;
 
@@ -604,54 +643,57 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         }
         case OPERAND_TYPE_INPUT:
         {
-            if(TranslateSpecialInputName(psContext, psOperand))
+            switch(psOperand->iIndexDims)
             {
-                //All of the special names are scalar at the moment.
-                //Most versions of GLSL do not allow .x on scalar, unlike HLSL bytecode.
-                *pui32IgnoreSwizzle = 1;
-            }
-            else
-            {
-                switch(psOperand->iIndexDims)
+                case INDEX_2D:
                 {
-                    case INDEX_2D:
+                    if(psOperand->aui32ArraySizes[1] == 0)//Input index zero - position.
                     {
-                        if(psOperand->aui32ArraySizes[1] == 0)//Input index zero - position.
+                        bcatcstr(glsl, "gl_in");
+                        TranslateOperandIndex(psContext, psOperand, TO_FLAG_NONE);//Vertex index
+                        bcatcstr(glsl, ".gl_Position");
+                    }
+                    else
+                    {
+                        const char* name = "Input";
+                        if(ui32TOFlag & TO_FLAG_DECLARATION_NAME)
                         {
-                            bcatcstr(glsl, "gl_in");
-                            TranslateOperandIndex(psContext, psOperand, TO_FLAG_NONE);//Vertex index
-                            bcatcstr(glsl, ".gl_Position");
+                            name = GetDeclaredName(psContext->psShader->eShaderType, psContext->flags);
+                        }
+                        
+                        bformata(glsl, "%s%d", name, psOperand->aui32ArraySizes[1]);
+                        TranslateOperandIndex(psContext, psOperand, TO_FLAG_NONE);//Vertex index
+                    }
+                    break;
+                }
+                default:
+                {
+                    if(psOperand->eIndexRep[0] == OPERAND_INDEX_IMMEDIATE32_PLUS_RELATIVE)
+                    {
+                        bformata(glsl, "Input%d[int(", psOperand->ui32RegisterNumber);
+                        TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
+                        bcatcstr(glsl, ")]");
+                    }
+                    else
+                    {
+                        if(psContext->psShader->aIndexedInput[psOperand->ui32RegisterNumber] != 0)
+                        {
+                            const uint32_t parentIndex = psContext->psShader->aIndexedInputParents[psOperand->ui32RegisterNumber];
+                            bformata(glsl, "Input%d[%d]", parentIndex,
+                                psOperand->ui32RegisterNumber - parentIndex);
                         }
                         else
                         {
-                            bformata(glsl, "Input%d", psOperand->aui32ArraySizes[1]);
-                            TranslateOperandIndex(psContext, psOperand, TO_FLAG_NONE);//Vertex index
-                        }
-                        break;
-                    }
-                    default:
-                    {
-                        if(psOperand->eIndexRep[0] == OPERAND_INDEX_IMMEDIATE32_PLUS_RELATIVE)
-                        {
-                            bformata(glsl, "Input%d[int(", psOperand->ui32RegisterNumber);
-                            TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
-                            bcatcstr(glsl, ")]");
-                        }
-                        else
-                        {
-                            if(psContext->psShader->aIndexedInput[psOperand->ui32RegisterNumber] != 0)
+                            const char* name = "Input";
+                            if(ui32TOFlag & TO_FLAG_DECLARATION_NAME)
                             {
-                                const uint32_t parentIndex = psContext->psShader->aIndexedInputParents[psOperand->ui32RegisterNumber];
-                                bformata(glsl, "Input%d[%d]", parentIndex,
-                                    psOperand->ui32RegisterNumber - parentIndex);
+                                name = GetDeclaredName(psContext->psShader->eShaderType, psContext->flags);
                             }
-                            else
-                            {
-                                bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
-                            }
+
+                            bformata(glsl, "%s%d", name, psOperand->ui32RegisterNumber);
                         }
-                        break;
                     }
+                    break;
                 }
             }
             break;
@@ -848,7 +890,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 
 void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
     uint32_t ui32IgnoreSwizzle = 0;
 
     if(ui32TOFlag & TO_FLAG_NAME_ONLY)
@@ -912,7 +954,7 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 
 void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32RegisterNumber, const int bZCompare)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
     ResourceBinding* psBinding = 0;
 	int found;
     found = GetResourceFromBindingPoint(RTYPE_TEXTURE, ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);

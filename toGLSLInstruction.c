@@ -16,7 +16,7 @@ typedef enum
 
 static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psInst, ComparisonType eType)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
     const uint32_t destElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[0]);
     const uint32_t s0ElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[1]);
     const uint32_t s1ElemCount = GetNumSwizzleElements(psContext, &psInst->asOperands[2]);
@@ -75,7 +75,7 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
 
 void CallHLSLOpcodeFunc1(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 
     AddIndentation(psContext);
     bcatcstr(glsl, name);
@@ -88,7 +88,7 @@ void CallHLSLOpcodeFunc1(HLSLCrossCompilerContext* psContext, const char* name, 
 
 void CallHLSLOpcodeFunc2(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
     AddIndentation(psContext);
     bcatcstr(glsl, name);
     bcatcstr(glsl, "(");
@@ -102,7 +102,7 @@ void CallHLSLOpcodeFunc2(HLSLCrossCompilerContext* psContext, const char* name, 
 
 void CallHLSLOpcodeFunc3(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
     AddIndentation(psContext);
     bcatcstr(glsl, name);
     bcatcstr(glsl, "(");
@@ -118,7 +118,7 @@ void CallHLSLOpcodeFunc3(HLSLCrossCompilerContext* psContext, const char* name, 
 
 void CallHLSLIntegerOpcodeFunc2(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
     AddIndentation(psContext);
     bcatcstr(glsl, name);
     bcatcstr(glsl, "(");
@@ -133,7 +133,7 @@ void CallHLSLIntegerOpcodeFunc2(HLSLCrossCompilerContext* psContext, const char*
 void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0, int src1)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 	uint32_t src1SwizCount = GetNumSwizzleElements(psContext, &psInst->asOperands[src1]);
 	uint32_t src0SwizCount = GetNumSwizzleElements(psContext, &psInst->asOperands[src0]);
 	uint32_t dstSwizCount = GetNumSwizzleElements(psContext, &psInst->asOperands[dest]);
@@ -173,7 +173,7 @@ void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruc
 void CallIntegerBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0, int src1)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 	uint32_t src1SwizCount = GetNumSwizzleElements(psContext, &psInst->asOperands[src1]);
 	uint32_t src0SwizCount = GetNumSwizzleElements(psContext, &psInst->asOperands[src0]);
 	uint32_t dstSwizCount = GetNumSwizzleElements(psContext, &psInst->asOperands[dest]);
@@ -205,7 +205,7 @@ void CallIntegerBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, 
 void CallUnsignedIntegerBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0, int src1)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 	uint32_t src1SwizCount = GetNumSwizzleElements(psContext, &psInst->asOperands[src1]);
 	uint32_t src0SwizCount = GetNumSwizzleElements(psContext, &psInst->asOperands[src0]);
 	uint32_t dstSwizCount = GetNumSwizzleElements(psContext, &psInst->asOperands[dest]);
@@ -237,7 +237,7 @@ void CallUnsignedIntegerBinaryOp(HLSLCrossCompilerContext* psContext, const char
 void CallTernaryOp(HLSLCrossCompilerContext* psContext, const char* op1, const char* op2, Instruction* psInst, 
  int dest, int src0, int src1, int src2)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 	uint32_t src2SwizCount = GetNumSwizzleElements(psContext, &psInst->asOperands[src2]);
 	uint32_t src1SwizCount = GetNumSwizzleElements(psContext, &psInst->asOperands[src1]);
 	uint32_t src0SwizCount = GetNumSwizzleElements(psContext, &psInst->asOperands[src0]);
@@ -280,7 +280,7 @@ void CallTernaryOp(HLSLCrossCompilerContext* psContext, const char* op1, const c
 void CallHelper3(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0, int src1, int src2)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
     AddIndentation(psContext);
 
 	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_NONE);
@@ -302,7 +302,7 @@ void CallHelper3(HLSLCrossCompilerContext* psContext, const char* name, Instruct
 void CallHelper2(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0, int src1)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
     AddIndentation(psContext);
 
 	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_NONE);
@@ -322,7 +322,7 @@ void CallHelper2(HLSLCrossCompilerContext* psContext, const char* name, Instruct
 void CallHelper2UInt(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0, int src1)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
     AddIndentation(psContext);
 
 	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_NONE);
@@ -342,7 +342,7 @@ void CallHelper2UInt(HLSLCrossCompilerContext* psContext, const char* name, Inst
 void CallHelper1(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
     AddIndentation(psContext);
 
 	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_NONE);
@@ -426,7 +426,7 @@ static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand*
 static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruction* psInst,
     uint32_t ui32Flags)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 
     const char* funcName = "texture";
     const char* offset = "";
@@ -688,7 +688,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
 
 void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psInst)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
     switch(psInst->eOpcode)
     {
         case OPCODE_FTOI:
@@ -1972,7 +1972,10 @@ src3
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, " = interpolateAtCentroid(");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+            //interpolateAtCentroid accepts in-qualified variables.
+            //As long as bytecode only writes vX registers in declarations
+            //we should be able to use the declared name directly.
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_DECLARATION_NAME);
             bcatcstr(glsl, ");\n");
             break;
         }
@@ -1985,7 +1988,10 @@ src3
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, " = interpolateAtSample(");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+            //interpolateAtSample accepts in-qualified variables.
+            //As long as bytecode only writes vX registers in declarations
+            //we should be able to use the declared name directly.
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_DECLARATION_NAME);
             bcatcstr(glsl, ", ");
             TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_INTEGER);
             bcatcstr(glsl, ");\n");
@@ -2000,7 +2006,10 @@ src3
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, " = interpolateAtOffset(");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+            //interpolateAtOffset accepts in-qualified variables.
+            //As long as bytecode only writes vX registers in declarations
+            //we should be able to use the declared name directly.
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_DECLARATION_NAME);
             bcatcstr(glsl, ", ");
             TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_INTEGER);
             bcatcstr(glsl, ".xy);\n");

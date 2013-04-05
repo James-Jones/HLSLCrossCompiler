@@ -34,7 +34,7 @@ void AddIndentation(HLSLCrossCompilerContext* psContext)
 {
     int i;
     int indent = psContext->indent;
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
     for(i=0; i < indent; ++i)
     {
         bcatcstr(glsl, "    ");
@@ -43,7 +43,7 @@ void AddIndentation(HLSLCrossCompilerContext* psContext)
 
 void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 
 	//Enable conservative depth if the extension is defined by the GLSL compiler.
 	bcatcstr(glsl,"#ifdef GL_ARB_conservative_depth\n\t#extension GL_ARB_conservative_depth : enable\n#endif\n");
@@ -112,7 +112,7 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 
 void AddOpcodeFuncs(HLSLCrossCompilerContext* psContext)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 
     bcatcstr(glsl, "\n");
 
@@ -208,11 +208,12 @@ const char* GetVersionString(GLLang language)
     }
 }
 
-void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
+void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 {
     bstring glsl;
     uint32_t i;
     Shader* psShader = psContext->psShader;
+    GLLang language = *planguage;
     const uint32_t ui32InstCount = psShader->ui32InstCount;
     const uint32_t ui32DeclCount = psShader->ui32DeclCount;
 
@@ -221,12 +222,14 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
     if(language == LANG_DEFAULT)
     {
         language = ChooseLanguage(psShader);
+        *planguage = language;
     }
 
     glsl = bfromcstralloc (1024, GetVersionString(language));
 
     psContext->glsl = glsl;
 	psContext->earlyMain = bfromcstralloc (1024, "");
+    psContext->currentGLSLString = &glsl;
     psShader->eTargetLanguage = language;
 
     AddVersionDependentCode(psContext);
@@ -344,6 +347,12 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
 
             psContext->indent++;
 
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//--- Start Early Main ---\n");
+	        bconcat(glsl, psContext->earlyMain);
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//--- End Early Main ---\n");
+
             if(psShader->ui32HSControlPointInstrCount)
             {
                 AddIndentation(psContext);
@@ -409,7 +418,11 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
 
     psContext->indent++;
 
+    AddIndentation(psContext);
+    bcatcstr(glsl, "//--- Start Early Main ---\n");
 	bconcat(glsl, psContext->earlyMain);
+    AddIndentation(psContext);
+    bcatcstr(glsl, "//--- End Early Main ---\n");
 
     MarkIntegerImmediates(psContext);
 
@@ -443,7 +456,7 @@ int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language
         sContext.psShader = psShader;
         sContext.flags = flags;
 
-        TranslateToGLSL(&sContext, language);
+        TranslateToGLSL(&sContext, &language);
 
         switch(psShader->eShaderType)
         {
@@ -511,6 +524,7 @@ int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language
 
     result->shaderType = GLSLShaderType;
     result->sourceCode = glslcstr;
+    result->GLSLLanguage = language;
 
 	return success;
 }

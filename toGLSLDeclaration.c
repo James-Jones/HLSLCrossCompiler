@@ -16,29 +16,238 @@
 
 extern void AddIndentation(HLSLCrossCompilerContext* psContext);
 
+const char* GetDeclaredName(SHADER_TYPE eShaderType, unsigned int flags)
+{
+	if(eShaderType == GEOMETRY_SHADER)
+	{
+		return "VtxOutput";
+	}
+
+    if(eShaderType == HULL_SHADER)
+    {
+        return "VtxGeoOutput";
+    }
+
+    if(eShaderType == DOMAIN_SHADER)
+    {
+        return "HullOutput";
+    }
+
+    if(eShaderType == PIXEL_SHADER)
+    {
+        if(flags & HLSLCC_FLAG_TESS_ENABLED)
+        {
+            return "DomOutput";
+        }
+        return "VtxGeoOutput";
+    }
+
+    return "dcl_Input";
+}
+
+static void DeclareInput(
+    HLSLCrossCompilerContext* psContext,
+    const Declaration* psDecl,
+    const char* Interpolation, const char* StorageQualifier, const char* Precision, int iNumComponents, OPERAND_INDEX_DIMENSION eIndexDim, const char* InputName)
+{
+    Shader* psShader = psContext->psShader;
+    bstring glsl = *psContext->currentGLSLString;
+
+    if(psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] == 0)
+    {
+        if( HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage) ||
+           (psShader->eShaderType == VERTEX_SHADER && HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage)))
+        {
+            bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
+        }
+
+        switch(eIndexDim)
+        {
+            case INDEX_2D:
+            {
+                if(iNumComponents == 1)
+                {
+				    const uint32_t regNum =  psDecl->asOperands[0].ui32RegisterNumber;
+				    const uint32_t arraySize = psDecl->asOperands[0].aui32ArraySizes[0];
+
+				    psContext->psShader->abScalarInput[psDecl->asOperands[0].ui32RegisterNumber] = -1;
+
+                    bformata(glsl, "%s %s float %s%d [%d];\n", StorageQualifier, Precision, InputName, regNum,
+                        arraySize);
+
+                    bformata(glsl, "vec1 Input%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+
+                    psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = arraySize;
+                }
+                else
+                {
+                    bformata(glsl, "%s %s vec%d %s%d [%d];\n", StorageQualifier, Precision, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber,
+                        psDecl->asOperands[0].aui32ArraySizes[0]);
+
+                    bformata(glsl, "vec%d Input%d[%d];\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber,
+                        psDecl->asOperands[0].aui32ArraySizes[0]);
+
+                    psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = psDecl->asOperands[0].aui32ArraySizes[0];
+                }
+                break;
+            }
+            default:
+            {
+                if(iNumComponents == 1)
+                {
+                    psContext->psShader->abScalarInput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
+                    bformata(glsl, "%s %s %s float %s%d;\n", Interpolation, StorageQualifier, Precision, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+                    bformata(glsl, "vec1 Input%d;\n", psDecl->asOperands[0].ui32RegisterNumber);
+
+                    psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = -1;
+                }
+                else
+                {
+                    if(psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber])
+                    {
+                        bformata(glsl, "%s %s %s vec%d %s%d", Interpolation, StorageQualifier, Precision, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+                        bformata(glsl, "[%d];\n", psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber]);
+
+                        bformata(glsl, "vec%d Input%d[%d];\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber,
+                            psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber]);
+
+
+                        psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber];
+                    }
+                    else
+                    {
+                        bformata(glsl, "%s %s %s vec%d %s%d;\n", Interpolation, StorageQualifier, Precision, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+                        bformata(glsl, "vec%d Input%d;\n", iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+
+                        psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = -1;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    if(psShader->abInputReferencedByInstruction[psDecl->asOperands[0].ui32RegisterNumber])
+    {
+        psContext->currentGLSLString = &psContext->earlyMain;
+        psContext->indent++;
+
+        if(psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] == -1) //Not an array
+        {
+            AddIndentation(psContext);
+            bformata(psContext->earlyMain, "Input%d = %s%d;\n", psDecl->asOperands[0].ui32RegisterNumber, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+        }
+        else
+        {
+            int arrayIndex = psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber];
+
+            while(arrayIndex)
+            {
+                AddIndentation(psContext);
+                bformata(psContext->earlyMain, "Input%d[%d] = %s%d[%d];\n", psDecl->asOperands[0].ui32RegisterNumber, arrayIndex-1,
+                    InputName, psDecl->asOperands[0].ui32RegisterNumber, arrayIndex-1);
+                arrayIndex--;
+            }
+        }
+        psContext->indent--;
+        psContext->currentGLSLString = &psContext->glsl;
+    }
+}
+
+void AddBultinInput(HLSLCrossCompilerContext* psContext, const Declaration* psDecl, const char* builtinName)
+{
+    bstring glsl = *psContext->currentGLSLString;
+    Shader* psShader = psContext->psShader;
+
+    if(psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] == 0)
+    {
+        bformata(glsl, "vec4 ");
+        TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
+        bformata(glsl, ";\n");
+
+        psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = 1;
+    }
+    else
+    {
+        //This register has already been declared. The HLSL bytecode likely looks
+        //something like this then:
+        //  dcl_input_ps constant v3.x
+        //  dcl_input_ps_sgv v3.y, primitive_id
+
+        //GLSL does not allow assignment to a varying!
+    }
+
+    psContext->currentGLSLString = &psContext->earlyMain;
+    psContext->indent++;
+    AddIndentation(psContext);
+    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+    bformata(psContext->earlyMain, " = %s;\n", builtinName);
+    psContext->indent--;
+    psContext->currentGLSLString = &psContext->glsl;
+}
+
 void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration* psDecl)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
     Shader* psShader = psContext->psShader;
 
     switch(psDecl->eOpcode)
     {
+        case OPCODE_DCL_INPUT_SGV:
         case OPCODE_DCL_INPUT_PS_SGV:
         {
             const SPECIAL_NAME eSpecialName = psDecl->asOperands[0].eSpecialName;
             switch(eSpecialName)
             {
                 case NAME_POSITION:
+                {
+                    AddBultinInput(psContext, psDecl, "gl_Position");
+                    break;
+                }
                 case NAME_RENDER_TARGET_ARRAY_INDEX:
+                {
+                    AddBultinInput(psContext, psDecl, "gl_Layer");
+                    break;
+                }
                 case NAME_CLIP_DISTANCE:
+                {
+                    AddBultinInput(psContext, psDecl, "gl_ClipDistance");
+                    break;
+                }
                 case NAME_VIEWPORT_ARRAY_INDEX:
-                case NAME_VERTEX_ID:
-                case NAME_PRIMITIVE_ID:
+                {
+                    AddBultinInput(psContext, psDecl, "gl_ViewportIndex");
+                    break;
+                }
                 case NAME_INSTANCE_ID:
+                {
+                    AddBultinInput(psContext, psDecl, "gl_InstanceID");
+                    break;
+                }
                 case NAME_IS_FRONT_FACE:
+                {
+                    /*
+                        Cast to int used because
+                        if(gl_FrontFacing != 0) failed to compiled on Intel HD 4000.
+                        Suggests no implicit conversion for bool<->int.
+                    */
+
+                    AddBultinInput(psContext, psDecl, "int(gl_FrontFacing)");
+                    break;
+                }
                 case NAME_SAMPLE_INDEX:
                 {
-                    psShader->aSpecialInputs[psDecl->asOperands[0].ui32RegisterNumber] = eSpecialName;
+                    AddBultinInput(psContext, psDecl, "gl_SampleID");
+                    break;
+                }
+                case NAME_VERTEX_ID:
+                {
+                    AddBultinInput(psContext, psDecl, "gl_VertexID");
+                    break;
+                }
+                case NAME_PRIMITIVE_ID:
+                {
+                    AddBultinInput(psContext, psDecl, "gl_PrimitiveID");
                     break;
                 }
                 default:
@@ -306,7 +515,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 */
             int iNumComponents = 4;//GetMaxComponentFromComponentMask(psOperand);
 			const char* StorageQualifier = "attribute";
-			const char* InputName = "Input";
+            const char* InputName = GetDeclaredName(psShader->eShaderType, psContext->flags);
             const char* Precision = "";
 
 			if(psOperand->eType == OPERAND_TYPE_INPUT_DOMAIN_POINT)
@@ -328,21 +537,6 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             if(psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber] == -1)
             {
                 break;
-            }
-
-			if(psShader->eShaderType == GEOMETRY_SHADER)
-			{
-				InputName = "VtxOutput";
-			}
-
-            if(psShader->eShaderType == HULL_SHADER)
-            {
-                InputName = "VtxGeoOutput";
-            }
-
-            if(psShader->eShaderType == DOMAIN_SHADER)
-            {
-                InputName = "HullOutput";
             }
 
 			if(InOutSupported(psContext->psShader->eTargetLanguage))
@@ -382,80 +576,9 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
             }
 
-			//Prevent multiple declarations caused by register packing.
-			bformata(glsl, "#ifndef Input%d_CREATED\n", psDecl->asOperands[0].ui32RegisterNumber);
-			bformata(glsl, "#define Input%d_CREATED\n", psDecl->asOperands[0].ui32RegisterNumber);
+            DeclareInput(psContext, psDecl,
+                "", StorageQualifier, Precision, iNumComponents, (OPERAND_INDEX_DIMENSION)psOperand->iIndexDims, InputName);
 
-            if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage) ||
-                
-              (psShader->eShaderType == VERTEX_SHADER && HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage)) )
-            {
-                bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
-            }
-
-            switch(psOperand->iIndexDims)
-            {
-                case INDEX_2D:
-                {
-                    if(iNumComponents == 1)
-                    {
-						const uint32_t regNum =  psDecl->asOperands[0].ui32RegisterNumber;
-						const uint32_t arraySize = psDecl->asOperands[0].aui32ArraySizes[0];
-
-						psContext->psShader->abScalarInput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-
-                        bformata(glsl, "%s %s float %s%d [%d];\n", StorageQualifier, Precision, InputName, regNum,
-                            arraySize);
-                    }
-                    else
-                    {
-                        bformata(glsl, "%s %s vec%d %s%d [%d];\n", StorageQualifier, Precision, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber,
-                            psDecl->asOperands[0].aui32ArraySizes[0]);
-                    }
-                    break;
-                }
-                default:
-                {
-                    if(iNumComponents == 1)
-                    {
-						psContext->psShader->abScalarInput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-
-                        bformata(glsl, "%s %s float %s%d;\n", StorageQualifier, Precision, InputName, psDecl->asOperands[0].ui32RegisterNumber);
-                    }
-                    else
-                    {
-                        bformata(glsl, "%s %s vec%d %s%d", StorageQualifier, Precision, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber);
-
-                        if(psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber])
-                        {
-                            bformata(glsl, "[%d]", psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber]);
-                        }
-
-                        bcatcstr(glsl, ";\n");
-                    }
-                    break;
-                }
-            }
-
-			if(psShader->eShaderType == GEOMETRY_SHADER)
-			{
-				bformata(glsl, "#define Input%d VtxOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber,
-					psDecl->asOperands[0].ui32RegisterNumber);
-			}
-
-            if(psShader->eShaderType == HULL_SHADER)
-            {
-				bformata(glsl, "#define Input%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber,
-					psDecl->asOperands[0].ui32RegisterNumber);
-            }
-
-            if(psShader->eShaderType == DOMAIN_SHADER)
-            {
-				bformata(glsl, "#define Input%d HullOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber,
-					psDecl->asOperands[0].ui32RegisterNumber);
-            }
-
-			bcatcstr(glsl, "#endif\n");
             break;
         }
 		case OPCODE_DCL_INPUT_SIV:
@@ -468,7 +591,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             int iNumComponents = 4;//GetMaxComponentFromComponentMask(psOperand);
 			const char* StorageQualifier = "varying";
             const char* Precision = "";
-            const char* InputName = "VtxGeoOutput";
+            const char* InputName = GetDeclaredName(PIXEL_SHADER, psContext->flags);
             const char* Interpolation = "";
 
 			if(InOutSupported(psContext->psShader->eTargetLanguage))
@@ -546,26 +669,8 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
             }
 
-            if(psContext->flags & HLSLCC_FLAG_TESS_ENABLED)
-            {
-                InputName = "DomOutput";
-            }
-
-            if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
-            {
-                bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
-            }
-
-            if(iNumComponents == 1)
-            {
-                bformata(glsl, "%s %s %s float %s%d;\n", Interpolation, StorageQualifier, Precision, InputName, psDecl->asOperands[0].ui32RegisterNumber);
-				bformata(glsl, "vec1 Input%d = vec1(%s%d);\n", psDecl->asOperands[0].ui32RegisterNumber, InputName, psDecl->asOperands[0].ui32RegisterNumber);
-            }
-            else
-            {
-                bformata(glsl, "%s %s %s vec%d %s%d;\n", Interpolation, StorageQualifier, Precision, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber);
-				bformata(glsl, "#define Input%d %s%d\n", psDecl->asOperands[0].ui32RegisterNumber, InputName, psDecl->asOperands[0].ui32RegisterNumber);
-            }
+            DeclareInput(psContext, psDecl,
+                Interpolation, StorageQualifier, Precision, iNumComponents, INDEX_1D, InputName);
             
             break;
         }

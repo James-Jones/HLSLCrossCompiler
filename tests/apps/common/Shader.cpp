@@ -2,13 +2,41 @@
 #include <GL/glew.h>
 #include "common/debug.h"
 
-ShaderEffect::ShaderEffect() : mCompileFlags(0), mLang(LANG_DEFAULT)
+ShaderEffect::ShaderEffect() : mCompileFlags(0), mRequestedLang(LANG_DEFAULT)
 {
 }
 
 void ShaderEffect::Create()
 {
     mProgram = glCreateProgram();
+
+    if(HaveLimitedInOutLocationQualifier(mVSLang) == 0 || HaveLimitedInOutLocationQualifier(mPSLang) == 0)
+    {
+        int maxAttrib = 0;
+
+        glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &maxAttrib);
+
+        for(int i=0; i<maxAttrib; ++i)
+        {
+            std::string attribName("dcl_Input");
+            //Visual Studio/Windows missing int version std::to_string, so use long long.
+            attribName += std::to_string((long long)i);
+
+            glBindAttribLocation(mProgram, i, attribName.c_str());
+        }
+
+        int maxDrawBuffers = 0;
+
+        glGetIntegerv(GL_MAX_DRAW_BUFFERS, &maxDrawBuffers);
+
+        for(int i=0; i<maxAttrib; ++i)
+        {
+            std::string pixelOutputName("PixOutput");
+            pixelOutputName += std::to_string((long long)i);
+
+            glBindFragDataLocation(mProgram, i, pixelOutputName.c_str());
+        }
+    }
 }
 
 void ShaderEffect::FromGLSLFile(uint_t eShaderType, std::string& path)
@@ -48,30 +76,35 @@ void ShaderEffect::FromGLSLFile(uint_t eShaderType, std::string& path)
         {
             mVertex = glCreateShader(GL_VERTEX_SHADER);
             shader = mVertex;
+            mVSLang = LANG_DEFAULT;
             break;
         }
         case GL_FRAGMENT_SHADER:
         {
             mPixel = glCreateShader(GL_FRAGMENT_SHADER);
             shader = mPixel;
+            mPSLang = LANG_DEFAULT;
             break;
         }
         case GL_GEOMETRY_SHADER:
         {
             mGeometry = glCreateShader(GL_GEOMETRY_SHADER);
             shader = mGeometry;
+            mGSLang = LANG_DEFAULT;
             break;
         }
         case GL_TESS_CONTROL_SHADER:
         {
             mHull = glCreateShader(GL_TESS_CONTROL_SHADER);
             shader = mHull;
+            mHSLang = LANG_DEFAULT;
             break;
         }
         case GL_TESS_EVALUATION_SHADER:
         {
             mDomain = glCreateShader(GL_TESS_EVALUATION_SHADER);
             shader = mDomain;
+            mDSLang = LANG_DEFAULT;
             break;
         }
         default:
@@ -108,7 +141,7 @@ void ShaderEffect::FromByteFile(std::string& path)
 {
     GLSLShader result;
 
-    int translated = TranslateHLSLFromFile(path.c_str(), mCompileFlags, mLang, &result);
+    int translated = TranslateHLSLFromFile(path.c_str(), mCompileFlags, mRequestedLang, &result);
 
     ASSERT(translated);
 
@@ -120,24 +153,28 @@ void ShaderEffect::FromByteFile(std::string& path)
         {
             mVertex = glCreateShader(GL_VERTEX_SHADER);
             shader = mVertex;
+            mVSLang = result.GLSLLanguage;
             break;
         }
         case GL_FRAGMENT_SHADER:
         {
             mPixel = glCreateShader(GL_FRAGMENT_SHADER);
             shader = mPixel;
+            mPSLang = result.GLSLLanguage;
             break;
         }
         case GL_GEOMETRY_SHADER:
         {
             mGeometry = glCreateShader(GL_GEOMETRY_SHADER);
             shader = mGeometry;
+            mGSLang = result.GLSLLanguage;
             break;
         }
         case GL_TESS_CONTROL_SHADER:
         {
             mHull = glCreateShader(GL_TESS_CONTROL_SHADER);
             shader = mHull;
+            mHSLang = result.GLSLLanguage;
 
             switch(result.reflection.eTessOutPrim)
             {
@@ -184,6 +221,7 @@ void ShaderEffect::FromByteFile(std::string& path)
         {
             mDomain = glCreateShader(GL_TESS_EVALUATION_SHADER);
             shader = mDomain;
+            mDSLang = result.GLSLLanguage;
 
             //Hull shader must be compiled before domain in order
             //to ensure correct partitioning and primitive type information
@@ -240,9 +278,6 @@ void ShaderEffect::FromByteFile(std::string& path)
 
 void ShaderEffect::Enable()
 {
-    glBindAttribLocation(mProgram, 0, "Input0");
-    glBindAttribLocation(mProgram, 1, "Input1");
-    glBindFragDataLocation(mProgram, 0, "PixOutput0");
     glLinkProgram(mProgram);
 
 #ifdef _DEBUG

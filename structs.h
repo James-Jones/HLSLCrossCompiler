@@ -196,14 +196,12 @@ typedef struct Shader_TAG
     int aIndexedInput[MAX_SHADER_VEC4_INPUT];
     int aIndexedInputParents[MAX_SHADER_VEC4_INPUT];
 
-    //Map input register number to OpenGL built-in.
-    //Mapping determined by declaration (dcl_) opcodes.
-    //Register granularity. If more than one special inputs
-    //are ever packed into a single vec4 input then this will
-    //code will need changing.
-    SPECIAL_NAME aSpecialInputs[MAX_SHADER_VEC4_INPUT];
-
     RESOURCE_DIMENSION aeResourceDims[MAX_TEXTURES];
+
+    int aiInputDeclaredSize[MAX_SHADER_VEC4_INPUT];
+
+    //Does not track built-in inputs.
+    int abInputReferencedByInstruction[MAX_SHADER_VEC4_INPUT];
 
 	int aiOpcodeUsed[NUM_OPCODES];
 
@@ -213,6 +211,9 @@ typedef struct HLSLCrossCompilerContext_TAG
 {
     bstring glsl;
 	bstring earlyMain;//Code to be inserted at the start of main()
+
+    bstring* currentGLSLString;//either glsl or earlyMain
+
     int indent;
     unsigned int flags;
     Shader* psShader;

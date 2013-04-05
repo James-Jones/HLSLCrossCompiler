@@ -431,10 +431,6 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
-        case OPCODE_DCL_INPUT_SGV:
-        {
-            break;
-        }
         case OPCODE_DCL_INPUT_SIV:
         {
             if(psShader->eShaderType == PIXEL_SHADER)
@@ -452,6 +448,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
+        case OPCODE_DCL_INPUT_SGV:
         case OPCODE_DCL_INPUT_PS_SGV:
         {
             psDecl->ui32NumOperands = 1;
@@ -906,6 +903,30 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         {
 			ASSERT(0);
             break;
+        }
+    }
+
+    {
+        uint32_t ui32Operand;
+        const uint32_t ui32NumOperands = psInst->ui32NumOperands;
+        for(ui32Operand = 0; ui32Operand < ui32NumOperands; ++ui32Operand)
+        {
+            Operand* psOperand = &psInst->asOperands[ui32Operand];
+            if(psOperand->eType == OPERAND_TYPE_INPUT || 
+                psOperand->eType == OPERAND_TYPE_INPUT_CONTROL_POINT)
+            {
+                if(psOperand->iIndexDims == INDEX_2D)
+                {
+                    if(psOperand->aui32ArraySizes[1] != 0)//gl_in[].gl_Position
+                    {
+                        psShader->abInputReferencedByInstruction[psOperand->ui32RegisterNumber] = 1;
+                    }
+                }
+                else
+                {
+                    psShader->abInputReferencedByInstruction[psOperand->ui32RegisterNumber] = 1;
+                }
+            }
         }
     }
 

@@ -9,6 +9,7 @@ typedef struct
     int shaderType; //One of the GL enums.
     char* sourceCode;
     ShaderInfo reflection;
+    GLLang GLSLLanguage;
 } GLSLShader;
 
 /*HLSL constant buffers are treated as default-block unform arrays by default. This is done
