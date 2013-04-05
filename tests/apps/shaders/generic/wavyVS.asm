@@ -9,9 +9,9 @@
 // {
 //
 //   float4x4 World;                    // Offset:    0 Size:    64
-//   float4x4 View;                     // Offset:   64 Size:    64 [unused]
-//   float4x4 Projection;               // Offset:  128 Size:    64 [unused]
-//   float Time;                        // Offset:  192 Size:     4 [unused]
+//   float4x4 View;                     // Offset:   64 Size:    64
+//   float4x4 Projection;               // Offset:  128 Size:    64
+//   float Time;                        // Offset:  192 Size:     4
 //
 // }
 //
@@ -42,23 +42,34 @@
 // TEXCOORD                 1   xy          2     NONE   float   xy  
 //
 vs_4_0
-dcl_constantbuffer cb0[4], immediateIndexed
+dcl_constantbuffer cb0[13], immediateIndexed
 dcl_input v0.xyz
 dcl_input v1.xyz
 dcl_input v2.xy
 dcl_output_siv o0.xyzw, position
 dcl_output o1.xyz
 dcl_output o2.xy
-dcl_temps 1
+dcl_temps 3
 mov r0.xyz, v0.xyzx
 mov r0.w, l(1.000000)
-dp4 o0.x, r0.xyzw, cb0[0].xyzw
-dp4 o0.y, r0.xyzw, cb0[1].xyzw
-dp4 o0.z, r0.xyzw, cb0[2].xyzw
-dp4 o0.w, r0.xyzw, cb0[3].xyzw
+dp4 r1.x, r0.xyzw, cb0[0].xyzw
+dp4 r2.y, r0.xyzw, cb0[1].xyzw
+mad r1.y, r2.y, l(0.100000), cb0[12].x
+sincos r1.y, null, r1.y
+mad r2.x, r1.y, l(10.000000), r1.x
+dp4 r2.z, r0.xyzw, cb0[2].xyzw
+dp4 r2.w, r0.xyzw, cb0[3].xyzw
+dp4 r0.x, r2.xyzw, cb0[4].xyzw
+dp4 r0.y, r2.xyzw, cb0[5].xyzw
+dp4 r0.z, r2.xyzw, cb0[6].xyzw
+dp4 r0.w, r2.xyzw, cb0[7].xyzw
+dp4 o0.x, r0.xyzw, cb0[8].xyzw
+dp4 o0.y, r0.xyzw, cb0[9].xyzw
+dp4 o0.z, r0.xyzw, cb0[10].xyzw
+dp4 o0.w, r0.xyzw, cb0[11].xyzw
 dp3 o1.x, v1.xyzx, cb0[0].xyzx
 dp3 o1.y, v1.xyzx, cb0[1].xyzx
 dp3 o1.z, v1.xyzx, cb0[2].xyzx
 mov o2.xy, v2.xyxx
 ret 
-// Approximately 11 instruction slots used
+// Approximately 22 instruction slots used

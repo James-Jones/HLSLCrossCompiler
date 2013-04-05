@@ -29,7 +29,7 @@ public:
 	void Draw(ITransform& World);
 	
 protected:
-	void DrawR(ITransform& World, const  aiNode* nd);
+	void RecursiveDraw(ITransform& World, const  aiNode* nd);
 private:
 	void CreateBuffers();
     void CreateMaterial();

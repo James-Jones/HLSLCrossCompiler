@@ -57,7 +57,11 @@ public:
 	void Display(float t);
 	void ResizeDisplay(int w, int h) {
 	   glViewport (0, 0, (GLsizei) w, (GLsizei) h);
-		gProjection = Matrix4::perspective(3.14159f * 0.25f, w / ( float )h, 0.1f, 100.0f);
+        //D3D clip space (z = 0, +1) to GL (z = -1 to +1)
+        gProjection = Matrix4::scale(Vector3(1, -1, 2));
+        gProjection *= Matrix4::translation(Vector3(0, 0, -0.5));
+		gProjection *= Matrix4::perspective(3.14159f * 0.25f, w / ( float )h, 0.1f, 5000.0f);
+
 	}
 	const Matrix4& GetWorldMatrix() const {
 		return gWorld;
@@ -72,14 +76,13 @@ public:
 		SetFloatArray(gWorld, gChangesEveryFrame.World);
 		SetFloatArray(gView, gChangesEveryFrame.View);
 		SetFloatArray(gProjection, gChangesEveryFrame.Projection);
-		//gTime = gChangesEveryFrame.Time;
+
 		gChangesEveryFrame.Time = gTime;
 		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrame"), ChangesEveryFrameVec4Count, (float*)&gChangesEveryFrame);
 
 		SetFloatArray(vLightDirs, &gConstant.vLightDir[0]);
 		mExtrudeEffect.SetVec4(std::string("cbConstant"), ConstantVec4Count, (float*)&gConstant);
 
-		//gExplode = gUserChanges.Explode;
 		gUserChanges.Explode = gExplode;
 		mExtrudeEffect.SetVec4(std::string("cbUserChanges"), UserChangesVec4Count, (float*)&gUserChanges);
 
@@ -113,10 +116,13 @@ Demo gDemo;
 void Demo::Display(float t) {
 
 	glBindFramebuffer(GL_FRAMEBUFFER, mFramebuffer);
-	gWorld = Matrix4::rotationY(t);
+
+    gWorld = Matrix4::rotationY(t * 60 * 3.14159f / 180.f);
+    
+    gWorld *= Matrix4::rotationX(-90.0f * 3.14159f / 180.f);
 
 	gTime = t;
-	gExplode = 0.001 * t;
+	gExplode = 0.5 * t;
 
     vLightDirs = Vector4(-0.577f, 0.577f, -0.577f, 1.0f);
 
@@ -183,7 +189,7 @@ void Demo::Init() {
 
 	ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
-    glFrontFace(GL_CCW);
+    glFrontFace(GL_CW);
     glCullFace(GL_BACK);
     glEnable(GL_CULL_FACE);
 
@@ -197,13 +203,14 @@ void Demo::Init() {
 
     gWorld = Matrix4::identity();
 
-	Point3 Eye( 0.0f, 0.0f, 3.0f );
+	Point3 Eye( 0.0f, 0.0f, -800.0f );
 
-	Point3 At( 0.0f, 0.0f, -5.0f );
+	Point3 At( 0.0f, 0.0f, 0.0f );
     Vector3 Up( 0.0f, 1.0f, 0.0f );
 
     gView = Matrix4::lookAt(Eye, At, Up);
-    gProjection = Matrix4::perspective(3.14159f * 0.25f, WindowWidth / ( float )WindowHeight, 0.1f, 5000.0f);
+
+    ResizeDisplay(WindowWidth, WindowHeight);
 
 	gModel.Import3DFromFile("models/Tiny.x");
 }
