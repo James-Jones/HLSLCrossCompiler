@@ -3,8 +3,7 @@
 
 #include "languages.h"
 #include "reflect.h"
-
-static enum {MAX_SHADER_VEC4_INPUT = 512};
+#include "shaderLimits.h"
 
 //The shader stages (Vertex, Pixel et al) do not depend on each other
 //in HLSL. GLSL is a different story. HLSLCrossCompiler requires

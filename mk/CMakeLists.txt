@@ -66,6 +66,7 @@ ADD_LIBRARY( libHLSLcc STATIC
 ../toGLSLInstruction.h
 ../toGLSLOperand.h
 ../tokens.h
+../shaderLimits.h
 ${CBSTRING_HFILES}
 ../decode.c
 ../reflect.c
