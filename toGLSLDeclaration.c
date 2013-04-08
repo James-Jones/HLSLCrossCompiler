@@ -45,6 +45,46 @@ const char* GetDeclaredName(SHADER_TYPE eShaderType, unsigned int flags)
     return "dcl_Input";
 }
 
+const char* GetInterpolationString(INTERPOLATION_MODE eMode)
+{
+    switch(eMode)
+    {
+        case INTERPOLATION_CONSTANT:
+        {
+            return "flat";
+        }
+        case INTERPOLATION_LINEAR:
+        {
+            return "";
+        }
+        case INTERPOLATION_LINEAR_CENTROID:
+        {
+            return "centroid";
+        }
+        case INTERPOLATION_LINEAR_NOPERSPECTIVE:
+        {
+            return "noperspective";
+            break;
+        }
+        case INTERPOLATION_LINEAR_NOPERSPECTIVE_CENTROID:
+        {
+            return "noperspective centroid";
+        }
+        case INTERPOLATION_LINEAR_SAMPLE:
+        {
+            return "sample";
+        }
+        case INTERPOLATION_LINEAR_NOPERSPECTIVE_SAMPLE:
+        {
+            return "noperspective sample";
+        }
+        default:
+        {
+            return "";
+        }
+    }
+}
+
 static void DeclareInput(
     HLSLCrossCompilerContext* psContext,
     const Declaration* psDecl,
@@ -55,6 +95,15 @@ static void DeclareInput(
 
     if(psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] == 0)
     {
+
+        if(psContext->psDependencies)
+        {
+            if(psShader->eShaderType == PIXEL_SHADER)
+            {
+                psContext->psDependencies->aePixelInputInterpolation[psDecl->asOperands[0].ui32RegisterNumber] = psDecl->value.eInterpolation;
+            }
+        }
+
         if( HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage) ||
            (psShader->eShaderType == VERTEX_SHADER && HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage)))
         {
@@ -583,6 +632,10 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
 		case OPCODE_DCL_INPUT_SIV:
 		{
+            if(psShader->eShaderType == PIXEL_SHADER && psContext->psDependencies)
+            {
+                psContext->psDependencies->aePixelInputInterpolation[psDecl->asOperands[0].ui32RegisterNumber] = psDecl->value.eInterpolation;
+            }
 			break;
 		}
         case OPCODE_DCL_INPUT_PS:
@@ -1057,6 +1110,12 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				case VERTEX_SHADER:
 				{
 					int iNumComponents = 4;//GetMaxComponentFromComponentMask(&psDecl->asOperands[0]);
+                    const char* Interpolation;
+
+                    if(psShader->eShaderType == VERTEX_SHADER)
+                    {
+                        Interpolation = GetInterpolationString(psContext->psDependencies->aePixelInputInterpolation[psDecl->asOperands[0].ui32RegisterNumber]);
+                    }
 
                     if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
                     {
@@ -1072,11 +1131,11 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 					{
 						if(InOutSupported(psContext->psShader->eTargetLanguage))
 						{
-							bformata(glsl, "out %s vec%d VtxGeoOutput%d;\n", Precision, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+							bformata(glsl, "%s out %s vec%d VtxGeoOutput%d;\n", Interpolation, Precision, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
 						}
 						else
 						{
-							bformata(glsl, "varying %s %s%d VtxGeoOutput%d;\n", Precision, type, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
+							bformata(glsl, "%s varying %s %s%d VtxGeoOutput%d;\n", Interpolation, Precision, type, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
 						}
 						bformata(glsl, "#define Output%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
 					}

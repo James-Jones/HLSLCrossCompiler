@@ -2,7 +2,14 @@
 #include <GL/glew.h>
 #include "common/debug.h"
 
-ShaderEffect::ShaderEffect() : mCompileFlags(0), mRequestedLang(LANG_DEFAULT)
+const uint_t InvalidShaderHandle = 0xFFFFFFFF;
+
+ShaderEffect::ShaderEffect() : mCompileFlags(0), mRequestedLang(LANG_DEFAULT),
+    mVertex(InvalidShaderHandle),
+    mPixel(InvalidShaderHandle),
+    mGeometry(InvalidShaderHandle),
+    mHull(InvalidShaderHandle),
+    mDomain(InvalidShaderHandle)
 {
 }
 
@@ -141,11 +148,20 @@ void ShaderEffect::FromByteFile(std::string& path)
 {
     GLSLShader result;
 
-    int translated = TranslateHLSLFromFile(path.c_str(), mCompileFlags, mRequestedLang, &result);
+    int translated = TranslateHLSLFromFile(path.c_str(), mCompileFlags, mRequestedLang, &mDependencies, &result);
 
     ASSERT(translated);
 
     uint_t shader = 0;
+
+    if(PixelInpterpDependency(result.GLSLLanguage))
+    {
+        //Must compile pixel shader first!
+        if(mPixel == InvalidShaderHandle &&  result.shaderType != GL_FRAGMENT_SHADER)
+        {
+            ASSERT(0);
+        }
+    }
 
     switch(result.shaderType)
     {
@@ -226,7 +242,7 @@ void ShaderEffect::FromByteFile(std::string& path)
             //Hull shader must be compiled before domain in order
             //to ensure correct partitioning and primitive type information
             //is OR'ed into mCompileFlags.
-            ASSERT(mHull);
+            ASSERT(mHull != InvalidShaderHandle);
 
             break;
         }

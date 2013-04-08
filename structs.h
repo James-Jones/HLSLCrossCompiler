@@ -7,6 +7,8 @@
 
 #include "reflect.h"
 
+#include "toGLSL.h"
+
 typedef struct Operand_TAG
 {
     int iExtended;
@@ -118,7 +120,7 @@ typedef struct Declaration_TAG
 
 //FIXME decide the best value.
 static enum {MAX_SHADER_VEC4_OUTPUT = 512};
-static enum {MAX_SHADER_VEC4_INPUT = 512};
+//static enum {MAX_SHADER_VEC4_INPUT = 512};
 static enum {MAX_TEXTURES = 128};
 static enum {MAX_FORK_PHASES = 2};
 static enum {MAX_FUNCTION_BODIES = 1024};
@@ -217,6 +219,7 @@ typedef struct HLSLCrossCompilerContext_TAG
     int indent;
     unsigned int flags;
     Shader* psShader;
+    GLSLCrossDependencyData* psDependencies;
 } HLSLCrossCompilerContext;
 
 #endif

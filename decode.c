@@ -433,12 +433,13 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_INPUT_SIV:
         {
+            psDecl->ui32NumOperands = 1;
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             if(psShader->eShaderType == PIXEL_SHADER)
             {
                 psDecl->value.eInterpolation = DecodeInterpolationMode(*pui32Token);
+                
             }
-            psDecl->ui32NumOperands = 1;
-            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
         case OPCODE_DCL_INPUT_PS:

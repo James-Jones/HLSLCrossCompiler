@@ -128,11 +128,11 @@ void Init(int argc, char** argv)
     mTessEffect.Create();
     mTessEffect.SetLanguage(LANG_400);
     mTessEffect.AddCompileFlags(HLSLCC_FLAG_TESS_ENABLED);
-   
+
+    mTessEffect.FromByteFile(std::string("shaders/tessellationPS.o"));
     mTessEffect.FromByteFile(std::string("shaders/tessellationVS.o"));
     mTessEffect.FromByteFile(std::string("shaders/tessellationHS.o"));
     mTessEffect.FromByteFile(std::string("shaders/tessellationDS.o"));
-    mTessEffect.FromByteFile(std::string("shaders/tessellationPS.o"));
 
     gWorld = Matrix4::identity();
 

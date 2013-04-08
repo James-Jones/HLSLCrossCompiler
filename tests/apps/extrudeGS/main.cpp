@@ -197,8 +197,8 @@ void Demo::Init() {
 
     mExtrudeEffect.Create();
 	mExtrudeEffect.AddCompileFlags(HLSLCC_FLAG_GS_ENABLED);
-    mExtrudeEffect.FromByteFile(std::string("shaders/ExtrudeVS.o"));
     mExtrudeEffect.FromByteFile(std::string("shaders/ExtrudePS.o"));
+    mExtrudeEffect.FromByteFile(std::string("shaders/ExtrudeVS.o"));
 	mExtrudeEffect.FromByteFile(std::string("shaders/ExtrudeGS.o"));
 
     gWorld = Matrix4::identity();

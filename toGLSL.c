@@ -436,7 +436,11 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
     bcatcstr(glsl, "}\n");
 }
 
-int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language, GLSLShader* result)
+int TranslateHLSLFromMem(const char* shader,
+    unsigned int flags,
+    GLLang language,
+    GLSLCrossDependencyData* dependencies,
+    GLSLShader* result)
 {
     uint32_t* tokens;
     Shader* psShader;
@@ -455,6 +459,7 @@ int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language
 
         sContext.psShader = psShader;
         sContext.flags = flags;
+        sContext.psDependencies = dependencies;
 
         TranslateToGLSL(&sContext, &language);
 
@@ -529,7 +534,11 @@ int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language
 	return success;
 }
 
-int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang language, GLSLShader* result)
+int TranslateHLSLFromFile(const char* filename,
+    unsigned int flags,
+    GLLang language,
+    GLSLCrossDependencyData* dependencies,
+    GLSLShader* result)
 {
     FILE* shaderFile;
     int length;
@@ -557,7 +566,7 @@ int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang langu
 
     shader[readLength] = '\0';
 
-    success = TranslateHLSLFromMem(shader, flags, language, result);
+    success = TranslateHLSLFromMem(shader, flags, language, dependencies, result);
 
     free(shader);
 

@@ -183,8 +183,8 @@ void Demo::Init(const char* vertexCode, const char* pixelCode) {
     glClearColor(0.0f, 0.125f, 0.3f, 1.0f);
 
     mExtrudeEffect.Create();
-    mExtrudeEffect.FromByteFile(std::string(vertexCode));
     mExtrudeEffect.FromByteFile(std::string(pixelCode));
+    mExtrudeEffect.FromByteFile(std::string(vertexCode));
 
     gWorld = Matrix4::identity();
 

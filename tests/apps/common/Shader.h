@@ -87,6 +87,8 @@ private:
 	uint_t mGeometry;
     uint_t mHull;
     uint_t mDomain;
+
+    GLSLCrossDependencyData mDependencies;
 };
 
 static void SetFloatArray(Vectormath::Aos::Vector4& vec, float* farray)

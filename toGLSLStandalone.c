@@ -265,7 +265,7 @@ int main(int argc, char** argv)
         language = LanguageFromString(argv[3]);
     }
 
-    if(TranslateHLSLFromFile(argv[1], 0, language, &result))
+    if(TranslateHLSLFromFile(argv[1], 0, language, NULL, &result))
     {
         if(argc > 2)
         {

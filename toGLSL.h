@@ -4,6 +4,30 @@
 #include "languages.h"
 #include "reflect.h"
 
+static enum {MAX_SHADER_VEC4_INPUT = 512};
+
+//The shader stages (Vertex, Pixel et al) do not depend on each other
+//in HLSL. GLSL is a different story. HLSLCrossCompiler requires
+//that hull shaders must be compiled before domain shaders, and
+//the pixel shader must be compiled before all of the others.
+//Durring compiliation the GLSLCrossDependencyData struct will
+//carry over any information needed about a different shader stage
+//in order to construct valid GLSL shader combinations.
+
+//Using GLSLCrossDependencyData is optional. However some shader
+//combinations may show link failures, or runtime errors.
+typedef struct
+{
+    //Hull shader must be compiled before domain in order
+    //to ensure correct partitioning and primitive type information
+    //is OR'ed into mCompileFlags.
+    TESSELLATOR_PARTITIONING eTessOutPrim;
+    TESSELLATOR_OUTPUT_PRIMITIVE eTessPartitioning;
+
+    //Required if PixelInpterpDependency is true
+    INTERPOLATION_MODE aePixelInputInterpolation[MAX_SHADER_VEC4_INPUT];
+} GLSLCrossDependencyData;
+
 typedef struct
 {
     int shaderType; //One of the GL enums.
@@ -48,8 +72,8 @@ static const unsigned int HLSLCC_FLAG_TESS_POINT_MODE = 0x200;
 //equation, the others go to the second input.
 static const unsigned int HLSLCC_DUAL_SOURCE_BLENDING = 0x400;
 
-int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang language, GLSLShader* result);
-int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language, GLSLShader* result);
+int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang language, GLSLCrossDependencyData* dependencies, GLSLShader* result);
+int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language, GLSLCrossDependencyData* dependencies, GLSLShader* result);
 
 void FreeGLSLShader(GLSLShader*);
 
