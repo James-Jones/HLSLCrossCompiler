@@ -1110,11 +1110,14 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				case VERTEX_SHADER:
 				{
 					int iNumComponents = 4;//GetMaxComponentFromComponentMask(&psDecl->asOperands[0]);
-                    const char* Interpolation;
+                    const char* Interpolation = "";
 
-                    if(psShader->eShaderType == VERTEX_SHADER)
+                    if(psContext->psDependencies)
                     {
-                        Interpolation = GetInterpolationString(psContext->psDependencies->aePixelInputInterpolation[psDecl->asOperands[0].ui32RegisterNumber]);
+                        if(psShader->eShaderType == VERTEX_SHADER)
+                        {
+                            Interpolation = GetInterpolationString(psContext->psDependencies->aePixelInputInterpolation[psDecl->asOperands[0].ui32RegisterNumber]);
+                        }
                     }
 
                     if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
