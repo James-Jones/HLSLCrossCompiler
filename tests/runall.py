@@ -72,6 +72,8 @@ if(options.argExecutableName):
 else:
 	FindExecutable()
 
+print "Using " + executable + "\n"
+
 for files in glob.glob("vs4/*.o"):
 	RunTest(files, "150")
 

@@ -77,7 +77,7 @@ ${CBSTRING_HFILES}
 ${CBSTRING_CFILES}
 )
 
-ADD_EXECUTABLE( HLSLcc ../toGLSLStandalone.c )
+ADD_EXECUTABLE( HLSLcc ../toGLSLStandalone.c ../timer.h ../timer.c)
 
 TARGET_LINK_LIBRARIES( HLSLcc libHLSLcc)
 
