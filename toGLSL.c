@@ -30,6 +30,33 @@
 #define GL_COMPUTE_SHADER 0x91B9
 #endif
 
+static void ClearDependencyData(SHADER_TYPE eType, GLSLCrossDependencyData* depends)
+{
+    if(depends == NULL)
+    {
+        return;
+    }
+
+    switch(eType)
+    {
+        case PIXEL_SHADER:
+        {
+            uint32_t i;
+            for(i=0;i<MAX_SHADER_VEC4_INPUT; ++i)
+            {
+                depends->aePixelInputInterpolation[i] = INTERPOLATION_UNDEFINED;
+            }
+            break;
+        }
+        case HULL_SHADER:
+        {
+            depends->eTessPartitioning = TESSELLATOR_PARTITIONING_UNDEFINED;
+            depends->eTessOutPrim = TESSELLATOR_OUTPUT_UNDEFINED;
+            break;
+        }
+    }
+}
+
 void AddIndentation(HLSLCrossCompilerContext* psContext)
 {
     int i;
@@ -232,6 +259,8 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
     psContext->currentGLSLString = &glsl;
     psShader->eTargetLanguage = language;
 
+    ClearDependencyData(psShader->eShaderType, psContext->psDependencies);
+
     AddVersionDependentCode(psContext);
 
     if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
@@ -384,26 +413,55 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
             psContext->indent--;
 
         bcatcstr(glsl, "}\n");
+
+        if(psContext->psDependencies)
+        {
+            //Save partitioning and primitive type for use by domain shader.
+            psContext->psDependencies->eTessOutPrim = psShader->sInfo.eTessOutPrim;
+
+            psContext->psDependencies->eTessPartitioning = psShader->sInfo.eTessPartitioning;
+        }
+
         return;
     }
 
-    if(psShader->eShaderType == DOMAIN_SHADER)
+    if(psShader->eShaderType == DOMAIN_SHADER && psContext->psDependencies)
     {
-        if(psContext->flags & HLSLCC_FLAG_FRACTIONAL_ODD_SPACING)
+        //Load partitioning and primitive type from hull shader.
+        switch(psContext->psDependencies->eTessOutPrim)
         {
-            bcatcstr(glsl, "layout(fractional_odd_spacing) in;\n");
+            case TESSELLATOR_OUTPUT_TRIANGLE_CW:
+            {
+                bcatcstr(glsl, "layout(cw) in;\n");
+                break;
+            }
+            case TESSELLATOR_OUTPUT_POINT:
+            {
+                bcatcstr(glsl, "layout(point_mode) in;\n");
+                break;
+            }
+            default:
+            {
+                break;
+            }
         }
-        if(psContext->flags & HLSLCC_FLAG_FRACTIONAL_EVEN_SPACING)
+
+        switch(psContext->psDependencies->eTessPartitioning)
         {
-            bcatcstr(glsl, "layout(fractional_even_spacing) in;\n");
-        }
-        if(psContext->flags & HLSLCC_FLAG_CW)
-        {
-            bcatcstr(glsl, "layout(cw) in;\n");
-        }
-        if(psContext->flags & HLSLCC_FLAG_TESS_POINT_MODE)
-        {
-            bcatcstr(glsl, "layout(point_mode) in;\n");
+            case TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
+            {
+                bcatcstr(glsl, "layout(fractional_odd_spacing) in;\n");
+                break;
+            }
+            case TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
+            {
+                bcatcstr(glsl, "layout(fractional_even_spacing) in;\n");
+                break;
+            }
+            default:
+            {
+                break;
+            }
         }
     }
 

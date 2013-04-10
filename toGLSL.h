@@ -17,11 +17,13 @@
 //combinations may show link failures, or runtime errors.
 typedef struct
 {
-    //Hull shader must be compiled before domain in order
-    //to ensure correct partitioning and primitive type information
-    //is OR'ed into mCompileFlags.
-    TESSELLATOR_PARTITIONING eTessOutPrim;
-    TESSELLATOR_OUTPUT_PRIMITIVE eTessPartitioning;
+    //dcl_tessellator_partitioning and dcl_tessellator_output_primitive appear in hull shader for D3D,
+    //but they appear on inputs inside domain shaders for GL.
+    //Hull shader must be compiled before domain so the
+    //ensure correct partitioning and primitive type information
+    //can be saved when compiling hull and passed to domain compiliation.
+    TESSELLATOR_PARTITIONING eTessPartitioning;
+    TESSELLATOR_OUTPUT_PRIMITIVE eTessOutPrim;
 
     //Required if PixelInpterpDependency is true
     INTERPOLATION_MODE aePixelInputInterpolation[MAX_SHADER_VEC4_INPUT];
@@ -57,19 +59,10 @@ static const unsigned int HLSLCC_FLAG_GS_ENABLED = 0x10;
 
 static const unsigned int HLSLCC_FLAG_TESS_ENABLED = 0x20;
 
-//dcl_tessellator_partitioning and dcl_tessellator_output_primitive appear in hull shader for D3D,
-//but they appear on inputs inside domain shaders for GL.
-//Use HLSLCC_FLAGS to set the paritioning and primitive type. The correct values to use
-//can be extracted from the hull shader reflection information.
-static const unsigned int HLSLCC_FLAG_FRACTIONAL_EVEN_SPACING = 0x40;//EQUAL_SPACING is default
-static const unsigned int HLSLCC_FLAG_FRACTIONAL_ODD_SPACING = 0x80;
-static const unsigned int HLSLCC_FLAG_CW = 0x100; //CCW is default.
-static const unsigned int HLSLCC_FLAG_TESS_POINT_MODE = 0x200;
-
 //Either use this flag or glBindFragDataLocationIndexed.
 //When set the first pixel shader output is the first input to blend
 //equation, the others go to the second input.
-static const unsigned int HLSLCC_DUAL_SOURCE_BLENDING = 0x400;
+static const unsigned int HLSLCC_DUAL_SOURCE_BLENDING = 0x40;
 
 int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang language, GLSLCrossDependencyData* dependencies, GLSLShader* result);
 int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language, GLSLCrossDependencyData* dependencies, GLSLShader* result);

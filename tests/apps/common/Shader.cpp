@@ -191,46 +191,6 @@ void ShaderEffect::FromByteFile(std::string& path)
             mHull = glCreateShader(GL_TESS_CONTROL_SHADER);
             shader = mHull;
             mHSLang = result.GLSLLanguage;
-
-            switch(result.reflection.eTessOutPrim)
-            {
-                case TESSELLATOR_OUTPUT_TRIANGLE_CW:
-                {
-                    mCompileFlags |= HLSLCC_FLAG_CW;
-                    break;
-                }
-                case TESSELLATOR_OUTPUT_POINT:
-                {
-                    mCompileFlags |= HLSLCC_FLAG_TESS_POINT_MODE;
-                    break;
-                }
-                case TESSELLATOR_OUTPUT_TRIANGLE_CCW:
-                case TESSELLATOR_OUTPUT_LINE:
-                default:
-                {
-                    break;
-                }
-            }
-
-            switch(result.reflection.eTessPartitioning)
-            {
-                case TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
-                {
-                    mCompileFlags |= HLSLCC_FLAG_FRACTIONAL_ODD_SPACING;
-                    break;
-                }
-                case TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
-                {
-                    mCompileFlags |= HLSLCC_FLAG_FRACTIONAL_EVEN_SPACING;
-                    break;
-                }
-                case TESSELLATOR_PARTITIONING_INTEGER:
-                case TESSELLATOR_PARTITIONING_POW2:
-                default:
-                {
-                    break;
-                }
-            }
             break;
         }
         case GL_TESS_EVALUATION_SHADER:
