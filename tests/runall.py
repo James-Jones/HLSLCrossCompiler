@@ -72,7 +72,6 @@ def RunTest(ByteCodeFileName, lang):
 	returnCode = call([executable, ByteCodeFileName, directory+"/"+outputfilename, lang], stdin=stdinFile, stdout=stdoutFile, stderr=stderrFile)
 
 	if returnCode == 1:
-		print "vs4/mov failed to compile"
 		failCount += 1
 		listOfFailedTests.append(ByteCodeFileName)
 	else:
