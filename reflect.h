@@ -9,14 +9,22 @@
 #define MAX_CBUFFERS 256
 #define MAX_FUNCTION_TABLES 256
 
+typedef enum { 
+  INOUT_COMPONENT_UNKNOWN  = 0,
+  INOUT_COMPONENT_UINT32   = 1,
+  INOUT_COMPONENT_SINT32   = 2,
+  INOUT_COMPONENT_FLOAT32  = 3
+} INOUT_COMPONENT_TYPE;
+
 typedef struct InOutSignature_TAG
 {
     char SymanticName[MAX_REFLECT_STRING_LENGTH];
     uint32_t ui32SymanticIndex;
     uint32_t ui32SymanticValueType;
-    uint32_t ui32ComponentType;
+    INOUT_COMPONENT_TYPE eComponentType;
     uint32_t ui32Register;
     uint32_t ui32Mask;
+    uint32_t ui32ReadWriteMask;
 } InOutSignature;
 
 typedef enum ResourceType_TAG
@@ -92,6 +100,9 @@ typedef struct ShaderInfo_TAG
     uint32_t ui32NumInputSignatures;
     InOutSignature* psInputSignatures;
 
+    uint32_t ui32NumOutputSignatures;
+    InOutSignature* psOutputSignatures;
+
     uint32_t ui32NumResourceBindings;
     ResourceBinding* psResourceBindings;
 
@@ -120,10 +131,18 @@ void GetConstantBufferFromBindingPoint(const uint32_t ui32BindPoint, const Shade
 
 int GetInterfaceVarFromOffset(uint32_t ui32Offset, ShaderInfo* psShaderInfo, ShaderVar** ppsShaderVar);
 
+typedef struct
+{
+    uint32_t* pui32Inputs;
+    uint32_t* pui32Outputs;
+    uint32_t* pui32Resources;
+    uint32_t* pui32Interfaces;
+} ReflectionChunks;
+
 void LoadShaderInfo(const uint32_t ui32MajorVersion,
     const uint32_t ui32MinorVersion,
-    const uint32_t* pui32Inputs, const uint32_t* pui32Resources,
-    const uint32_t* pui32Interfaces, ShaderInfo* psInfo);
+    const ReflectionChunks* psChunks,
+    ShaderInfo* psInfo);
 
 void FreeShaderInfo(ShaderInfo* psShaderInfo);
 

@@ -7,12 +7,13 @@
 #include "debug.h"
 
 #define FOURCC(a, b, c, d) ((uint32_t)(uint8_t)(a) | ((uint32_t)(uint8_t)(b) << 8) | ((uint32_t)(uint8_t)(c) << 16) | ((uint32_t)(uint8_t)(d) << 24 ))
-const uint32_t FOURCC_DXBC = FOURCC('D', 'X', 'B', 'C');
-const uint32_t FOURCC_SHDR = FOURCC('S', 'H', 'D', 'R');
-const uint32_t FOURCC_SHEX = FOURCC('S', 'H', 'E', 'X');
-const uint32_t FOURCC_RDEF = FOURCC('R', 'D', 'E', 'F');
-const uint32_t FOURCC_ISGN = FOURCC('I', 'S', 'G', 'N');
-const uint32_t FOURCC_IFCE = FOURCC('I', 'F', 'C', 'E');
+static enum {FOURCC_DXBC = FOURCC('D', 'X', 'B', 'C')}; //DirectX byte code
+static enum {FOURCC_SHDR = FOURCC('S', 'H', 'D', 'R')}; //Shader model 4 code
+static enum {FOURCC_SHEX = FOURCC('S', 'H', 'E', 'X')}; //Shader model 5 code
+static enum {FOURCC_RDEF = FOURCC('R', 'D', 'E', 'F')}; //Resource definition (e.g. constant buffers)
+static enum {FOURCC_ISGN = FOURCC('I', 'S', 'G', 'N')}; //Input signature
+static enum {FOURCC_IFCE = FOURCC('I', 'F', 'C', 'E')}; //Interface (for dynamic linking)
+static enum {FOURCC_OSGN = FOURCC('O', 'S', 'G', 'N')}; //Output signature
 
 typedef struct DXBCContainerHeaderTAG
 {
@@ -1271,14 +1272,17 @@ Shader* DecodeDXBC(uint32_t* data)
 	uint32_t i;
 	uint32_t chunkCount;
 	uint32_t* chunkOffsets;
-    DXBCChunkHeader* rdefChunk = 0;
-    DXBCChunkHeader* isgnChunk = 0;
-    DXBCChunkHeader* ifceChunk = 0;
+    ReflectionChunks refChunks;
 
 	if(header->fourcc != FOURCC_DXBC)
 	{
 		return 0;
 	}
+
+    refChunks.pui32Inputs = NULL;
+    refChunks.pui32Interfaces = NULL;
+    refChunks.pui32Outputs = NULL;
+    refChunks.pui32Resources = NULL;
 
 	chunkOffsets = (uint32_t*)(header + 1);
 
@@ -1290,39 +1294,51 @@ Shader* DecodeDXBC(uint32_t* data)
 
 		DXBCChunkHeader* chunk = (DXBCChunkHeader*)((char*)data + offset);
 
-        if(chunk->fourcc == FOURCC_ISGN)
+        switch(chunk->fourcc)
         {
-            isgnChunk = chunk;
+            case FOURCC_ISGN:
+            {
+                refChunks.pui32Inputs = (uint32_t*)(chunk + 1);
+                break;
+            }
+            case FOURCC_RDEF:
+            {
+                refChunks.pui32Resources = (uint32_t*)(chunk + 1);
+                break;
+            }
+            case FOURCC_IFCE:
+            {
+                refChunks.pui32Interfaces = (uint32_t*)(chunk + 1);
+                break;
+            }
+            case FOURCC_OSGN:
+            {
+                refChunks.pui32Outputs = (uint32_t*)(chunk + 1);
+                break;
+            }
+            case FOURCC_SHDR:
+            case FOURCC_SHEX:
+            {
+                uint32_t ui32MajorVersion;
+                uint32_t ui32MinorVersion;
+
+                psShader = calloc(1, sizeof(Shader));
+
+                ui32MajorVersion = DecodeProgramMajorVersion(*(uint32_t*)(chunk + 1));
+                ui32MinorVersion = DecodeProgramMinorVersion(*(uint32_t*)(chunk + 1));
+
+                LoadShaderInfo(ui32MajorVersion,
+                    ui32MinorVersion,
+                    &refChunks,
+                    &psShader->sInfo);
+			    Decode((uint32_t*)(chunk + 1), psShader);
+			    return psShader;
+            }
+            default:
+            {
+                break;
+            }
         }
-        if(chunk->fourcc == FOURCC_RDEF)
-        {
-            rdefChunk = chunk;
-        }
-        if(chunk->fourcc == FOURCC_IFCE)
-        {
-            ifceChunk = chunk;
-        }
-
-		if(chunk->fourcc == FOURCC_SHDR ||
-			chunk->fourcc == FOURCC_SHEX)
-		{
-            uint32_t ui32MajorVersion;
-            uint32_t ui32MinorVersion;
-
-            psShader = calloc(1, sizeof(Shader));
-
-            ui32MajorVersion = DecodeProgramMajorVersion(*(uint32_t*)(chunk + 1));
-            ui32MinorVersion = DecodeProgramMinorVersion(*(uint32_t*)(chunk + 1));
-
-            LoadShaderInfo(ui32MajorVersion,
-                ui32MinorVersion,
-                isgnChunk ? ((uint32_t*)(isgnChunk + 1)) : NULL,
-                rdefChunk ? ((uint32_t*)(rdefChunk + 1)) : NULL,
-                ifceChunk ? ((uint32_t*)(ifceChunk + 1)) : NULL,
-                &psShader->sInfo);
-			Decode((uint32_t*)(chunk + 1), psShader);
-			return psShader;
-		}
 	}
     return 0;
 }

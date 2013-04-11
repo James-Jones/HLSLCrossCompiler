@@ -43,13 +43,52 @@ static void ReadInputSignatures(const uint32_t* pui32Tokens,
 
     for(i=0; i<ui32ElementCount; ++i)
     {
+        uint32_t ui32ComponentMasks;
         InOutSignature* psCurrentSignature = psSignatures + i;
         const uint32_t ui32SemanticNameOffset = *pui32Tokens++;
         psCurrentSignature->ui32SymanticIndex = *pui32Tokens++;
         psCurrentSignature->ui32SymanticValueType = *pui32Tokens++;
-        psCurrentSignature->ui32ComponentType = *pui32Tokens++;
+        psCurrentSignature->eComponentType = (INOUT_COMPONENT_TYPE) *pui32Tokens++;
         psCurrentSignature->ui32Register = *pui32Tokens++;
-        psCurrentSignature->ui32Mask = *pui32Tokens++;
+        
+        ui32ComponentMasks = *pui32Tokens++;
+        psCurrentSignature->ui32Mask = ui32ComponentMasks & 0x7F;
+        //Shows which components are read
+        psCurrentSignature->ui32ReadWriteMask = (ui32ComponentMasks & 0x7F00) >> 8;
+
+        ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstSignatureToken+ui32SemanticNameOffset), psCurrentSignature->SymanticName);
+    }
+}
+
+static void ReadOutputSignatures(const uint32_t* pui32Tokens,
+                        ShaderInfo* psShaderInfo)
+{
+    uint32_t i;
+
+    InOutSignature* psSignatures;
+    const uint32_t* pui32FirstSignatureToken = pui32Tokens;
+    const uint32_t ui32ElementCount = *pui32Tokens++;
+    const uint32_t ui32Key = *pui32Tokens++;
+
+    psSignatures = malloc(sizeof(InOutSignature) * ui32ElementCount);
+    psShaderInfo->psOutputSignatures = psSignatures;
+    psShaderInfo->ui32NumOutputSignatures = ui32ElementCount;
+
+    for(i=0; i<ui32ElementCount; ++i)
+    {
+        uint32_t ui32ComponentMasks;
+        InOutSignature* psCurrentSignature = psSignatures + i;
+        const uint32_t ui32SemanticNameOffset = *pui32Tokens++;
+        psCurrentSignature->ui32SymanticIndex = *pui32Tokens++;
+        psCurrentSignature->ui32SymanticValueType = *pui32Tokens++;
+        psCurrentSignature->eComponentType = (INOUT_COMPONENT_TYPE) *pui32Tokens++;
+        psCurrentSignature->ui32Register = *pui32Tokens++;
+
+        ui32ComponentMasks = *pui32Tokens++;
+        psCurrentSignature->ui32Mask = ui32ComponentMasks & 0x7F;
+        //Shows which components are NEVER written.
+        //Thus, 0xF - ui32ReadWriteMask gives the components which are written.
+        psCurrentSignature->ui32ReadWriteMask = (ui32ComponentMasks & 0x7F00) >> 8;
 
         ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstSignatureToken+ui32SemanticNameOffset), psCurrentSignature->SymanticName);
     }
@@ -360,9 +399,14 @@ int GetInterfaceVarFromOffset(uint32_t ui32Offset, ShaderInfo* psShaderInfo, Sha
 
 void LoadShaderInfo(const uint32_t ui32MajorVersion,
     const uint32_t ui32MinorVersion,
-    const uint32_t* pui32Inputs, const uint32_t* pui32Resources,
-    const uint32_t* pui32Interfaces, ShaderInfo* psInfo)
+    const ReflectionChunks* psChunks,
+    ShaderInfo* psInfo)
 {
+    const uint32_t* pui32Inputs = psChunks->pui32Inputs;
+    const uint32_t* pui32Resources = psChunks->pui32Resources;
+    const uint32_t* pui32Interfaces = psChunks->pui32Interfaces;
+    const uint32_t* pui32Outputs = psChunks->pui32Outputs;
+
     psInfo->eTessOutPrim = TESSELLATOR_OUTPUT_UNDEFINED;
     psInfo->eTessPartitioning = TESSELLATOR_PARTITIONING_UNDEFINED;
 
@@ -376,6 +420,8 @@ void LoadShaderInfo(const uint32_t ui32MajorVersion,
         ReadResources(pui32Resources, psInfo);
     if(pui32Interfaces)
         ReadInterfaces(pui32Interfaces, psInfo);
+    if(pui32Outputs)
+        ReadOutputSignatures(pui32Outputs, psInfo);
 
     {
         uint32_t i;
@@ -406,67 +452,3 @@ void FreeShaderInfo(ShaderInfo* psShaderInfo)
     psShaderInfo->ui32NumClassInstances = 0;
 }
 
-#if 0
-switch(type)
-{
-
-    glGetSubroutineUniformLocation
-    glGetSubroutineIndex
-
-
-    uint32_t ui32Program;
-
-    glGetIntegerv(GL_CURRENT_PROGRAM, &ui32Program);
-
-    uint32_t ui32Location = glGetUniformLocation(program, Name);
-
-    case RTYPE_CBUFFER:
-    {
-        break;
-    }
-    case RTYPE_TBUFFER:
-    {
-        break;
-    }
-    case RTYPE_TEXTURE:
-    {
-        break;
-    }
-    case RTYPE_SAMPLER:
-    {
-        break;
-    }
-    case RTYPE_UAV_RWTYPED:
-    {
-        break;
-    }
-    case RTYPE_STRUCTURED:
-    {
-        break;
-    }
-    case RTYPE_UAV_RWSTRUCTURED:
-    {
-        break;
-    }
-    case RTYPE_BYTEADDRESS:
-    {
-        break;
-    }
-    case RTYPE_UAV_RWBYTEADDRESS:
-    {
-        break;
-    }
-    case RTYPE_UAV_APPEND_STRUCTURED:
-    {
-        break;
-    }
-    case RTYPE_UAV_CONSUME_STRUCTURED:
-    {
-        break;
-    }
-    case RTYPE_UAV_RWSTRUCTURED_WITH_COUNTER:
-    {
-        break;
-    }
-}
-#endif
