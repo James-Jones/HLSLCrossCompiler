@@ -271,7 +271,7 @@ static void ReadInterfaces(const uint32_t* pui32Tokens,
         psClassTypes[i].ui16ID = (uint16_t)i;
     }
 
-    psClassInstances = malloc(sizeof(ClassType) * ui32ClassInstanceCount);
+    psClassInstances = malloc(sizeof(ClassInstance) * ui32ClassInstanceCount);
     for(i=0; i<ui32ClassInstanceCount; ++i)
     {
         pui16ClassInstances = ReadClassInstance(pui32FirstInterfaceToken, pui16ClassInstances, psClassInstances+i);
