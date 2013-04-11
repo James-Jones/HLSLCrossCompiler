@@ -87,7 +87,6 @@ static void ReadOutputSignatures(const uint32_t* pui32Tokens,
         ui32ComponentMasks = *pui32Tokens++;
         psCurrentSignature->ui32Mask = ui32ComponentMasks & 0x7F;
         //Shows which components are NEVER written.
-        //Thus, 0xF - ui32ReadWriteMask gives the components which are written.
         psCurrentSignature->ui32ReadWriteMask = (ui32ComponentMasks & 0x7F00) >> 8;
 
         ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstSignatureToken+ui32SemanticNameOffset), psCurrentSignature->SymanticName);
@@ -444,11 +443,13 @@ void FreeShaderInfo(ShaderInfo* psShaderInfo)
     free(psShaderInfo->psConstantBuffers);
     free(psShaderInfo->psClassTypes);
     free(psShaderInfo->psClassInstances);
+    free(psShaderInfo->psOutputSignatures);
 
     psShaderInfo->ui32NumInputSignatures = 0;
     psShaderInfo->ui32NumResourceBindings = 0;
     psShaderInfo->ui32NumConstantBuffers = 0;
     psShaderInfo->ui32NumClassTypes = 0;
     psShaderInfo->ui32NumClassInstances = 0;
+    psShaderInfo->ui32NumOutputSignatures = 0;
 }
 
