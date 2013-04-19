@@ -273,7 +273,6 @@ void Model::CreateBuffers()
 {
 	const struct aiMesh* mesh = mScene->mMeshes[0];
 
-	GLuint indicesBuf;
 	uint32_t* indicesPtr;
 
 	glGenBuffers(1, &indicesBuf);
@@ -305,7 +304,6 @@ void Model::CreateBuffers()
 		vertexFloats += 2;
 	}
 
-	GLuint verticesBuf;
 	float* verticesPtr;
 	glGenBuffers(1, &verticesBuf);
 	glBindBuffer(GL_ARRAY_BUFFER, verticesBuf);
@@ -435,6 +433,8 @@ void Model::RecursiveDraw(ITransform& world, const  aiNode* nd)
 void Model::Draw(ITransform& world)
 {
 	glBindVertexArray(mVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, verticesBuf);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesBuf);
 
     mMaterial.Apply();
 

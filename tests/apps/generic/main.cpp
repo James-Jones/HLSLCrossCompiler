@@ -11,6 +11,11 @@
 #include <model.h>
 #include <itransform.h>
 
+struct PostProcessVertex
+{
+    float Pos[3];
+};
+
 struct Vertex
 {
     float Pos[3];
@@ -45,7 +50,7 @@ int WindowHeight = 480;
 class Demo : public ITransform
 {
 public:
-	void Init(const char* vertexCode, const char* pixelCode);
+	void Init(const char* vertexCode, const char* pixelCode, const char* postProcessPixelCode);
 	void Display(float t);
 	void ResizeDisplay(int w, int h) {
 	   glViewport (0, 0, (GLsizei) w, (GLsizei) h);
@@ -71,15 +76,16 @@ public:
 
 		gChangesEveryFrame.Time = gTime;
 
-		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrame"), ChangesEveryFrameVec4Count, (float*)&gChangesEveryFrame);
+		mEffect.SetVec4(std::string("cbChangesEveryFrame"), ChangesEveryFrameVec4Count, (float*)&gChangesEveryFrame);
 
 		SetFloatArray(vLightDirs, &gConstant.vLightDir[0]);
-		mExtrudeEffect.SetVec4(std::string("cbConstant"), ConstantVec4Count, (float*)&gConstant);
+		mEffect.SetVec4(std::string("cbConstant"), ConstantVec4Count, (float*)&gConstant);
 
-        mExtrudeEffect.SetTexture(std::string("g_txDiffuse"), 0);
+        mEffect.SetTexture(std::string("g_txDiffuse"), 0);
 	}
 private:
-	ShaderEffect mExtrudeEffect;
+	ShaderEffect mEffect;
+
 	Matrix4 gWorld;
 	Matrix4 gView;
 	Matrix4 gProjection;
@@ -97,6 +103,12 @@ private:
 	GLuint mColTex;
 	GLuint mDepthTex;
 	GLuint mFramebuffer;
+
+    bool mPostFXEnabled;
+    ShaderEffect mPostProcessEffect;
+    GLuint mPostFXIndexBuffer;
+    GLuint mPostFXVertexBuffer;
+    GLuint mPostFXVAO;
 };
 
 Demo gDemo;
@@ -117,16 +129,55 @@ void Demo::Display(float t) {
 
 	glEnable(GL_DEPTH_TEST);
 
-    mExtrudeEffect.Enable();
+    mEffect.Enable();
 
 	gModel.Draw(*this);
 
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, mFramebuffer);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-	glBlitFramebuffer(0, 0, WindowWidth, WindowHeight,
-						 0, 0, WindowWidth, WindowHeight,
-						 GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    if(mPostFXEnabled)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        glDisable(GL_DEPTH_TEST);
+
+        mPostProcessEffect.Enable();
+        //Make the colour and depth buffers available to shaders.
+        glBindTexture(GL_TEXTURE_2D, mColTex);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        mPostProcessEffect.SetTexture("g_txColourBuffer", 0);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, mDepthTex);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glActiveTexture(GL_TEXTURE0);
+        mPostProcessEffect.SetTexture("g_txDepthBuffer", 1);
+
+        //Draw post processing quad.
+        glBindVertexArray(mPostFXVAO);
+        glEnableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(2);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mPostFXIndexBuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, mPostFXVertexBuffer);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(PostProcessVertex), 0);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    }
+    else
+    {
+	    glBindFramebuffer(GL_READ_FRAMEBUFFER, mFramebuffer);
+	    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(0, 0, WindowWidth, WindowHeight,
+						        0, 0, WindowWidth, WindowHeight,
+						        GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    }
 }
 
 void display(void)
@@ -159,7 +210,7 @@ void keyboard(unsigned char key, int x, int y)
    }
 }
 
-void Demo::Init(const char* vertexCode, const char* pixelCode) {
+void Demo::Init(const char* vertexCode, const char* pixelCode, const char* postProcessPixelCode) {
 
 	glGenTextures(1, &mColTex);
 	glBindTexture(GL_TEXTURE_2D, mColTex);
@@ -182,15 +233,15 @@ void Demo::Init(const char* vertexCode, const char* pixelCode) {
 
     glClearColor(0.0f, 0.125f, 0.3f, 1.0f);
 
-    mExtrudeEffect.Create();
-    mExtrudeEffect.FromByteFile(std::string(pixelCode));
-    mExtrudeEffect.FromByteFile(std::string(vertexCode));
+    mEffect.Create();
+    mEffect.FromByteFile(std::string(pixelCode));
+    mEffect.FromByteFile(std::string(vertexCode));
 
     gWorld = Matrix4::identity();
 
-	Point3 Eye( 0.0f, 0.0f, -800 );
+    Point3 Eye( 0.0f, 0.0f, -800 );
 
-	Point3 At( 0.0f, 0.0f, 0.0f );
+    Point3 At( 0.0f, 0.0f, 0.0f );
 
     Vector3 Up( 0.0f, 1.0f, 0.0f );
 
@@ -198,15 +249,55 @@ void Demo::Init(const char* vertexCode, const char* pixelCode) {
 
     ResizeDisplay(WindowWidth, WindowHeight);
 
-	gModel.Import3DFromFile("models/Tiny.x");
+    gModel.Import3DFromFile("models/Tiny.x");
+
+    mPostFXEnabled = false;
+
+    if(postProcessPixelCode)
+    {
+        mPostFXEnabled = true;
+
+        mPostProcessEffect.Create();
+        mPostProcessEffect.FromByteFile(std::string(postProcessPixelCode));
+        mPostProcessEffect.FromByteFile(std::string("shaders/generic/templatePostFXVS.o"));
+
+        glGenVertexArrays(1, &mPostFXVAO);
+        glBindVertexArray(mPostFXVAO);
+
+        //Vertex setup for post-process quad
+        uint32_t indices[] =
+        {
+            1, 0, 3,
+            2, 3, 0
+        };
+
+        glGenBuffers(1, &mPostFXIndexBuffer);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mPostFXIndexBuffer);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * 6,
+            indices, GL_STATIC_DRAW);
+
+        PostProcessVertex vertices[] =
+        {
+            {-1, -1, 0},
+            {1, -1, 0},
+            {-1, 1, 0},
+            {1,  1, 0}
+        };
+
+        glGenBuffers(1, &mPostFXVertexBuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, mPostFXVertexBuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(PostProcessVertex) * 4,
+            vertices, GL_STATIC_DRAW);
+    }
 }
 
 void Init(int argc, char** argv)
 {
-    printf("arguments: vertex-shader-byte-code fragment-shader-byte-code\n");
-    if(argc != 3)
+    printf("arguments: vertex-shader-byte-code fragment-shader-byte-code [post-process-shader]\n");
+    if(argc != 3 && argc != 4 )
     {
         printf("Invalid args.\n");
+        return;
     }
 
     glutInit(&argc, argv);
@@ -231,7 +322,7 @@ void Init(int argc, char** argv)
     SetupOpenGLDebugCallback();
 #endif
 
-	gDemo.Init(argv[1], argv[2]);
+	gDemo.Init(argv[1], argv[2], argc==4 ? argv[3] : NULL);
 }
 
 int main(int argc, char** argv)

@@ -274,6 +274,11 @@ void ShaderEffect::Enable()
     glUseProgram(mProgram);
 }
 
+void ShaderEffect::SetTexture(const char* name, int imageUnit) {
+    int loc = glGetUniformLocation(mProgram, name);
+    glUniform1i(loc, imageUnit);
+}
+
 void ShaderEffect::SetTexture(std::string& name, int imageUnit) {
     int loc = glGetUniformLocation(mProgram, (name).c_str());
     glUniform1i(loc, imageUnit);

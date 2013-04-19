@@ -46,4 +46,6 @@ private:
 	Assimp::Importer importer;
 
     GLuint mVAO;
+    GLuint indicesBuf;
+    GLuint verticesBuf;
 };
