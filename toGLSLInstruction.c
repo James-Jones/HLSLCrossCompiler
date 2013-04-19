@@ -926,11 +926,13 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-            bcatcstr(glsl, " = dot((");
+            bcatcstr(glsl, " = vec4(dot((");
             TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
             bcatcstr(glsl, ").xy, (");
             TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-            bcatcstr(glsl, ").xy);\n");
+            bcatcstr(glsl, ").xy))");
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, ";\n");
             break;
         }
         case OPCODE_DP3:
@@ -941,11 +943,13 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-            bcatcstr(glsl, " = dot((");
+            bcatcstr(glsl, " = vec4(dot((");
             TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
             bcatcstr(glsl, ").xyz, (");
             TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-            bcatcstr(glsl, ").xyz);\n");
+            bcatcstr(glsl, ").xyz))");
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+            bcatcstr(glsl, ";\n");
             break;
         }
         case OPCODE_DP4:
