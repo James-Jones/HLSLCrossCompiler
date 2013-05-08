@@ -46,8 +46,8 @@ static void ReadInputSignatures(const uint32_t* pui32Tokens,
         uint32_t ui32ComponentMasks;
         InOutSignature* psCurrentSignature = psSignatures + i;
         const uint32_t ui32SemanticNameOffset = *pui32Tokens++;
-        psCurrentSignature->ui32SymanticIndex = *pui32Tokens++;
-        psCurrentSignature->ui32SymanticValueType = *pui32Tokens++;
+        psCurrentSignature->ui32SemanticIndex = *pui32Tokens++;
+        psCurrentSignature->eSystemValueType = (SPECIAL_NAME) *pui32Tokens++;
         psCurrentSignature->eComponentType = (INOUT_COMPONENT_TYPE) *pui32Tokens++;
         psCurrentSignature->ui32Register = *pui32Tokens++;
         
@@ -56,7 +56,7 @@ static void ReadInputSignatures(const uint32_t* pui32Tokens,
         //Shows which components are read
         psCurrentSignature->ui32ReadWriteMask = (ui32ComponentMasks & 0x7F00) >> 8;
 
-        ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstSignatureToken+ui32SemanticNameOffset), psCurrentSignature->SymanticName);
+        ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstSignatureToken+ui32SemanticNameOffset), psCurrentSignature->SemanticName);
     }
 }
 
@@ -79,8 +79,8 @@ static void ReadOutputSignatures(const uint32_t* pui32Tokens,
         uint32_t ui32ComponentMasks;
         InOutSignature* psCurrentSignature = psSignatures + i;
         const uint32_t ui32SemanticNameOffset = *pui32Tokens++;
-        psCurrentSignature->ui32SymanticIndex = *pui32Tokens++;
-        psCurrentSignature->ui32SymanticValueType = *pui32Tokens++;
+        psCurrentSignature->ui32SemanticIndex = *pui32Tokens++;
+        psCurrentSignature->eSystemValueType = (SPECIAL_NAME)*pui32Tokens++;
         psCurrentSignature->eComponentType = (INOUT_COMPONENT_TYPE) *pui32Tokens++;
         psCurrentSignature->ui32Register = *pui32Tokens++;
 
@@ -89,7 +89,7 @@ static void ReadOutputSignatures(const uint32_t* pui32Tokens,
         //Shows which components are NEVER written.
         psCurrentSignature->ui32ReadWriteMask = (ui32ComponentMasks & 0x7F00) >> 8;
 
-        ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstSignatureToken+ui32SemanticNameOffset), psCurrentSignature->SymanticName);
+        ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstSignatureToken+ui32SemanticNameOffset), psCurrentSignature->SemanticName);
     }
 }
 
@@ -390,6 +390,41 @@ int GetInterfaceVarFromOffset(uint32_t ui32Offset, ShaderInfo* psShaderInfo, Sha
             ui32Offset < (psThisPointerConstBuffer->asVars[i].ui32StartOffset + psThisPointerConstBuffer->asVars[i].ui32Size))
 	    {
 		    *ppsShaderVar = &psThisPointerConstBuffer->asVars[i];
+		    return 1;
+	    }
+    }
+    return 0;
+}
+
+int GetOutputSignatureFromRegister(uint32_t ui32Register, ShaderInfo* psShaderInfo, InOutSignature** ppsOut)
+{
+    uint32_t i;
+    const uint32_t ui32NumVars = psShaderInfo->ui32NumOutputSignatures;
+
+    for(i=0; i<ui32NumVars; ++i)
+    {
+        InOutSignature* psOutputSignatures = psShaderInfo->psOutputSignatures;
+        if(ui32Register == psOutputSignatures[i].ui32Register)
+	    {
+		    *ppsOut = psOutputSignatures+i;
+		    return 1;
+	    }
+    }
+    return 0;
+}
+
+int GetOutputSignatureFromSystemValue(SPECIAL_NAME eSystemValueType, uint32_t ui32SemanticIndex, ShaderInfo* psShaderInfo, InOutSignature** ppsOut)
+{
+    uint32_t i;
+    const uint32_t ui32NumVars = psShaderInfo->ui32NumOutputSignatures;
+
+    for(i=0; i<ui32NumVars; ++i)
+    {
+        InOutSignature* psOutputSignatures = psShaderInfo->psOutputSignatures;
+        if(eSystemValueType == psOutputSignatures[i].eSystemValueType &&
+            ui32SemanticIndex == psOutputSignatures[i].ui32SemanticIndex)
+	    {
+		    *ppsOut = psOutputSignatures+i;
 		    return 1;
 	    }
     }

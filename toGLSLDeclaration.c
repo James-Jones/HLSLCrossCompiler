@@ -203,7 +203,7 @@ static void DeclareInput(
     }
 }
 
-void AddBultinInput(HLSLCrossCompilerContext* psContext, const Declaration* psDecl, const char* builtinName)
+void AddBuiltinInput(HLSLCrossCompilerContext* psContext, const Declaration* psDecl, const char* builtinName)
 {
     bstring glsl = *psContext->currentGLSLString;
     Shader* psShader = psContext->psShader;
@@ -235,6 +235,135 @@ void AddBultinInput(HLSLCrossCompilerContext* psContext, const Declaration* psDe
     psContext->currentGLSLString = &psContext->glsl;
 }
 
+void AddBuiltinOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDecl, const char* type, int arrayElements, const char* builtinName)
+{
+    bstring glsl = *psContext->currentGLSLString;
+    Shader* psShader = psContext->psShader;
+
+    const uint32_t declared = psContext->currentPhase + 1;
+
+    psContext->haveOutputBuiltins[psContext->currentPhase] = 1;
+
+    if(psShader->aiOutputDeclared[psDecl->asOperands[0].ui32RegisterNumber] != declared)
+    {
+        InOutSignature* psSignature = NULL;
+
+        GetOutputSignatureFromRegister(psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psSignature);
+
+        bcatcstr(glsl, "#undef ");
+        TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
+        bcatcstr(glsl, "\n");
+
+        bcatcstr(glsl, "#define ");
+        TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
+        bformata(glsl, " phase%d_", psContext->currentPhase);
+        TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
+        bcatcstr(glsl, "\n");
+
+        bcatcstr(glsl, "vec4 ");
+        bformata(glsl, "phase%d_", psContext->currentPhase);
+        TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
+        if(arrayElements)
+            bformata(glsl, "[%d];\n", arrayElements);
+        else
+            bcatcstr(glsl, ";\n");
+
+        psContext->currentGLSLString = &psContext->writeBuiltins[psContext->currentPhase];
+        glsl = *psContext->currentGLSLString;
+        psContext->indent++;
+        if(arrayElements)
+        {
+            int elem;
+            for(elem = 0; elem < arrayElements; elem++)
+            {
+                AddIndentation(psContext);
+                bformata(glsl, "%s[%d] = %s(phase%d_", builtinName, elem, type, psContext->currentPhase);
+                TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
+                bformata(glsl, "[%d]", elem);
+                TranslateOperandSwizzle(psContext, &psDecl->asOperands[0]);
+                bformata(glsl, ");\n");
+
+                psShader->aiOutputDeclared[psDecl->asOperands[0].ui32RegisterNumber+elem] = declared;
+            }
+        }
+        else
+        {
+
+            if(psDecl->asOperands[0].eSpecialName == NAME_CLIP_DISTANCE)
+            {
+                int max = GetMaxComponentFromComponentMask(&psDecl->asOperands[0]);
+
+                int applySiwzzle = GetNumSwizzleElements(psContext, &psDecl->asOperands[0]) > 1 ? 1 : 0;
+                int index;
+                int i;
+                int multiplier = 1;
+                char* swizzle[] = {".x", ".y", ".z", ".w"};
+
+                ASSERT(psSignature!=NULL);
+
+                index = psSignature->ui32SemanticIndex;
+
+                //Clip distance can be spread across 1 or 2 outputs (each no more than a vec4).
+                //Some examples:
+                //float4 clip[2] : SV_ClipDistance; //8 clip distances
+                //float3 clip[2] : SV_ClipDistance; //6 clip distances
+                //float4 clip : SV_ClipDistance; //4 clip distances
+                //float clip : SV_ClipDistance; //1 clip distance.
+
+                //In GLSL the clip distance built-in is an array of up to 8 floats.
+                //So vector to array conversion needs to be done here.
+                if(index == 1)
+                {
+                    InOutSignature* psFirstClipSignature;
+                    if(GetOutputSignatureFromSystemValue(NAME_CLIP_DISTANCE, 1, &psShader->sInfo, &psFirstClipSignature))
+                    {
+                        if(psFirstClipSignature->ui32Mask & (1 << 3))
+                        {
+                            multiplier = 4;
+                        }
+                        else
+                        if(psFirstClipSignature->ui32Mask & (1 << 2))
+                        {
+                            multiplier = 3;
+                        }
+                        else
+                        if(psFirstClipSignature->ui32Mask & (1 << 1))
+                        {
+                            multiplier = 2;
+                        }
+                    }
+                }
+
+                for(i=0; i<max; ++i)
+                {
+                    AddIndentation(psContext);
+                    bformata(glsl, "%s[%d] = (phase%d_", builtinName, i + multiplier*index, psContext->currentPhase);
+                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+                    if(applySiwzzle)
+                    {
+                        bformata(glsl, ")%s;\n", swizzle[i]);
+                    }
+                    else
+                    {
+                        bformata(glsl, ");\n");
+                    }
+                }
+            }
+            else
+            {
+                AddIndentation(psContext);
+                bformata(glsl, "%s = %s(phase%d_", builtinName, type, psContext->currentPhase);
+                TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+                bformata(glsl, ");\n");
+            }
+
+            psShader->aiOutputDeclared[psDecl->asOperands[0].ui32RegisterNumber] = declared;
+        }
+        psContext->indent--;
+        psContext->currentGLSLString = &psContext->glsl;
+    }
+}
+
 void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration* psDecl)
 {
     bstring glsl = *psContext->currentGLSLString;
@@ -250,27 +379,27 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
             {
                 case NAME_POSITION:
                 {
-                    AddBultinInput(psContext, psDecl, "gl_Position");
+                    AddBuiltinInput(psContext, psDecl, "gl_Position");
                     break;
                 }
                 case NAME_RENDER_TARGET_ARRAY_INDEX:
                 {
-                    AddBultinInput(psContext, psDecl, "gl_Layer");
+                    AddBuiltinInput(psContext, psDecl, "gl_Layer");
                     break;
                 }
                 case NAME_CLIP_DISTANCE:
                 {
-                    AddBultinInput(psContext, psDecl, "gl_ClipDistance");
+                    AddBuiltinInput(psContext, psDecl, "gl_ClipDistance");
                     break;
                 }
                 case NAME_VIEWPORT_ARRAY_INDEX:
                 {
-                    AddBultinInput(psContext, psDecl, "gl_ViewportIndex");
+                    AddBuiltinInput(psContext, psDecl, "gl_ViewportIndex");
                     break;
                 }
                 case NAME_INSTANCE_ID:
                 {
-                    AddBultinInput(psContext, psDecl, "gl_InstanceID");
+                    AddBuiltinInput(psContext, psDecl, "gl_InstanceID");
                     break;
                 }
                 case NAME_IS_FRONT_FACE:
@@ -281,22 +410,22 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                         Suggests no implicit conversion for bool<->int.
                     */
 
-                    AddBultinInput(psContext, psDecl, "int(gl_FrontFacing)");
+                    AddBuiltinInput(psContext, psDecl, "int(gl_FrontFacing)");
                     break;
                 }
                 case NAME_SAMPLE_INDEX:
                 {
-                    AddBultinInput(psContext, psDecl, "gl_SampleID");
+                    AddBuiltinInput(psContext, psDecl, "gl_SampleID");
                     break;
                 }
                 case NAME_VERTEX_ID:
                 {
-                    AddBultinInput(psContext, psDecl, "gl_VertexID");
+                    AddBuiltinInput(psContext, psDecl, "gl_VertexID");
                     break;
                 }
                 case NAME_PRIMITIVE_ID:
                 {
-                    AddBultinInput(psContext, psDecl, "gl_PrimitiveID");
+                    AddBuiltinInput(psContext, psDecl, "gl_PrimitiveID");
                     break;
                 }
                 default:
@@ -318,226 +447,126 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
             {
                 case NAME_POSITION:
                 {
-                    bcatcstr(glsl, "#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
-                    bformata(glsl, " gl_Position\n");
+                    AddBuiltinOutput(psContext, psDecl, "vec4", 0, "gl_Position");
                     break;
                 }
                 case NAME_RENDER_TARGET_ARRAY_INDEX:
                 {
-					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-					psContext->psShader->abIntegerOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-                    bcatcstr(glsl, "#define ");
-					TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
-                    bformata(glsl, " gl_Layer\n");
+                    AddBuiltinOutput(psContext, psDecl, "int", 0, "gl_Layer");
                     break;
                 }
                 case NAME_CLIP_DISTANCE:
                 {
-                    bcatcstr(glsl, "#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
-                    bformata(glsl, " gl_ClipDistance\n");
+                    AddBuiltinOutput(psContext, psDecl, "float", 0, "gl_ClipDistance");
                     break;
                 }
                 case NAME_VIEWPORT_ARRAY_INDEX:
                 {
-                    bcatcstr(glsl, "#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
-                    bformata(glsl, " gl_ViewportIndex\n");
+                    AddBuiltinOutput(psContext, psDecl, "int", 0, "gl_ViewportIndex");
                     break;
                 }
                 case NAME_VERTEX_ID:
                 {
-                    bcatcstr(glsl, "#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
-                    bformata(glsl, " gl_VertexID\n");
+                    ASSERT(0); //VertexID is not an output
                     break;
                 }
                 case NAME_PRIMITIVE_ID:
                 {
-                    bcatcstr(glsl, "#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
-                    bformata(glsl, " gl_PrimitiveID);\n");
+                    AddBuiltinOutput(psContext, psDecl, "int", 0, "gl_PrimitiveID");
                     break;
                 }
                 case NAME_INSTANCE_ID:
                 {
-                    bcatcstr(glsl, "#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
-                    bformata(glsl, " gl_InstanceID\n");
+                    ASSERT(0); //InstanceID is not an output
                     break;
                 }
                 case NAME_IS_FRONT_FACE:
                 {
-                    bcatcstr(glsl, "#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
-                    bformata(glsl, " gl_FrontFacing\n");
+                    ASSERT(0); //FrontFacing is not an output
                     break;
                 }
 		        case NAME_FINAL_QUAD_U_EQ_0_EDGE_TESSFACTOR:
                 {
-					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-
-
-                    bcatcstr(glsl, "#undef ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-
-                    bcatcstr(glsl, "\n#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-
                     if(psContext->psShader->aIndexedOutput[psDecl->asOperands[0].ui32RegisterNumber])
                     {
-                        bformata(glsl, " gl_TessLevelOuter\n");
+                        AddBuiltinOutput(psContext, psDecl, "float", 4, "gl_TessLevelOuter");
                     }
                     else
                     {
-                        bformata(glsl, " gl_TessLevelOuter[0]\n");
+                        AddBuiltinOutput(psContext, psDecl, "float", 0, "gl_TessLevelOuter[0]");
                     }
                     break;
                 }
 		        case NAME_FINAL_QUAD_V_EQ_0_EDGE_TESSFACTOR: 
                 {
-					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-
-                    bcatcstr(glsl, "#undef ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-
-                    bcatcstr(glsl, "\n#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-                    bformata(glsl, " gl_TessLevelOuter[1]\n");
+                    AddBuiltinOutput(psContext, psDecl, "float", 0, "gl_TessLevelOuter[1]");
                     break;
                 }
 		        case NAME_FINAL_QUAD_U_EQ_1_EDGE_TESSFACTOR: 
                 {
-					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-
-                    bcatcstr(glsl, "#undef ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-
-                    bcatcstr(glsl, "\n#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0],TO_FLAG_NAME_ONLY);
-                    bformata(glsl, " gl_TessLevelOuter[2]\n");
+                    AddBuiltinOutput(psContext, psDecl, "float", 0, "gl_TessLevelOuter[2]");
                     break;
                 }
 		        case NAME_FINAL_QUAD_V_EQ_1_EDGE_TESSFACTOR:
                 {
-					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-
-                    bcatcstr(glsl, "#undef ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-
-                    bcatcstr(glsl, "\n#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-                    bformata(glsl, " gl_TessLevelOuter[3]\n");
+                    AddBuiltinOutput(psContext, psDecl, "float", 0, "gl_TessLevelOuter[3]");
                     break;
                 }
 		        case NAME_FINAL_TRI_U_EQ_0_EDGE_TESSFACTOR:
                 {
-					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-
-                    bcatcstr(glsl, "#undef ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-
-                    bcatcstr(glsl, "\n#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-
                     if(psContext->psShader->aIndexedOutput[psDecl->asOperands[0].ui32RegisterNumber])
                     {
-                        bformata(glsl, " gl_TessLevelOuter\n");
+                        AddBuiltinOutput(psContext, psDecl, "float", 3,"gl_TessLevelOuter");
                     }
                     else
                     {
-                        bformata(glsl, " gl_TessLevelOuter[0]\n");
+                        AddBuiltinOutput(psContext, psDecl, "float", 0, "gl_TessLevelOuter[0]");
                     }
                     break;
                 }
 		        case NAME_FINAL_TRI_V_EQ_0_EDGE_TESSFACTOR:
                 {
-					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-
-                    bcatcstr(glsl, "#undef ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0],TO_FLAG_NAME_ONLY);
-
-                    bcatcstr(glsl, "\n#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-                    bformata(glsl, " gl_TessLevelOuter[1]\n");
+                    AddBuiltinOutput(psContext, psDecl, "float", 0, "gl_TessLevelOuter[1]");
                     break;
                 }
 		        case NAME_FINAL_TRI_W_EQ_0_EDGE_TESSFACTOR:
                 {
-					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-
-                    bcatcstr(glsl, "#undef ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-
-                    bcatcstr(glsl, "\n#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-                    bformata(glsl, " gl_TessLevelOuter[2]\n");
+                    AddBuiltinOutput(psContext, psDecl, "float", 0, "gl_TessLevelOuter[2]");
                     break;
                 }
 		        case NAME_FINAL_LINE_DENSITY_TESSFACTOR:
                 {
-					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-
-                    bcatcstr(glsl, "#undef ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-
-                    bcatcstr(glsl, "\n#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-
                     if(psContext->psShader->aIndexedOutput[psDecl->asOperands[0].ui32RegisterNumber])
                     {
-                        bformata(glsl, " gl_TessLevelOuter\n");
+                        AddBuiltinOutput(psContext, psDecl, "float", 2, "gl_TessLevelOuter");
                     }
                     else
                     {
-                        bformata(glsl, " gl_TessLevelOuter[0]\n");
+                        AddBuiltinOutput(psContext, psDecl, "float", 0, "gl_TessLevelOuter[0]");
                     }
                     break;
                 }
 		        case NAME_FINAL_LINE_DETAIL_TESSFACTOR:
                 {
-					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-
-                    bcatcstr(glsl, "#undef ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-
-                    bcatcstr(glsl, "\n#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-                    bformata(glsl, " gl_TessLevelOuter[1]\n");
+                    AddBuiltinOutput(psContext, psDecl, "float", 0, "gl_TessLevelOuter[1]");
                     break;
                 }
                 case NAME_FINAL_TRI_INSIDE_TESSFACTOR:
 		        case NAME_FINAL_QUAD_U_INSIDE_TESSFACTOR:
                 {
-					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-
-                    bcatcstr(glsl, "#undef ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-
-                    bcatcstr(glsl, "\n#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-
                     if(psContext->psShader->aIndexedOutput[psDecl->asOperands[0].ui32RegisterNumber])
                     {
-                        bformata(glsl, " gl_TessLevelInner\n");
+                        AddBuiltinOutput(psContext, psDecl, "float", 2, "gl_TessLevelInner");
                     }
                     else
                     {
-                        bformata(glsl, " gl_TessLevelInner[0]\n");
+                        AddBuiltinOutput(psContext, psDecl, "float", 0, "gl_TessLevelInner[0]");
                     }
                     break;
                 }
 		        case NAME_FINAL_QUAD_V_INSIDE_TESSFACTOR:
                 {
-					psContext->psShader->abScalarOutput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-
-                    bcatcstr(glsl, "#undef ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-
-                    bcatcstr(glsl, "\n#define ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
-                    bformata(glsl, " gl_TessLevelInner[1]\n");
+                    AddBuiltinOutput(psContext, psDecl, "float", 0, "gl_TessLevelInner[1]");
                     break;
                 }
                 default:
@@ -1170,7 +1199,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				{
                     if(psDecl->asOperands[0].ui32RegisterNumber==0)
                     {
-                       bcatcstr(glsl, "#define Output0 gl_out[gl_InvocationID].gl_Position\n");
+                       AddBuiltinOutput(psContext, psDecl, "vec4", 0, "gl_out[gl_InvocationID].gl_Position");
                     }
                     else
                     {

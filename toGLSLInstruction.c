@@ -718,10 +718,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
 			if(psInst->asOperands[0].eType == OPERAND_TYPE_OUTPUT)
 			{
-				if(psContext->psShader->abScalarOutput[psInst->asOperands[0].ui32RegisterNumber])
+				/*if(psContext->psShader->abScalarOutput[psInst->asOperands[0].ui32RegisterNumber])
 				{
 					intCast = 1;
-				}
+				}*/
 			}
 #ifdef _DEBUG
             AddIndentation(psContext);
@@ -1394,6 +1394,18 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//RET\n");
 #endif
+            if(psContext->haveOutputBuiltins[psContext->currentPhase])
+            {
+#ifdef _DEBUG
+                AddIndentation(psContext);
+                bcatcstr(glsl, "//--- Start builtin outputs ---\n");
+#endif
+                bconcat(glsl, psContext->writeBuiltins[psContext->currentPhase]);
+#ifdef _DEBUG
+                AddIndentation(psContext);
+                bcatcstr(glsl, "//--- End builtin outputs ---\n");
+#endif
+            }
             AddIndentation(psContext);
 			bcatcstr(glsl, "return;\n");
 			break;
@@ -1537,6 +1549,20 @@ src3
             AddIndentation(psContext);
             bcatcstr(glsl, "//EMIT\n");
 #endif
+            if(psContext->haveOutputBuiltins[psContext->currentPhase])
+            {
+#ifdef _DEBUG
+                AddIndentation(psContext);
+                bcatcstr(glsl, "//--- Start builtin outputs ---\n");
+#endif
+                bconcat(glsl, psContext->writeBuiltins[psContext->currentPhase]);
+#ifdef _DEBUG
+                AddIndentation(psContext);
+                bcatcstr(glsl, "//--- End builtin outputs ---\n");
+#endif
+                AddIndentation(psContext);
+            }
+
             AddIndentation(psContext);
 			bcatcstr(glsl, "EmitVertex();\n");
 			break;

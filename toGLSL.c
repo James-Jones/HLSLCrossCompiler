@@ -256,8 +256,13 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 
     psContext->glsl = glsl;
 	psContext->earlyMain = bfromcstralloc (1024, "");
+    for(i=0; i<NUM_PHASES;++i)
+    {
+        psContext->writeBuiltins[i] = bfromcstralloc (1024, "");
+    }
     psContext->currentGLSLString = &glsl;
     psShader->eTargetLanguage = language;
+    psContext->currentPhase = MAIN_PHASE;
 
     ClearDependencyData(psShader->eShaderType, psContext->psDependencies);
 
@@ -284,6 +289,8 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
         AddOpcodeFuncs(psContext);
 
         //control
+        psContext->currentPhase = HS_CTRL_POINT_PHASE;
+
         if(psShader->ui32HSControlPointDeclCount)
         {
             bcatcstr(glsl, "//Control point phase declarations\n");
@@ -306,6 +313,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
         }
 
         //fork
+        psContext->currentPhase = HS_FORK_PHASE;
         for(forkIndex = 0; forkIndex < psShader->ui32ForkPhaseCount; ++forkIndex)
         {
             bcatcstr(glsl, "//Fork phase declarations\n");
@@ -341,6 +349,19 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
                     psContext->indent--;
                     AddIndentation(psContext);
                     bcatcstr(glsl, "}\n");
+
+                    if(psContext->haveOutputBuiltins[psContext->currentPhase])
+                    {
+#ifdef _DEBUG
+                        AddIndentation(psContext);
+                        bcatcstr(glsl, "//--- Start builtin outputs ---\n");
+#endif
+                        bconcat(glsl, psContext->writeBuiltins[psContext->currentPhase]);
+#ifdef _DEBUG
+                        AddIndentation(psContext);
+                        bcatcstr(glsl, "//--- End builtin outputs ---\n");
+#endif
+                    }
                 }
 
             psContext->indent--;
@@ -349,6 +370,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 
 
         //join
+        psContext->currentPhase = HS_JOIN_PHASE;
         if(psShader->ui32HSJoinDeclCount)
         {
             bcatcstr(glsl, "//Join phase declarations\n");
@@ -376,11 +398,15 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 
             psContext->indent++;
 
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//--- Start Early Main ---\n");
-	        bconcat(glsl, psContext->earlyMain);
+#endif
+            bconcat(glsl, psContext->earlyMain);
+#ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//--- End Early Main ---\n");
+#endif
 
             if(psShader->ui32HSControlPointInstrCount)
             {
@@ -476,11 +502,15 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 
     psContext->indent++;
 
+#ifdef _DEBUG
     AddIndentation(psContext);
     bcatcstr(glsl, "//--- Start Early Main ---\n");
+#endif
 	bconcat(glsl, psContext->earlyMain);
+#ifdef _DEBUG
     AddIndentation(psContext);
     bcatcstr(glsl, "//--- End Early Main ---\n");
+#endif
 
     MarkIntegerImmediates(psContext);
 
@@ -518,6 +548,11 @@ int TranslateHLSLFromMem(const char* shader,
         sContext.psShader = psShader;
         sContext.flags = flags;
         sContext.psDependencies = dependencies;
+
+        for(i=0; i<NUM_PHASES;++i)
+        {
+            sContext.haveOutputBuiltins[i] = 0;
+        }
 
         TranslateToGLSL(&sContext, &language);
 
@@ -558,6 +593,10 @@ int TranslateHLSLFromMem(const char* shader,
 
         bdestroy(sContext.glsl);
 		bdestroy(sContext.earlyMain);
+        for(i=0; i<NUM_PHASES; ++i)
+        {
+            bdestroy(sContext.writeBuiltins[i]);
+        }
 
         free(psShader->psHSControlPointPhaseDecl);
         free(psShader->psHSControlPointPhaseInstr);

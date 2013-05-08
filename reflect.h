@@ -18,9 +18,9 @@ typedef enum {
 
 typedef struct InOutSignature_TAG
 {
-    char SymanticName[MAX_REFLECT_STRING_LENGTH];
-    uint32_t ui32SymanticIndex;
-    uint32_t ui32SymanticValueType;
+    char SemanticName[MAX_REFLECT_STRING_LENGTH];
+    uint32_t ui32SemanticIndex;
+    SPECIAL_NAME eSystemValueType;
     INOUT_COMPONENT_TYPE eComponentType;
     uint32_t ui32Register;
     uint32_t ui32Mask;
@@ -130,6 +130,10 @@ int GetResourceFromBindingPoint(ResourceType eType, uint32_t ui32BindPoint, Shad
 void GetConstantBufferFromBindingPoint(const uint32_t ui32BindPoint, const ShaderInfo* psShaderInfo, ConstantBuffer** ppsConstBuf);
 
 int GetInterfaceVarFromOffset(uint32_t ui32Offset, ShaderInfo* psShaderInfo, ShaderVar** ppsShaderVar);
+
+int GetOutputSignatureFromRegister(uint32_t ui32Register, ShaderInfo* psShaderInfo, InOutSignature** ppsOut);
+
+int GetOutputSignatureFromSystemValue(SPECIAL_NAME eSystemValueType, uint32_t ui32SemanticIndex, ShaderInfo* psShaderInfo, InOutSignature** ppsOut);
 
 typedef struct
 {

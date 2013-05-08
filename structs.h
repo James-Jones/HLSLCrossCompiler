@@ -180,8 +180,6 @@ typedef struct Shader_TAG
 
     ShaderInfo sInfo;
 
-	int abIntegerOutput[MAX_SHADER_VEC4_OUTPUT];
-	int abScalarOutput[MAX_SHADER_VEC4_OUTPUT];
 	int abScalarInput[MAX_SHADER_VEC4_INPUT];
 
     int aIndexedOutput[MAX_SHADER_VEC4_OUTPUT];
@@ -193,6 +191,8 @@ typedef struct Shader_TAG
 
     int aiInputDeclaredSize[MAX_SHADER_VEC4_INPUT];
 
+    int aiOutputDeclared[MAX_SHADER_VEC4_OUTPUT];
+
     //Does not track built-in inputs.
     int abInputReferencedByInstruction[MAX_SHADER_VEC4_INPUT];
 
@@ -200,12 +200,22 @@ typedef struct Shader_TAG
 
 } Shader;
 
+static const uint32_t MAIN_PHASE = 0;
+static const uint32_t HS_FORK_PHASE = 1;
+static const uint32_t HS_CTRL_POINT_PHASE = 2;
+static const uint32_t HS_JOIN_PHASE = 3;
+static enum{ NUM_PHASES = 4};
+
 typedef struct HLSLCrossCompilerContext_TAG
 {
     bstring glsl;
 	bstring earlyMain;//Code to be inserted at the start of main()
+    bstring writeBuiltins[NUM_PHASES];//End of main or before emit()
 
     bstring* currentGLSLString;//either glsl or earlyMain
+
+    int haveOutputBuiltins[NUM_PHASES];
+    uint32_t currentPhase;
 
     int indent;
     unsigned int flags;

@@ -291,13 +291,6 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
 {
     bstring glsl = *psContext->currentGLSLString;
 
-	if(psOperand->eType == OPERAND_TYPE_OUTPUT)
-	{
-		if(psContext->psShader->abScalarOutput[psOperand->ui32RegisterNumber])
-		{
-			return;
-		}
-	}
 	if(psOperand->eType == OPERAND_TYPE_INPUT)
 	{
 		if(psContext->psShader->abScalarInput[psOperand->ui32RegisterNumber])
@@ -399,13 +392,6 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
 
 int GetFirstOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
 {
-	if(psOperand->eType == OPERAND_TYPE_OUTPUT)
-	{
-		if(psContext->psShader->abScalarOutput[psOperand->ui32RegisterNumber])
-		{
-			return - 1;
-		}
-	}
 	if(psOperand->eType == OPERAND_TYPE_INPUT)
 	{
 		if(psContext->psShader->abScalarInput[psOperand->ui32RegisterNumber])

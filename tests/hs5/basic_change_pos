@@ -10,7 +10,7 @@ struct HS_CONSTANT_OUTPUT
 
 struct HS_OUTPUT
 {
-    float3 cpoint : CPOINT;
+    float4 cpoint : CPOINT;
 };
 
 HS_CONSTANT_OUTPUT HSConst()
@@ -31,7 +31,8 @@ HS_CONSTANT_OUTPUT HSConst()
 HS_OUTPUT main(InputPatch<VS_OUTPUT, 4> ip, uint id : SV_OutputControlPointID)
 {
     HS_OUTPUT output;
-    output.cpoint = ip[id].cpoint;
-	output.cpoint.z = output.cpoint.y;
+    output.cpoint.xy = ip[id].cpoint.xy;
+    output.cpoint.z = output.cpoint.y;
+    output.cpoint.w = 1;
     return output;
 }
