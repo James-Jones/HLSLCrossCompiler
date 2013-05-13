@@ -9,8 +9,39 @@ ShaderEffect::ShaderEffect() : mCompileFlags(0), mRequestedLang(LANG_DEFAULT),
     mPixel(InvalidShaderHandle),
     mGeometry(InvalidShaderHandle),
     mHull(InvalidShaderHandle),
-    mDomain(InvalidShaderHandle)
+    mDomain(InvalidShaderHandle),
+    mClipDistanceMaskVS(0),
+    mClipDistanceMaskGS(0),
+    mProgram(0)
 {
+}
+
+ShaderEffect::~ShaderEffect()
+{
+    if(mProgram)
+    {
+        glDeleteProgram(mProgram);//Auto detaches all shaders.
+    }
+    if(mVertex != InvalidShaderHandle)
+    {
+        glDeleteShader(mVertex);
+    }
+    if(mPixel != InvalidShaderHandle)
+    {
+        glDeleteShader(mPixel);
+    }
+    if(mGeometry != InvalidShaderHandle)
+    {
+        glDeleteShader(mGeometry);
+    }
+    if(mHull != InvalidShaderHandle)
+    {
+        glDeleteShader(mHull);
+    }
+    if(mDomain != InvalidShaderHandle)
+    {
+        glDeleteShader(mHull);
+    }
 }
 
 void ShaderEffect::Create()
@@ -212,6 +243,8 @@ void ShaderEffect::FromByteFile(std::string& path)
         }
     }
 
+    CheckStateRequirements(result.shaderType, &result.reflection);
+
     glShaderSource(shader, 1, (const char **)&result.sourceCode, 0);
     glCompileShader(shader);
     glAttachShader(mProgram, shader);
@@ -251,8 +284,73 @@ void ShaderEffect::FromByteFile(std::string& path)
     FreeGLSLShader(&result);
 }
 
+void ShaderEffect::SetSubroutineUniforms(uint_t shaderType, SubroutineLink* link, int numLinks)
+{
+    int maxUniforms;
+    glGetProgramStageiv(mProgram, shaderType, GL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS, &maxUniforms);
 
-void ShaderEffect::Enable()
+    ASSERT(maxUniforms < MAX_SHADER_SUBROUTINES);
+
+    for(int uniform = 0; uniform < maxUniforms; ++uniform)
+    {
+        if(uniform < numLinks)
+        {
+            SubroutineLink* ci = &link[uniform];
+
+            const int uniformIndex = glGetSubroutineUniformLocation(mProgram, shaderType, ci->UniformName);
+
+            const int functionIndex = glGetSubroutineIndex(mProgram, shaderType, ci->FunctionName);
+
+            mSubroutineMap[uniformIndex] = functionIndex;
+        }
+    }
+
+    glUniformSubroutinesuiv(shaderType, maxUniforms, mSubroutineMap);
+}
+
+void ShaderEffect::ApplyGLState()
+{
+    if(mClipDistanceMaskGS)
+    {
+        int plane;
+        for(plane = 0; plane < 8; ++plane)
+        {
+            if(mClipDistanceMaskGS & (1<<plane))
+            {
+                glEnable(GL_CLIP_DISTANCE0+plane);
+            }
+            else
+            {
+                glDisable(GL_CLIP_DISTANCE0+plane);
+            }
+        }
+    }
+    else if(mClipDistanceMaskVS)
+    {
+        int plane;
+        for(plane = 0; plane < 8; ++plane)
+        {
+            if(mClipDistanceMaskVS & (1<<plane))
+            {
+                glEnable(GL_CLIP_DISTANCE0+plane);
+            }
+            else
+            {
+                glDisable(GL_CLIP_DISTANCE0+plane);
+            }
+        }
+    }
+    else
+    {
+        int plane;
+        for(plane = 0; plane < 8; ++plane)
+        {
+            glDisable(GL_CLIP_DISTANCE0+plane);
+        }
+    }
+}
+
+void ShaderEffect::Link()
 {
     glLinkProgram(mProgram);
 
@@ -270,6 +368,11 @@ void ShaderEffect::Enable()
         delete [] log;
     }
 #endif
+}
+
+void ShaderEffect::Enable()
+{
+    ApplyGLState();
 
     glUseProgram(mProgram);
 }
@@ -341,3 +444,34 @@ void ShaderEffect::SetUniformBlock(std::string& name, uint_t bufIndex, uint_t ub
     glBindBufferBase(GL_UNIFORM_BUFFER, bufIndex, ubo);
 	SetUniformBlock(name, bufIndex);
 }
+
+void ShaderEffect::CheckStateRequirements(uint_t eShaderType, ShaderInfo* reflection)
+{
+    const uint32_t count = reflection->ui32NumOutputSignatures;
+    InOutSignature* psClipSignature;
+    uint_t nextPlane = 0;
+    
+    if(GetOutputSignatureFromSystemValue(NAME_CLIP_DISTANCE, 0, reflection, &psClipSignature))
+    {
+        if(eShaderType == GL_VERTEX_SHADER)
+        {
+            mClipDistanceMaskVS |= psClipSignature->ui32Mask;
+        }
+        else if(eShaderType == GL_GEOMETRY_SHADER)
+        {
+            mClipDistanceMaskGS |= psClipSignature->ui32Mask;
+        }
+    }
+    if(GetOutputSignatureFromSystemValue(NAME_CLIP_DISTANCE, 1, reflection, &psClipSignature))
+    {
+        if(eShaderType == GL_VERTEX_SHADER)
+        {
+            mClipDistanceMaskVS |= psClipSignature->ui32Mask<<4;
+        }
+        else if(eShaderType == GL_GEOMETRY_SHADER)
+        {
+            mClipDistanceMaskGS |= psClipSignature->ui32Mask<<4;
+        }
+    }
+}
+

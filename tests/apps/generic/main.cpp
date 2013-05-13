@@ -236,6 +236,7 @@ void Demo::Init(const char* vertexCode, const char* pixelCode, const char* postP
     mEffect.Create();
     mEffect.FromByteFile(std::string(pixelCode));
     mEffect.FromByteFile(std::string(vertexCode));
+    mEffect.Link();
 
     gWorld = Matrix4::identity();
 
@@ -260,6 +261,7 @@ void Demo::Init(const char* vertexCode, const char* pixelCode, const char* postP
         mPostProcessEffect.Create();
         mPostProcessEffect.FromByteFile(std::string(postProcessPixelCode));
         mPostProcessEffect.FromByteFile(std::string("shaders/generic/templatePostFXVS.o"));
+        mPostProcessEffect.Link();
 
         glGenVertexArrays(1, &mPostFXVAO);
         glBindVertexArray(mPostFXVAO);

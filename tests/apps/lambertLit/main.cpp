@@ -100,6 +100,7 @@ void display(void)
 
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
+    mSolidColour.Link();
     mSolidColour.Enable();
 
     for(int m = 0; m < 2; m++)
@@ -189,22 +190,23 @@ void Init(int argc, char** argv)
 #if UBO
     mLambertLitEffect.AddCompileFlags(HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT);
 #endif
-    mLambertLitEffect.FromByteFile(std::string("shaders/LambertLitVS.o"));
     mLambertLitEffect.FromByteFile(std::string("shaders/LambertLitPS.o"));
+    mLambertLitEffect.FromByteFile(std::string("shaders/LambertLitVS.o"));
+    
+    mLambertLitEffect.Link();
 
     mSolidColour.Create();
 #if UBO
     mSolidColour.AddCompileFlags(HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT);
 #endif
-    mSolidColour.FromByteFile(std::string("shaders/LambertLitVS.o"));
     mSolidColour.FromByteFile(std::string("shaders/LambertLitSolidPS.o"));
+    mSolidColour.FromByteFile(std::string("shaders/LambertLitVS.o"));
+    mSolidColour.Link();
 
 #if UBO
-    mLambertLitEffect.Enable();//Must be linked in order to call CreateUniformBlock.
     mLambertLitEffect.CreateUniformBlock(std::string("SharedConsts"), ubo);
     mLambertLitEffect.SetUniformBlock(std::string("SharedConsts"), 0, ubo);
 
-    mSolidColour.Enable();
     mSolidColour.CreateUniformBlock(std::string("SharedConsts"), ubo2);
     mSolidColour.SetUniformBlock(std::string("SharedConsts"), 1, ubo2);
 #endif

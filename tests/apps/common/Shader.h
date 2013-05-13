@@ -11,13 +11,22 @@ typedef unsigned int uint_t;
 
 #include <vectormath_aos.h>
 
+typedef struct
+{
+    const char* FunctionName;
+    const char* UniformName;
+} SubroutineLink;
+
 //Hull shader must be compiled before domain in order
 //to ensure correct partitioning and primitive type information
 //is encoded in the domain shader.
+
+enum {MAX_SHADER_SUBROUTINES = 256};
 class ShaderEffect
 {
 public:
     ShaderEffect();
+    ~ShaderEffect();
 
     void Create();
 
@@ -38,6 +47,8 @@ public:
 
     void FromGLSLFile(uint_t eShaderType, std::string& path);
 
+    void Link();
+
     void Enable();
 
 	void CreateUniformBlock(std::string& name, uint_t& ubo);
@@ -47,6 +58,7 @@ public:
     void SetVec4(std::string& name, int count, float* v);
     void SetUniformBlock(std::string& name, uint_t bufIndex);
     void SetUniformBlock(std::string& name, uint_t bufIndex, uint_t ubo);
+    void SetSubroutineUniforms(uint_t eShaderType, SubroutineLink* link, int numLinks);
 
     uint_t VS() const {
         return mVertex;
@@ -89,7 +101,15 @@ private:
     uint_t mHull;
     uint_t mDomain;
 
+    uint_t mClipDistanceMaskVS;
+    uint_t mClipDistanceMaskGS;
+
+    uint_t mSubroutineMap[MAX_SHADER_SUBROUTINES];
+
     GLSLCrossDependencyData mDependencies;
+
+    void CheckStateRequirements(uint_t eShaderType, ShaderInfo* reflection);
+    void ApplyGLState();
 };
 
 static void SetFloatArray(Vectormath::Aos::Vector4& vec, float* farray)

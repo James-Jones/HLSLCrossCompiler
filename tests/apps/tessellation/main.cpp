@@ -133,6 +133,7 @@ void Init(int argc, char** argv)
     mTessEffect.FromByteFile(std::string("shaders/tessellationVS.o"));
     mTessEffect.FromByteFile(std::string("shaders/tessellationHS.o"));
     mTessEffect.FromByteFile(std::string("shaders/tessellationDS.o"));
+    mTessEffect.Link();
 
     gWorld = Matrix4::identity();
 

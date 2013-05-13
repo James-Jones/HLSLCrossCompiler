@@ -11,6 +11,11 @@
 #include <model.h>
 #include <itransform.h>
 
+struct PostProcessVertex
+{
+    float Pos[3];
+};
+
 struct Vertex
 {
     float Pos[3];
@@ -36,14 +41,6 @@ struct cbChangesEveryFrame
 };
 
 const size_t ChangesEveryFrameVec4Count = sizeof(cbChangesEveryFrame)/sizeof(float)/4;
-
-struct cbUserChanges
-{
-    float Explode;
-	float padding[3];
-};
-
-const size_t UserChangesVec4Count = sizeof(cbUserChanges)/sizeof(float)/4;
 
 using namespace Vectormath::Aos;
 
@@ -78,18 +75,17 @@ public:
 		SetFloatArray(gProjection, gChangesEveryFrame.Projection);
 
 		gChangesEveryFrame.Time = gTime;
-		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrame"), ChangesEveryFrameVec4Count, (float*)&gChangesEveryFrame);
+
+		mEffect.SetVec4(std::string("cbChangesEveryFrame"), ChangesEveryFrameVec4Count, (float*)&gChangesEveryFrame);
 
 		SetFloatArray(vLightDirs, &gConstant.vLightDir[0]);
-		mExtrudeEffect.SetVec4(std::string("cbConstant"), ConstantVec4Count, (float*)&gConstant);
+		mEffect.SetVec4(std::string("cbConstant"), ConstantVec4Count, (float*)&gConstant);
 
-		gUserChanges.Explode = gExplode;
-		mExtrudeEffect.SetVec4(std::string("cbUserChanges"), UserChangesVec4Count, (float*)&gUserChanges);
-
-        mExtrudeEffect.SetTexture(std::string("g_txDiffuse"), 0);
+        mEffect.SetTexture(std::string("g_txDiffuse"), 0);
 	}
 private:
-	ShaderEffect mExtrudeEffect;
+	ShaderEffect mEffect;
+
 	Matrix4 gWorld;
 	Matrix4 gView;
 	Matrix4 gProjection;
@@ -98,31 +94,32 @@ private:
 
 	cbConstant gConstant;
 	cbChangesEveryFrame gChangesEveryFrame;
-	cbUserChanges gUserChanges;
 
 	Model gModel;
 
 	Vector4 vLightDirs;
-	float gExplode;
 	float gTime;
-
-	GLuint mColTex;
-	GLuint mDepthTex;
-	GLuint mFramebuffer;
 };
 
 Demo gDemo;
 
 void Demo::Display(float t) {
 
-	glBindFramebuffer(GL_FRAMEBUFFER, mFramebuffer);
+    SubroutineLink slink;
+    int subroutineIndex;
+    const char* subroutines[] = {
+        "cRedColour_Func0",
+        "cGreenColour_Func0",
+        "cBlueColour_Func0",
+        "cMonochromeColour_Func0",
+        "cFullColour_Func0",
+    };
 
-    gWorld = Matrix4::rotationY(t * 60 * 3.14159f / 180.f);
+    gWorld = Matrix4::rotationY(180.0f * 3.14159f / 180.f);
     
     gWorld *= Matrix4::rotationX(-90.0f * 3.14159f / 180.f);
 
 	gTime = t;
-	gExplode = 0.5 * t;
 
     vLightDirs = Vector4(-0.577f, 0.577f, -0.577f, 1.0f);
 
@@ -130,16 +127,17 @@ void Demo::Display(float t) {
 
 	glEnable(GL_DEPTH_TEST);
 
-    mExtrudeEffect.Enable();
+    mEffect.Enable();
+
+    subroutineIndex = (int)t;
+    subroutineIndex = subroutineIndex % 5;
+
+    slink.FunctionName = subroutines[subroutineIndex];
+    slink.UniformName = "gAbstractColourChanger";
+
+    mEffect.SetSubroutineUniforms(GL_FRAGMENT_SHADER, &slink, 1);
 
 	gModel.Draw(*this);
-
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, mFramebuffer);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-	glBlitFramebuffer(0, 0, WindowWidth, WindowHeight,
-						 0, 0, WindowWidth, WindowHeight,
-						 GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }
 
 void display(void)
@@ -174,46 +172,31 @@ void keyboard(unsigned char key, int x, int y)
 
 void Demo::Init() {
 
-	glGenTextures(1, &mColTex);
-	glBindTexture(GL_TEXTURE_2D, mColTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, WindowWidth, WindowHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-
-	glGenTextures(1, &mDepthTex);
-	glBindTexture(GL_TEXTURE_2D, mDepthTex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, WindowWidth, WindowHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
-
-	glGenFramebuffers(1, &mFramebuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, mFramebuffer);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mColTex, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, mDepthTex, 0);
-
-	ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-
     glFrontFace(GL_CW);
     glCullFace(GL_BACK);
     glEnable(GL_CULL_FACE);
 
     glClearColor(0.0f, 0.125f, 0.3f, 1.0f);
 
-    mExtrudeEffect.Create();
-	mExtrudeEffect.AddCompileFlags(HLSLCC_FLAG_GS_ENABLED);
-    mExtrudeEffect.FromByteFile(std::string("shaders/ExtrudePS.o"));
-    mExtrudeEffect.FromByteFile(std::string("shaders/ExtrudeVS.o"));
-	mExtrudeEffect.FromByteFile(std::string("shaders/ExtrudeGS.o"));
-    mExtrudeEffect.Link();
+    mEffect.Create();
+    mEffect.SetLanguage(LANG_400);
+    mEffect.FromByteFile(std::string("shaders/SubroutinesPS.o"));
+    mEffect.FromByteFile(std::string("shaders/SubroutinesVS.o"));
+    mEffect.Link();
 
     gWorld = Matrix4::identity();
 
-	Point3 Eye( 0.0f, 0.0f, -800.0f );
+    Point3 Eye( 0.0f, 0.0f, -800 );
 
-	Point3 At( 0.0f, 0.0f, 0.0f );
+    Point3 At( 0.0f, 0.0f, 0.0f );
+
     Vector3 Up( 0.0f, 1.0f, 0.0f );
 
     gView = Matrix4::lookAt(Eye, At, Up);
 
     ResizeDisplay(WindowWidth, WindowHeight);
 
-	gModel.Import3DFromFile("models/Tiny.x");
+    gModel.Import3DFromFile("models/Tiny.x");
 }
 
 void Init(int argc, char** argv)
