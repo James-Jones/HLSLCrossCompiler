@@ -21,6 +21,7 @@ tests/results/
 *.vcxproj
 *.vcxproj.filters
 *.tlog
+*.cache
 
 # CMake
 *.lastbuildstate
