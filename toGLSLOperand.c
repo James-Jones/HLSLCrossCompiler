@@ -1,4 +1,5 @@
 #include "toGLSLOperand.h"
+#include "toGLSLDeclaration.h"
 #include "bstrlib.h"
 #include "toGLSL.h"
 #include "debug.h"
@@ -64,7 +65,7 @@ int GetMaxComponentFromComponentMask(const Operand* psOperand)
 //.yw = 2
 uint32_t GetNumSwizzleElements(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 	uint32_t count = 0;
 
 	switch(psOperand->eType)
@@ -168,12 +169,17 @@ uint32_t GetNumSwizzleElements(HLSLCrossCompilerContext* psContext, const Operan
 		//Component Select 1
 	}
 
+    if(!count)
+    {
+        return psOperand->iNumComponents;
+    }
+
 	return count;
 }
 
 void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t count)
 {
-	bstring glsl = psContext->glsl;
+	bstring glsl = *psContext->currentGLSLString;
 	if(count)
 	{
 		bcatcstr(glsl, ".");
@@ -197,17 +203,94 @@ void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t c
 	}
 }
 
+static uint32_t ConvertOperandSwizzleToComponentMask(const Operand* psOperand)
+{
+    uint32_t mask = 0;
+
+    if(psOperand->iWriteMaskEnabled &&
+       psOperand->iNumComponents == 4)
+    {
+		//Comonent Mask
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+		{
+            mask = psOperand->ui32CompMask;
+		}
+		else
+		//Component Swizzle
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+		{
+			if(psOperand->ui32Swizzle != (NO_SWIZZLE))
+			{
+				uint32_t i;
+
+				for(i=0; i< 4; ++i)
+				{
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X)
+					{
+						mask |= OPERAND_4_COMPONENT_MASK_X;
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y)
+					{
+						mask |= OPERAND_4_COMPONENT_MASK_Y;
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z)
+					{
+						mask |= OPERAND_4_COMPONENT_MASK_Z;
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W)
+					{
+						mask |= OPERAND_4_COMPONENT_MASK_W;
+					}
+				}
+			}
+		}
+		else
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+		{
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_X)
+			{
+				mask |= OPERAND_4_COMPONENT_MASK_X;
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Y)
+			{
+				mask |= OPERAND_4_COMPONENT_MASK_Y;
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Z)
+			{
+				mask |= OPERAND_4_COMPONENT_MASK_Z;
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_W)
+			{
+				mask |= OPERAND_4_COMPONENT_MASK_W;
+			}
+		}
+
+		//Component Select 1
+	}
+
+    return mask;
+}
+
+//Non-zero means the components overlap
+int CompareOperandSwizzles(const Operand* psOperandA, const Operand* psOperandB)
+{
+    uint32_t maskA = ConvertOperandSwizzleToComponentMask(psOperandA);
+    uint32_t maskB = ConvertOperandSwizzleToComponentMask(psOperandB);
+
+    return maskA & maskB;
+}
+
+
 void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 
-	if(psOperand->eType == OPERAND_TYPE_OUTPUT)
-	{
-		if(psContext->psShader->abScalarOutput[psOperand->ui32RegisterNumber])
-		{
-			return;
-		}
-	}
 	if(psOperand->eType == OPERAND_TYPE_INPUT)
 	{
 		if(psContext->psShader->abScalarInput[psOperand->ui32RegisterNumber])
@@ -307,12 +390,111 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
 	}
 }
 
+int GetFirstOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
+{
+	if(psOperand->eType == OPERAND_TYPE_INPUT)
+	{
+		if(psContext->psShader->abScalarInput[psOperand->ui32RegisterNumber])
+		{
+			return - 1;
+		}
+	}
+
+    if(psOperand->iWriteMaskEnabled &&
+       psOperand->iNumComponents == 4)
+    {
+		//Comonent Mask
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+		{
+			if(psOperand->ui32CompMask != 0 && psOperand->ui32CompMask != (OPERAND_4_COMPONENT_MASK_X|OPERAND_4_COMPONENT_MASK_Y|OPERAND_4_COMPONENT_MASK_Z|OPERAND_4_COMPONENT_MASK_W))
+			{
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_X)
+				{
+					return 0;;
+				}
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Y)
+				{
+					return 1;
+				}
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Z)
+				{
+					return 2;
+				}
+				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_W)
+				{
+					return 3;
+				}
+			}
+		}
+		else
+		//Component Swizzle
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+		{
+			if(psOperand->ui32Swizzle != (NO_SWIZZLE))
+			{
+				uint32_t i;
+
+				for(i=0; i< 4; ++i)
+				{
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X)
+					{
+						return 0;
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y)
+					{
+						return 1;
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z)
+					{
+						return 2;
+					}
+					else
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W)
+					{
+						return 3;
+					}
+				}
+			}
+		}
+		else
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+		{
+
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_X)
+			{
+				return 0;
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Y)
+			{
+				return 1;
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Z)
+			{
+				return 2;
+			}
+			else
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_W)
+			{
+				return 3;
+			}
+		}
+
+		//Component Select 1
+	}
+
+    return -1;
+}
+
 void TranslateOperandIndex(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index)
 {
     int i = index;
     int isGeoShader = psContext->psShader->eShaderType == GEOMETRY_SHADER ? 1 : 0;
 
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 
     ASSERT(index < psOperand->iIndexDims);
 
@@ -333,10 +515,17 @@ void TranslateOperandIndex(HLSLCrossCompilerContext* psContext, const Operand* p
         case OPERAND_INDEX_RELATIVE:
         {
             bcatcstr(glsl, "[int("); //Indexes must be integral.
-            TranslateOperand(psContext, psOperand->psSubOperand[i]);
+            TranslateOperand(psContext, psOperand->psSubOperand[i], TO_FLAG_NONE);
             bcatcstr(glsl, ")]");
             break;
         }
+        case OPERAND_INDEX_IMMEDIATE32_PLUS_RELATIVE:
+        {
+            bcatcstr(glsl, "[int("); //Indexes must be integral.
+            TranslateOperand(psContext, psOperand->psSubOperand[i], TO_FLAG_NONE);
+            bformata(glsl, ") + %d]", psOperand->aui32ArraySizes[i]);
+            break;
+        }
         default:
         {
             break;
@@ -344,49 +533,41 @@ void TranslateOperandIndex(HLSLCrossCompilerContext* psContext, const Operand* p
     }
 }
 
-void TranslateSystemValueVariableName(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
+void TranslateOperandIndexMAD(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index, uint32_t multiply, uint32_t add)
 {
-    bstring glsl = psContext->glsl;
+    int i = index;
+    int isGeoShader = psContext->psShader->eShaderType == GEOMETRY_SHADER ? 1 : 0;
 
-    switch(psOperand->eType)
+    bstring glsl = *psContext->currentGLSLString;
+
+    ASSERT(index < psOperand->iIndexDims);
+
+    switch(psOperand->eIndexRep[i])
     {
-        case OPERAND_TYPE_INPUT:
+        case OPERAND_INDEX_IMMEDIATE32:
         {
-            switch(psOperand->iIndexDims)
+            if(i > 0 || isGeoShader)
             {
-                case INDEX_2D:
-                {
-                    if(psOperand->aui32ArraySizes[1] == 0)//Input index zero - position.
-                    {
-                        bcatcstr(glsl, "gl_in");
-                        TranslateOperandIndex(psContext, psOperand, 0);//Vertex index
-                        bcatcstr(glsl, ".gl_Position");
-                    }
-                    else
-                    {
-                        bformata(glsl, "Input%d", psOperand->aui32ArraySizes[1]);
-                        TranslateOperandIndex(psContext, psOperand, 0);//Vertex index
-                    }
-                    break;
-                }
-                default:
-                {
-                    bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
-                    break;
-                }
+                bformata(glsl, "[%d*%d+%d]", psOperand->aui32ArraySizes[i], multiply, add);
+            }
+            else
+            {
+                bformata(glsl, "%d*%d+%d", psOperand->aui32ArraySizes[i], multiply, add);
             }
             break;
         }
-        case OPERAND_TYPE_OUTPUT:
+        case OPERAND_INDEX_RELATIVE:
         {
-            bformata(glsl, "Output%d", psOperand->ui32RegisterNumber);
+            bcatcstr(glsl, "[int("); //Indexes must be integral.
+            TranslateOperand(psContext, psOperand->psSubOperand[i], TO_FLAG_NONE);
+            bformata(glsl, ")*%d+%d]", multiply, add);
             break;
         }
-        case OPERAND_TYPE_OUTPUT_DEPTH:
-        case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
-        case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+        case OPERAND_INDEX_IMMEDIATE32_PLUS_RELATIVE:
         {
-            bcatcstr(glsl, "gl_FragDepth");
+            bcatcstr(glsl, "[(int("); //Indexes must be integral.
+            TranslateOperand(psContext, psOperand->psSubOperand[i], TO_FLAG_NONE);
+            bformata(glsl, ") + %d)*%d+%d]", psOperand->aui32ArraySizes[i], multiply, add);
             break;
         }
         default:
@@ -396,39 +577,19 @@ void TranslateSystemValueVariableName(HLSLCrossCompilerContext* psContext, const
     }
 }
 
-void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
+static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag, uint32_t* pui32IgnoreSwizzle)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 
-    switch(psOperand->eModifier)
-    {
-        case OPERAND_MODIFIER_NONE:
-        {
-            break;
-        }
-        case OPERAND_MODIFIER_NEG:
-        {
-            bcatcstr(glsl, "-");
-            break;
-        }
-        case OPERAND_MODIFIER_ABS:
-        {
-            bcatcstr(glsl, "abs(");
-            break;
-        }
-        case OPERAND_MODIFIER_ABSNEG:
-        {
-            bcatcstr(glsl, "-abs(");
-            break;
-        }
-    }
+    *pui32IgnoreSwizzle = 0;
+
     switch(psOperand->eType)
     {
         case OPERAND_TYPE_IMMEDIATE32:
         {
             if(psOperand->iNumComponents == 1)
             {
-				if(psOperand->iIntegerImmediate || fpcheck(psOperand->afImmediates[0]))
+				if((ui32TOFlag & TO_FLAG_INTEGER) || psOperand->iIntegerImmediate || fpcheck(psOperand->afImmediates[0]))
 				{
 					bformata(glsl, "%d",
 						*((int*)(&psOperand->afImmediates[0])));
@@ -442,11 +603,27 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
             else
             if(psOperand->iNumComponents == 4)
             {
-                bformata(glsl, "vec4(%f, %f, %f, %f)",
-                    psOperand->afImmediates[0],
-                    psOperand->afImmediates[1],
-                    psOperand->afImmediates[2],
-                    psOperand->afImmediates[3]);
+                if((ui32TOFlag & TO_FLAG_INTEGER) ||
+                    psOperand->iIntegerImmediate ||
+                    fpcheck(psOperand->afImmediates[0]) ||
+                    fpcheck(psOperand->afImmediates[1]) ||
+                    fpcheck(psOperand->afImmediates[2]) ||
+                    fpcheck(psOperand->afImmediates[3]))
+                {
+                    bformata(glsl, "vec4(%d, %d, %d, %d)",
+                        *(int*)&psOperand->afImmediates[0],
+                        *(int*)&psOperand->afImmediates[1],
+                        *(int*)&psOperand->afImmediates[2],
+                        *(int*)&psOperand->afImmediates[3]);
+                }
+                else
+                {
+                    bformata(glsl, "vec4(%f, %f, %f, %f)",
+                        psOperand->afImmediates[0],
+                        psOperand->afImmediates[1],
+                        psOperand->afImmediates[2],
+                        psOperand->afImmediates[3]);
+                }
             }
             break;
         }
@@ -459,19 +636,49 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
                     if(psOperand->aui32ArraySizes[1] == 0)//Input index zero - position.
                     {
                         bcatcstr(glsl, "gl_in");
-                        TranslateOperandIndex(psContext, psOperand, 0);//Vertex index
+                        TranslateOperandIndex(psContext, psOperand, TO_FLAG_NONE);//Vertex index
                         bcatcstr(glsl, ".gl_Position");
                     }
                     else
                     {
-                        bformata(glsl, "Input%d", psOperand->aui32ArraySizes[1]);
-                        TranslateOperandIndex(psContext, psOperand, 0);//Vertex index
+                        const char* name = "Input";
+                        if(ui32TOFlag & TO_FLAG_DECLARATION_NAME)
+                        {
+                            name = GetDeclaredName(psContext->psShader->eShaderType, psContext->flags);
+                        }
+                        
+                        bformata(glsl, "%s%d", name, psOperand->aui32ArraySizes[1]);
+                        TranslateOperandIndex(psContext, psOperand, TO_FLAG_NONE);//Vertex index
                     }
                     break;
                 }
                 default:
                 {
-                    bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
+                    if(psOperand->eIndexRep[0] == OPERAND_INDEX_IMMEDIATE32_PLUS_RELATIVE)
+                    {
+                        bformata(glsl, "Input%d[int(", psOperand->ui32RegisterNumber);
+                        TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
+                        bcatcstr(glsl, ")]");
+                    }
+                    else
+                    {
+                        if(psContext->psShader->aIndexedInput[psOperand->ui32RegisterNumber] != 0)
+                        {
+                            const uint32_t parentIndex = psContext->psShader->aIndexedInputParents[psOperand->ui32RegisterNumber];
+                            bformata(glsl, "Input%d[%d]", parentIndex,
+                                psOperand->ui32RegisterNumber - parentIndex);
+                        }
+                        else
+                        {
+                            const char* name = "Input";
+                            if(ui32TOFlag & TO_FLAG_DECLARATION_NAME)
+                            {
+                                name = GetDeclaredName(psContext->psShader->eShaderType, psContext->flags);
+                            }
+
+                            bformata(glsl, "%s%d", name, psOperand->ui32RegisterNumber);
+                        }
+                    }
                     break;
                 }
             }
@@ -483,9 +690,16 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
             if(psOperand->psSubOperand[0])
             {
                 bcatcstr(glsl, "[int("); //Indexes must be integral.
-                TranslateOperand(psContext, psOperand->psSubOperand[0]);
+                TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
                 bcatcstr(glsl, ")]");
             }
+            break;
+        }
+        case OPERAND_TYPE_OUTPUT_DEPTH:
+        case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+        case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+        {
+            bcatcstr(glsl, "gl_FragDepth");
             break;
         }
         case OPERAND_TYPE_TEMP:
@@ -496,6 +710,9 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         case OPERAND_TYPE_CONSTANT_BUFFER:
         {
             const char* StageName = "VS";
+            ConstantBuffer* psCBuf = NULL;
+            GetConstantBufferFromBindingPoint(psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
+
             switch(psContext->psShader->eShaderType)
             {
                 case PIXEL_SHADER:
@@ -528,52 +745,53 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
                     break;
                 }
             }
+
+
+#if CBUFFER_USE_STRUCT_AND_NAMES
+            {
+                char* pszContBuffName;
+
+                pszContBuffName = psCBuf->Name;
+                
+                if(psCBuf->Name[0] == '$')//$Global or $Param
+                    pszContBuffName++;
+
+                ASSERT(psOperand->aui32ArraySizes[1] < psCBuf->ui32NumVars);
+                
+                bformata(glsl, "%s%s.%s", pszContBuffName, StageName, psCBuf->asVars[psOperand->aui32ArraySizes[1]].Name);
+            }
+#else
 			if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
 			{
-				//Each uniform block is given the HLSL consant buffer name.
-				//Within each uniform block is a constant array named ConstN
-				bformata(glsl, "Const%s%d[%d]", StageName, psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
+                if((psCBuf->Name[0] == '$') && (psContext->flags & HLSLCC_FLAG_GLOBAL_CONSTS_NEVER_IN_UBO))
+                {
+                    bformata(glsl, "Globals%s[%d]", StageName, psOperand->aui32ArraySizes[1]);
+                }
+                else
+                {
+				    //Each uniform block is given the HLSL consant buffer name.
+				    //Within each uniform block is a constant array named ConstN
+				    bformata(glsl, "Const%d[%d]", psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
+                }
 			}
 			else
 			{
-				//Arrays of constants. Each array is given the HLSL constant buffer name.
-				ResourceBinding* psBinding = 0;
-				GetResourceFromBindingPoint(RTYPE_CBUFFER, psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psBinding);
-
 				//$Globals.
-				if(psBinding->Name[0] == '$')
+				if(psCBuf->Name[0] == '$')
 				{
 					bformata(glsl, "Globals%s[%d]", StageName, psOperand->aui32ArraySizes[1]);
 				}
 				else
 				{
-					bformata(glsl, "%s%s[%d]", psBinding->Name, StageName, psOperand->aui32ArraySizes[1]);
+					bformata(glsl, "%s%s[%d]", psCBuf->Name, StageName, psOperand->aui32ArraySizes[1]);
 				}
 			}
+#endif
             break;
         }
         case OPERAND_TYPE_RESOURCE:
         {
-            ResourceBinding* psBinding = 0;
-			int found;
-            found = GetResourceFromBindingPoint(RTYPE_TEXTURE, psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
-
-			if(found)
-			{
-				uint32_t ui32ArrayOffset = psOperand->ui32RegisterNumber - psBinding->ui32BindPoint;
-				if(ui32ArrayOffset)
-				{
-					bformata(glsl, "%s%d", psBinding->Name, ui32ArrayOffset);
-				}
-				else
-				{
-					bformata(glsl, "%s", psBinding->Name);
-				}
-			}
-			else
-			{
-				bformata(glsl, "UnknownResource%d", psOperand->ui32RegisterNumber);
-			}
+            TextureName(psContext, psOperand->ui32RegisterNumber, 0);
             break;
         }
         case OPERAND_TYPE_SAMPLER:
@@ -581,21 +799,22 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
             bformata(glsl, "Sampler%d", psOperand->ui32RegisterNumber);
             break;
         }
-        case OPERAND_TYPE_OUTPUT_DEPTH:
-        case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
-        case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
-        {
-            bcatcstr(glsl, "gl_FragDepth");
-            break;
-        }
         case OPERAND_TYPE_FUNCTION_BODY:
         {
-            bformata(glsl, "Func%d", psOperand->ui32RegisterNumber);
+            const uint32_t ui32FuncBody = psOperand->ui32RegisterNumber;
+            const uint32_t ui32FuncTable = psContext->psShader->aui32FuncBodyToFuncTable[ui32FuncBody];
+            //const uint32_t ui32FuncPointer = psContext->psShader->aui32FuncTableToFuncPointer[ui32FuncTable];
+            const uint32_t ui32ClassType = psContext->psShader->sInfo.aui32TableIDToTypeID[ui32FuncTable];
+            const char* ClassTypeName = &psContext->psShader->sInfo.psClassTypes[ui32ClassType].Name[0];
+            const uint32_t ui32UniqueClassFuncIndex = psContext->psShader->ui32NextClassFuncName[ui32ClassType]++;
+
+            bformata(glsl, "%s_Func%d", ClassTypeName, ui32UniqueClassFuncIndex);
             break;
         }
 		case OPERAND_TYPE_INPUT_FORK_INSTANCE_ID:
 		{
 			bcatcstr(glsl, "forkInstanceID");
+            *pui32IgnoreSwizzle = 1;
 			return;
 		}
 		case OPERAND_TYPE_IMMEDIATE_CONSTANT_BUFFER:
@@ -605,7 +824,7 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
             if(psOperand->psSubOperand[0])
             {
                 bcatcstr(glsl, "(int("); //Indexes must be integral.
-                TranslateOperand(psContext, psOperand->psSubOperand[0]);
+                TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
                 bcatcstr(glsl, "))");
             }
 			break;
@@ -621,6 +840,10 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 			{
 				bformata(glsl, "gl_in[%d].gl_Position", psOperand->aui32ArraySizes[0]);
 			}
+            else
+            {
+                bformata(glsl, "Input%d[%d]", psOperand->aui32ArraySizes[1], psOperand->aui32ArraySizes[0]);
+            }
             break;
 		}
 		case OPERAND_TYPE_NULL:
@@ -632,6 +855,20 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         case OPERAND_TYPE_OUTPUT_CONTROL_POINT_ID:
         {
             bcatcstr(glsl, "gl_InvocationID");
+            *pui32IgnoreSwizzle = 1;
+            break;
+        }
+        case OPERAND_TYPE_OUTPUT_COVERAGE_MASK:
+        {
+            bcatcstr(glsl, "gl_SampleMask[0]");
+            *pui32IgnoreSwizzle = 1;
+            break;
+        }
+        case OPERAND_TYPE_INPUT_COVERAGE_MASK:
+        {
+            bcatcstr(glsl, "gl_SampleMaskIn[0]");
+            //Skip swizzle on scalar types.
+            *pui32IgnoreSwizzle = 1;
             break;
         }
 		case OPERAND_TYPE_INPUT_THREAD_ID://SV_DispatchThreadID
@@ -660,8 +897,48 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
             break;
         }
     }
+}
 
-    TranslateOperandSwizzle(psContext, psOperand);
+void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag)
+{
+    bstring glsl = *psContext->currentGLSLString;
+    uint32_t ui32IgnoreSwizzle = 0;
+
+    if(ui32TOFlag & TO_FLAG_NAME_ONLY)
+    {
+        TranslateVariableName(psContext, psOperand, ui32TOFlag, &ui32IgnoreSwizzle);
+        return;
+    }
+
+    switch(psOperand->eModifier)
+    {
+        case OPERAND_MODIFIER_NONE:
+        {
+            break;
+        }
+        case OPERAND_MODIFIER_NEG:
+        {
+            bcatcstr(glsl, "-");
+            break;
+        }
+        case OPERAND_MODIFIER_ABS:
+        {
+            bcatcstr(glsl, "abs(");
+            break;
+        }
+        case OPERAND_MODIFIER_ABSNEG:
+        {
+            bcatcstr(glsl, "-abs(");
+            break;
+        }
+    }
+
+    TranslateVariableName(psContext, psOperand, ui32TOFlag, &ui32IgnoreSwizzle);
+
+    if(!ui32IgnoreSwizzle)
+    {
+        TranslateOperandSwizzle(psContext, psOperand);
+    }
 
     switch(psOperand->eModifier)
     {
@@ -686,237 +963,51 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
     }
 }
 
-void TranslateIntegerOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
+void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32RegisterNumber, const int bZCompare)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
+    ResourceBinding* psBinding = 0;
+	int found;
+    found = GetResourceFromBindingPoint(RTYPE_TEXTURE, ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
 
-    switch(psOperand->eModifier)
+    if(bZCompare)
     {
-        case OPERAND_MODIFIER_NONE:
-        {
-            break;
-        }
-        case OPERAND_MODIFIER_NEG:
-        {
-            bcatcstr(glsl, "-");
-            break;
-        }
-        case OPERAND_MODIFIER_ABS:
-        {
-            bcatcstr(glsl, "abs(");
-            break;
-        }
-        case OPERAND_MODIFIER_ABSNEG:
-        {
-            bcatcstr(glsl, "-abs(");
-            break;
-        }
-    }
-    switch(psOperand->eType)
-    {
-        case OPERAND_TYPE_IMMEDIATE32:
-        {
-            if(psOperand->iNumComponents == 1)
-            {
-				bformata(glsl, "%d",
-					*((int*)(&psOperand->afImmediates[0])));
-            }
-            else
-            if(psOperand->iNumComponents == 4)
-            {
-                bformata(glsl, "vec4(%d, %d, %d, %d)",
-                    *(int*)&psOperand->afImmediates[0],
-                    *(int*)&psOperand->afImmediates[1],
-                    *(int*)&psOperand->afImmediates[2],
-                    *(int*)&psOperand->afImmediates[3]);
-            }
-            break;
-        }
-        case OPERAND_TYPE_INPUT:
-        {
-            switch(psOperand->iIndexDims)
-            {
-                case INDEX_2D:
-                {
-                    if(psOperand->aui32ArraySizes[1] == 0)//Input index zero - position.
-                    {
-                        bcatcstr(glsl, "gl_in");
-                        TranslateOperandIndex(psContext, psOperand, 0);//Vertex index
-                        bcatcstr(glsl, ".gl_Position");
-                    }
-                    else
-                    {
-                        bformata(glsl, "Input%d", psOperand->aui32ArraySizes[1]);
-                        TranslateOperandIndex(psContext, psOperand, 0);//Vertex index
-                    }
-                    break;
-                }
-                default:
-                {
-                    bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
-                    break;
-                }
-            }
-            break;
-        }
-        case OPERAND_TYPE_OUTPUT:
-        {
-            bformata(glsl, "Output%d", psOperand->ui32RegisterNumber);
-            if(psOperand->psSubOperand[0])
-            {
-                bcatcstr(glsl, "[int("); //Indexes must be integral.
-                TranslateOperand(psContext, psOperand->psSubOperand[0]);
-                bcatcstr(glsl, ")]");
-            }
-            break;
-        }
-        case OPERAND_TYPE_TEMP:
-        {
-            bformata(glsl, "Temp%d", psOperand->ui32RegisterNumber);
-            break;
-        }
-        case OPERAND_TYPE_CONSTANT_BUFFER:
-        {
-            const char* StageName = "VS";
-            switch(psContext->psShader->eShaderType)
-            {
-                case PIXEL_SHADER:
-                {
-                    StageName = "PS";
-                    break;
-                }
-                case HULL_SHADER:
-                {
-                    StageName = "HS";
-                    break;
-                }
-                case DOMAIN_SHADER:
-                {
-                    StageName = "DS";
-                    break;
-                }
-                case GEOMETRY_SHADER:
-                {
-                    StageName = "GS";
-                    break;
-                }
-                default:
-                {
-                    break;
-                }
-            }
-			if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
-			{
-				//Each uniform block is given the HLSL consant buffer name.
-				//Within each uniform block is a constant array named ConstN
-				bformata(glsl, "Const%s%d[%d]", StageName, psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
-			}
-			else
-			{
-				//Arrays of constants. Each array is given the HLSL constant buffer name.
-				ResourceBinding* psBinding = 0;
-				GetResourceFromBindingPoint(RTYPE_CBUFFER, psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psBinding);
-
-				//$Globals.
-				if(psBinding->Name[0] == '$')
-				{
-					bformata(glsl, "Globals%s[%d]", StageName, psOperand->aui32ArraySizes[1]);
-				}
-				else
-				{
-					bformata(glsl, "%s%s[%d]", psBinding->Name, StageName, psOperand->aui32ArraySizes[1]);
-				}
-			}
-            break;
-        }
-        case OPERAND_TYPE_RESOURCE:
-        {
-            ResourceBinding* psBinding = 0;
-            GetResourceFromBindingPoint(RTYPE_TEXTURE, psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
-            bformata(glsl, "%s", psBinding->Name);
-            break;
-        }
-        case OPERAND_TYPE_SAMPLER:
-        {
-            bformata(glsl, "Sampler%d", psOperand->ui32RegisterNumber);
-            break;
-        }
-        case OPERAND_TYPE_OUTPUT_DEPTH:
-        case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
-        case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
-        {
-            bcatcstr(glsl, "gl_FragDepth");
-            break;
-        }
-        case OPERAND_TYPE_FUNCTION_BODY:
-        {
-            bformata(glsl, "Func%d", psOperand->ui32RegisterNumber);
-            break;
-        }
-		case OPERAND_TYPE_INPUT_FORK_INSTANCE_ID:
-		{
-			bcatcstr(glsl, "forkInstanceID");
-			return;
-		}
-		case OPERAND_TYPE_IMMEDIATE_CONSTANT_BUFFER:
-		{
-            bcatcstr(glsl, "immediateConstBufferI");
-
-            if(psOperand->psSubOperand[0])
-            {
-                bcatcstr(glsl, "(int("); //Indexes must be integral.
-                TranslateOperand(psContext, psOperand->psSubOperand[0]);
-                bcatcstr(glsl, "))");
-            }
-			break;
-		}
-		case OPERAND_TYPE_INPUT_DOMAIN_POINT:
-		{
-			bcatcstr(glsl, "gl_TessCoord");
-			break;
-		}
-		case OPERAND_TYPE_INPUT_CONTROL_POINT:
-		{
-			if(psOperand->aui32ArraySizes[1] == 0)//Input index zero - position.
-			{
-				bformata(glsl, "gl_in[%d].gl_Position", psOperand->aui32ArraySizes[0]);
-			}
-            break;
-		}
-		case OPERAND_TYPE_NULL:
-		{
-			// Null register, used to discard results of operations
-			bcatcstr(glsl, "//null");
-			break;
-		}
-        default:
-        {
-            ASSERT(0);
-            break;
-        }
+        bcatcstr(glsl, "hlslcc_zcmp_");
     }
 
-    TranslateOperandSwizzle(psContext, psOperand);
+	if(found)
+	{
+        int i = 0;
+        char name[MAX_REFLECT_STRING_LENGTH];
+		uint32_t ui32ArrayOffset = ui32RegisterNumber - psBinding->ui32BindPoint;
 
-    switch(psOperand->eModifier)
-    {
-        case OPERAND_MODIFIER_NONE:
+        while(psBinding->Name[i] != '\0' && i < (MAX_REFLECT_STRING_LENGTH-1))
         {
-            break;
+            name[i] = psBinding->Name[i];
+
+            //array syntax [X] becomes _0_
+            //Otherwise declarations could end up as:
+            //uniform sampler2D SomeTextures[0];
+            //uniform sampler2D SomeTextures[1];
+            if(name[i] == '[' || name[i] == ']')
+                name[i] = '_';
+
+            ++i;
         }
-        case OPERAND_MODIFIER_NEG:
-        {
-            break;
-        }
-        case OPERAND_MODIFIER_ABS:
-        {
-            bcatcstr(glsl, ")");
-            break;
-        }
-        case OPERAND_MODIFIER_ABSNEG:
-        {
-            bcatcstr(glsl, ")");
-            break;
-        }
-    }
+
+        name[i] = '\0';
+
+		if(ui32ArrayOffset)
+		{
+			bformata(glsl, "%s%d", name, ui32ArrayOffset);
+		}
+		else
+		{
+			bformata(glsl, "%s", name);
+		}
+	}
+	else
+	{
+		bformata(glsl, "UnknownResource%d", ui32RegisterNumber);
+	}
 }

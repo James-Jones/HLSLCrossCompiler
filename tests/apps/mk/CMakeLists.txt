@@ -11,6 +11,8 @@ SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${TESTS_ROOT}/bin )
 SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${TESTS_ROOT}/lib )
 
 INCLUDE_DIRECTORIES(${HLSLCC_ROOT}/)
+INCLUDE_DIRECTORIES(${HLSLCC_ROOT}/cbstring/)
+INCLUDE_DIRECTORIES(../)
 INCLUDE_DIRECTORIES(../common/)
 INCLUDE_DIRECTORIES(../common/glew/)
 INCLUDE_DIRECTORIES(../common/glut/include/)
@@ -27,7 +29,7 @@ LINK_DIRECTORIES(${TEST_DIR}/lib/Release/)
 #Common libs
 #-glew
 ADD_DEFINITIONS(-DGLEW_STATIC)
-ADD_LIBRARY(glew ${GLEW_DIR}/glew.c)
+ADD_LIBRARY(glew STATIC ${GLEW_DIR}/glew.c)
 #-Freeglut
 ADD_DEFINITIONS(-DFREEGLUT_STATIC)
 ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)#-DHAVE_CONFIG_H)
@@ -48,10 +50,13 @@ file(GLOB ASSIMP_CPPFILES ${ASSIMP_DIR}/code/*.cpp ${ASSIMP_DIR}/contrib/irrXML/
 file(GLOB ASSIMP_CFILES ${ASSIMP_DIR}/contrib/ConvertUTF/*.c ${ASSIMP_DIR}/contrib/zlib/*.c ${ASSIMP_DIR}/contrib/unzip/*.c)
 ADD_LIBRARY(assimp STATIC ${ASSIMP_CPPFILES} ${ASSIMP_CFILES})
 
-SET(COMMON_CODE ../common/debug.cpp ../common/Shader.cpp ../common/Image.cpp ../common/Model.cpp)
+SET(COMMON_CODE ../common/debug.cpp ../common/Shader.cpp ../common/Image.cpp ../common/Model.cpp
+../common/debug.h ../common/Shader.h ../common/Image.h ../common/Model.h ../common/pstdint.h ../common/itransform.h)
 ADD_LIBRARY(common STATIC ${COMMON_CODE})
 
 #Each test
 add_subdirectory(lambertLit/)
 add_subdirectory(extrudeGS/)
-
+add_subdirectory(tessellation/)
+add_subdirectory(generic/)
+add_subdirectory(subroutines/)

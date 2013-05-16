@@ -5,9 +5,7 @@
 #include "stdio.h"
 #include "bstrlib.h"
 
-typedef unsigned long long uint64_t;
-typedef unsigned int uint32_t;
-typedef unsigned char uint8_t;
+#include "timer.h"
 
 #define VALIDATE_OUTPUT
 
@@ -132,17 +130,22 @@ void InitOpenGL()
 }
 #endif
 
-int TryCompileShader(GLenum eGLSLShaderType, char* inFilename, char* shader)
+int TryCompileShader(GLenum eGLSLShaderType, char* inFilename, char* shader, double* pCompileTime)
 {
     GLint iCompileStatus;
     GLuint hShader;
+    Timer_t timer;
+
+    InitTimer(&timer);
 
     InitOpenGL();
 
     hShader = glCreateShaderObjectARB(eGLSLShaderType);
     glShaderSourceARB(hShader, 1, (const char **)&shader, NULL);
 
+    ResetTimer(&timer);
     glCompileShaderARB(hShader);
+    *pCompileTime = ReadTimer(&timer);
 
     /* Check it compiled OK */
     glGetObjectParameterivARB (hShader, GL_OBJECT_COMPILE_STATUS_ARB, &iCompileStatus);
@@ -180,8 +183,6 @@ int TryCompileShader(GLenum eGLSLShaderType, char* inFilename, char* shader)
 
         return 0;
     }
-
-    printf("Shader compiled successfully\n");
 
     return 1;
 }
@@ -255,6 +256,10 @@ int main(int argc, char** argv)
     GLSLShader result;
     GLLang language = LANG_DEFAULT;
 	int returnValue = 0;//EXIT_SUCCESS
+    Timer_t timer;
+    int compiledOK = 0;
+    double crossCompileTime = 0;
+    double glslCompileTime = 0;
 
     printf("args: bytecode-file [output-file] [language override - es100 es300 120 130 etc.]\n");
 
@@ -269,8 +274,16 @@ int main(int argc, char** argv)
         language = LanguageFromString(argv[3]);
     }
 
-    if(TranslateHLSLFromFile(argv[1], 0, language, &result))
+    InitTimer(&timer);
+
+    ResetTimer(&timer);
+    compiledOK = TranslateHLSLFromFile(argv[1], 0, language, NULL, &result);
+    crossCompileTime = ReadTimer(&timer);
+
+    if(compiledOK)
     {
+        printf("cc time: %.2f us\n", crossCompileTime);
+
         if(argc > 2)
         {
             //Dump to file
@@ -280,10 +293,16 @@ int main(int argc, char** argv)
         }
 
 #if defined(VALIDATE_OUTPUT)
-        if(!TryCompileShader(result.shaderType, (argc > 2) ? argv[2] : "", result.sourceCode))
+        compiledOK = TryCompileShader(result.shaderType, (argc > 2) ? argv[2] : "", result.sourceCode, &glslCompileTime);
+        
+        if(!compiledOK)
 		{
 			returnValue = 1;//EXIT_FAILURE
 		}
+        else
+        {
+            printf("glsl time: %.2f us\n", glslCompileTime);
+        }
 #endif
 
         bcstrfree(result.sourceCode);

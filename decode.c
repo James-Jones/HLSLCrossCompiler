@@ -7,11 +7,13 @@
 #include "debug.h"
 
 #define FOURCC(a, b, c, d) ((uint32_t)(uint8_t)(a) | ((uint32_t)(uint8_t)(b) << 8) | ((uint32_t)(uint8_t)(c) << 16) | ((uint32_t)(uint8_t)(d) << 24 ))
-const uint32_t FOURCC_DXBC = FOURCC('D', 'X', 'B', 'C');
-const uint32_t FOURCC_SHDR = FOURCC('S', 'H', 'D', 'R');
-const uint32_t FOURCC_SHEX = FOURCC('S', 'H', 'E', 'X');
-const uint32_t FOURCC_RDEF = FOURCC('R', 'D', 'E', 'F');
-const uint32_t FOURCC_ISGN = FOURCC('I', 'S', 'G', 'N');
+static enum {FOURCC_DXBC = FOURCC('D', 'X', 'B', 'C')}; //DirectX byte code
+static enum {FOURCC_SHDR = FOURCC('S', 'H', 'D', 'R')}; //Shader model 4 code
+static enum {FOURCC_SHEX = FOURCC('S', 'H', 'E', 'X')}; //Shader model 5 code
+static enum {FOURCC_RDEF = FOURCC('R', 'D', 'E', 'F')}; //Resource definition (e.g. constant buffers)
+static enum {FOURCC_ISGN = FOURCC('I', 'S', 'G', 'N')}; //Input signature
+static enum {FOURCC_IFCE = FOURCC('I', 'F', 'C', 'E')}; //Interface (for dynamic linking)
+static enum {FOURCC_OSGN = FOURCC('O', 'S', 'G', 'N')}; //Output signature
 
 typedef struct DXBCContainerHeaderTAG
 {
@@ -196,12 +198,6 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 	psOperand->iIndexDims = DecodeOperandIndexDimension(*pui32Tokens);
     psOperand->eType = DecodeOperandType(*pui32Tokens);
 
-    if(psOperand->eType == OPERAND_TYPE_SAMPLER ||
-       psOperand->eType == OPERAND_TYPE_RESOURCE)
-    {
-        psOperand->iWriteMaskEnabled = 0;
-    }
-
     psOperand->ui32RegisterNumber = 0;
 
     eNumComponents = DecodeOperandNumComponents(*pui32Tokens);
@@ -316,7 +312,15 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 
     psOperand->pszSpecialName[0] ='\0';
 
-    //psOperand->ui32RegisterNumber = pui32Tokens[0] & 0x3FF;
+    //Because swizzle on GLSL sampler uniform does not make sense and
+    //is not permitted.
+    //TODO: Should really be done during the translation to
+    //GLSL to keep this function generic for any future non-glsl targets.
+    if(psOperand->eType == OPERAND_TYPE_SAMPLER ||
+       psOperand->eType == OPERAND_TYPE_RESOURCE)
+    {
+        psOperand->iWriteMaskEnabled = 0;
+    }
 
     return ui32NumTokens;
 }
@@ -357,10 +361,27 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_INDEX_RANGE:
         {
-            uint32_t indexRange = 0;
             psDecl->ui32NumOperands = 1;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             psDecl->value.ui32IndexRange = pui32Token[ui32OperandOffset];
+
+            if(psDecl->asOperands[0].eType == OPERAND_TYPE_INPUT)
+            {
+                uint32_t i;
+                const uint32_t indexRange = psDecl->value.ui32IndexRange;
+                const uint32_t reg = psDecl->asOperands[0].ui32RegisterNumber;
+
+                psShader->aIndexedInput[reg] = indexRange;
+                psShader->aIndexedInputParents[reg] = reg;
+
+                //-1 means don't declare this input because it falls in
+                //the range of an already declared array.
+                for(i=reg+1; i<reg+indexRange; ++i)
+                {
+                    psShader->aIndexedInput[i] = -1;
+                    psShader->aIndexedInputParents[i] = reg;
+                }
+            }
 
             if(psDecl->asOperands[0].eType == OPERAND_TYPE_OUTPUT)
             {
@@ -411,18 +432,15 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
-        case OPCODE_DCL_INPUT_SGV:
-        {
-            break;
-        }
         case OPCODE_DCL_INPUT_SIV:
         {
+            psDecl->ui32NumOperands = 1;
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             if(psShader->eShaderType == PIXEL_SHADER)
             {
                 psDecl->value.eInterpolation = DecodeInterpolationMode(*pui32Token);
+                
             }
-            psDecl->ui32NumOperands = 1;
-            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
         case OPCODE_DCL_INPUT_PS:
@@ -432,6 +450,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
+        case OPCODE_DCL_INPUT_SGV:
         case OPCODE_DCL_INPUT_PS_SGV:
         {
             psDecl->ui32NumOperands = 1;
@@ -477,24 +496,29 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_INTERFACE:
         {
-            uint32_t funcBody = 0, tableLen, arrayLen, interfaceID;
+            uint32_t func = 0, numClassesImplementingThisInterface, arrayLen, interfaceID;
             interfaceID = pui32Token[ui32OperandOffset];
             ui32OperandOffset++;
             psDecl->ui32TableLength = pui32Token[ui32OperandOffset];
             ui32OperandOffset++;
 
-            tableLen = DecodeInterfaceTableLength(*(pui32Token+ui32OperandOffset));
+            numClassesImplementingThisInterface = DecodeInterfaceTableLength(*(pui32Token+ui32OperandOffset));
             arrayLen = DecodeInterfaceArrayLength(*(pui32Token+ui32OperandOffset));
 
             ui32OperandOffset++;
 
             psDecl->value.interface.ui32InterfaceID = interfaceID;
+            psDecl->value.interface.ui32NumFuncTables = numClassesImplementingThisInterface;
+            psDecl->value.interface.ui32ArraySize = arrayLen;
 
-            for(;funcBody < tableLen; ++funcBody)
+            psShader->funcPointer[interfaceID].ui32NumBodiesPerTable = psDecl->ui32TableLength;
+
+            for(;func < numClassesImplementingThisInterface; ++func)
             {
-                uint32_t ui32FuncID = *(pui32Token+ui32OperandOffset);
-                psShader->functionToInterfaceRemap[ui32FuncID] = interfaceID;
-                psDecl->value.interface.aui32Functions[funcBody] = ui32FuncID;
+                uint32_t ui32FuncTable = *(pui32Token+ui32OperandOffset);
+                psShader->aui32FuncTableToFuncPointer[ui32FuncTable] = interfaceID;
+
+                psShader->funcPointer[interfaceID].aui32FuncTables[func] = ui32FuncTable;
                 ui32OperandOffset++;
             }
 
@@ -508,6 +532,27 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_FUNCTION_TABLE:
         {
+            uint32_t ui32Func;
+            const uint32_t ui32FuncTableID = pui32Token[ui32OperandOffset++];
+            const uint32_t ui32NumFuncsInTable = pui32Token[ui32OperandOffset++];
+
+            for(ui32Func=0; ui32Func<ui32NumFuncsInTable;++ui32Func)
+            {
+                const uint32_t ui32FuncBodyID = pui32Token[ui32OperandOffset++];
+
+                psShader->aui32FuncBodyToFuncTable[ui32FuncBodyID] = ui32FuncTableID;
+
+                psShader->funcTable[ui32FuncTableID].aui32FuncBodies[ui32Func] = ui32FuncBodyID;
+
+            }
+
+// OpcodeToken0 is followed by a DWORD that represents the function table
+// identifier and another DWORD (TableLength) that gives the number of
+// functions in the table.
+//
+// This is followed by TableLength DWORDs which are function body indices.
+//
+
             break;
         }
 		case OPCODE_DCL_INPUT_CONTROL_POINT_COUNT:
@@ -520,7 +565,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 		}
 		case OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT:
 		{
-			//const uint32_t ui32OutputControlPointCount = *(pui32Token+ui32OperandOffset);
+			psDecl->value.ui32MaxOutputVertexCount = DecodeOutputControlPointCount(*pui32Token);
 			break;
 		}
 		case OPCODE_HS_JOIN_PHASE:
@@ -595,9 +640,26 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 
     psInst->bSaturate = DecodeInstructionSaturate(*pui32Token);
 
+    psInst->bAddressOffset = 0;
+
     if(bExtended)
     {
         do {
+            const uint32_t ui32ExtOpcodeToken = pui32Token[ui32OperandOffset];
+            const EXTENDED_OPCODE_TYPE eExtType = DecodeExtendedOpcodeType(ui32ExtOpcodeToken);
+
+            if(eExtType == EXTENDED_OPCODE_SAMPLE_CONTROLS)
+            {
+                psInst->bAddressOffset = 1;
+
+                psInst->iUAddrOffset = DecodeImmediateAddressOffset(
+							    IMMEDIATE_ADDRESS_OFFSET_U, ui32ExtOpcodeToken);
+			    psInst->iVAddrOffset = DecodeImmediateAddressOffset(
+							    IMMEDIATE_ADDRESS_OFFSET_V, ui32ExtOpcodeToken);
+			    psInst->iWAddrOffset = DecodeImmediateAddressOffset(
+							    IMMEDIATE_ADDRESS_OFFSET_W, ui32ExtOpcodeToken);
+            }
+
 			ui32OperandOffset++;
 		}
 		while(DecodeIsOpcodeExtended(pui32Token[ui32OperandOffset-1]));
@@ -628,14 +690,17 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_HS_FORK_PHASE:
 		case OPCODE_HS_JOIN_PHASE:
         {
+            psInst->ui32NumOperands = 0;
             break;
         }
 		case OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT:
 		{
+            psInst->ui32NumOperands = 0;
 			break;
 		}
         case OPCODE_SYNC:
         {
+            psInst->ui32NumOperands = 0;
             psInst->ui32SyncFlags = DecodeSyncFlags(*pui32Token);
             break;
         }
@@ -666,8 +731,10 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_INTERFACE_CALL:
         {
             psInst->ui32NumOperands = 1;
+            psInst->ui32FuncIndexWithinInterface = pui32Token[ui32OperandOffset];
+            ui32OperandOffset++;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
-            psInst->ui32FunctionIDToCall = pui32Token[1];
+            
             break;
         }
 
@@ -675,6 +742,19 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 
         //Instructions with two operands go here
         case OPCODE_MOV:
+        {
+            psInst->ui32NumOperands = 2;
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
+
+            //Mov with an integer dest. If src is an immediate then it must be encoded as an integer.
+            if(psInst->asOperands[0].eMinPrecision == OPERAND_MIN_PRECISION_SINT_16 ||
+                psInst->asOperands[0].eMinPrecision == OPERAND_MIN_PRECISION_UINT_16)
+            {
+                psInst->asOperands[1].iIntegerImmediate = 1;
+            }
+            break;
+        }
 		case OPCODE_LOG:
 		case OPCODE_RSQ:
 		case OPCODE_EXP:
@@ -721,6 +801,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_LD:
 		case OPCODE_IMUL:
 		case OPCODE_ILT:
+        case OPCODE_INE:
         {
             psInst->ui32NumOperands = 3;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -733,6 +814,9 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_MOVC:
 		case OPCODE_IMAD:
 		case OPCODE_UDIV:
+        case OPCODE_LOD:
+        case OPCODE_SAMPLE:
+        case OPCODE_GATHER4:
 		{
             psInst->ui32NumOperands = 4;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -741,17 +825,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
             break;
 		}
-        case OPCODE_SAMPLE:
-        case OPCODE_GATHER4:
-        {
-            psInst->ui32NumOperands = 4;
-
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
-            break;
-        }
+        case OPCODE_GATHER4_PO:
         case OPCODE_SAMPLE_L:
         case OPCODE_BFI:
         {
@@ -763,8 +837,10 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[4]);
             break;
         }
+        case OPCODE_GATHER4_C:
 		case OPCODE_SAMPLE_C:
 		case OPCODE_SAMPLE_C_LZ:
+        case OPCODE_SAMPLE_B:
 		{
             psInst->ui32NumOperands = 5;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -776,6 +852,20 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 			MarkTextureAsShadow(&psShader->sInfo, psShader->psDecl, psShader->ui32DeclCount, &psInst->asOperands[2]);
             break;
 		}
+        case OPCODE_GATHER4_PO_C:
+        case OPCODE_SAMPLE_D:
+        {
+            psInst->ui32NumOperands = 6;
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[4]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[5]);
+
+			MarkTextureAsShadow(&psShader->sInfo, psShader->psDecl, psShader->ui32DeclCount, &psInst->asOperands[2]);
+            break;
+        }
         case OPCODE_IF:
         case OPCODE_BREAKC:
         case OPCODE_CALLC:
@@ -791,13 +881,54 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         }
 		case OPCODE_CUSTOMDATA:
 		{
+            psInst->ui32NumOperands = 0;
 			ui32TokenLength = pui32Token[1];
 			break;
 		}
+        case OPCODE_EVAL_CENTROID:
+        {
+            psInst->ui32NumOperands = 2;
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
+            break;
+        }
+        case OPCODE_EVAL_SAMPLE_INDEX:
+        case OPCODE_EVAL_SNAPPED:
+        {
+            psInst->ui32NumOperands = 3;
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
+            break;
+        }
         default:
         {
 			ASSERT(0);
             break;
+        }
+    }
+
+    {
+        uint32_t ui32Operand;
+        const uint32_t ui32NumOperands = psInst->ui32NumOperands;
+        for(ui32Operand = 0; ui32Operand < ui32NumOperands; ++ui32Operand)
+        {
+            Operand* psOperand = &psInst->asOperands[ui32Operand];
+            if(psOperand->eType == OPERAND_TYPE_INPUT || 
+                psOperand->eType == OPERAND_TYPE_INPUT_CONTROL_POINT)
+            {
+                if(psOperand->iIndexDims == INDEX_2D)
+                {
+                    if(psOperand->aui32ArraySizes[1] != 0)//gl_in[].gl_Position
+                    {
+                        psShader->abInputReferencedByInstruction[psOperand->ui32RegisterNumber] = 1;
+                    }
+                }
+                else
+                {
+                    psShader->abInputReferencedByInstruction[psOperand->ui32RegisterNumber] = 1;
+                }
+            }
         }
     }
 
@@ -1062,8 +1193,7 @@ const uint32_t* DecodeHullShader(const uint32_t* pui32Tokens, Shader* psShader)
 	return pui32CurrentToken;
 }
 
-void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Inputs,
-            const uint32_t* pui32Resources, Shader* psShader)
+void Decode(const uint32_t* pui32Tokens, Shader* psShader)
 {
 	const uint32_t* pui32CurrentToken = pui32Tokens;
     const uint32_t ui32ShaderLength = pui32Tokens[1];
@@ -1076,8 +1206,6 @@ void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Inputs,
 	pui32CurrentToken++;//Move to shader length
 	psShader->ui32ShaderLength = ui32ShaderLength;
     pui32CurrentToken++;//Move to after shader length (usually a declaration)
-
-    ReadResources(pui32Resources, &psShader->sInfo);
 
     psShader->pui32FirstToken = pui32Tokens;
 
@@ -1097,11 +1225,6 @@ void Decode(const uint32_t* pui32Tokens, const uint32_t* pui32Inputs,
     psDecl = malloc(sizeof(Declaration) * ui32ShaderLength);
     psShader->psDecl = psDecl;
     psShader->ui32DeclCount = 0;
-
-    if(pui32Inputs)
-        ReadInputSignatures(pui32Inputs, &psShader->sInfo);
-    if(pui32Resources)
-        ReadResources(pui32Resources, &psShader->sInfo);
 
     while(1) //Keep going until we reach the first non-declaration token, or the end of the shader.
     {
@@ -1149,13 +1272,17 @@ Shader* DecodeDXBC(uint32_t* data)
 	uint32_t i;
 	uint32_t chunkCount;
 	uint32_t* chunkOffsets;
-    DXBCChunkHeader* rdefChunk = 0;
-    DXBCChunkHeader* isgnChunk = 0;
+    ReflectionChunks refChunks;
 
 	if(header->fourcc != FOURCC_DXBC)
 	{
 		return 0;
 	}
+
+    refChunks.pui32Inputs = NULL;
+    refChunks.pui32Interfaces = NULL;
+    refChunks.pui32Outputs = NULL;
+    refChunks.pui32Resources = NULL;
 
 	chunkOffsets = (uint32_t*)(header + 1);
 
@@ -1167,22 +1294,51 @@ Shader* DecodeDXBC(uint32_t* data)
 
 		DXBCChunkHeader* chunk = (DXBCChunkHeader*)((char*)data + offset);
 
-        if(chunk->fourcc == FOURCC_ISGN)
+        switch(chunk->fourcc)
         {
-            isgnChunk = chunk;
-        }
-        if(chunk->fourcc == FOURCC_RDEF)
-        {
-            rdefChunk = chunk;
-        }
+            case FOURCC_ISGN:
+            {
+                refChunks.pui32Inputs = (uint32_t*)(chunk + 1);
+                break;
+            }
+            case FOURCC_RDEF:
+            {
+                refChunks.pui32Resources = (uint32_t*)(chunk + 1);
+                break;
+            }
+            case FOURCC_IFCE:
+            {
+                refChunks.pui32Interfaces = (uint32_t*)(chunk + 1);
+                break;
+            }
+            case FOURCC_OSGN:
+            {
+                refChunks.pui32Outputs = (uint32_t*)(chunk + 1);
+                break;
+            }
+            case FOURCC_SHDR:
+            case FOURCC_SHEX:
+            {
+                uint32_t ui32MajorVersion;
+                uint32_t ui32MinorVersion;
 
-		if(chunk->fourcc == FOURCC_SHDR ||
-			chunk->fourcc == FOURCC_SHEX)
-		{
-            psShader = calloc(1, sizeof(Shader));
-			Decode((uint32_t*)(chunk + 1), isgnChunk ? ((uint32_t*)(isgnChunk + 1)) : NULL, rdefChunk ? ((uint32_t*)(rdefChunk + 1)) : NULL, psShader);
-			return psShader;
-		}
+                psShader = calloc(1, sizeof(Shader));
+
+                ui32MajorVersion = DecodeProgramMajorVersion(*(uint32_t*)(chunk + 1));
+                ui32MinorVersion = DecodeProgramMinorVersion(*(uint32_t*)(chunk + 1));
+
+                LoadShaderInfo(ui32MajorVersion,
+                    ui32MinorVersion,
+                    &refChunks,
+                    &psShader->sInfo);
+			    Decode((uint32_t*)(chunk + 1), psShader);
+			    return psShader;
+            }
+            default:
+            {
+                break;
+            }
+        }
 	}
     return 0;
 }

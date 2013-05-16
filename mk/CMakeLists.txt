@@ -53,9 +53,31 @@ file(GLOB CBSTRING_CFILES ../cbstring/*.c)
 file(GLOB CBSTRING_HFILES ../cbstring/*.h)
 source_group("CBString Files" FILES ${CBSTRING_CFILES} ${CBSTRING_HFILES})
 
-ADD_LIBRARY( libHLSLcc STATIC ../decode.c ../reflect.c ../toGLSL.c ../toGLSLInstruction.c ../toGLSLOperand.c ../toGLSLDeclaration.c ${CBSTRING_CFILES} ${CBSTRING_HFILES} )
+ADD_LIBRARY( libHLSLcc STATIC 
+../debug.h
+../decode.h
+../hlsl_opcode_funcs_glsl.h
+../languages.h
+../pstdint.h
+../reflect.h
+../structs.h
+../toGLSL.h
+../toGLSLDeclaration.h
+../toGLSLInstruction.h
+../toGLSLOperand.h
+../tokens.h
+../shaderLimits.h
+${CBSTRING_HFILES}
+../decode.c
+../reflect.c
+../toGLSL.c
+../toGLSLInstruction.c
+../toGLSLOperand.c
+../toGLSLDeclaration.c
+${CBSTRING_CFILES}
+)
 
-ADD_EXECUTABLE( HLSLcc ../toGLSLStandalone.c )
+ADD_EXECUTABLE( HLSLcc ../toGLSLStandalone.c ../timer.h ../timer.c)
 
 TARGET_LINK_LIBRARIES( HLSLcc libHLSLcc)
 

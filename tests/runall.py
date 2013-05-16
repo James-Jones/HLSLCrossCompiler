@@ -13,8 +13,9 @@ listOfFailedTests = []
 i = 0
 
 parser = argparse.ArgumentParser(description='Test runner.')
-parser.add_argument("-e", "--exe", dest="argExecutableName", required=False, help="The executable")
-options = parser.parse_args()
+parser.add_argument("-e", "--exe", dest="argExecutableName", help="The executable")
+parser.add_argument("-v", "--verbose", dest="argVerbose", action='store_true', help="Verbose output")
+options = parser.parse_args()	
 
 def FindExecutable():
 	global executable
@@ -43,7 +44,8 @@ def RunTest(ByteCodeFileName, lang):
 	global listOfFailedTests
 	global executable
 
-	print "Running " + ByteCodeFileName
+	if options.argVerbose:
+		print "Running " + ByteCodeFileName +"\n"
 
 	(head, tail) = os.path.split(ByteCodeFileName);
 
@@ -57,20 +59,33 @@ def RunTest(ByteCodeFileName, lang):
 
 	if os.path.isdir(directory) == False:
 		os.makedirs(directory)
+		
+	stdinFile = None;
+	stdoutFile = None;
+	stderrFile = None;
 
-	returnCode = call([executable, ByteCodeFileName, directory+"/"+outputfilename, lang])
+	if options.argVerbose != True:
+		stdinFile = open(os.devnull);
+		stdoutFile = open(os.devnull);
+		stderrFile = open(os.devnull);
+
+	returnCode = call([executable, ByteCodeFileName, directory+"/"+outputfilename, lang], stdin=stdinFile, stdout=stdoutFile, stderr=stderrFile)
 
 	if returnCode == 1:
-		print "vs4/mov failed to compile"
 		failCount += 1
 		listOfFailedTests.append(ByteCodeFileName)
 	else:
 		passCount += 1
 
+	if options.argVerbose:
+		print "\n"
+
 if(options.argExecutableName):
 	executable = options.argExecutableName
 else:
 	FindExecutable()
+
+print "Using " + executable + "\n"
 
 for files in glob.glob("vs4/*.o"):
 	RunTest(files, "150")

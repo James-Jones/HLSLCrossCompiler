@@ -1,7 +1,5 @@
 //--------------------------------------------------------------------------------------
-// File: Tutorial13.fx
-//
-// Copyright (c) Microsoft Corporation. All rights reserved.
+// This is essentially the shader from DirectX SDK D3D10 Tutorial13
 //--------------------------------------------------------------------------------------
 
 
@@ -26,7 +24,7 @@ SamplerState samLinearClamp
 
 cbuffer cbConstant
 {
-    float3 vLightDir = float3(-0.577,0.577,-0.577);
+    float3 vLightDir;
 };
 
 cbuffer cbChangesEveryFrame
@@ -55,23 +53,6 @@ struct GSPS_INPUT
     float3 Norm : TEXCOORD0;
     float2 Tex : TEXCOORD1;
 };
-
-//--------------------------------------------------------------------------------------
-// DepthStates
-//--------------------------------------------------------------------------------------
-DepthStencilState EnableDepth
-{
-    DepthEnable = TRUE;
-    DepthWriteMask = ALL;
-    DepthFunc = LESS_EQUAL;
-};
-
-BlendState NoBlending
-{
-    AlphaToCoverageEnable = FALSE;
-    BlendEnable[0] = FALSE;
-};
-
 
 //--------------------------------------------------------------------------------------
 // Vertex Shader
@@ -169,22 +150,3 @@ float4 PS( GSPS_INPUT input) : SV_Target
     // return diffuse
     return cDiffuse;
 }
-
-
-//--------------------------------------------------------------------------------------
-// Technique
-//--------------------------------------------------------------------------------------
-technique10 Render
-{
-    pass P0
-    {
-        SetVertexShader( CompileShader( vs_4_0, VS() ) );
-        SetGeometryShader( CompileShader( gs_4_0, GS() ) );
-        SetPixelShader( CompileShader( ps_4_0, PS() ) );
-        
-        SetBlendState( NoBlending, float4( 0.0f, 0.0f, 0.0f, 0.0f ), 0xFFFFFFFF );
-        SetDepthStencilState( EnableDepth, 0 );
-    }
-}
-
-

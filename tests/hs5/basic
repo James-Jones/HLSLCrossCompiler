@@ -1,6 +1,6 @@
 struct VS_OUTPUT
 {
-    float3 cpoint : CPOINT;
+    float4 cpoint : CPOINT;
 };
 
 struct HS_CONSTANT_OUTPUT
@@ -10,7 +10,7 @@ struct HS_CONSTANT_OUTPUT
 
 struct HS_OUTPUT
 {
-    float3 cpoint : CPOINT;
+    float4 cpoint : CPOINT;
 };
 
 HS_CONSTANT_OUTPUT HSConst()

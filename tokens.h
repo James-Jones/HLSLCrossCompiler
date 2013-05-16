@@ -48,7 +48,7 @@ typedef enum EXTENDED_OPCODE_TYPE
 
 static EXTENDED_OPCODE_TYPE DecodeExtendedOpcodeType(uint32_t ui32Token)
 {
-    return (ui32Token & 0x0000003f);
+    return (EXTENDED_OPCODE_TYPE)(ui32Token & 0x0000003f);
 }
 
 typedef enum
@@ -756,6 +756,27 @@ typedef enum OPERAND_MIN_PRECISION
 static uint32_t DecodeOperandMinPrecision(uint32_t ui32Token)
 {
     return (ui32Token & 0x0001C000) >> 14;
+}
+
+static uint32_t DecodeOutputControlPointCount(uint32_t ui32Token)
+{
+	return ((ui32Token & 0x0001f800) >> 11);
+}
+
+typedef enum IMMEDIATE_ADDRESS_OFFSET_COORD
+{
+    IMMEDIATE_ADDRESS_OFFSET_U        = 0,
+    IMMEDIATE_ADDRESS_OFFSET_V        = 1,
+    IMMEDIATE_ADDRESS_OFFSET_W        = 2,
+} IMMEDIATE_ADDRESS_OFFSET_COORD;
+
+
+#define IMMEDIATE_ADDRESS_OFFSET_SHIFT(Coord) (9+4*((Coord)&3))
+#define IMMEDIATE_ADDRESS_OFFSET_MASK(Coord) (0x0000000f<<IMMEDIATE_ADDRESS_OFFSET_SHIFT(Coord))
+
+static uint32_t DecodeImmediateAddressOffset(IMMEDIATE_ADDRESS_OFFSET_COORD eCoord, uint32_t ui32Token)
+{
+    return ((((ui32Token)&IMMEDIATE_ADDRESS_OFFSET_MASK(eCoord))>>(IMMEDIATE_ADDRESS_OFFSET_SHIFT(eCoord))));
 }
 
 #endif

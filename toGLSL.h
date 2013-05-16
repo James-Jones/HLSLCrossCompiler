@@ -2,11 +2,39 @@
 #define TO_GLSL_H
 
 #include "languages.h"
+#include "reflect.h"
+#include "shaderLimits.h"
+
+//The shader stages (Vertex, Pixel et al) do not depend on each other
+//in HLSL. GLSL is a different story. HLSLCrossCompiler requires
+//that hull shaders must be compiled before domain shaders, and
+//the pixel shader must be compiled before all of the others.
+//Durring compiliation the GLSLCrossDependencyData struct will
+//carry over any information needed about a different shader stage
+//in order to construct valid GLSL shader combinations.
+
+//Using GLSLCrossDependencyData is optional. However some shader
+//combinations may show link failures, or runtime errors.
+typedef struct
+{
+    //dcl_tessellator_partitioning and dcl_tessellator_output_primitive appear in hull shader for D3D,
+    //but they appear on inputs inside domain shaders for GL.
+    //Hull shader must be compiled before domain so the
+    //ensure correct partitioning and primitive type information
+    //can be saved when compiling hull and passed to domain compiliation.
+    TESSELLATOR_PARTITIONING eTessPartitioning;
+    TESSELLATOR_OUTPUT_PRIMITIVE eTessOutPrim;
+
+    //Required if PixelInpterpDependency is true
+    INTERPOLATION_MODE aePixelInputInterpolation[MAX_SHADER_VEC4_INPUT];
+} GLSLCrossDependencyData;
 
 typedef struct
 {
     int shaderType; //One of the GL enums.
     char* sourceCode;
+    ShaderInfo reflection;
+    GLLang GLSLLanguage;
 } GLSLShader;
 
 /*HLSL constant buffers are treated as default-block unform arrays by default. This is done
@@ -29,7 +57,16 @@ static const unsigned int HLSLCC_FLAG_GLOBAL_CONSTS_NEVER_IN_UBO = 0x8;
 //Vs outputs VtxOutput if GS enabled. VtxGeoOutput otherwise.
 static const unsigned int HLSLCC_FLAG_GS_ENABLED = 0x10;
 
-int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang language, GLSLShader* result);
-int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language, GLSLShader* result);
+static const unsigned int HLSLCC_FLAG_TESS_ENABLED = 0x20;
+
+//Either use this flag or glBindFragDataLocationIndexed.
+//When set the first pixel shader output is the first input to blend
+//equation, the others go to the second input.
+static const unsigned int HLSLCC_DUAL_SOURCE_BLENDING = 0x40;
+
+int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang language, GLSLCrossDependencyData* dependencies, GLSLShader* result);
+int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language, GLSLCrossDependencyData* dependencies, GLSLShader* result);
+
+void FreeGLSLShader(GLSLShader*);
 
 #endif

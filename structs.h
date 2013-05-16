@@ -7,6 +7,8 @@
 
 #include "reflect.h"
 
+#include "toGLSL.h"
+
 typedef struct Operand_TAG
 {
     int iExtended;
@@ -51,9 +53,14 @@ typedef struct Instruction_TAG
     INSTRUCTION_TEST_BOOLEAN eBooleanTestType;
     uint32_t ui32SyncFlags;
     uint32_t ui32NumOperands;
-    Operand asOperands[5];
-    uint32_t ui32FunctionIDToCall;
+    Operand asOperands[6];
     uint32_t bSaturate;
+    uint32_t ui32FuncIndexWithinInterface;
+
+    int bAddressOffset;
+    int iUAddrOffset;
+    int iVAddrOffset;
+    int iWAddrOffset;
 
 #ifdef _DEBUG
     uint64_t id;
@@ -100,8 +107,8 @@ typedef struct Declaration_TAG
         struct Interface_TAG
         {
             uint32_t ui32InterfaceID;
-            uint32_t ui32NumFunctions;
-            uint32_t aui32Functions[128]; //FIXME dynamic alloc
+            uint32_t ui32NumFuncTables;
+            uint32_t ui32ArraySize;
         } interface;
     } value;
 
@@ -110,12 +117,6 @@ typedef struct Declaration_TAG
 	uint32_t ui32IsShadowTex;
 
 } Declaration;
-
-//FIXME decide the best value.
-static enum {MAX_SHADER_VEC4_OUTPUT = 512};
-static enum {MAX_SHADER_VEC4_INPUT = 512};
-static enum {MAX_TEXTURES = 128};
-static enum {MAX_FORK_PHASES = 2};
 
 typedef struct Shader_TAG
 {
@@ -133,7 +134,19 @@ typedef struct Shader_TAG
 
     //Instruction* functions;//non-main subroutines
 
-    uint32_t functionToInterfaceRemap[1024];//FIXME dynamic alloc
+    uint32_t aui32FuncTableToFuncPointer[MAX_FUNCTION_TABLES];//FIXME dynamic alloc
+    uint32_t aui32FuncBodyToFuncTable[MAX_FUNCTION_BODIES];
+
+    struct {
+        uint32_t aui32FuncBodies[MAX_FUNCTION_BODIES];
+    }funcTable[MAX_FUNCTION_TABLES];
+
+    struct {
+        uint32_t aui32FuncTables[MAX_FUNCTION_TABLES];
+        uint32_t ui32NumBodiesPerTable;
+    }funcPointer[MAX_FUNCTION_POINTERS];
+
+    uint32_t ui32NextClassFuncName[MAX_CLASS_TYPES];
 
     uint32_t ui32InstCount;
     Instruction* psInst;
@@ -167,25 +180,47 @@ typedef struct Shader_TAG
 
     ShaderInfo sInfo;
 
-	int abIntegerOutput[MAX_SHADER_VEC4_OUTPUT];
-	int abScalarOutput[MAX_SHADER_VEC4_OUTPUT];
 	int abScalarInput[MAX_SHADER_VEC4_INPUT];
 
     int aIndexedOutput[MAX_SHADER_VEC4_OUTPUT];
 
+    int aIndexedInput[MAX_SHADER_VEC4_INPUT];
+    int aIndexedInputParents[MAX_SHADER_VEC4_INPUT];
+
     RESOURCE_DIMENSION aeResourceDims[MAX_TEXTURES];
+
+    int aiInputDeclaredSize[MAX_SHADER_VEC4_INPUT];
+
+    int aiOutputDeclared[MAX_SHADER_VEC4_OUTPUT];
+
+    //Does not track built-in inputs.
+    int abInputReferencedByInstruction[MAX_SHADER_VEC4_INPUT];
 
 	int aiOpcodeUsed[NUM_OPCODES];
 
 } Shader;
 
+static const uint32_t MAIN_PHASE = 0;
+static const uint32_t HS_FORK_PHASE = 1;
+static const uint32_t HS_CTRL_POINT_PHASE = 2;
+static const uint32_t HS_JOIN_PHASE = 3;
+static enum{ NUM_PHASES = 4};
+
 typedef struct HLSLCrossCompilerContext_TAG
 {
     bstring glsl;
 	bstring earlyMain;//Code to be inserted at the start of main()
+    bstring writeBuiltins[NUM_PHASES];//End of main or before emit()
+
+    bstring* currentGLSLString;//either glsl or earlyMain
+
+    int haveOutputBuiltins[NUM_PHASES];
+    uint32_t currentPhase;
+
     int indent;
     unsigned int flags;
     Shader* psShader;
+    GLSLCrossDependencyData* psDependencies;
 } HLSLCrossCompilerContext;
 
 #endif

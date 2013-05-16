@@ -30,11 +30,38 @@
 #define GL_COMPUTE_SHADER 0x91B9
 #endif
 
+static void ClearDependencyData(SHADER_TYPE eType, GLSLCrossDependencyData* depends)
+{
+    if(depends == NULL)
+    {
+        return;
+    }
+
+    switch(eType)
+    {
+        case PIXEL_SHADER:
+        {
+            uint32_t i;
+            for(i=0;i<MAX_SHADER_VEC4_INPUT; ++i)
+            {
+                depends->aePixelInputInterpolation[i] = INTERPOLATION_UNDEFINED;
+            }
+            break;
+        }
+        case HULL_SHADER:
+        {
+            depends->eTessPartitioning = TESSELLATOR_PARTITIONING_UNDEFINED;
+            depends->eTessOutPrim = TESSELLATOR_OUTPUT_UNDEFINED;
+            break;
+        }
+    }
+}
+
 void AddIndentation(HLSLCrossCompilerContext* psContext)
 {
     int i;
     int indent = psContext->indent;
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
     for(i=0; i < indent; ++i)
     {
         bcatcstr(glsl, "    ");
@@ -43,7 +70,7 @@ void AddIndentation(HLSLCrossCompilerContext* psContext)
 
 void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 
 	//Enable conservative depth if the extension is defined by the GLSL compiler.
 	bcatcstr(glsl,"#ifdef GL_ARB_conservative_depth\n\t#extension GL_ARB_conservative_depth : enable\n#endif\n");
@@ -79,23 +106,6 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
         bcatcstr(glsl, "};\n");
     }
 
-    /* Texture functions have overloaded parameters */
-    if(HaveOverloadedTextureFuncs(psContext->psShader->eTargetLanguage))
-    {
-        bcatcstr(glsl, "#define shadow2DLod textureLod\n");
-        bcatcstr(glsl, "#define shadow1DLod textureLod\n");
-        bcatcstr(glsl, "#define shadow2D texture\n");
-        bcatcstr(glsl, "#define shadow1D texture\n");
-        bcatcstr(glsl, "#define texture3DLod textureLod\n");
-        bcatcstr(glsl, "#define texture2DLod textureLod\n");
-        bcatcstr(glsl, "#define texture1DLod textureLod\n");
-        bcatcstr(glsl, "#define textureCubeLod textureLod\n");
-        bcatcstr(glsl, "#define texture3D texture\n");
-        bcatcstr(glsl, "#define texture2D texture\n");
-        bcatcstr(glsl, "#define texture1D texture\n");
-        bcatcstr(glsl, "#define textureCube texture\n");
-    }
-
     //The fragment language has no default precision qualifier for floating point types.
     if(psContext->psShader->eShaderType == PIXEL_SHADER &&
         psContext->psShader->eTargetLanguage == LANG_ES_100 || psContext->psShader->eTargetLanguage == LANG_ES_300 )
@@ -120,11 +130,16 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
         bcatcstr(glsl,"precision lowp usamplerCube;\n");
         bcatcstr(glsl,"precision lowp usampler2DArray;\n");
     }
+
+    if(SubroutinesSupported(psContext->psShader->eTargetLanguage))
+    {
+        bcatcstr(glsl, "subroutine void SubroutineType();\n");
+    }
 }
 
 void AddOpcodeFuncs(HLSLCrossCompilerContext* psContext)
 {
-    bstring glsl = psContext->glsl;
+    bstring glsl = *psContext->currentGLSLString;
 
     bcatcstr(glsl, "\n");
 
@@ -220,11 +235,12 @@ const char* GetVersionString(GLLang language)
     }
 }
 
-void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
+void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 {
     bstring glsl;
     uint32_t i;
     Shader* psShader = psContext->psShader;
+    GLLang language = *planguage;
     const uint32_t ui32InstCount = psShader->ui32InstCount;
     const uint32_t ui32DeclCount = psShader->ui32DeclCount;
 
@@ -233,15 +249,29 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
     if(language == LANG_DEFAULT)
     {
         language = ChooseLanguage(psShader);
+        *planguage = language;
     }
 
     glsl = bfromcstralloc (1024, GetVersionString(language));
 
     psContext->glsl = glsl;
 	psContext->earlyMain = bfromcstralloc (1024, "");
+    for(i=0; i<NUM_PHASES;++i)
+    {
+        psContext->writeBuiltins[i] = bfromcstralloc (1024, "");
+    }
+    psContext->currentGLSLString = &glsl;
     psShader->eTargetLanguage = language;
+    psContext->currentPhase = MAIN_PHASE;
+
+    ClearDependencyData(psShader->eShaderType, psContext->psDependencies);
 
     AddVersionDependentCode(psContext);
+
+    if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
+    {
+        bcatcstr(glsl, "layout(std140) uniform;\n");
+    }
 
     //Special case. Can have multiple phases.
     if(psShader->eShaderType == HULL_SHADER)
@@ -259,6 +289,8 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
         AddOpcodeFuncs(psContext);
 
         //control
+        psContext->currentPhase = HS_CTRL_POINT_PHASE;
+
         if(psShader->ui32HSControlPointDeclCount)
         {
             bcatcstr(glsl, "//Control point phase declarations\n");
@@ -281,6 +313,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
         }
 
         //fork
+        psContext->currentPhase = HS_FORK_PHASE;
         for(forkIndex = 0; forkIndex < psShader->ui32ForkPhaseCount; ++forkIndex)
         {
             bcatcstr(glsl, "//Fork phase declarations\n");
@@ -316,6 +349,19 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
                     psContext->indent--;
                     AddIndentation(psContext);
                     bcatcstr(glsl, "}\n");
+
+                    if(psContext->haveOutputBuiltins[psContext->currentPhase])
+                    {
+#ifdef _DEBUG
+                        AddIndentation(psContext);
+                        bcatcstr(glsl, "//--- Start builtin outputs ---\n");
+#endif
+                        bconcat(glsl, psContext->writeBuiltins[psContext->currentPhase]);
+#ifdef _DEBUG
+                        AddIndentation(psContext);
+                        bcatcstr(glsl, "//--- End builtin outputs ---\n");
+#endif
+                    }
                 }
 
             psContext->indent--;
@@ -324,6 +370,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
 
 
         //join
+        psContext->currentPhase = HS_JOIN_PHASE;
         if(psShader->ui32HSJoinDeclCount)
         {
             bcatcstr(glsl, "//Join phase declarations\n");
@@ -350,6 +397,16 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
         bcatcstr(glsl, "void main()\n{\n");
 
             psContext->indent++;
+
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//--- Start Early Main ---\n");
+#endif
+            bconcat(glsl, psContext->earlyMain);
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//--- End Early Main ---\n");
+#endif
 
             if(psShader->ui32HSControlPointInstrCount)
             {
@@ -382,7 +439,56 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
             psContext->indent--;
 
         bcatcstr(glsl, "}\n");
+
+        if(psContext->psDependencies)
+        {
+            //Save partitioning and primitive type for use by domain shader.
+            psContext->psDependencies->eTessOutPrim = psShader->sInfo.eTessOutPrim;
+
+            psContext->psDependencies->eTessPartitioning = psShader->sInfo.eTessPartitioning;
+        }
+
         return;
+    }
+
+    if(psShader->eShaderType == DOMAIN_SHADER && psContext->psDependencies)
+    {
+        //Load partitioning and primitive type from hull shader.
+        switch(psContext->psDependencies->eTessOutPrim)
+        {
+            case TESSELLATOR_OUTPUT_TRIANGLE_CW:
+            {
+                bcatcstr(glsl, "layout(cw) in;\n");
+                break;
+            }
+            case TESSELLATOR_OUTPUT_POINT:
+            {
+                bcatcstr(glsl, "layout(point_mode) in;\n");
+                break;
+            }
+            default:
+            {
+                break;
+            }
+        }
+
+        switch(psContext->psDependencies->eTessPartitioning)
+        {
+            case TESSELLATOR_PARTITIONING_FRACTIONAL_ODD:
+            {
+                bcatcstr(glsl, "layout(fractional_odd_spacing) in;\n");
+                break;
+            }
+            case TESSELLATOR_PARTITIONING_FRACTIONAL_EVEN:
+            {
+                bcatcstr(glsl, "layout(fractional_even_spacing) in;\n");
+                break;
+            }
+            default:
+            {
+                break;
+            }
+        }
     }
 
     for(i=0; i < ui32DeclCount; ++i)
@@ -396,7 +502,17 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
 
     psContext->indent++;
 
+#ifdef _DEBUG
+    AddIndentation(psContext);
+    bcatcstr(glsl, "//--- Start Early Main ---\n");
+#endif
 	bconcat(glsl, psContext->earlyMain);
+#ifdef _DEBUG
+    AddIndentation(psContext);
+    bcatcstr(glsl, "//--- End Early Main ---\n");
+#endif
+
+    MarkIntegerImmediates(psContext);
 
     for(i=0; i < ui32InstCount; ++i)
     {
@@ -408,7 +524,11 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang language)
     bcatcstr(glsl, "}\n");
 }
 
-int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language, GLSLShader* result)
+int TranslateHLSLFromMem(const char* shader,
+    unsigned int flags,
+    GLLang language,
+    GLSLCrossDependencyData* dependencies,
+    GLSLShader* result)
 {
     uint32_t* tokens;
     Shader* psShader;
@@ -427,8 +547,14 @@ int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language
 
         sContext.psShader = psShader;
         sContext.flags = flags;
+        sContext.psDependencies = dependencies;
 
-        TranslateToGLSL(&sContext, language);
+        for(i=0; i<NUM_PHASES;++i)
+        {
+            sContext.haveOutputBuiltins[i] = 0;
+        }
+
+        TranslateToGLSL(&sContext, &language);
 
         switch(psShader->eShaderType)
         {
@@ -467,6 +593,10 @@ int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language
 
         bdestroy(sContext.glsl);
 		bdestroy(sContext.earlyMain);
+        for(i=0; i<NUM_PHASES; ++i)
+        {
+            bdestroy(sContext.writeBuiltins[i]);
+        }
 
         free(psShader->psHSControlPointPhaseDecl);
         free(psShader->psHSControlPointPhaseInstr);
@@ -481,7 +611,9 @@ int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language
 
         free(psShader->psDecl);
         free(psShader->psInst);
-        FreeShaderInfo(&psShader->sInfo);
+        
+        result->reflection = psShader->sInfo;
+
         free(psShader);
 
 		success = 1;
@@ -494,11 +626,16 @@ int TranslateHLSLFromMem(const char* shader, unsigned int flags, GLLang language
 
     result->shaderType = GLSLShaderType;
     result->sourceCode = glslcstr;
+    result->GLSLLanguage = language;
 
 	return success;
 }
 
-int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang language, GLSLShader* result)
+int TranslateHLSLFromFile(const char* filename,
+    unsigned int flags,
+    GLLang language,
+    GLSLCrossDependencyData* dependencies,
+    GLSLShader* result)
 {
     FILE* shaderFile;
     int length;
@@ -526,10 +663,17 @@ int TranslateHLSLFromFile(const char* filename, unsigned int flags, GLLang langu
 
     shader[readLength] = '\0';
 
-    success = TranslateHLSLFromMem(shader, flags, language, result);
+    success = TranslateHLSLFromMem(shader, flags, language, dependencies, result);
 
     free(shader);
 
     return success;
+}
+
+void FreeGLSLShader(GLSLShader* s)
+{
+    bcstrfree(s->sourceCode);
+    s->sourceCode = NULL;
+    FreeShaderInfo(&s->reflection);
 }
 

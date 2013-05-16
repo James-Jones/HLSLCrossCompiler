@@ -1,6 +1,6 @@
 #include <GL/glew.h>
 #include "model.h"
-#include "debug.h"
+#include "common/debug.h"
 #include <fstream>
 #include <Image.h>
 
@@ -262,8 +262,8 @@ void Model::CreateMaterial()
 
     if(AI_SUCCESS == mtl->GetTexture(aiTextureType_DIFFUSE, 0, &texPath))
     {
-        //Textures for models currently reside in ../models
-        std::string fullPath ("../models/");
+        //Textures for models currently reside in ./models
+        std::string fullPath ("models/");
         fullPath += texPath.C_Str();
         mMaterial.SetDiffuseTexture(fullPath.c_str());
     }
@@ -273,7 +273,6 @@ void Model::CreateBuffers()
 {
 	const struct aiMesh* mesh = mScene->mMeshes[0];
 
-	GLuint indicesBuf;
 	uint32_t* indicesPtr;
 
 	glGenBuffers(1, &indicesBuf);
@@ -305,7 +304,6 @@ void Model::CreateBuffers()
 		vertexFloats += 2;
 	}
 
-	GLuint verticesBuf;
 	float* verticesPtr;
 	glGenBuffers(1, &verticesBuf);
 	glBindBuffer(GL_ARRAY_BUFFER, verticesBuf);
@@ -388,13 +386,21 @@ void get_bounding_box ( const aiScene* scene, aiVector3D* min,  aiVector3D* max)
 	get_bounding_box_for_node(scene, scene->mRootNode,min,max,&trafo);
 }
 
-void Model::DrawR(ITransform& world, const  aiNode* nd)
+void Model::RecursiveDraw(ITransform& world, const  aiNode* nd)
 {
 	Vectormath::Aos::Matrix4 localWorld = world.GetWorldMatrix();
+
+    Vectormath::Aos::Matrix4 originalWorld = localWorld;
 
 	aiMatrix4x4 m = nd->mTransformation;
 
 	m.Transpose();
+
+    localWorld *= Vectormath::Aos::Matrix4(
+        Vectormath::Aos::Vector4(m.a1, m.a2, m.a3, m.a4),
+        Vectormath::Aos::Vector4(m.b1, m.b2, m.b3, m.b4),
+        Vectormath::Aos::Vector4(m.c1, m.c2, m.c3, m.c4),
+        Vectormath::Aos::Vector4(m.d1, m.d2, m.d3, m.d4));
 
 	for(int n =0; n < nd->mNumMeshes; ++n)
 	{
@@ -418,41 +424,20 @@ void Model::DrawR(ITransform& world, const  aiNode* nd)
 
 	// draw all children
 	for (int n = 0; n < nd->mNumChildren; ++n) {
-		DrawR(world, nd->mChildren[n]);
+		RecursiveDraw(world, nd->mChildren[n]);
 	}
 
-	glPopMatrix();
+    world.SetWorldMatrix(originalWorld);
 }
 
 void Model::Draw(ITransform& world)
 {
-	Vectormath::Aos::Matrix4 localWorld = world.GetWorldMatrix();
-	Vectormath::Aos::Matrix4 originalWorld = localWorld;
-	aiVector3D scene_min, scene_max, scene_center;
-
-	get_bounding_box(mScene, &scene_min,&scene_max);
-	scene_center.x = (scene_min.x + scene_max.x) / 2.0f;
-	scene_center.y = (scene_min.y + scene_max.y) / 2.0f;
-	scene_center.z = (scene_min.z + scene_max.z) / 2.0f;
-
-	// scale the whole asset to fit into our view frustum 
-	float tmp = scene_max.x-scene_min.x;
-	tmp = aisgl_max(scene_max.y - scene_min.y,tmp);
-	tmp = aisgl_max(scene_max.z - scene_min.z,tmp);
-	tmp = 1.f / tmp;
-
-	localWorld *= Vectormath::Aos::Matrix4::scale(Vectormath::Aos::Vector3(tmp, tmp, tmp));
-
-	localWorld *= Vectormath::Aos::Matrix4::translation(Vectormath::Aos::Vector3(-scene_center.x, -scene_center.y, -scene_center.z));
-
 	glBindVertexArray(mVAO);
-
-	world.SetWorldMatrix(localWorld);
+    glBindBuffer(GL_ARRAY_BUFFER, verticesBuf);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesBuf);
 
     mMaterial.Apply();
 
-	DrawR(world, mScene->mRootNode);
-
-	world.SetWorldMatrix(originalWorld);
+	RecursiveDraw(world, mScene->mRootNode);
 }
 

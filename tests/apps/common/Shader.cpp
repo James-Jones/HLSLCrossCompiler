@@ -1,45 +1,148 @@
 #include "Shader.h"
 #include <GL/glew.h>
-#include "debug.h"
+#include "common/debug.h"
 
-ShaderEffect::ShaderEffect() : mCompileFlags(0), mLang(LANG_DEFAULT)
+const uint_t InvalidShaderHandle = 0xFFFFFFFF;
+
+ShaderEffect::ShaderEffect() : mCompileFlags(0), mRequestedLang(LANG_DEFAULT),
+    mVertex(InvalidShaderHandle),
+    mPixel(InvalidShaderHandle),
+    mGeometry(InvalidShaderHandle),
+    mHull(InvalidShaderHandle),
+    mDomain(InvalidShaderHandle),
+    mClipDistanceMaskVS(0),
+    mClipDistanceMaskGS(0),
+    mProgram(0)
 {
+}
+
+ShaderEffect::~ShaderEffect()
+{
+    if(mProgram)
+    {
+        glDeleteProgram(mProgram);//Auto detaches all shaders.
+    }
+    if(mVertex != InvalidShaderHandle)
+    {
+        glDeleteShader(mVertex);
+    }
+    if(mPixel != InvalidShaderHandle)
+    {
+        glDeleteShader(mPixel);
+    }
+    if(mGeometry != InvalidShaderHandle)
+    {
+        glDeleteShader(mGeometry);
+    }
+    if(mHull != InvalidShaderHandle)
+    {
+        glDeleteShader(mHull);
+    }
+    if(mDomain != InvalidShaderHandle)
+    {
+        glDeleteShader(mHull);
+    }
 }
 
 void ShaderEffect::Create()
 {
     mProgram = glCreateProgram();
+
+    if(HaveLimitedInOutLocationQualifier(mVSLang) == 0 || HaveLimitedInOutLocationQualifier(mPSLang) == 0)
+    {
+        int maxAttrib = 0;
+
+        glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &maxAttrib);
+
+        for(int i=0; i<maxAttrib; ++i)
+        {
+            std::string attribName("dcl_Input");
+            //Visual Studio/Windows missing int version std::to_string, so use long long.
+            attribName += std::to_string((long long)i);
+
+            glBindAttribLocation(mProgram, i, attribName.c_str());
+        }
+
+        int maxDrawBuffers = 0;
+
+        glGetIntegerv(GL_MAX_DRAW_BUFFERS, &maxDrawBuffers);
+
+        for(int i=0; i<maxAttrib; ++i)
+        {
+            std::string pixelOutputName("PixOutput");
+            pixelOutputName += std::to_string((long long)i);
+
+            glBindFragDataLocation(mProgram, i, pixelOutputName.c_str());
+        }
+    }
 }
 
-void ShaderEffect::FromByteFile(std::string& path)
+void ShaderEffect::FromGLSLFile(uint_t eShaderType, std::string& path)
 {
-    GLSLShader result;
-    TranslateHLSLFromFile(path.c_str(), mCompileFlags, mLang, &result);
 
-    switch(result.shaderType)
+    char* shaderSrc;
+
+    {
+        FILE* shaderFile;
+        int length;
+        int readLength;
+	    int success = 0;
+
+        shaderFile = fopen(path.c_str(), "rb");
+
+        ASSERT(shaderFile);
+
+        fseek(shaderFile, 0, SEEK_END);
+        length = ftell(shaderFile);
+        fseek(shaderFile, 0, SEEK_SET);
+
+        shaderSrc = (char*)malloc(length+1);
+
+        readLength = fread(shaderSrc, 1, length, shaderFile);
+
+        fclose(shaderFile);
+        shaderFile = 0;
+
+        shaderSrc[readLength] = '\0';
+    }
+
+    uint_t shader = 0;
+
+    switch(eShaderType)
     {
         case GL_VERTEX_SHADER:
         {
             mVertex = glCreateShader(GL_VERTEX_SHADER);
-            glShaderSource(mVertex, 1, (const char **)&result.sourceCode, 0);
-            glCompileShader(mVertex);
-            glAttachShader(mProgram, mVertex);
+            shader = mVertex;
+            mVSLang = LANG_DEFAULT;
             break;
         }
         case GL_FRAGMENT_SHADER:
         {
             mPixel = glCreateShader(GL_FRAGMENT_SHADER);
-            glShaderSource(mPixel, 1, (const char **)&result.sourceCode, 0);
-            glCompileShader(mPixel);
-            glAttachShader(mProgram, mPixel);
+            shader = mPixel;
+            mPSLang = LANG_DEFAULT;
             break;
         }
         case GL_GEOMETRY_SHADER:
         {
-            mPixel = glCreateShader(GL_GEOMETRY_SHADER);
-            glShaderSource(mGeometry, 1, (const char **)&result.sourceCode, 0);
-            glCompileShader(mGeometry);
-            glAttachShader(mProgram, mGeometry);
+            mGeometry = glCreateShader(GL_GEOMETRY_SHADER);
+            shader = mGeometry;
+            mGSLang = LANG_DEFAULT;
+            break;
+        }
+        case GL_TESS_CONTROL_SHADER:
+        {
+            mHull = glCreateShader(GL_TESS_CONTROL_SHADER);
+            shader = mHull;
+            mHSLang = LANG_DEFAULT;
+            break;
+        }
+        case GL_TESS_EVALUATION_SHADER:
+        {
+            mDomain = glCreateShader(GL_TESS_EVALUATION_SHADER);
+            shader = mDomain;
+            mDSLang = LANG_DEFAULT;
             break;
         }
         default:
@@ -47,85 +150,208 @@ void ShaderEffect::FromByteFile(std::string& path)
             break;
         }
     }
-}
 
-void ShaderEffect::FromVertexByteFile(std::string& path)
-{
-    GLSLShader result;
-    TranslateHLSLFromFile(path.c_str(), mCompileFlags, mLang, &result);
-
-    ASSERT(result.shaderType == GL_VERTEX_SHADER);
-
-    mVertex = glCreateShader(GL_VERTEX_SHADER);
-
-    glShaderSource(mVertex, 1, (const char **)&result.sourceCode, 0);
-    glCompileShader(mVertex);
+    glShaderSource(shader, 1, (const char **)&shaderSrc, 0);
+    glCompileShader(shader);
+    glAttachShader(mProgram, shader);
 
 #ifdef _DEBUG
     GLint compiled = GL_FALSE;
-    glGetShaderiv(mVertex, GL_COMPILE_STATUS, &compiled);
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
     if(!compiled)
     {
+        char* log;
+        GLint length = 0;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+        log = new char[length];
+        glGetShaderInfoLog(shader, length, NULL, log);
+        ASSERT(0);
+        delete [] log;
+
         ASSERT(0);
     }
 #endif
 
-    glAttachShader(mProgram, mVertex);
+    delete [] shaderSrc;
 }
 
-void ShaderEffect::FromPixelByteFile(std::string& path)
+void ShaderEffect::FromByteFile(std::string& path)
 {
     GLSLShader result;
-    TranslateHLSLFromFile(path.c_str(), mCompileFlags, mLang, &result);
 
-    ASSERT(result.shaderType == GL_FRAGMENT_SHADER);
+    int translated = TranslateHLSLFromFile(path.c_str(), mCompileFlags, mRequestedLang, &mDependencies, &result);
 
-    mPixel = glCreateShader(GL_FRAGMENT_SHADER);
+    ASSERT(translated);
 
-    glShaderSource(mPixel, 1, (const char **)&result.sourceCode, 0);
-    glCompileShader(mPixel);
+    uint_t shader = 0;
+
+    if(PixelInpterpDependency(result.GLSLLanguage))
+    {
+        //Must compile pixel shader first!
+        if(mPixel == InvalidShaderHandle &&  result.shaderType != GL_FRAGMENT_SHADER)
+        {
+            ASSERT(0);
+        }
+    }
+
+    switch(result.shaderType)
+    {
+        case GL_VERTEX_SHADER:
+        {
+            mVertex = glCreateShader(GL_VERTEX_SHADER);
+            shader = mVertex;
+            mVSLang = result.GLSLLanguage;
+            break;
+        }
+        case GL_FRAGMENT_SHADER:
+        {
+            mPixel = glCreateShader(GL_FRAGMENT_SHADER);
+            shader = mPixel;
+            mPSLang = result.GLSLLanguage;
+            break;
+        }
+        case GL_GEOMETRY_SHADER:
+        {
+            mGeometry = glCreateShader(GL_GEOMETRY_SHADER);
+            shader = mGeometry;
+            mGSLang = result.GLSLLanguage;
+            break;
+        }
+        case GL_TESS_CONTROL_SHADER:
+        {
+            mHull = glCreateShader(GL_TESS_CONTROL_SHADER);
+            shader = mHull;
+            mHSLang = result.GLSLLanguage;
+            break;
+        }
+        case GL_TESS_EVALUATION_SHADER:
+        {
+            mDomain = glCreateShader(GL_TESS_EVALUATION_SHADER);
+            shader = mDomain;
+            mDSLang = result.GLSLLanguage;
+
+            //Hull shader must be compiled before domain in order
+            //to ensure correct partitioning and primitive type information
+            //is OR'ed into mCompileFlags.
+            ASSERT(mHull != InvalidShaderHandle);
+
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+
+    CheckStateRequirements(result.shaderType, &result.reflection);
+
+    glShaderSource(shader, 1, (const char **)&result.sourceCode, 0);
+    glCompileShader(shader);
+    glAttachShader(mProgram, shader);
 
 #ifdef _DEBUG
     GLint compiled = GL_FALSE;
-    glGetShaderiv(mPixel, GL_COMPILE_STATUS, &compiled);
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
     if(!compiled)
     {
+        char* log;
+        GLint length = 0;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+        log = new char[length];
+        glGetShaderInfoLog(shader, length, NULL, log);
+        ASSERT(0);
+        delete [] log;
+
         ASSERT(0);
     }
 #endif
 
-    glAttachShader(mProgram, mPixel);
-}
 
-void ShaderEffect::FromGeometryByteFile(std::string& path)
-{
-    GLSLShader result;
-    TranslateHLSLFromFile(path.c_str(), mCompileFlags, mLang, &result);
-
-    ASSERT(result.shaderType == GL_GEOMETRY_SHADER);
-
-    mGeometry = glCreateShader(GL_GEOMETRY_SHADER);
-
-    glShaderSource(mGeometry, 1, (const char **)&result.sourceCode, 0);
-    glCompileShader(mGeometry);
-
-#ifdef _DEBUG
-    GLint compiled = GL_FALSE;
-    glGetShaderiv(mGeometry, GL_COMPILE_STATUS, &compiled);
-    if(!compiled)
+#if 0
+    //Set the default values for constants.
+    for(uint32_t i = 0; i < result.reflection.ui32NumConstantBuffers; ++i)
     {
-        ASSERT(0);
+        ConstantBuffer* cbuf = result.reflection.psConstantBuffers+i;
+
+        for(uint32_t k = 0; k < cbuf->ui32NumVars; ++k)
+        {
+            uint32_t loc = glGetUniformLocation(mProgram, cbuf->asVars[k].Name);
+            glUniform1f(loc, *(float*)&cbuf->asVars[k].ui32DefaultValue);
+        }
     }
 #endif
 
-    glAttachShader(mProgram, mGeometry);
+    FreeGLSLShader(&result);
 }
 
-void ShaderEffect::Enable()
+void ShaderEffect::SetSubroutineUniforms(uint_t shaderType, SubroutineLink* link, int numLinks)
 {
-    glBindAttribLocation(mProgram, 0, "Input0");
-    glBindAttribLocation(mProgram, 1, "Input1");
-    glBindFragDataLocation(mProgram, 0, "PixOutput0");
+    int maxUniforms;
+    glGetProgramStageiv(mProgram, shaderType, GL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS, &maxUniforms);
+
+    ASSERT(maxUniforms < MAX_SHADER_SUBROUTINES);
+
+    for(int uniform = 0; uniform < maxUniforms; ++uniform)
+    {
+        if(uniform < numLinks)
+        {
+            SubroutineLink* ci = &link[uniform];
+
+            const int uniformIndex = glGetSubroutineUniformLocation(mProgram, shaderType, ci->UniformName);
+
+            const int functionIndex = glGetSubroutineIndex(mProgram, shaderType, ci->FunctionName);
+
+            mSubroutineMap[uniformIndex] = functionIndex;
+        }
+    }
+
+    glUniformSubroutinesuiv(shaderType, maxUniforms, mSubroutineMap);
+}
+
+void ShaderEffect::ApplyGLState()
+{
+    if(mClipDistanceMaskGS)
+    {
+        int plane;
+        for(plane = 0; plane < 8; ++plane)
+        {
+            if(mClipDistanceMaskGS & (1<<plane))
+            {
+                glEnable(GL_CLIP_DISTANCE0+plane);
+            }
+            else
+            {
+                glDisable(GL_CLIP_DISTANCE0+plane);
+            }
+        }
+    }
+    else if(mClipDistanceMaskVS)
+    {
+        int plane;
+        for(plane = 0; plane < 8; ++plane)
+        {
+            if(mClipDistanceMaskVS & (1<<plane))
+            {
+                glEnable(GL_CLIP_DISTANCE0+plane);
+            }
+            else
+            {
+                glDisable(GL_CLIP_DISTANCE0+plane);
+            }
+        }
+    }
+    else
+    {
+        int plane;
+        for(plane = 0; plane < 8; ++plane)
+        {
+            glDisable(GL_CLIP_DISTANCE0+plane);
+        }
+    }
+}
+
+void ShaderEffect::Link()
+{
     glLinkProgram(mProgram);
 
 #ifdef _DEBUG
@@ -142,8 +368,18 @@ void ShaderEffect::Enable()
         delete [] log;
     }
 #endif
+}
+
+void ShaderEffect::Enable()
+{
+    ApplyGLState();
 
     glUseProgram(mProgram);
+}
+
+void ShaderEffect::SetTexture(const char* name, int imageUnit) {
+    int loc = glGetUniformLocation(mProgram, name);
+    glUniform1i(loc, imageUnit);
 }
 
 void ShaderEffect::SetTexture(std::string& name, int imageUnit) {
@@ -155,10 +391,22 @@ void ShaderEffect::SetVec4(std::string& name, int count, float* v) {
     int loc = glGetUniformLocation(mProgram, (name + std::string("VS")).c_str());
     glUniform4fv(loc, count, v);
 
-    loc = glGetUniformLocation(mProgram, (name + std::string("PS")).c_str());
-    glUniform4fv(loc, count, v);
+    if(mDomain)
+    {
+        loc = glGetUniformLocation(mProgram, (name + std::string("HS")).c_str());
+        glUniform4fv(loc, count, v);
 
-    loc = glGetUniformLocation(mProgram, (name + std::string("GS")).c_str());
+        loc = glGetUniformLocation(mProgram, (name + std::string("DS")).c_str());
+        glUniform4fv(loc, count, v);
+    }
+
+    if(mGeometry)
+    {
+        loc = glGetUniformLocation(mProgram, (name + std::string("GS")).c_str());
+        glUniform4fv(loc, count, v);
+    }
+
+    loc = glGetUniformLocation(mProgram, (name + std::string("PS")).c_str());
     glUniform4fv(loc, count, v);
 }
 
@@ -187,13 +435,7 @@ void ShaderEffect::CreateUniformBlock(std::string& name, uint_t& ubo)
 
 void ShaderEffect::SetUniformBlock(std::string& name, uint_t bufIndex)
 {
-    int uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("VS")).c_str());
-    glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
-
-    uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("GS")).c_str());
-    glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
-
-    uniformIndex = glGetUniformBlockIndex(mProgram, (name + std::string("PS")).c_str());
+    int uniformIndex = glGetUniformBlockIndex(mProgram, (name).c_str());
     glUniformBlockBinding(mProgram, uniformIndex, bufIndex);
 }
 
@@ -202,3 +444,34 @@ void ShaderEffect::SetUniformBlock(std::string& name, uint_t bufIndex, uint_t ub
     glBindBufferBase(GL_UNIFORM_BUFFER, bufIndex, ubo);
 	SetUniformBlock(name, bufIndex);
 }
+
+void ShaderEffect::CheckStateRequirements(uint_t eShaderType, ShaderInfo* reflection)
+{
+    const uint32_t count = reflection->ui32NumOutputSignatures;
+    InOutSignature* psClipSignature;
+    uint_t nextPlane = 0;
+    
+    if(GetOutputSignatureFromSystemValue(NAME_CLIP_DISTANCE, 0, reflection, &psClipSignature))
+    {
+        if(eShaderType == GL_VERTEX_SHADER)
+        {
+            mClipDistanceMaskVS |= psClipSignature->ui32Mask;
+        }
+        else if(eShaderType == GL_GEOMETRY_SHADER)
+        {
+            mClipDistanceMaskGS |= psClipSignature->ui32Mask;
+        }
+    }
+    if(GetOutputSignatureFromSystemValue(NAME_CLIP_DISTANCE, 1, reflection, &psClipSignature))
+    {
+        if(eShaderType == GL_VERTEX_SHADER)
+        {
+            mClipDistanceMaskVS |= psClipSignature->ui32Mask<<4;
+        }
+        else if(eShaderType == GL_GEOMETRY_SHADER)
+        {
+            mClipDistanceMaskGS |= psClipSignature->ui32Mask<<4;
+        }
+    }
+}
+
