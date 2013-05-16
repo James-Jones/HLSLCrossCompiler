@@ -3,9 +3,10 @@
 #ifdef _DEBUG
 
 #ifndef _WIN32
-#define OutputDebugString(str)
+#define DebugString(str)
 #else
 #include <windows.h>
+#define DebugString(str) OutputDebugString(str)
 #endif
 
 #include <assert.h>
@@ -15,7 +16,7 @@ void SetupOpenGLDebugCallback();
 
 #else
 #define ASSERT(X)
-#define OutputDebugString(X)
+#define DebugString(X)
 #endif
 #endif
 

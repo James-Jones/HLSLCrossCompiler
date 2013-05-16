@@ -1,21 +1,7 @@
 #ifndef LANGUAGES_H
 #define LANGUAGES_H
 
-typedef enum
-{
-    LANG_DEFAULT,// Depends on the HLSL shader model.
-    LANG_ES_100,
-    LANG_ES_300,
-    LANG_120,
-    LANG_130,
-    LANG_140,
-    LANG_150,
-    LANG_330,
-    LANG_400,
-    LANG_410,
-    LANG_420,
-    LANG_430
-} GLLang;
+#include "hlslcc.h"
 
 static int InOutSupported(const GLLang eLang)
 {
@@ -117,7 +103,7 @@ static int SubroutinesSupported(const GLLang eLang)
 //Before 430, flat/smooth/centroid/noperspective must match
 //between fragment and its previous stage.
 //HLSL bytecode only tells us the interpolation in pixel shader.
-static int PixelInpterpDependency(const GLLang eLang)
+static int PixelInterpDependency(const GLLang eLang)
 {
     if(eLang < LANG_430)
     {

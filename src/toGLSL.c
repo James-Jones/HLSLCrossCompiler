@@ -1,15 +1,15 @@
-#include "tokens.h"
-#include "structs.h"
-#include "decode.h"
+#include "internal_includes/tokens.h"
+#include "internal_includes/structs.h"
+#include "internal_includes/decode.h"
 #include "stdlib.h"
 #include "stdio.h"
 #include "bstrlib.h"
-#include "hlsl_opcode_funcs_glsl.h"
-#include "toGLSL.h"
-#include "toGLSLInstruction.h"
-#include "toGLSLOperand.h"
-#include "toGLSLDeclaration.h"
-#include "debug.h"
+#include "internal_includes/hlsl_opcode_funcs_glsl.h"
+#include "internal_includes/toGLSLInstruction.h"
+#include "internal_includes/toGLSLOperand.h"
+#include "internal_includes/toGLSLDeclaration.h"
+#include "internal_includes/languages.h"
+#include "internal_includes/debug.h"
 
 #ifndef GL_VERTEX_SHADER_ARB
 #define GL_VERTEX_SHADER_ARB              0x8B31
@@ -524,7 +524,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
     bcatcstr(glsl, "}\n");
 }
 
-int TranslateHLSLFromMem(const char* shader,
+HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
     unsigned int flags,
     GLLang language,
     GLSLCrossDependencyData* dependencies,
@@ -631,7 +631,7 @@ int TranslateHLSLFromMem(const char* shader,
 	return success;
 }
 
-int TranslateHLSLFromFile(const char* filename,
+HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
     unsigned int flags,
     GLLang language,
     GLSLCrossDependencyData* dependencies,
@@ -670,7 +670,7 @@ int TranslateHLSLFromFile(const char* filename,
     return success;
 }
 
-void FreeGLSLShader(GLSLShader* s)
+HLSLCC_API void HLSLCC_APIENTRY FreeGLSLShader(GLSLShader* s)
 {
     bcstrfree(s->sourceCode);
     s->sourceCode = NULL;

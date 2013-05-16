@@ -44,6 +44,15 @@ ShaderEffect::~ShaderEffect()
     }
 }
 
+static int HaveLimitedInOutLocationQualifier(const GLLang eLang)
+{
+    if(eLang >= LANG_330 || eLang == LANG_ES_300)
+    {
+        return 1;
+    }
+    return 0;
+}
+
 void ShaderEffect::Create()
 {
     mProgram = glCreateProgram();
@@ -175,6 +184,15 @@ void ShaderEffect::FromGLSLFile(uint_t eShaderType, std::string& path)
     delete [] shaderSrc;
 }
 
+static int PixelInterpDependency(const GLLang eLang)
+{
+    if(eLang < LANG_430)
+    {
+        return 1;
+    }
+    return 0;
+}
+
 void ShaderEffect::FromByteFile(std::string& path)
 {
     GLSLShader result;
@@ -185,7 +203,7 @@ void ShaderEffect::FromByteFile(std::string& path)
 
     uint_t shader = 0;
 
-    if(PixelInpterpDependency(result.GLSLLanguage))
+    if(PixelInterpDependency(result.GLSLLanguage))
     {
         //Must compile pixel shader first!
         if(mPixel == InvalidShaderHandle &&  result.shaderType != GL_FRAGMENT_SHADER)
@@ -445,6 +463,23 @@ void ShaderEffect::SetUniformBlock(std::string& name, uint_t bufIndex, uint_t ub
 	SetUniformBlock(name, bufIndex);
 }
 
+static int GetOutputSignatureFromSystemValue(SPECIAL_NAME eSystemValueType, uint32_t ui32SemanticIndex, ShaderInfo* psShaderInfo, InOutSignature** ppsOut)
+{
+    uint32_t i;
+    const uint32_t ui32NumVars = psShaderInfo->ui32NumOutputSignatures;
+
+    for(i=0; i<ui32NumVars; ++i)
+    {
+        InOutSignature* psOutputSignatures = psShaderInfo->psOutputSignatures;
+        if(eSystemValueType == psOutputSignatures[i].eSystemValueType &&
+            ui32SemanticIndex == psOutputSignatures[i].ui32SemanticIndex)
+	    {
+		    *ppsOut = psOutputSignatures+i;
+		    return 1;
+	    }
+    }
+    return 0;
+}
 void ShaderEffect::CheckStateRequirements(uint_t eShaderType, ShaderInfo* reflection)
 {
     const uint32_t count = reflection->ui32NumOutputSignatures;

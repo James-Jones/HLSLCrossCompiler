@@ -1,6 +1,7 @@
 
-#include "reflect.h"
-#include "debug.h"
+#include "internal_includes/reflect.h"
+#include "internal_includes/debug.h"
+#include "bstrlib.h"
 #include <stdlib.h>
 
 static void ReadStringFromTokenStream(const uint32_t* tokens, char* str)

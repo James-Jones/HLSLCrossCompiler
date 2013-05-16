@@ -2,16 +2,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 PROJECT (HLSLCrossCompilerProj C CXX)
 
-#IF(DXSDKDIR)
-#    INCLUDE_DIRECTORIES($(DXSDKDIR)\\Include)
-#    LINK_DIRECTORIES($(DXSDKDIR)\\Lib\\x86)
-#ELSE()
-#    INCLUDE_DIRECTORIES("C:\\Program Files\\Microsoft DirectX SDK (June 2010)\\Include")
-#    LINK_DIRECTORIES("C:\\Program Files\\Microsoft DirectX SDK (June 2010)\\Lib\\x86")
-#ENDIF()
-
 IF(NOT CMAKE_BUILD_TYPE)
-#	SET(CMAKE_BUILD_TYPE "Debug")
 	SET(CMAKE_BUILD_TYPE "Release")
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
@@ -20,6 +11,11 @@ IF( ${CMAKE_BUILD_TYPE} STREQUAL Debug )
     MESSAGE( "Debug build" )
     ADD_DEFINITIONS(-DDEBUG -D_DEBUG -D__DEBUG__)
 ENDIF()
+
+IF( BUILD_SHARED_LIBS)
+   MESSAGE("Dynamic libs")
+   ADD_DEFINITIONS(-DHLSLCC_DYNLIB)
+ENDIF( BUILD_SHARED_LIBS )
 
 SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY "../bin" )
 SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY "../lib" )
@@ -47,42 +43,54 @@ IF(WIN32)
     ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS /WX /W3 /arch:SSE2)
 ENDIF()
 
-INCLUDE_DIRECTORIES( ../ ../cbstring/)
+INCLUDE_DIRECTORIES( ../include ../src/cbstring/ ../src/ )
 
-file(GLOB CBSTRING_CFILES ../cbstring/*.c)
-file(GLOB CBSTRING_HFILES ../cbstring/*.h)
+file(GLOB CBSTRING_CFILES ../src/cbstring/*.c)
+file(GLOB CBSTRING_HFILES ../src/cbstring/*.h)
 source_group("CBString Files" FILES ${CBSTRING_CFILES} ${CBSTRING_HFILES})
 
-ADD_LIBRARY( libHLSLcc STATIC 
-../debug.h
-../decode.h
-../hlsl_opcode_funcs_glsl.h
-../languages.h
-../pstdint.h
-../reflect.h
-../structs.h
-../toGLSL.h
-../toGLSLDeclaration.h
-../toGLSLInstruction.h
-../toGLSLOperand.h
-../tokens.h
-../shaderLimits.h
+ADD_LIBRARY( libHLSLcc 
+../src/internal_includes/debug.h
+../src/internal_includes/decode.h
+../src/internal_includes/hlsl_opcode_funcs_glsl.h
+../src/internal_includes/languages.h
+../include/pstdint.h
+../src/internal_includes/reflect.h
+../src/internal_includes/structs.h
+../include/hlslcc.h
+../src/internal_includes/toGLSLDeclaration.h
+../src/internal_includes/toGLSLInstruction.h
+../src/internal_includes/toGLSLOperand.h
+../src/internal_includes/tokens.h
+../src/internal_includes/shaderLimits.h
 ${CBSTRING_HFILES}
-../decode.c
-../reflect.c
-../toGLSL.c
-../toGLSLInstruction.c
-../toGLSLOperand.c
-../toGLSLDeclaration.c
+../src/decode.c
+../src/reflect.c
+../src/toGLSL.c
+../src/toGLSLInstruction.c
+../src/toGLSLOperand.c
+../src/toGLSLDeclaration.c
 ${CBSTRING_CFILES}
 )
 
-ADD_EXECUTABLE( HLSLcc ../toGLSLStandalone.c ../timer.h ../timer.c)
+INCLUDE_DIRECTORIES( ../offline/cjson/ )
+
+file(GLOB CJSON_CFILES ../offline/cjson/*.c)
+file(GLOB CJSON_HFILES ../offline/cjson/*.h)
+source_group("cJSON Files" FILES ${CJSON_CFILES} ${CJSON_HFILES})
+
+ADD_EXECUTABLE( HLSLcc
+../offline/toGLSLStandalone.cpp
+../offline/timer.h
+../offline/timer.cpp
+../offline/hash.h
+../offline/serializeReflection.cpp
+../offline/serializeReflection.h
+${CJSON_CFILES}
+${CJSON_HFILES}
+)
 
 TARGET_LINK_LIBRARIES( HLSLcc libHLSLcc)
-
-
-# ADD_EXECUTABLE( Reflect ../reflect.cpp )
 
 # force variables that could be defined on the cmdline
 # to be written to the cach

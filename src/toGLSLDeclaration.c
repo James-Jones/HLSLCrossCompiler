@@ -1,8 +1,9 @@
-#include "toGLSL.h"
-#include "toGLSLDeclaration.h"
-#include "toGLSLOperand.h"
+#include "hlslcc.h"
+#include "internal_includes/toGLSLDeclaration.h"
+#include "internal_includes/toGLSLOperand.h"
+#include "internal_includes/languages.h"
 #include "bstrlib.h"
-#include "debug.h"
+#include "internal_includes/debug.h"
 #include <math.h>
 
 #include <float.h>

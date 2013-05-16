@@ -1,13 +1,11 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
-#include "tokens.h"
-#include "languages.h"
+#include "hlslcc.h"
 #include "bstrlib.h"
 
-#include "reflect.h"
-
-#include "toGLSL.h"
+#include "internal_includes/tokens.h"
+#include "internal_includes/reflect.h"
 
 typedef struct Operand_TAG
 {

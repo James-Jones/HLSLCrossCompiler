@@ -1,9 +1,7 @@
 #ifndef SHADER_H_
 #define SHADER_H_
 
-extern "C" {
-#include "toGLSL.h"
-}
+#include "hlslcc.hpp"
 
 #include <string>
 #include "pstdint.h"

@@ -1,8 +1,9 @@
-#include "toGLSLInstruction.h"
-#include "toGLSLOperand.h"
+#include "internal_includes/toGLSLInstruction.h"
+#include "internal_includes/toGLSLOperand.h"
+#include "internal_includes/languages.h"
 #include "bstrlib.h"
 #include "stdio.h"
-#include "debug.h"
+#include "internal_includes/debug.h"
 
 extern void AddIndentation(HLSLCrossCompilerContext* psContext);
 
