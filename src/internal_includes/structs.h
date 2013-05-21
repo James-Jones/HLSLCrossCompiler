@@ -116,6 +116,12 @@ typedef struct Declaration_TAG
         uint32_t ui32BufferSize;
     } sUAV;
 
+    struct TGSM
+    {
+        uint32_t ui32Stride;
+        uint32_t ui32Count;
+    } sTGSM;
+
     uint32_t ui32TableLength;
 
 	uint32_t ui32IsShadowTex;

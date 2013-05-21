@@ -896,6 +896,11 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             bformata(glsl, "UAV%d", psOperand->ui32RegisterNumber);
             break;
         }
+        case OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY:
+        {
+            bformata(glsl, "TGSM%d", psOperand->ui32RegisterNumber);
+            break;
+        }
         default:
         {
             ASSERT(0);

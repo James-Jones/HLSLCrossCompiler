@@ -668,6 +668,34 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
+        case OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED:
+        {
+            ResourceBinding* psBinding = NULL;
+            ConstantBuffer* psBuffer = NULL;
+
+            psDecl->ui32NumOperands = 1;
+            psDecl->sUAV.ui32GloballyCoherentAccess = 0;
+
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
+
+            psDecl->sTGSM.ui32Stride = pui32Token[ui32OperandOffset++];
+            psDecl->sTGSM.ui32Count = pui32Token[ui32OperandOffset++];
+            break;
+        }
+        case OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW:
+        {
+            ResourceBinding* psBinding = NULL;
+            ConstantBuffer* psBuffer = NULL;
+
+            psDecl->ui32NumOperands = 1;
+            psDecl->sUAV.ui32GloballyCoherentAccess = 0;
+
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
+
+            psDecl->sTGSM.ui32Stride = 4;
+            psDecl->sTGSM.ui32Count = pui32Token[ui32OperandOffset++];
+            break;
+        }
         default:
         {
             //Reached end of declarations

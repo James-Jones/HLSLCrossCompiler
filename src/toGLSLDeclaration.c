@@ -1642,6 +1642,26 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             //bcatcstr(glsl, ";\n");
             break;
         }
+        case OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW:
+        case OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED:
+        {
+            bcatcstr(glsl, "shared uniform ");
+            switch(psDecl->sTGSM.ui32Stride)
+            {
+                case 4:
+                {
+                    bcatcstr(glsl, "float ");
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
+            TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+            bformata(glsl, "[%d];\n", psDecl->sTGSM.ui32Count);
+            break;
+        }
         default:
         {
             ASSERT(0);
