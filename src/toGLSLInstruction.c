@@ -1,8 +1,9 @@
-#include "toGLSLInstruction.h"
-#include "toGLSLOperand.h"
+#include "internal_includes/toGLSLInstruction.h"
+#include "internal_includes/toGLSLOperand.h"
+#include "internal_includes/languages.h"
 #include "bstrlib.h"
 #include "stdio.h"
-#include "debug.h"
+#include "internal_includes/debug.h"
 
 extern void AddIndentation(HLSLCrossCompilerContext* psContext);
 
@@ -2043,6 +2044,35 @@ src3
             bcatcstr(glsl, ", ");
             TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_INTEGER);
             bcatcstr(glsl, ".xy);\n");
+            break;
+        }
+        case OPCODE_LD_UAV_TYPED:
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//LD_UAV_TYPED\n");
+#endif
+
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+            bcatcstr(glsl, " = imageLoad(");
+            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NAME_ONLY);
+            bcatcstr(glsl, ", ");
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+            bcatcstr(glsl, ")");
+            TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
+            bcatcstr(glsl, ";\n");
+            break;
+        }
+        case OPCODE_STORE_UAV_TYPED:
+        {
+            break;
+        }
+        case OPCODE_LD_RAW:
+        case OPCODE_STORE_RAW:
+        case OPCODE_LD_STRUCTURED:
+        case OPCODE_STORE_STRUCTURED:
+        {
             break;
         }
         default:

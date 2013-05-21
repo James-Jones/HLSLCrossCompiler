@@ -1,7 +1,7 @@
 #ifndef TO_GLSL_DECLARATION_H
 #define TO_GLSL_DECLARATION_H
 
-#include "structs.h"
+#include "internal_includes/structs.h"
 
 void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration* psDecl);
 

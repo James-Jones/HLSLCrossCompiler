@@ -1,6 +1,7 @@
 
-#include "reflect.h"
-#include "debug.h"
+#include "internal_includes/reflect.h"
+#include "internal_includes/debug.h"
+#include "bstrlib.h"
 #include <stdlib.h>
 
 static void ReadStringFromTokenStream(const uint32_t* tokens, char* str)
@@ -225,10 +226,24 @@ static void ReadResources(const uint32_t* pui32Tokens,//in
     {
         pui32ResourceBindings = ReadResourceBinding(pui32FirstToken, pui32ResourceBindings, psResBindings+i);
 
-        if(psResBindings[i].eType == RTYPE_CBUFFER)
+        switch(psResBindings[i].eType)
         {
-            ASSERT(k < MAX_CBUFFERS);
-            psShaderInfo->aui32ConstBufferBindpointRemap[psResBindings[i].ui32BindPoint] = k++;
+            case RTYPE_CBUFFER:
+            {
+                ASSERT(k < MAX_CBUFFERS);
+                psShaderInfo->aui32ConstBufferBindpointRemap[psResBindings[i].ui32BindPoint] = k++;
+                break;
+            }
+            case RTYPE_UAV_RWBYTEADDRESS:
+            case RTYPE_UAV_RWSTRUCTURED:
+            {
+                ASSERT(k < MAX_UAV);
+                psShaderInfo->aui32UAVBindpointRemap[psResBindings[i].ui32BindPoint] = k++;
+            }
+            default:
+            {
+                break;
+            }
         }
     }
 
@@ -351,6 +366,19 @@ void GetConstantBufferFromBindingPoint(const uint32_t ui32BindPoint, const Shade
     ASSERT(ui32BindPoint < MAX_CBUFFERS);
     
     index = psShaderInfo->aui32ConstBufferBindpointRemap[ui32BindPoint]; 
+    
+    ASSERT(index < psShaderInfo->ui32NumConstantBuffers);
+    
+    *ppsConstBuf = psShaderInfo->psConstantBuffers + index;
+}
+
+void GetUAVBufferFromBindingPoint(const uint32_t ui32BindPoint, const ShaderInfo* psShaderInfo, ConstantBuffer** ppsConstBuf)
+{
+    uint32_t index;
+    
+    ASSERT(ui32BindPoint < MAX_UAV);
+    
+    index = psShaderInfo->aui32UAVBindpointRemap[ui32BindPoint]; 
     
     ASSERT(index < psShaderInfo->ui32NumConstantBuffers);
     

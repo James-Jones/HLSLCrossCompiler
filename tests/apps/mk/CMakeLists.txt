@@ -2,29 +2,32 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 # Project Name
 PROJECT(HLSLCCTestsProj)
 
-SET(TESTS_ROOT ${HLSLCCTestsProj_SOURCE_DIR}/../)
+IF(NOT CMAKE_BUILD_TYPE)
+	SET(CMAKE_BUILD_TYPE "Release")
+ENDIF(NOT CMAKE_BUILD_TYPE)
+
 SET(HLSLCC_ROOT ${HLSLCCTestsProj_SOURCE_DIR}/../../../)
-SET(GLEW_DIR ../common/glew/)
-SET(GLUT_DIR ../common/glut/)
+SET(TESTS_ROOT ${HLSLCC_ROOT}/tests/apps/)
+SET(GLEW_DIR ${TESTS_ROOT}/common/glew/)
+SET(GLUT_DIR ${TESTS_ROOT}/common/glut/)
 
 SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${TESTS_ROOT}/bin )
 SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${TESTS_ROOT}/lib )
 
-INCLUDE_DIRECTORIES(${HLSLCC_ROOT}/)
-INCLUDE_DIRECTORIES(${HLSLCC_ROOT}/cbstring/)
-INCLUDE_DIRECTORIES(../)
-INCLUDE_DIRECTORIES(../common/)
-INCLUDE_DIRECTORIES(../common/glew/)
-INCLUDE_DIRECTORIES(../common/glut/include/)
-INCLUDE_DIRECTORIES(../common/vectormath/SSE/cpp/)
+INCLUDE_DIRECTORIES(${HLSLCC_ROOT}/include/)
+INCLUDE_DIRECTORIES(${TESTS_ROOT})
+INCLUDE_DIRECTORIES(${TESTS_ROOT}/common/)
+INCLUDE_DIRECTORIES(${TESTS_ROOT}/common/glew/)
+INCLUDE_DIRECTORIES(${TESTS_ROOT}/common/glut/include/)
+INCLUDE_DIRECTORIES(${TESTS_ROOT}/common/vectormath/SSE/cpp/)
 
 #Search normal dir as well as the debug and release dirs that visual studio generates.
 LINK_DIRECTORIES(${HLSLCC_ROOT}/lib/)
 LINK_DIRECTORIES(${TEST_DIR}/lib/)
-LINK_DIRECTORIES(${HLSLCC_ROOT}/lib/Debug/)
-LINK_DIRECTORIES(${TEST_DIR}/lib/Debug/)
-LINK_DIRECTORIES(${HLSLCC_ROOT}/lib/Release/)
-LINK_DIRECTORIES(${TEST_DIR}/lib/Release/)
+IF( MSVC )
+   LINK_DIRECTORIES(${HLSLCC_ROOT}/lib/$(ConfigurationName)/)
+   LINK_DIRECTORIES(${TEST_DIR}/lib/$(ConfigurationName)/)
+ENDIF()
 
 #Common libs
 #-glew
@@ -43,15 +46,15 @@ ADD_LIBRARY(fglib STATIC
 			${GLUT_DIR}/src/freeglut_structure ${GLUT_DIR}/src/freeglut_teapot ${GLUT_DIR}/src/freeglut_teapot_data ${GLUT_DIR}/src/freeglut_videoresize
 			${GLUT_DIR}/src/freeglut_window)
 #-Assimp
-SET(ASSIMP_DIR ../common/assimp)
+SET(ASSIMP_DIR ${TESTS_ROOT}/common/assimp)
 INCLUDE_DIRECTORIES(${ASSIMP_DIR}/include/ ${ASSIMP_DIR}/code/BoostWorkaround)
 ADD_DEFINITIONS(-DBOOST_WORKAROUND)
 file(GLOB ASSIMP_CPPFILES ${ASSIMP_DIR}/code/*.cpp ${ASSIMP_DIR}/contrib/irrXML/*.cpp ${ASSIMP_DIR}/contrib/clipper/*.cpp ${ASSIMP_DIR}/contrib/poly2tri/poly2tri/sweep/*.cc ${ASSIMP_DIR}/contrib/poly2tri/poly2tri/common/*.cc)
 file(GLOB ASSIMP_CFILES ${ASSIMP_DIR}/contrib/ConvertUTF/*.c ${ASSIMP_DIR}/contrib/zlib/*.c ${ASSIMP_DIR}/contrib/unzip/*.c)
 ADD_LIBRARY(assimp STATIC ${ASSIMP_CPPFILES} ${ASSIMP_CFILES})
 
-SET(COMMON_CODE ../common/debug.cpp ../common/Shader.cpp ../common/Image.cpp ../common/Model.cpp
-../common/debug.h ../common/Shader.h ../common/Image.h ../common/Model.h ../common/pstdint.h ../common/itransform.h)
+SET(COMMON_CODE ${TESTS_ROOT}/common/debug.cpp ${TESTS_ROOT}/common/Shader.cpp ${TESTS_ROOT}/common/Image.cpp ${TESTS_ROOT}/common/Model.cpp
+${TESTS_ROOT}/common/debug.h ${TESTS_ROOT}/common/Shader.h ${TESTS_ROOT}/common/Image.h ${TESTS_ROOT}/common/Model.h ${TESTS_ROOT}/common/pstdint.h ${TESTS_ROOT}/common/itransform.h)
 ADD_LIBRARY(common STATIC ${COMMON_CODE})
 
 #Each test

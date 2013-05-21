@@ -1,6 +1,6 @@
 #ifndef TO_GLSL_INSTRUCTION_H
 
-#include "structs.h"
+#include "internal_includes/structs.h"
 
 void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psInst);
 

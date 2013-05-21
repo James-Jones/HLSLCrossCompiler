@@ -1,7 +1,7 @@
 #ifndef TO_GLSL_OPERAND_H
 #define TO_GLSL_OPERAND_H
 
-#include "structs.h"
+#include "internal_includes/structs.h"
 
 #define TO_FLAG_NONE    0x0
 #define TO_FLAG_INTEGER 0x1

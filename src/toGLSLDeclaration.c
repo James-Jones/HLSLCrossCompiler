@@ -1,8 +1,9 @@
-#include "toGLSL.h"
-#include "toGLSLDeclaration.h"
-#include "toGLSLOperand.h"
+#include "hlslcc.h"
+#include "internal_includes/toGLSLDeclaration.h"
+#include "internal_includes/toGLSLOperand.h"
+#include "internal_includes/languages.h"
 #include "bstrlib.h"
-#include "debug.h"
+#include "internal_includes/debug.h"
 #include <math.h>
 
 #include <float.h>
@@ -1548,6 +1549,97 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         case OPCODE_DCL_HS_MAX_TESSFACTOR:
         {
             //For GLSL the max tessellation factor is fixed to the value of gl_MaxTessGenLevel. 
+            break;
+        }
+        case OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED:
+        {
+            if(psDecl->sUAV.ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
+            {
+                bcatcstr(glsl, "coherent ");
+            }
+            switch(psDecl->value.eResourceDimension)
+            {
+                case RESOURCE_DIMENSION_BUFFER:
+                {
+                    bcatcstr(glsl, "uniform imageBuffer ");
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE1D:
+                {
+					bcatcstr(glsl, "uniform image1D ");
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2D:
+                {
+					bcatcstr(glsl, "uniform image2D ");
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2DMS:
+                {
+                    bcatcstr(glsl, "uniform image2DMS ");
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE3D:
+                {
+                    bcatcstr(glsl, "uniform image3D ");
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURECUBE:
+                {
+					bcatcstr(glsl, "uniform imageCube ");
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+                {
+					bcatcstr(glsl, "uniform image1DArray ");
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+                {
+					bcatcstr(glsl, "uniform image2DArray ");
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
+                {
+                    bcatcstr(glsl, "uniform image3DArray ");
+                    break;
+                }
+                case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+                {
+					bcatcstr(glsl, "uniform imageCubeArray ");
+                    break;
+                }
+            }
+            TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+            bcatcstr(glsl, ";\n");
+            break;
+        }
+        case OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED:
+        case OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW:
+        {
+            if(psDecl->sUAV.ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
+            {
+                bcatcstr(glsl, "coherent ");
+            }
+            bcatcstr(glsl, "uniform buffer { ");
+                bformata(glsl, "float data[%d] ", psDecl->sUAV.ui32BufferSize/4);
+            bcatcstr(glsl, "} ");
+            TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+            bcatcstr(glsl, ";\n");
+            break;
+        }
+        case OPCODE_DCL_RESOURCE_STRUCTURED:
+        {
+            //bcatcstr(glsl, "uniform res_structured");
+            //TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+            //bcatcstr(glsl, ";\n");
+            break;
+        }
+        case OPCODE_DCL_RESOURCE_RAW:
+        {
+            //bcatcstr(glsl, "uniform res_raw");
+            //TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+            //bcatcstr(glsl, ";\n");
             break;
         }
         default:
