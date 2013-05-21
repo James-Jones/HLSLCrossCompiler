@@ -345,7 +345,8 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
     {
         case OPCODE_DCL_RESOURCE: // DCL* opcodes have
         {
-            psDecl->value.eResourceDimension = DecodeResourceDimension(*pui32Token+ui32OperandOffset);
+            psDecl->value.eResourceDimension = DecodeResourceDimension(*pui32Token);
+            psDecl->ui32NumOperands = 1;
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
@@ -613,6 +614,58 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         case OPCODE_DCL_HS_MAX_TESSFACTOR:
         {
             psDecl->value.fMaxTessFactor = *((float*)&pui32Token[1]);
+            break;
+        }
+        case OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED:
+        {
+            psDecl->ui32NumOperands = 1;
+            psDecl->value.eResourceDimension = DecodeResourceDimension(*pui32Token);
+            psDecl->sUAV.ui32GloballyCoherentAccess = DecodeAccessCoherencyFlags(*pui32Token);
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
+            break;
+        }
+        case OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW:
+        {
+            ResourceBinding* psBinding = NULL;
+            ConstantBuffer* psBuffer = NULL;
+
+            psDecl->ui32NumOperands = 1;
+            psDecl->sUAV.ui32GloballyCoherentAccess = DecodeAccessCoherencyFlags(*pui32Token);
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
+
+            if(GetResourceFromBindingPoint(RTYPE_UAV_RWBYTEADDRESS, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding))
+            {
+                GetConstantBufferFromBindingPoint(psBinding->ui32BindPoint, &psShader->sInfo, &psBuffer);
+                psDecl->sUAV.ui32BufferSize = psBuffer->ui32TotalSizeInBytes;
+            }
+            break;
+        }
+        case OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED:
+        {
+            ResourceBinding* psBinding = NULL;
+            ConstantBuffer* psBuffer = NULL;
+
+            psDecl->ui32NumOperands = 1;
+            psDecl->sUAV.ui32GloballyCoherentAccess = DecodeAccessCoherencyFlags(*pui32Token);
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
+
+            if(GetResourceFromBindingPoint(RTYPE_UAV_RWSTRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding))
+            {
+                GetUAVBufferFromBindingPoint(psBinding->ui32BindPoint, &psShader->sInfo, &psBuffer);
+                psDecl->sUAV.ui32BufferSize = psBuffer->ui32TotalSizeInBytes;
+            }
+            break;
+        }
+        case OPCODE_DCL_RESOURCE_STRUCTURED:
+        {
+            psDecl->ui32NumOperands = 1;
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
+            break;
+        }
+        case OPCODE_DCL_RESOURCE_RAW:
+        {
+            psDecl->ui32NumOperands = 1;
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
         default:
@@ -899,6 +952,27 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
+            break;
+        }
+        case OPCODE_STORE_UAV_TYPED:
+        case OPCODE_LD_UAV_TYPED:
+        case OPCODE_LD_RAW:
+        case OPCODE_STORE_RAW:
+        {
+            psInst->ui32NumOperands = 3;
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
+            break;
+        }
+        case OPCODE_STORE_STRUCTURED:
+        case OPCODE_LD_STRUCTURED:
+        {
+            psInst->ui32NumOperands = 4;
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
             break;
         }
         default:

@@ -891,6 +891,11 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 			bcatcstr(glsl, "gl_LocalInvocationIndex");
 			break;
 		}
+        case OPERAND_TYPE_UNORDERED_ACCESS_VIEW:
+        {
+            bformata(glsl, "UAV%d", psOperand->ui32RegisterNumber);
+            break;
+        }
         default:
         {
             ASSERT(0);

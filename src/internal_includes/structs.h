@@ -110,6 +110,12 @@ typedef struct Declaration_TAG
         } interface;
     } value;
 
+    struct UAV_TAG
+    {
+        uint32_t ui32GloballyCoherentAccess;
+        uint32_t ui32BufferSize;
+    } sUAV;
+
     uint32_t ui32TableLength;
 
 	uint32_t ui32IsShadowTex;

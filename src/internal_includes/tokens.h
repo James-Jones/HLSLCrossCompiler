@@ -704,4 +704,11 @@ static uint32_t DecodeImmediateAddressOffset(IMMEDIATE_ADDRESS_OFFSET_COORD eCoo
     return ((((ui32Token)&IMMEDIATE_ADDRESS_OFFSET_MASK(eCoord))>>(IMMEDIATE_ADDRESS_OFFSET_SHIFT(eCoord))));
 }
 
+// UAV access scope flags
+static const uint32_t GLOBALLY_COHERENT_ACCESS = 0x00010000;
+static uint32_t DecodeAccessCoherencyFlags(uint32_t ui32Token)
+{
+    return ui32Token & 0x00010000;
+}
+
 #endif

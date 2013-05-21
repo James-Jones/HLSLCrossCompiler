@@ -43,6 +43,7 @@ static enum {MAX_FUNCTION_POINTERS = 128};
 #define MAX_REFLECT_STRING_LENGTH 512
 #define MAX_SHADER_VARS 256
 #define MAX_CBUFFERS 256
+#define MAX_UAV 256
 #define MAX_FUNCTION_TABLES 256
 
 typedef enum SPECIAL_NAME
@@ -220,6 +221,7 @@ typedef struct ShaderInfo_TAG
     uint32_t aui32TableIDToTypeID[MAX_FUNCTION_TABLES];
 
     uint32_t aui32ConstBufferBindpointRemap[MAX_CBUFFERS];
+    uint32_t aui32UAVBindpointRemap[MAX_UAV];
 
     TESSELLATOR_PARTITIONING eTessPartitioning;
     TESSELLATOR_OUTPUT_PRIMITIVE eTessOutPrim;
