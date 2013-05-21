@@ -346,7 +346,7 @@ int GetOptions(int argc, char** argv, Options* psOptions)
 			psOptions->shaderFile = option + strlen("-in=");
             if(!fileExists(psOptions->shaderFile))
             {
-                printf("Invalid path: %d\n", psOptions->shaderFile);
+                printf("Invalid path: %s\n", psOptions->shaderFile);
                 return 0;
             }
 		}
