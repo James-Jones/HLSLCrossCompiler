@@ -102,7 +102,7 @@ static const uint32_t* ReadResourceBinding(const uint32_t* pui32FirstResourceTok
 
     psBinding->eType = *pui32Tokens++;
     psBinding->ui32ReturnType = *pui32Tokens++;
-    psBinding->eDimension = (RESOURCE_DIMENSION)*pui32Tokens++;
+    psBinding->eDimension = (REFLECT_RESOURCE_DIMENSION)*pui32Tokens++;
     psBinding->ui32NumSamples = *pui32Tokens++;
     psBinding->ui32BindPoint = *pui32Tokens++;
     psBinding->ui32BindCount = *pui32Tokens++;

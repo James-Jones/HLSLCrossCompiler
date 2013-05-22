@@ -765,11 +765,6 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_CASE:
         case OPCODE_SWITCH:
         case OPCODE_LABEL:
-        case OPCODE_COUNTBITS:
-        case OPCODE_FIRSTBIT_HI:
-        case OPCODE_FIRSTBIT_LO:
-        case OPCODE_FIRSTBIT_SHI:
-        case OPCODE_BFREV:
         {
             psInst->ui32NumOperands = 1;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -821,6 +816,18 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_FTOI:
         case OPCODE_UTOF:
 		case OPCODE_ITOF:
+        case OPCODE_INEG:
+        case OPCODE_IMM_ATOMIC_ALLOC:
+        case OPCODE_IMM_ATOMIC_CONSUME:
+        case OPCODE_DMOV:
+        case OPCODE_DTOF:
+        case OPCODE_FTOD:
+        case OPCODE_DRCP:
+        case OPCODE_COUNTBITS:
+        case OPCODE_FIRSTBIT_HI:
+        case OPCODE_FIRSTBIT_LO:
+        case OPCODE_FIRSTBIT_SHI:
+        case OPCODE_BFREV:
         {
             psInst->ui32NumOperands = 2;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -855,6 +862,25 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_IMUL:
 		case OPCODE_ILT:
         case OPCODE_INE:
+        case OPCODE_UGE:
+        case OPCODE_ULT:
+        case OPCODE_ATOMIC_AND:
+        case OPCODE_ATOMIC_IADD:
+        case OPCODE_ATOMIC_OR:
+        case OPCODE_ATOMIC_XOR:
+        case OPCODE_ATOMIC_IMAX:
+        case OPCODE_ATOMIC_IMIN:
+        case OPCODE_ATOMIC_UMAX:
+        case OPCODE_ATOMIC_UMIN:
+        case OPCODE_DADD:
+        case OPCODE_DMAX:
+        case OPCODE_DMIN:
+        case OPCODE_DMUL:
+        case OPCODE_DEQ:
+        case OPCODE_DGE:
+        case OPCODE_DLT:
+        case OPCODE_DNE:
+        case OPCODE_DDIV:
         {
             psInst->ui32NumOperands = 3;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -870,6 +896,21 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_LOD:
         case OPCODE_SAMPLE:
         case OPCODE_GATHER4:
+        case OPCODE_LD_MS:
+        case OPCODE_UBFE:
+        case OPCODE_IBFE:
+        case OPCODE_ATOMIC_CMP_STORE:
+        case OPCODE_IMM_ATOMIC_IADD:
+        case OPCODE_IMM_ATOMIC_AND:
+        case OPCODE_IMM_ATOMIC_OR:
+        case OPCODE_IMM_ATOMIC_XOR:
+        case OPCODE_IMM_ATOMIC_EXCH:
+        case OPCODE_IMM_ATOMIC_IMAX:
+        case OPCODE_IMM_ATOMIC_IMIN:
+        case OPCODE_IMM_ATOMIC_UMAX:
+        case OPCODE_IMM_ATOMIC_UMIN:
+        case OPCODE_DMOVC:
+        case OPCODE_DFMA:
 		{
             psInst->ui32NumOperands = 4;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -881,6 +922,8 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_GATHER4_PO:
         case OPCODE_SAMPLE_L:
         case OPCODE_BFI:
+        case OPCODE_SWAPC:
+        case OPCODE_IMM_ATOMIC_CMP_EXCH:
         {
             psInst->ui32NumOperands = 5;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -975,6 +1018,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
             break;
         }
+        case OPCODE_MSAD:
         default:
         {
 			ASSERT(0);

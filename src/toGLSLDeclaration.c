@@ -294,7 +294,7 @@ void AddBuiltinOutput(HLSLCrossCompilerContext* psContext, const Declaration* ps
             {
                 int max = GetMaxComponentFromComponentMask(&psDecl->asOperands[0]);
 
-                int applySiwzzle = GetNumSwizzleElements(psContext, &psDecl->asOperands[0]) > 1 ? 1 : 0;
+                int applySiwzzle = GetNumSwizzleElements(&psDecl->asOperands[0]) > 1 ? 1 : 0;
                 int index;
                 int i;
                 int multiplier = 1;
@@ -1380,7 +1380,6 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
         case OPCODE_DCL_INTERFACE:
         {
-            uint32_t func = 0;
             const uint32_t interfaceID = psDecl->value.interface.ui32InterfaceID;
             const uint32_t numUniforms = psDecl->value.interface.ui32ArraySize;
             const uint32_t ui32NumBodiesPerTable = psContext->psShader->funcPointer[interfaceID].ui32NumBodiesPerTable;
