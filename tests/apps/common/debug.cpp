@@ -120,7 +120,7 @@ static void APIENTRY OpenGLDebugCallback (GLenum source,
     }
 
     std::string fullMessage = std::string(message) + std::string("\n");
-    OutputDebugString(fullMessage.c_str());
+    DebugString(fullMessage.c_str());
 
     /* Make sure important messages are noticed. */
     //ASSERT(severity == GL_DEBUG_SEVERITY_LOW_ARB);
@@ -133,7 +133,7 @@ void SetupOpenGLDebugCallback()
         glDebugMessageCallbackARB(OpenGLDebugCallback, NULL);
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
 
-        OutputDebugString("ARB_debug_output is available. Enabling debug callback\n");
+        DebugString("ARB_debug_output is available. Enabling debug callback\n");
 
         /* All messages are initially enabled unless their assigned severity is DEBUG_SEVERITY_LOW_ARB.*/
 

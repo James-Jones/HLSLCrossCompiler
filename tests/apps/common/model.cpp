@@ -231,7 +231,7 @@ bool Model::Import3DFromFile( const std::string& pFile)
 	}
 	else
 	{
-		OutputDebugString( importer.GetErrorString());
+		DebugString( importer.GetErrorString());
 		return false;
 	}
 
@@ -240,7 +240,7 @@ bool Model::Import3DFromFile( const std::string& pFile)
 	// If the import failed, report it
 	if( !mScene)
 	{
-		OutputDebugString( importer.GetErrorString());
+		DebugString( importer.GetErrorString());
 		return false;
 	}
 
