@@ -1644,7 +1644,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         case OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW:
         case OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED:
         {
-            bcatcstr(glsl, "shared uniform ");
+            bcatcstr(glsl, "shared ");
             switch(psDecl->sTGSM.ui32Stride)
             {
                 case 4:
