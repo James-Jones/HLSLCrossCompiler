@@ -1785,18 +1785,19 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//SYNC\n");
 #endif
 
-            AddIndentation(psContext);
-
             if(ui32SyncFlags & SYNC_THREADS_IN_GROUP)
             {
+                AddIndentation(psContext);
                 bcatcstr(glsl, "groupMemoryBarrier();\n");
             }
             if(ui32SyncFlags & SYNC_THREAD_GROUP_SHARED_MEMORY)
             {
+                AddIndentation(psContext);
                 bcatcstr(glsl, "memoryBarrierShared();\n");
             }
             if(ui32SyncFlags & (SYNC_UNORDERED_ACCESS_VIEW_MEMORY_GROUP|SYNC_UNORDERED_ACCESS_VIEW_MEMORY_GLOBAL))
             {
+                AddIndentation(psContext);
                 bcatcstr(glsl, "memoryBarrier();\n");
             }
             break;
