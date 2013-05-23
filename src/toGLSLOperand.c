@@ -63,9 +63,8 @@ int GetMaxComponentFromComponentMask(const Operand* psOperand)
 //.z = 1
 //.x = 1
 //.yw = 2
-uint32_t GetNumSwizzleElements(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
+uint32_t GetNumSwizzleElements(const Operand* psOperand)
 {
-    bstring glsl = *psContext->currentGLSLString;
 	uint32_t count = 0;
 
 	switch(psOperand->eType)

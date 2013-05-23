@@ -13,7 +13,7 @@ int GetMaxComponentFromComponentMask(const Operand* psOperand);
 void TranslateOperandIndex(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index);
 void TranslateOperandIndexMAD(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index, uint32_t multiply, uint32_t add);
 void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
-uint32_t GetNumSwizzleElements(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
+uint32_t GetNumSwizzleElements(const Operand* psOperand);
 void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t count);
 int GetFirstOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
 
