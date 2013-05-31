@@ -30,8 +30,10 @@ typedef struct Operand_TAG
     uint32_t ui32RegisterNumber;
     //If eType is OPERAND_TYPE_IMMEDIATE32
     float afImmediates[4];
+    //If eType is OPERAND_TYPE_IMMEDIATE64
+    double adImmediates[4];
+
 	int iIntegerImmediate;
-    //uint64_t aui64Immediates;
 
     SPECIAL_NAME eSpecialName;
     char pszSpecialName[64];

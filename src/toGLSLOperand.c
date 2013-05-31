@@ -626,6 +626,24 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             }
             break;
         }
+        case OPERAND_TYPE_IMMEDIATE64:
+        {
+            if(psOperand->iNumComponents == 1)
+            {
+                bformata(glsl, "%f",
+                    psOperand->adImmediates[0]);
+            }
+            else
+            if(psOperand->iNumComponents == 4)
+            {
+                bformata(glsl, "dvec4(%f, %f, %f, %f)",
+                    psOperand->adImmediates[0],
+                    psOperand->adImmediates[1],
+                    psOperand->adImmediates[2],
+                    psOperand->adImmediates[3]);
+            }
+            break;
+        }
         case OPERAND_TYPE_INPUT:
         {
             switch(psOperand->iIndexDims)

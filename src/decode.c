@@ -261,6 +261,15 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
             ui32NumTokens ++;
         }
     }
+    else
+    if(psOperand->eType == OPERAND_TYPE_IMMEDIATE64)
+    {
+        for(i=0; i< psOperand->iNumComponents; ++i)
+        {
+            psOperand->adImmediates[i] = *((double*)(&pui32Tokens[ui32NumTokens]));
+            ui32NumTokens +=2;
+        }
+    }
 
     for(i=0; i <psOperand->iIndexDims; ++i)
     {
