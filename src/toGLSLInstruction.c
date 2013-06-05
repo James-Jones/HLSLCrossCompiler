@@ -2184,6 +2184,22 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, ");\n");
             break;
         }
+        case OPCODE_RCP:
+        {
+            const uint32_t destElemCount = GetNumSwizzleElements(&psInst->asOperands[0]);
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//RCP\n");
+#endif
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
+            bcatcstr(glsl, " = (vec4(1.0) / vec4(");
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+            bcatcstr(glsl, "))");
+            AddSwizzleUsingElementCount(psContext, destElemCount);
+            bcatcstr(glsl, ";\n");
+            break;
+        }
         case OPCODE_INEG:
         case OPCODE_SWAPC:
         case OPCODE_IMM_ATOMIC_ALLOC:
@@ -2218,7 +2234,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_DTOU:
         case OPCODE_ITOD:
         case OPCODE_UTOD:
-        case OPCODE_RCP:
         case OPCODE_F32TOF16:
         case OPCODE_F16TOF32:
         default:
