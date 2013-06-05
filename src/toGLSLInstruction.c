@@ -651,15 +651,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         {
 			uint32_t srcCount = GetNumSwizzleElements(&psInst->asOperands[1]);
 			uint32_t dstCount = GetNumSwizzleElements(&psInst->asOperands[0]);
-			int intCast = 0;
 
-			if(psInst->asOperands[0].eType == OPERAND_TYPE_OUTPUT)
-			{
-				/*if(psContext->psShader->abScalarOutput[psInst->asOperands[0].ui32RegisterNumber])
-				{
-					intCast = 1;
-				}*/
-			}
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//MOV\n");
@@ -670,15 +662,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			{
 				TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
 				bcatcstr(glsl, " = ");
-				if(intCast)
-				{
-					bcatcstr(glsl, "int(");
-				}
 				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-				if(intCast)
-				{
-					bcatcstr(glsl, ")");
-				}
 				bcatcstr(glsl, ";\n");
 			}
 			else
@@ -2234,6 +2218,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_DTOU:
         case OPCODE_ITOD:
         case OPCODE_UTOD:
+        case OPCODE_RCP:
+        case OPCODE_F32TOF16:
+        case OPCODE_F16TOF32:
         default:
         {
             ASSERT(0);
