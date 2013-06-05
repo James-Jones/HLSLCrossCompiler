@@ -578,9 +578,25 @@ void TranslateOperandIndexMAD(HLSLCrossCompilerContext* psContext, const Operand
 
 static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag, uint32_t* pui32IgnoreSwizzle)
 {
+    int integerConstructor = 0;
     bstring glsl = *psContext->currentGLSLString;
 
     *pui32IgnoreSwizzle = 0;
+
+    if(psOperand->eType != OPERAND_TYPE_IMMEDIATE32 &&
+        psOperand->eType != OPERAND_TYPE_IMMEDIATE64 )
+    {
+        if((ui32TOFlag & (TO_FLAG_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_INTEGER)
+        {
+            bcatcstr(glsl, "ivec4(");
+            integerConstructor = 1;
+        }
+        if((ui32TOFlag & (TO_FLAG_UNSIGNED_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_UNSIGNED_INTEGER)
+        {
+            bcatcstr(glsl, "uvec4(");
+            integerConstructor = 1;
+        }
+    }
 
     switch(psOperand->eType)
     {
@@ -588,6 +604,12 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         {
             if(psOperand->iNumComponents == 1)
             {
+				if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
+				{
+					bformata(glsl, "%du",
+						*((int*)(&psOperand->afImmediates[0])));
+				}
+                else
 				if((ui32TOFlag & TO_FLAG_INTEGER) || psOperand->iIntegerImmediate || fpcheck(psOperand->afImmediates[0]))
 				{
 					bformata(glsl, "%d",
@@ -602,6 +624,15 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             else
             if(psOperand->iNumComponents == 4)
             {
+                if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
+                {
+                    bformata(glsl, "uvec4(%d, %d, %d, %d)",
+                        *(int*)&psOperand->afImmediates[0],
+                        *(int*)&psOperand->afImmediates[1],
+                        *(int*)&psOperand->afImmediates[2],
+                        *(int*)&psOperand->afImmediates[3]);
+                }
+                else
                 if((ui32TOFlag & TO_FLAG_INTEGER) ||
                     psOperand->iIntegerImmediate ||
                     fpcheck(psOperand->afImmediates[0]) ||
@@ -609,7 +640,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                     fpcheck(psOperand->afImmediates[2]) ||
                     fpcheck(psOperand->afImmediates[3]))
                 {
-                    bformata(glsl, "vec4(%d, %d, %d, %d)",
+                    bformata(glsl, "ivec4(%d, %d, %d, %d)",
                         *(int*)&psOperand->afImmediates[0],
                         *(int*)&psOperand->afImmediates[1],
                         *(int*)&psOperand->afImmediates[2],
@@ -918,6 +949,11 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             ASSERT(0);
             break;
         }
+    }
+
+    if(integerConstructor)
+    {
+        bcatcstr(glsl, ")");
     }
 }
 
