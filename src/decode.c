@@ -1329,6 +1329,8 @@ void Decode(const uint32_t* pui32Tokens, Shader* psShader)
     const uint32_t ui32ShaderLength = pui32Tokens[1];
     Instruction* psInst;
     Declaration* psDecl;
+    uint32_t i;
+
 	psShader->ui32MajorVersion = DecodeProgramMajorVersion(*pui32CurrentToken);
 	psShader->ui32MinorVersion = DecodeProgramMinorVersion(*pui32CurrentToken);
 	psShader->eShaderType = DecodeShaderType(*pui32CurrentToken);
@@ -1338,6 +1340,11 @@ void Decode(const uint32_t* pui32Tokens, Shader* psShader)
     pui32CurrentToken++;//Move to after shader length (usually a declaration)
 
     psShader->pui32FirstToken = pui32Tokens;
+
+    for(i=0; i < MAX_TEMP_VEC4; ++i)
+    {
+        psShader->aeTempVecType[i] = SVT_VOID;
+    }
 
 	if(psShader->eShaderType == HULL_SHADER)
 	{

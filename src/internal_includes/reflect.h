@@ -12,9 +12,12 @@ void GetUAVBufferFromBindingPoint(const uint32_t ui32BindPoint, const ShaderInfo
 
 int GetInterfaceVarFromOffset(uint32_t ui32Offset, ShaderInfo* psShaderInfo, ShaderVar** ppsShaderVar);
 
+int GetInputSignatureFromRegister(uint32_t ui32Register, ShaderInfo* psShaderInfo, InOutSignature** ppsOut);
 int GetOutputSignatureFromRegister(uint32_t ui32Register, ShaderInfo* psShaderInfo, InOutSignature** ppsOut);
 
 int GetOutputSignatureFromSystemValue(SPECIAL_NAME eSystemValueType, uint32_t ui32SemanticIndex, ShaderInfo* psShaderInfo, InOutSignature** ppsOut);
+
+int GetShaderVarFromOffset(const uint32_t ui32Vec4Offset, const uint32_t* pui32Swizzle, ConstantBuffer* psCBuf, ShaderVar** ppsShaderVar, int32_t* pi32Index);
 
 typedef struct
 {

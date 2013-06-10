@@ -1,8 +1,10 @@
 
 #include "internal_includes/reflect.h"
 #include "internal_includes/debug.h"
+#include "internal_includes/decode.h"
 #include "bstrlib.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 static void ReadStringFromTokenStream(const uint32_t* tokens, char* str)
 {
@@ -111,11 +113,34 @@ static const uint32_t* ReadResourceBinding(const uint32_t* pui32FirstResourceTok
     return pui32Tokens;
 }
 
+static void ReadShaderVariableType(const uint32_t ui32MajorVersion, const uint32_t* pui32tokens, ShaderVarType* varType)
+{
+    const uint16_t* pui16Tokens = (const uint16_t*) pui32tokens;
+    uint16_t ui32MemberCount;
+    uint32_t ui32MemberOffset;
+
+
+    varType->Class = (SHADER_VARIABLE_CLASS)pui16Tokens[0];
+    varType->Type = (SHADER_VARIABLE_TYPE)pui16Tokens[1];
+    varType->Rows = pui16Tokens[2];
+    varType->Columns = pui16Tokens[3];
+    varType->Elements = pui16Tokens[4];
+
+    ui32MemberCount = pui16Tokens[5];
+
+    ui32MemberOffset = pui32tokens[4];
+
+    if (ui32MajorVersion  >= 5)
+    {
+    }
+
+}
+
 static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
     const uint32_t* pui32FirstConstBufToken, const uint32_t* pui32Tokens, ConstantBuffer* psBuffer)
 {
     uint32_t i;
-    uint32_t ui32NameOffset = *pui32Tokens++;    
+    uint32_t ui32NameOffset = *pui32Tokens++;
     uint32_t ui32VarCount = *pui32Tokens++;
     uint32_t ui32VarOffset = *pui32Tokens++;
     const uint32_t* pui32VarToken = (const uint32_t*)((const char*)pui32FirstConstBufToken+ui32VarOffset);
@@ -141,6 +166,8 @@ static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
         psVar->ui32Size = *pui32VarToken++;
         ui32Flags = *pui32VarToken++;
         ui32TypeOffset = *pui32VarToken++;
+
+        ReadShaderVariableType(psShaderInfo->ui32MajorVersion, (const uint32_t*)((const char*)pui32FirstConstBufToken+ui32TypeOffset), &psVar->sType);
 
         ui32DefaultValueOffset = *pui32VarToken++;
 
@@ -424,6 +451,23 @@ int GetInterfaceVarFromOffset(uint32_t ui32Offset, ShaderInfo* psShaderInfo, Sha
     return 0;
 }
 
+int GetInputSignatureFromRegister(uint32_t ui32Register, ShaderInfo* psShaderInfo, InOutSignature** ppsOut)
+{
+    uint32_t i;
+    const uint32_t ui32NumVars = psShaderInfo->ui32NumInputSignatures;
+
+    for(i=0; i<ui32NumVars; ++i)
+    {
+        InOutSignature* psInputSignatures = psShaderInfo->psInputSignatures;
+        if(ui32Register == psInputSignatures[i].ui32Register)
+	    {
+		    *ppsOut = psInputSignatures+i;
+		    return 1;
+	    }
+    }
+    return 0;
+}
+
 int GetOutputSignatureFromRegister(uint32_t ui32Register, ShaderInfo* psShaderInfo, InOutSignature** ppsOut)
 {
     uint32_t i;
@@ -454,6 +498,67 @@ int GetOutputSignatureFromSystemValue(SPECIAL_NAME eSystemValueType, uint32_t ui
 	    {
 		    *ppsOut = psOutputSignatures+i;
 		    return 1;
+	    }
+    }
+    return 0;
+}
+
+int GetShaderVarFromOffset(const uint32_t ui32Vec4Offset, const uint32_t* pui32Swizzle, ConstantBuffer* psCBuf, ShaderVar** ppsShaderVar, int32_t* pi32Index)
+{
+    uint32_t i;
+    const uint32_t ui32BaseByteOffset = ui32Vec4Offset * 16;
+
+    uint32_t ui32ByteOffset = ui32Vec4Offset * 16;
+
+    const uint32_t ui32NumVars = psCBuf->ui32NumVars;
+
+    for(i=0; i<ui32NumVars; ++i)
+    {
+        if(ui32ByteOffset >= psCBuf->asVars[i].ui32StartOffset && 
+            ui32ByteOffset < (psCBuf->asVars[i].ui32StartOffset + psCBuf->asVars[i].ui32Size))
+	    {
+            if(psCBuf->asVars[i].sType.Class == SVC_SCALAR)
+            {
+                //Swizzle can point to another variable.
+                if(pui32Swizzle[0] == OPERAND_4_COMPONENT_Y)
+                {
+                    ui32ByteOffset += 4;
+                }
+                else
+                if(pui32Swizzle[0] == OPERAND_4_COMPONENT_Z)
+                {
+                    ui32ByteOffset += 8;
+                }
+                else
+                if(pui32Swizzle[0] == OPERAND_4_COMPONENT_W)
+                {
+                    ui32ByteOffset += 12;
+                }
+
+                for(;i<ui32NumVars; ++i)
+                {
+                    if(ui32ByteOffset >= psCBuf->asVars[i].ui32StartOffset && 
+                        ui32ByteOffset < (psCBuf->asVars[i].ui32StartOffset + psCBuf->asVars[i].ui32Size))
+                    {
+		                *ppsShaderVar = &psCBuf->asVars[i];
+		                return 1;
+                    }
+                }
+            }
+            else
+            {
+                if(psCBuf->asVars[i].sType.Class == SVC_MATRIX_ROWS || 
+                    psCBuf->asVars[i].sType.Class == SVC_MATRIX_COLUMNS)
+                {
+                    if(psCBuf->asVars[i].ui32Size > 4)
+                    {
+                        pi32Index[0] = (ui32ByteOffset - psCBuf->asVars[i].ui32StartOffset) / 16;
+                    }
+                }
+
+		        *ppsShaderVar = &psCBuf->asVars[i];
+		        return 1;
+            }
 	    }
     }
     return 0;

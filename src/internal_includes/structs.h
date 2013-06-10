@@ -124,6 +124,8 @@ typedef struct Declaration_TAG
 
 } Declaration;
 
+static enum {MAX_TEMP_VEC4 = 512};
+
 typedef struct Shader_TAG
 {
     uint32_t ui32MajorVersion;
@@ -203,6 +205,9 @@ typedef struct Shader_TAG
     int abInputReferencedByInstruction[MAX_SHADER_VEC4_INPUT];
 
 	int aiOpcodeUsed[NUM_OPCODES];
+
+    //Class is SVC_VECTOR.
+    SHADER_VARIABLE_TYPE aeTempVecType[MAX_TEMP_VEC4];
 
 } Shader;
 

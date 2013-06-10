@@ -92,6 +92,14 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
     bcatcstr(glsl,"\tfloat x;\n");
     bcatcstr(glsl,"};\n");
 
+    bcatcstr(glsl,"struct uvec1 {\n");
+    bcatcstr(glsl,"\tuint x;\n");
+    bcatcstr(glsl,"};\n");
+
+    bcatcstr(glsl,"struct ivec1 {\n");
+    bcatcstr(glsl,"\tint x;\n");
+    bcatcstr(glsl,"};\n");
+
     /*
         OpenGL 4.1 API spec:
         To use any built-in input or output in the gl_PerVertex block in separable

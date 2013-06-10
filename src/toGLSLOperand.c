@@ -298,6 +298,27 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
 		}
 	}
 
+    if(psOperand->eType == OPERAND_TYPE_CONSTANT_BUFFER)
+    {
+        /*ConstantBuffer* psCBuf = NULL;
+        ShaderVar* psVar = NULL;
+        int32_t index = -1;
+        GetConstantBufferFromBindingPoint(psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
+
+        //Access the Nth vec4 (N=psOperand->aui32ArraySizes[1])
+        //then apply the sizzle.
+
+        GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVar, &index);
+
+        bformata(glsl, ".%s", psVar->Name);
+        if(index != -1)
+        {
+            bformata(glsl, "[%d]", index);
+        }*/
+
+        //return;
+    }
+
     if(psOperand->iWriteMaskEnabled &&
        psOperand->iNumComponents == 4)
     {
@@ -584,7 +605,8 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
     *pui32IgnoreSwizzle = 0;
 
     if(psOperand->eType != OPERAND_TYPE_IMMEDIATE32 &&
-        psOperand->eType != OPERAND_TYPE_IMMEDIATE64 )
+        psOperand->eType != OPERAND_TYPE_IMMEDIATE64 &&
+        psOperand->eType != OPERAND_TYPE_CONSTANT_BUFFER)
     {
         if((ui32TOFlag & (TO_FLAG_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_INTEGER)
         {
@@ -753,12 +775,52 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         case OPERAND_TYPE_TEMP:
         {
             bformata(glsl, "Temp%d", psOperand->ui32RegisterNumber);
+
+            if(psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] == SVT_VOID ||
+                (ui32TOFlag & TO_FLAG_DESTINATION))
+            {
+                if(ui32TOFlag & TO_FLAG_INTEGER)
+                {
+                    psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] = SVT_INT;
+                    bcatcstr(glsl, "_int");
+                }
+                else
+                if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
+                {
+                    psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] = SVT_UINT;
+                    bcatcstr(glsl, "_uint");
+                }
+                else
+                {
+                    psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] = SVT_FLOAT;
+                }
+            }
+            else
+            if(psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] == SVT_INT)
+            {
+                if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
+                {
+                    //ASSERT(0);
+                }
+                bcatcstr(glsl, "_int");
+            }
+            else
+            if(psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] == SVT_UINT)
+            {
+                if(ui32TOFlag & TO_FLAG_INTEGER)
+                {
+                    //ASSERT(0);
+                }
+                bcatcstr(glsl, "_uint");
+            }
             break;
         }
         case OPERAND_TYPE_CONSTANT_BUFFER:
         {
             const char* StageName = "VS";
             ConstantBuffer* psCBuf = NULL;
+            ShaderVar* psVar = NULL;
+            int32_t index = -1;
             GetConstantBufferFromBindingPoint(psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
 
             switch(psContext->psShader->eShaderType)
@@ -824,15 +886,32 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 			}
 			else
 			{
+                if(ui32TOFlag & TO_FLAG_DECLARATION_NAME)
+                {
+                    pui32IgnoreSwizzle[0] = 1;
+                }
 				//$Globals.
 				if(psCBuf->Name[0] == '$')
 				{
-					bformata(glsl, "Globals%s[%d]", StageName, psOperand->aui32ArraySizes[1]);
+					bformata(glsl, "Globals%s", StageName);
 				}
 				else
 				{
-					bformata(glsl, "%s%s[%d]", psCBuf->Name, StageName, psOperand->aui32ArraySizes[1]);
+					bformata(glsl, "%s%s", psCBuf->Name, StageName);
 				}
+
+                if((ui32TOFlag & TO_FLAG_DECLARATION_NAME) != TO_FLAG_DECLARATION_NAME)
+                {
+                    //Work out the variable name. Don't apply swizzle to that variable yet.
+
+                    GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVar, &index);
+
+                    bformata(glsl, ".%s", psVar->Name);
+                    if(index != -1)
+                    {
+                        bformata(glsl, "[%d]", index);
+                    }
+                }
 			}
 #endif
             break;
@@ -956,6 +1035,128 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         bcatcstr(glsl, ")");
     }
 }
+SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
+{
+    if(psOperand->eType == OPERAND_TYPE_TEMP)
+    {
+        const SHADER_VARIABLE_TYPE eCurrentType = psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber];
+        return eCurrentType;
+    }
+    return SVT_FLOAT;
+}
+void CheckOperandForTempTypeChange(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag)
+{
+    if(psOperand->eType == OPERAND_TYPE_TEMP)
+    {
+        const SHADER_VARIABLE_TYPE eCurrentType = psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber];
+        SHADER_VARIABLE_TYPE eNewType;
+        bstring glsl = *psContext->currentGLSLString;
+
+        if(ui32TOFlag & TO_FLAG_INTEGER)
+        {
+            eNewType = SVT_INT;
+        }
+        else
+        if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
+        {
+            eNewType = SVT_UINT;
+        }
+        else
+        {
+            //Setting eNewType to SVT_FLOAT will break MOV
+            eNewType = eCurrentType;
+        }
+
+        if(eCurrentType != SVT_VOID &&
+            eCurrentType != eNewType &&
+            ((ui32TOFlag & TO_FLAG_DESTINATION)!=TO_FLAG_DESTINATION))//Void until first use
+        {
+            const uint32_t ui32VecSize = GetNumSwizzleElements(psOperand);
+
+            AddIndentation(psContext);
+
+            if(eNewType == SVT_INT)
+            {
+                if(eCurrentType == SVT_UINT)
+                {
+                    bformata(glsl, "Temp%d_int", psOperand->ui32RegisterNumber);
+                    TranslateOperandSwizzle(psContext, psOperand);
+                    if(ui32VecSize>1)
+                        bformata(glsl, " = ivec%d(Temp%d_uint", ui32VecSize, psOperand->ui32RegisterNumber);
+                    else
+                        bformata(glsl, " = int(Temp%d_uint", psOperand->ui32RegisterNumber);
+                    TranslateOperandSwizzle(psContext, psOperand);
+                    bcatcstr(glsl, ");\n");
+                }
+                if(eCurrentType == SVT_FLOAT)
+                {
+                    bformata(glsl, "Temp%d_int", psOperand->ui32RegisterNumber);
+                    TranslateOperandSwizzle(psContext, psOperand);
+                    if(ui32VecSize>1)
+                        bformata(glsl, " = ivec%d(Temp%d", ui32VecSize, psOperand->ui32RegisterNumber);
+                    else
+                        bformata(glsl, " = int(Temp%d", psOperand->ui32RegisterNumber);
+
+                    TranslateOperandSwizzle(psContext, psOperand);
+                    bcatcstr(glsl, ");\n");
+                }
+            }
+            if(eNewType == SVT_UINT)
+            {
+                if(eCurrentType == SVT_INT)
+                {
+                    bformata(glsl, "Temp%d_uint", psOperand->ui32RegisterNumber);
+                    TranslateOperandSwizzle(psContext, psOperand);
+                    if(ui32VecSize>1)
+                        bformata(glsl, " = uvec%d(Temp%d_int", ui32VecSize, psOperand->ui32RegisterNumber);
+                    else
+                        bformata(glsl, " = uint(Temp%d_int", psOperand->ui32RegisterNumber);
+                    TranslateOperandSwizzle(psContext, psOperand);
+                    bcatcstr(glsl, ");\n");
+                }
+                if(eCurrentType == SVT_FLOAT)
+                {
+                    bformata(glsl, "Temp%d_uint", psOperand->ui32RegisterNumber);
+                    TranslateOperandSwizzle(psContext, psOperand);
+                    if(ui32VecSize>1)
+                        bformata(glsl, " = uvec%d(Temp%d", ui32VecSize, psOperand->ui32RegisterNumber);
+                    else
+                        bformata(glsl, " = uint(Temp%d", psOperand->ui32RegisterNumber);
+                    TranslateOperandSwizzle(psContext, psOperand);
+                    bcatcstr(glsl, ");\n");
+                }
+            }
+            if(eNewType == SVT_FLOAT)
+            {
+                if(eCurrentType == SVT_UINT)
+                {
+                    bformata(glsl, "Temp%d", psOperand->ui32RegisterNumber);
+                    TranslateOperandSwizzle(psContext, psOperand);
+                    if(ui32VecSize>1)
+                        bformata(glsl, " = vec%d(Temp%d_uint", ui32VecSize, psOperand->ui32RegisterNumber);
+                    else
+                        bformata(glsl, " = float(Temp%d_uint", psOperand->ui32RegisterNumber);
+                    TranslateOperandSwizzle(psContext, psOperand);
+                    bcatcstr(glsl, ");\n");
+                }
+                if(eCurrentType == SVT_INT)
+                {
+                    bformata(glsl, "Temp%d", psOperand->ui32RegisterNumber);
+                    TranslateOperandSwizzle(psContext, psOperand);
+                    if(ui32VecSize>1)
+                        bformata(glsl, " = vec%d(Temp%d_int", ui32VecSize, psOperand->ui32RegisterNumber);
+                    else
+                        bformata(glsl, " = float(Temp%d_int", psOperand->ui32RegisterNumber);
+                    TranslateOperandSwizzle(psContext, psOperand);
+                    bcatcstr(glsl, ");\n");
+                }
+            }
+        }
+
+        psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] = eNewType;
+    }
+}
+
 
 void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag)
 {
