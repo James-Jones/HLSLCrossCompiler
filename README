@@ -28,14 +28,13 @@ Supported target languages:
   GLSL 420
   GLSL 430
 
-If the source shader contains instructions not support by the target language then compilation is allowed
-to fail at the GLSL compile stage, i.e. the cross compiler may not generated errors/warnings but an OpenGL
-driver will reject the shader.
-
-I have plans to add support for more target languages includes:
+I have plans to add support for more target languages including:
   ARB assembly (ARB_vertex_program et al.)
   NVIDIA assembly (NV_vertex_program et al.)
-  If possible, cross compiling d3d compute shaders (cs_4_0 cs_4_1 cs_5_0) to OpenCL/CUDA might be useful.
+
+If the source shader contains instructions not support by the target language then compilation is allowed
+to fail at the GLSL compile stage, i.e. the cross compiler may not generate errors/warnings but an OpenGL
+driver will reject the shader.
 
 The tests directory contains HLSL, bytecode and asm versions of some shaders used to verify this decoder.
 There are also a few sample applications used to make sure that generated GLSL is correct.
