@@ -11,7 +11,7 @@ Supported bytecode formats:
   ps_4_0 ps_4_0_level_9_1 ps_4_0_level_9_3 ps_4_0_level_9_0 ps_4_1 ps_5_0
   vs_4_0_level_9_3 vs_4_0_level_9_0 vs_4_1 vs_5_0   
 
-I have plans to add support for more bytecode formats including:
+Work is underway to support the DX9 bytecode formats:
   ps_2_0 ps_2_a ps_2_b ps_3_0
   vs_1_1 vs_2_0 vs_2_a vs_3_0
   
