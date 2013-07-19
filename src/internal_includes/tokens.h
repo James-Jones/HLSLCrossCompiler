@@ -5,6 +5,7 @@
 
 typedef enum
 {
+    INVALID_SHADER = -1,
     PIXEL_SHADER,
     VERTEX_SHADER,
     GEOMETRY_SHADER,
@@ -727,5 +728,7 @@ static uint32_t DecodeAccessCoherencyFlags(uint32_t ui32Token)
 {
     return ui32Token & 0x00010000;
 }
+
+#include "tokensDX9.h"
 
 #endif

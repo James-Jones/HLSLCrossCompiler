@@ -1406,6 +1406,14 @@ Shader* DecodeDXBC(uint32_t* data)
 
 	if(header->fourcc != FOURCC_DXBC)
 	{
+        //Could be SM1/2/3. If the shader type token
+        //looks valid then we continue
+        uint32_t type = DecodeShaderTypeDX9(data[0]);
+
+        if(type != INVALID_SHADER)
+        {
+            return DecodeDX9BC(data);
+        }
 		return 0;
 	}
 

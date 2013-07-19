@@ -62,9 +62,11 @@ ADD_LIBRARY( libHLSLcc
 ../src/internal_includes/toGLSLInstruction.h
 ../src/internal_includes/toGLSLOperand.h
 ../src/internal_includes/tokens.h
+../src/internal_includes/tokensDX9.h
 ../src/internal_includes/shaderLimits.h
 ${CBSTRING_HFILES}
 ../src/decode.c
+../src/decodeDX9.c
 ../src/reflect.c
 ../src/toGLSL.c
 ../src/toGLSLInstruction.c
