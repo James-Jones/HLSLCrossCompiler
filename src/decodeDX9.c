@@ -277,7 +277,7 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
         }
         else if(eOpcode == OPCODE_DX9_DCL)
         {
-            DecodeDeclarationDX9(psShader, pui32CurrentToken[0], pui32CurrentToken[1], &psDecl[decl]);
+            DecodeDeclarationDX9(psShader, pui32CurrentToken[1], pui32CurrentToken[2], &psDecl[decl]);
             decl++;
         }
         else if(eOpcode == OPCODE_DX9_DEF)
