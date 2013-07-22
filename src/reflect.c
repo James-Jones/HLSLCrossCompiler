@@ -516,3 +516,80 @@ void FreeShaderInfo(ShaderInfo* psShaderInfo)
     psShaderInfo->ui32NumOutputSignatures = 0;
 }
 
+typedef struct ConstantTableD3D9_TAG
+{
+    uint32_t size;
+    uint32_t creator;
+    uint32_t version;
+    uint32_t constants;
+    uint32_t constantInfos;
+    uint32_t flags;
+    uint32_t target;
+} ConstantTableD3D9;
+
+typedef struct ConstantInfoD3D9_TAG
+{
+    uint32_t name;
+    uint16_t registerSet;
+    uint16_t registerIndex;
+    uint16_t registerCount;
+    uint16_t reserved;
+    uint32_t typeInfo;
+    uint32_t defaultValue;
+} ConstantInfoD3D9;
+
+typedef struct TypeInfoD3D9_TAG
+{
+    uint16_t typeClass;
+    uint16_t type;
+    uint16_t rows;
+    uint16_t columns;
+    uint16_t elements;
+    uint16_t structMembers;
+    uint32_t structMemberInfos;
+} TypeInfoD3D9;
+
+typedef struct StructMemberInfoD3D9_TAG
+{
+    uint32_t name;
+    uint32_t typeInfo;
+} StructMemberInfoD3D9;
+
+void LoadD3D9ConstantTable(const char* data,
+    ShaderInfo* psInfo)
+{
+    ConstantTableD3D9* ctab;
+    uint32_t constNum;
+    ConstantInfoD3D9* cinfos;
+    ConstantBuffer* psConstantBuffer;
+    uint16_t maxVec4Register = 0;
+
+    ctab = (ConstantTableD3D9*)data;
+
+    cinfos = (ConstantInfoD3D9*) (data + ctab->constantInfos);
+
+    psInfo->ui32NumConstantBuffers++;
+
+    //Only 1 Constant Table in d3d9
+    ASSERT(psInfo->ui32NumConstantBuffers==1);
+
+    psConstantBuffer = malloc(sizeof(ConstantBuffer));
+
+    psInfo->psConstantBuffers = psConstantBuffer;
+
+    psConstantBuffer->ui32NumVars = ctab->constants;
+    strcpy(psConstantBuffer->Name, "$Globals");
+
+    for(constNum = 0; constNum < ctab->constants; ++constNum)
+    {
+        strcpy(psConstantBuffer->asVars[constNum].Name, data + cinfos[constNum].name);
+        psConstantBuffer->asVars[constNum].ui32Size = cinfos[constNum].registerCount;
+        psConstantBuffer->asVars[constNum].ui32StartOffset = cinfos[constNum].registerIndex;
+
+        if(maxVec4Register < (cinfos[constNum].registerCount + cinfos[constNum].registerIndex))
+        {
+            maxVec4Register = (cinfos[constNum].registerCount + cinfos[constNum].registerIndex);
+        }
+    }
+    psConstantBuffer->ui32TotalSizeInBytes = maxVec4Register * 16;
+}

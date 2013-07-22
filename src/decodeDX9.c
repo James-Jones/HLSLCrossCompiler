@@ -7,13 +7,18 @@
 #include "internal_includes/reflect.h"
 #include "internal_includes/debug.h"
 
+#define FOURCC(a, b, c, d) ((uint32_t)(uint8_t)(a) | ((uint32_t)(uint8_t)(b) << 8) | ((uint32_t)(uint8_t)(c) << 16) | ((uint32_t)(uint8_t)(d) << 24 ))
+static enum {FOURCC_CTAB = FOURCC('C', 'T', 'A', 'B')}; //Constant table
+
 #ifdef _DEBUG
 static uint64_t operandID = 0;
 static uint64_t instructionID = 0;
 #endif
 
-static void DecodeOperandDX9(uint32_t ui32Token,
-							 uint32_t ui32Token1,
+static uint32_t aui32ImmediateConst[256];
+
+static void DecodeOperandDX9(const uint32_t ui32Token,
+							 const uint32_t ui32Token1,
 							 Operand *psOperand)
 {
     uint32_t ui32RegNum = DecodeOperandRegisterNumberDX9(ui32Token);
@@ -37,9 +42,22 @@ static void DecodeOperandDX9(uint32_t ui32Token,
             psOperand->eType = OPERAND_TYPE_OUTPUT;
             break;
         }
+        case OPERAND_TYPE_DX9_CONST:
+        {
+            if(aui32ImmediateConst[ui32RegNum])
+            {
+                psOperand->eType = OPERAND_TYPE_SPECIAL_IMMCONST;
+            }
+            else
+            {
+                psOperand->eType = OPERAND_TYPE_CONSTANT_BUFFER;
+            }
+            break;
+        }
     }
 
     psOperand->ui32RegisterNumber = ui32RegNum;
+
 
 #ifdef _DEBUG
     psOperand->id = operandID++;
@@ -84,23 +102,69 @@ static void DecodeDeclarationDX9(Shader* psShader,
             psDecl->asOperands[0].eSpecialName = NAME_POSITION;
         }
     }
+    else
+    if(psDecl->asOperands[0].eType == OPERAND_TYPE_CONSTANT_BUFFER)
+    {
+        psDecl->eOpcode = OPCODE_DCL_CONSTANT_BUFFER;
+
+        ASSERT(psShader->sInfo.ui32NumConstantBuffers);
+
+        psDecl->asOperands[0].aui32ArraySizes[0] = 0;//Const buffer index
+        psDecl->asOperands[0].aui32ArraySizes[1] = psShader->sInfo.psConstantBuffers[0].ui32TotalSizeInBytes / 16;//Number of vec4 constants.
+    }
 }
 
+static void DefineDX9(Shader* psShader,
+                      const uint32_t ui32RegNum,
+                      const uint32_t c0,
+                      const uint32_t c1,
+                      const uint32_t c2,
+                      const uint32_t c3,
+                      Declaration* psDecl)
+{
+    psDecl->eOpcode = OPCODE_SPECIAL_DCL_IMMCONST;
+    psDecl->ui32NumOperands = 2;
 
-void CreateD3D10Instruction(Instruction* psInst, const OPCODE_TYPE eType, uint32_t ui32SrcCount, const uint32_t* pui32Tokens)
+    memset(&psDecl->asOperands[0], 0, sizeof(Operand));
+    psDecl->asOperands[0].eType = OPERAND_TYPE_SPECIAL_IMMCONST;
+    psDecl->asOperands[0].ui32RegisterNumber = ui32RegNum;
+
+    aui32ImmediateConst[ui32RegNum] = 1;
+
+    memset(&psDecl->asOperands[1], 0, sizeof(Operand));
+    psDecl->asOperands[1].eType = OPERAND_TYPE_IMMEDIATE32;
+    psDecl->asOperands[1].iNumComponents = 4;
+    psDecl->asOperands[1].afImmediates[0] = *((float*)&c0);
+    psDecl->asOperands[1].afImmediates[1] = *((float*)&c1);
+    psDecl->asOperands[1].afImmediates[2] = *((float*)&c2);
+    psDecl->asOperands[1].afImmediates[3] = *((float*)&c3);
+}
+
+static void CreateD3D10Instruction(Instruction* psInst,
+    const OPCODE_TYPE eType,
+    const uint32_t bHasDest,
+    const uint32_t ui32SrcCount,
+    const uint32_t* pui32Tokens)
 {
     uint32_t ui32Src;
     uint32_t ui32Offset = 1;
 
     memset(psInst, 0, sizeof(Instruction));
 
+#ifdef _DEBUG
+    psInst->id = instructionID++;
+#endif
+
     psInst->eOpcode = eType;
 
-    DecodeOperandDX9(pui32Tokens[ui32Offset],
-        pui32Tokens[ui32Offset+1],
-        &psInst->asOperands[0]);
+    if(bHasDest)
+    {
+        DecodeOperandDX9(pui32Tokens[ui32Offset],
+            pui32Tokens[ui32Offset+1],
+            &psInst->asOperands[0]);
 
-    ui32Offset++;
+        ui32Offset++;
+    }
 
     for(ui32Src=0; ui32Src < ui32SrcCount; ++ui32Src)
     {
@@ -120,7 +184,10 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
     Instruction* psInst;
     Declaration* psDecl;
     uint32_t decl, inst;
-    Shader* psShader = calloc(1, sizeof(Shader));;
+    uint32_t bDeclareConstantTable = 0;
+    Shader* psShader = calloc(1, sizeof(Shader));
+
+    memset(aui32ImmediateConst, 0, 256);
 
 	psShader->ui32MajorVersion = DecodeProgramMajorVersionDX9(*pui32CurrentToken);
 	psShader->ui32MinorVersion = DecodeProgramMinorVersionDX9(*pui32CurrentToken);
@@ -141,8 +208,13 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
         else if(eOpcode == OPCODE_DX9_COMMENT)
         {
             ui32InstLen = DecodeCommentLengthDX9(pui32CurrentToken[0]);
+            if(pui32CurrentToken[1] == FOURCC_CTAB)
+            {
+                ++ui32NumDeclarations;
+                bDeclareConstantTable = 1;
+            }
         }
-        else if(eOpcode == OPCODE_DX9_DCL)
+        else if(eOpcode == OPCODE_DX9_DCL || eOpcode == OPCODE_DX9_DEF)
         {
             ++ui32NumDeclarations;
         }
@@ -197,10 +269,31 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
         else if(eOpcode == OPCODE_DX9_COMMENT)
         {
             ui32InstLen = DecodeCommentLengthDX9(pui32CurrentToken[0]);
+
+            if(pui32CurrentToken[1] == FOURCC_CTAB)
+            {
+                LoadD3D9ConstantTable((char*)(&pui32CurrentToken[2]), &psShader->sInfo);
+            }
         }
         else if(eOpcode == OPCODE_DX9_DCL)
         {
             DecodeDeclarationDX9(psShader, pui32CurrentToken[0], pui32CurrentToken[1], &psDecl[decl]);
+            decl++;
+        }
+        else if(eOpcode == OPCODE_DX9_DEF)
+        {
+            const uint32_t ui32Const0 = *(pui32CurrentToken+2);
+            const uint32_t ui32Const1 = *(pui32CurrentToken+3);
+            const uint32_t ui32Const2 = *(pui32CurrentToken+4);
+            const uint32_t ui32Const3 = *(pui32CurrentToken+5);
+
+            DefineDX9(psShader,
+                DecodeOperandRegisterNumberDX9(pui32CurrentToken[1]),
+                ui32Const0,
+                ui32Const1,
+                ui32Const2,
+                ui32Const3,
+                &psDecl[decl]);
             decl++;
         }
         else
@@ -209,7 +302,7 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
             {
                 case OPCODE_DX9_MOV:
                 {
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_MOV, 1, pui32CurrentToken);
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_MOV, 1, 1, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_LIT:
@@ -224,54 +317,54 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                 }
                 case OPCODE_DX9_ADD:
                 {
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_ADD, 2, pui32CurrentToken);
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_ADD, 1, 2, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_SUB:
                 {
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_ADD, 2, pui32CurrentToken);
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_ADD, 1, 2, pui32CurrentToken);
                     ASSERT(psInst[inst].asOperands[2].eModifier == OPERAND_MODIFIER_NONE);
                     psInst[inst].asOperands[2].eModifier = OPERAND_MODIFIER_NEG;
                     break;
                 }
                 case OPCODE_DX9_MAD:
                 {
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_MAD, 3, pui32CurrentToken);
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_MAD, 1, 3, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_MUL:
                 {
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_MUL, 2, pui32CurrentToken);
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_MUL, 1, 2, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_RCP:
                 {
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_RCP, 1, pui32CurrentToken);
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_RCP, 1, 1, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_RSQ:
                 {
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_RSQ, 1, pui32CurrentToken);
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_RSQ, 1, 1, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_DP3:
                 {
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_DP3, 2, pui32CurrentToken);
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_DP3, 1, 2, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_DP4:
                 {
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_DP4, 2, pui32CurrentToken);
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_DP4, 1, 2, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_MIN:
                 {
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_MIN, 2, pui32CurrentToken);
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_MIN, 1, 2, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_MAX:
                 {
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_MAX, 2, pui32CurrentToken);
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_MAX, 1, 2, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_SLT:
@@ -282,12 +375,12 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                 }
                 case OPCODE_DX9_EXP:
                 {
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_EXP, 1, pui32CurrentToken);
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_EXP, 1, 1, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_LOG:
                 {
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_LOG, 1, pui32CurrentToken);
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_LOG, 1, 1, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_NRM:
@@ -296,16 +389,33 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                     //dp4 RESULT, SRCA, SRCA
                     //rsq RESULT, RESULT
 
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_DP4, 1, pui32CurrentToken);
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_DP4, 1, 1, pui32CurrentToken);
                     memcpy(&psInst[inst].asOperands[2],&psInst[inst].asOperands[1], sizeof(Operand));
                     ++inst;
-                    psInst[inst].eOpcode = OPCODE_RSQ;
+
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_RSQ, 0, 0, pui32CurrentToken);
                     memcpy(&psInst[inst].asOperands[0],&psInst[inst-1].asOperands[0], sizeof(Operand));
+                    break;
+                }
+                case OPCODE_DX9_SINCOS:
+                {
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_SINCOS, 1, 3, pui32CurrentToken);
+                    break;
+                }
+                case OPCODE_DX9_FRC:
+                {
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_FRC, 1, 1, pui32CurrentToken);
+                    break;
+                }
+
+                case OPCODE_DX9_MOVA:
+                {
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_ROUND_NE, 1, 1, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_DST:
                 case OPCODE_DX9_LRP:
-                case OPCODE_DX9_FRC:
+                
                 case OPCODE_DX9_M4x4:
                 case OPCODE_DX9_M4x3:
                 case OPCODE_DX9_M3x4:
@@ -318,14 +428,13 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                 case OPCODE_DX9_CRS:
                 case OPCODE_DX9_SGN:
                 case OPCODE_DX9_ABS:
-                case OPCODE_DX9_SINCOS:
+                
                 case OPCODE_DX9_REP:
                 case OPCODE_DX9_ENDREP:
                 case OPCODE_DX9_IF:
                 case OPCODE_DX9_IFC:
                 case OPCODE_DX9_ELSE:
                 case OPCODE_DX9_BREAKC:
-                case OPCODE_DX9_MOVA:
                 case OPCODE_DX9_DEFB:
                 case OPCODE_DX9_DEFI:
 
@@ -345,7 +454,6 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                 case OPCODE_DX9_EXPP:
                 case OPCODE_DX9_LOGP:
                 case OPCODE_DX9_CND:
-                case OPCODE_DX9_DEF:
                 case OPCODE_DX9_TEXREG2RGB:
                 case OPCODE_DX9_TEXDP3TEX:
                 case OPCODE_DX9_TEXM3x2DEPTH:
@@ -368,32 +476,32 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                 case OPCODE_DX9_NOP:
                 case OPCODE_DX9_PHASE:
                 {
-                    psInst[inst].eOpcode = OPCODE_NOP;
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_NOP, 0, 0, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_LOOP:
                 {
-                    psInst[inst].eOpcode = OPCODE_LOOP;
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_LOOP, 0, 0, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_RET:
                 {
-                    psInst[inst].eOpcode = OPCODE_RET;
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_RET, 0, 0, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_ENDLOOP:
                 {
-                    psInst[inst].eOpcode = OPCODE_ENDLOOP;
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_ENDLOOP, 0, 0, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_ENDIF:
                 {
-                    psInst[inst].eOpcode = OPCODE_ENDIF;
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_ENDIF, 0, 0, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_BREAK:
                 {
-                    psInst[inst].eOpcode = OPCODE_BREAK;
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_BREAK, 0, 0, pui32CurrentToken);
                     break;
                 }
                 default:
@@ -411,7 +519,19 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
     if(psShader->eShaderType == VERTEX_SHADER)
     {
         //Declare gl_Position. vs_3_0 does declare it, SM1/2 do not
-        DecodeDeclarationDX9(psShader, 0, CreateOperandTokenDX9(0, OPERAND_TYPE_DX9_RASTOUT), &psDecl[decl]);
+        if(bDeclareConstantTable)
+        {
+            DecodeDeclarationDX9(psShader, 0, CreateOperandTokenDX9(0, OPERAND_TYPE_DX9_RASTOUT), &psDecl[decl+1]);
+        }
+        else
+        {
+            DecodeDeclarationDX9(psShader, 0, CreateOperandTokenDX9(0, OPERAND_TYPE_DX9_RASTOUT), &psDecl[decl]);
+        }
+    }
+
+    if(bDeclareConstantTable)
+    {
+        DecodeDeclarationDX9(psShader, 0, CreateOperandTokenDX9(0, OPERAND_TYPE_DX9_CONST), &psDecl[decl]);
     }
 
     return psShader;

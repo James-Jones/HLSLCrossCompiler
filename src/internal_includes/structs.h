@@ -82,7 +82,7 @@ typedef struct Declaration_TAG
 
     uint32_t ui32NumOperands;
 
-    Operand asOperands[1];
+    Operand asOperands[2];
 
 	ICBVec4 asImmediateConstBuffer[MAX_IMMEDIATE_CONST_BUFFER_VEC4_SIZE];
     //The declaration can set one of these

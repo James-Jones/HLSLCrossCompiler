@@ -953,6 +953,18 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             }
             break;
         }
+        case OPCODE_SPECIAL_DCL_IMMCONST:
+        {
+            const Operand* psDest = &psDecl->asOperands[0];
+            const Operand* psSrc = &psDecl->asOperands[1];
+
+            ASSERT(psSrc->eType == OPERAND_TYPE_IMMEDIATE32);
+
+            bformata(glsl, "const vec4 ImmConst%d = ", psDest->ui32RegisterNumber);
+            TranslateOperand(psContext, psSrc, TO_FLAG_NONE);
+            bcatcstr(glsl, ";\n");
+            break;
+        }
         case OPCODE_DCL_CONSTANT_BUFFER:
         {
 			const Operand* psOperand = &psDecl->asOperands[0];
