@@ -18,12 +18,21 @@ static uint64_t instructionID = 0;
 static uint32_t aui32ImmediateConst[256];
 static uint32_t ui32MaxTemp = 0;
 
+uint32_t DX9_DECODE_OPERAND_IS_SRC = 0x1;
+uint32_t DX9_DECODE_OPERAND_IS_DEST = 0x2;
+uint32_t DX9_DECODE_OPERAND_IS_DECL = 0x4;
+
 static void DecodeOperandDX9(const uint32_t ui32Token,
 							 const uint32_t ui32Token1,
+                             const uint32_t ui32Flags,
 							 Operand *psOperand)
 {
-    uint32_t ui32RegNum = DecodeOperandRegisterNumberDX9(ui32Token);
-    uint32_t ui32RegType = DecodeOperandTypeDX9(ui32Token);
+    const uint32_t ui32RegNum = DecodeOperandRegisterNumberDX9(ui32Token);
+    const uint32_t ui32RegType = DecodeOperandTypeDX9(ui32Token);
+    const uint32_t bRelativeAddr = DecodeOperandIsRelativeAddressModeDX9(ui32Token);
+
+    const uint32_t ui32WriteMask = DecodeDestWriteMaskDX9(ui32Token);
+    const uint32_t ui32Swizzle = DecodeOperandSwizzleDX9(ui32Token);
 
     switch(ui32RegType)
     {
@@ -60,6 +69,11 @@ static void DecodeOperandDX9(const uint32_t ui32Token,
             }
             break;
         }
+        case OPERAND_TYPE_DX9_ADDR:
+        {
+            psOperand->eType = OPERAND_TYPE_SPECIAL_ADDRESS;
+            break;
+        }
     }
 
     psOperand->ui32RegisterNumber = ui32RegNum;
@@ -82,6 +96,84 @@ static void DecodeOperandDX9(const uint32_t ui32Token,
     psOperand->iIntegerImmediate = 0;
 
     psOperand->pszSpecialName[0] ='\0';
+
+    if((ui32Flags & DX9_DECODE_OPERAND_IS_DECL)==0)
+    {
+        if(ui32Flags & DX9_DECODE_OPERAND_IS_DEST)
+        {
+            if(ui32WriteMask != DX9_WRITEMASK_ALL)
+            {
+                psOperand->iWriteMaskEnabled = 1;
+                psOperand->eSelMode = OPERAND_4_COMPONENT_MASK_MODE;
+
+                if(ui32WriteMask & DX9_WRITEMASK_0)
+                {
+                    psOperand->ui32CompMask |= OPERAND_4_COMPONENT_MASK_X;
+                }
+                if(ui32WriteMask & DX9_WRITEMASK_1)
+                {
+                    psOperand->ui32CompMask |= OPERAND_4_COMPONENT_MASK_Y;
+                }
+                if(ui32WriteMask & DX9_WRITEMASK_2)
+                {
+                    psOperand->ui32CompMask |= OPERAND_4_COMPONENT_MASK_Z;
+                }
+                if(ui32WriteMask & DX9_WRITEMASK_3)
+                {
+                    psOperand->ui32CompMask |= OPERAND_4_COMPONENT_MASK_W;
+                }
+            }
+        }
+        else
+        if(ui32Swizzle != NO_SWIZZLE_DX9)
+        {
+            uint32_t component;
+
+            psOperand->iWriteMaskEnabled = 1;
+            psOperand->eSelMode = OPERAND_4_COMPONENT_SWIZZLE_MODE;
+
+		    /* Add the swizzle */
+		    for (component = 0; component < 4; component++)
+		    {
+			    uint32_t ui32CompSwiz =
+				    ui32Swizzle & (3 << (DX9_SWIZZLE_SHIFT+(component*2)));
+			    ui32CompSwiz >>= (DX9_SWIZZLE_SHIFT+(component*2));
+
+			    if (ui32CompSwiz == 0)
+			    {
+                    psOperand->aui32Swizzle[component] = OPERAND_4_COMPONENT_X;
+			    }
+			    else if (ui32CompSwiz == 1)
+			    {
+                    psOperand->aui32Swizzle[component] = OPERAND_4_COMPONENT_Y;
+			    }
+			    else if (ui32CompSwiz == 2)
+			    {
+                    psOperand->aui32Swizzle[component] = OPERAND_4_COMPONENT_Z;
+			    }
+			    else
+			    {
+                    psOperand->aui32Swizzle[component] = OPERAND_4_COMPONENT_W;
+			    }
+
+                psOperand->ui32Swizzle = 1;
+
+		    }
+        }
+
+        if(bRelativeAddr)
+        {
+            psOperand->psSubOperand[0] = malloc(sizeof(Operand));
+            DecodeOperandDX9(ui32Token1, 0, ui32Flags, psOperand->psSubOperand[0]);
+
+            psOperand->iIndexDims = INDEX_1D;
+        
+            psOperand->eIndexRep[0] = OPERAND_INDEX_RELATIVE;
+
+            psOperand->aui32ArraySizes[0] = 0;
+            psOperand->ui32RegisterNumber = 0;
+        }
+    }
 }
 
 static void DeclareNumTemps(Shader* psShader,
@@ -104,7 +196,7 @@ static void DecodeDeclarationDX9(Shader* psShader,
 
     psDecl->eOpcode = OPCODE_DCL_INPUT;
     psDecl->ui32NumOperands = 1;
-    DecodeOperandDX9(ui32Token1, 0, &psDecl->asOperands[0]);
+    DecodeOperandDX9(ui32Token1, 0, DX9_DECODE_OPERAND_IS_DECL, &psDecl->asOperands[0]);
 
     if(psDecl->asOperands[0].eType == OPERAND_TYPE_OUTPUT)
     {
@@ -175,6 +267,7 @@ static void CreateD3D10Instruction(Instruction* psInst,
     {
         DecodeOperandDX9(pui32Tokens[ui32Offset],
             pui32Tokens[ui32Offset+1],
+            DX9_DECODE_OPERAND_IS_DEST,
             &psInst->asOperands[0]);
 
         ui32Offset++;
@@ -184,6 +277,7 @@ static void CreateD3D10Instruction(Instruction* psInst,
     {
         DecodeOperandDX9(pui32Tokens[ui32Offset],
             pui32Tokens[ui32Offset+1],
+            DX9_DECODE_OPERAND_IS_SRC,
             &psInst->asOperands[1+ui32Src]);
 
         ui32Offset++;
@@ -416,7 +510,48 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                 }
                 case OPCODE_DX9_SINCOS:
                 {
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_SINCOS, 1, 3, pui32CurrentToken);
+                    //Before SM3, SINCOS has 2 extra constant sources -D3DSINCOSCONST1 and D3DSINCOSCONST2.
+                    //Ignore them.
+
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_SINCOS, 1, 1, pui32CurrentToken);
+                    //Pre-SM4:
+                        //If the write mask is .x: dest.x = cos( V )
+                        //If the write mask is .y: dest.y = sin( V )
+                        //If the write mask is .xy:
+                        //dest.x = cos( V )
+                        //dest.y = sin( V )
+
+                    //SM4+
+                    //destSin destCos Angle
+
+                    psInst->ui32NumOperands = 3;
+
+                    //Set the angle
+                    memcpy(&psInst[inst].asOperands[2],&psInst[inst].asOperands[1], sizeof(Operand));
+
+                    //Set the cosine dest
+                    memcpy(&psInst[inst].asOperands[1],&psInst[inst].asOperands[0], sizeof(Operand));
+
+                    //Set write masks
+                    psInst[inst].asOperands[0].ui32CompMask &= ~OPERAND_4_COMPONENT_MASK_Y;
+                    if(psInst[inst].asOperands[0].ui32CompMask & OPERAND_4_COMPONENT_MASK_X)
+                    {
+                        //Need cosine
+                    }
+                    else
+                    {
+                        psInst[inst].asOperands[0].eType = OPERAND_TYPE_NULL;
+                    }
+                    psInst[inst].asOperands[1].ui32CompMask &= ~OPERAND_4_COMPONENT_MASK_X;
+                    if(psInst[inst].asOperands[1].ui32CompMask & OPERAND_4_COMPONENT_MASK_Y)
+                    {
+                        //Need sine
+                    }
+                    else
+                    {
+                        psInst[inst].asOperands[1].eType = OPERAND_TYPE_NULL;
+                    }
+
                     break;
                 }
                 case OPCODE_DX9_FRC:
@@ -427,7 +562,9 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 
                 case OPCODE_DX9_MOVA:
                 {
-                    CreateD3D10Instruction(&psInst[inst], OPCODE_ROUND_NE, 1, 1, pui32CurrentToken);
+                    //MOVA preforms RoundToNearest on the src data.
+                    //The only rounding functions available in all GLSL version are ceil and floor.
+                    CreateD3D10Instruction(&psInst[inst], OPCODE_ROUND_NI, 1, 1, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_DST:

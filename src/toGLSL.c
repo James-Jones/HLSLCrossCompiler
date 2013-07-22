@@ -72,6 +72,11 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 {
     bstring glsl = *psContext->currentGLSLString;
 
+    if(psContext->psShader->ui32MajorVersion <= 3)
+    {
+        bcatcstr(glsl,"vec4 Address;\n");
+    }
+
 	//Enable conservative depth if the extension is defined by the GLSL compiler.
 	bcatcstr(glsl,"#ifdef GL_ARB_conservative_depth\n\t#extension GL_ARB_conservative_depth : enable\n#endif\n");
 

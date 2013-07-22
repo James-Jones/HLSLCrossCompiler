@@ -333,6 +333,7 @@ static OPERAND_INDEX_DIMENSION DecodeOperandIndexDimension(uint32_t ui32Token)
 
 typedef enum OPERAND_TYPE
 {
+    OPERAND_TYPE_SPECIAL_ADDRESS = -2,
     OPERAND_TYPE_SPECIAL_IMMCONST = -1,
     OPERAND_TYPE_TEMP           = 0,  // Temporary Register File
     OPERAND_TYPE_INPUT          = 1,  // General Input Register File

@@ -760,6 +760,11 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             bformata(glsl, "ImmConst%d", psOperand->ui32RegisterNumber);
             break;
         }
+        case OPERAND_TYPE_SPECIAL_ADDRESS:
+        {
+            bformata(glsl, "Address");
+            break;
+        }
         case OPERAND_TYPE_CONSTANT_BUFFER:
         {
             const char* StageName = "VS";
@@ -832,7 +837,16 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 				//$Globals.
 				if(psCBuf->Name[0] == '$')
 				{
-					bformata(glsl, "Globals%s[%d]", StageName, psOperand->aui32ArraySizes[1]);
+                    if(psOperand->psSubOperand[0])
+                    {
+                        bformata(glsl, "Globals%s[int(", StageName);
+                        TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
+                        bcatcstr(glsl, ")]");
+                    }
+                    else
+                    {
+                        bformata(glsl, "Globals%s[%d]", StageName, psOperand->aui32ArraySizes[1]);
+                    }
 				}
 				else
 				{
