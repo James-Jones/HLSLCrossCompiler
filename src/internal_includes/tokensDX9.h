@@ -196,6 +196,8 @@ static uint32_t DecodeOperandIsRelativeAddressModeDX9(const uint32_t ui32Token)
 static const uint32_t DX9_SWIZZLE_SHIFT = 16;
 #define NO_SWIZZLE_DX9 ((0<<DX9_SWIZZLE_SHIFT)|(1<<DX9_SWIZZLE_SHIFT)|(2<<DX9_SWIZZLE_SHIFT)|(3<<DX9_SWIZZLE_SHIFT))
 
+#define REPLICATE_SWIZZLE_DX9(CHANNEL) ((CHANNEL<<DX9_SWIZZLE_SHIFT)|(CHANNEL<<(DX9_SWIZZLE_SHIFT+2))|(CHANNEL<<(DX9_SWIZZLE_SHIFT+4))|(CHANNEL<<(DX9_SWIZZLE_SHIFT+6)))
+
 static uint32_t DecodeOperandSwizzleDX9(const uint32_t ui32Token)
 {
     return ui32Token & 0x00FF0000;

@@ -132,33 +132,58 @@ static void DecodeOperandDX9(const uint32_t ui32Token,
             psOperand->iWriteMaskEnabled = 1;
             psOperand->eSelMode = OPERAND_4_COMPONENT_SWIZZLE_MODE;
 
+            psOperand->ui32Swizzle = 1;
+
 		    /* Add the swizzle */
-		    for (component = 0; component < 4; component++)
-		    {
-			    uint32_t ui32CompSwiz =
-				    ui32Swizzle & (3 << (DX9_SWIZZLE_SHIFT+(component*2)));
-			    ui32CompSwiz >>= (DX9_SWIZZLE_SHIFT+(component*2));
+            if(ui32Swizzle == REPLICATE_SWIZZLE_DX9(0))
+            {
+                psOperand->eSelMode = OPERAND_4_COMPONENT_SELECT_1_MODE;
+                psOperand->aui32Swizzle[0] = OPERAND_4_COMPONENT_X;
+            }
+            else
+            if(ui32Swizzle == REPLICATE_SWIZZLE_DX9(1))
+            {
+                psOperand->eSelMode = OPERAND_4_COMPONENT_SELECT_1_MODE;
+                psOperand->aui32Swizzle[0] = OPERAND_4_COMPONENT_Y;
+            }
+            else
+            if(ui32Swizzle == REPLICATE_SWIZZLE_DX9(2))
+            {
+                psOperand->eSelMode = OPERAND_4_COMPONENT_SELECT_1_MODE;
+                psOperand->aui32Swizzle[0] = OPERAND_4_COMPONENT_Z;
+            }
+            else
+            if(ui32Swizzle == REPLICATE_SWIZZLE_DX9(3))
+            {
+                psOperand->eSelMode = OPERAND_4_COMPONENT_SELECT_1_MODE;
+                psOperand->aui32Swizzle[0] = OPERAND_4_COMPONENT_W;
+            }
+            else
+            {
+		        for (component = 0; component < 4; component++)
+		        {
+			        uint32_t ui32CompSwiz =
+				        ui32Swizzle & (3 << (DX9_SWIZZLE_SHIFT+(component*2)));
+			        ui32CompSwiz >>= (DX9_SWIZZLE_SHIFT+(component*2));
 
-			    if (ui32CompSwiz == 0)
-			    {
-                    psOperand->aui32Swizzle[component] = OPERAND_4_COMPONENT_X;
-			    }
-			    else if (ui32CompSwiz == 1)
-			    {
-                    psOperand->aui32Swizzle[component] = OPERAND_4_COMPONENT_Y;
-			    }
-			    else if (ui32CompSwiz == 2)
-			    {
-                    psOperand->aui32Swizzle[component] = OPERAND_4_COMPONENT_Z;
-			    }
-			    else
-			    {
-                    psOperand->aui32Swizzle[component] = OPERAND_4_COMPONENT_W;
-			    }
-
-                psOperand->ui32Swizzle = 1;
-
-		    }
+			        if (ui32CompSwiz == 0)
+			        {
+                        psOperand->aui32Swizzle[component] = OPERAND_4_COMPONENT_X;
+			        }
+			        else if (ui32CompSwiz == 1)
+			        {
+                        psOperand->aui32Swizzle[component] = OPERAND_4_COMPONENT_Y;
+			        }
+			        else if (ui32CompSwiz == 2)
+			        {
+                        psOperand->aui32Swizzle[component] = OPERAND_4_COMPONENT_Z;
+			        }
+			        else
+			        {
+                        psOperand->aui32Swizzle[component] = OPERAND_4_COMPONENT_W;
+			        }
+		        }
+            }
         }
 
         if(bRelativeAddr)
@@ -311,6 +336,10 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 
         if(eOpcode == OPCODE_DX9_END)
         {
+            //SM4+ always end with RET.
+            //Insert a RET instruction on END to
+            //replicate this behaviour.
+            ++ui32NumInstructions;
             break;
         }
         else if(eOpcode == OPCODE_DX9_COMMENT)
@@ -375,6 +404,8 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 
         if(eOpcode == OPCODE_DX9_END)
         {
+            CreateD3D10Instruction(&psInst[inst], OPCODE_RET, 0, 0, pui32CurrentToken);
+            inst++;
             break;
         }
         else if(eOpcode == OPCODE_DX9_COMMENT)
