@@ -27,6 +27,7 @@ Supported target languages:
   GLSL 410
   GLSL 420
   GLSL 430
+  GLSL 440
 
 I have plans to add support for more target languages including:
   ARB assembly (ARB_vertex_program et al.)

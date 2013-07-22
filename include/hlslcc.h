@@ -28,7 +28,8 @@ typedef enum
     LANG_400,
     LANG_410,
     LANG_420,
-    LANG_430
+    LANG_430,
+    LANG_440,
 } GLLang;
 
 static enum {MAX_SHADER_VEC4_OUTPUT = 512};

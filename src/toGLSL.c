@@ -232,6 +232,11 @@ const char* GetVersionString(GLLang language)
             return "#version 430\n";
             break;
         }
+        case LANG_440:
+        {
+            return "#version 440\n";
+            break;
+        }
         default:
         {
             return "";
