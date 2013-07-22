@@ -16,6 +16,7 @@ static uint64_t instructionID = 0;
 #endif
 
 static uint32_t aui32ImmediateConst[256];
+static uint32_t ui32MaxTemp = 0;
 
 static void DecodeOperandDX9(const uint32_t ui32Token,
 							 const uint32_t ui32Token1,
@@ -29,6 +30,11 @@ static void DecodeOperandDX9(const uint32_t ui32Token,
         case OPERAND_TYPE_DX9_TEMP:
         {
             psOperand->eType = OPERAND_TYPE_TEMP;
+
+            if(ui32MaxTemp < ui32RegNum+1)
+            {
+                ui32MaxTemp = ui32RegNum+1;
+            }
             break;
         }
         case OPERAND_TYPE_DX9_INPUT:
@@ -76,6 +82,14 @@ static void DecodeOperandDX9(const uint32_t ui32Token,
     psOperand->iIntegerImmediate = 0;
 
     psOperand->pszSpecialName[0] ='\0';
+}
+
+static void DeclareNumTemps(Shader* psShader,
+    const uint32_t ui32NumTemps,
+    Declaration* psDecl)
+{
+    psDecl->eOpcode = OPCODE_DCL_TEMPS;
+    psDecl->value.ui32NumTemps = ui32NumTemps;
 }
 
 static void DecodeDeclarationDX9(Shader* psShader,
@@ -248,6 +262,9 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
         //Declare gl_Position. vs_3_0 does declare it, SM1/2 do not
         ui32NumDeclarations++;
     }
+
+    //For declaring temps.
+    ui32NumDeclarations++;
 
     psDecl = malloc(sizeof(Declaration) * ui32NumDeclarations);
     psShader->psDecl = psDecl;
@@ -515,6 +532,9 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 
         pui32CurrentToken += ui32InstLen + 1;
     }
+
+    DeclareNumTemps(psShader, ui32MaxTemp, &psDecl[decl]);
+    ++decl;
 
     if(psShader->eShaderType == VERTEX_SHADER)
     {
