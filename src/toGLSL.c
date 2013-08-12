@@ -74,7 +74,34 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 
     if(psContext->psShader->ui32MajorVersion <= 3)
     {
-        bcatcstr(glsl,"vec4 Address;\n");
+		uint32_t texCoord;
+        bcatcstr(glsl, "vec4 Address;\n");
+
+        if(InOutSupported(psContext->psShader->eTargetLanguage))
+        {
+            bcatcstr(glsl, "out vec4 OffsetColour;\n");
+            bcatcstr(glsl, "out vec4 BaseColour;\n");
+
+            bcatcstr(glsl, "out vec4 Fog;\n");
+
+			for(texCoord=0; texCoord<8; ++texCoord)
+			{
+				bformata(glsl, "out vec4 Output%d;\n", texCoord);
+			}
+        }
+        else
+        {
+            bcatcstr(glsl, "varying vec4 OffsetColour;\n");
+            bcatcstr(glsl, "varying vec4 BaseColour;\n");
+
+            bcatcstr(glsl, "varying vec4 Fog;\n");
+
+			for(texCoord=0; texCoord<8; ++texCoord)
+			{
+				bformata(glsl, "varying vec4 Output%d;\n", texCoord);
+			}
+        }
+
     }
 
 	//Enable conservative depth if the extension is defined by the GLSL compiler.

@@ -760,9 +760,34 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             bformata(glsl, "ImmConst%d", psOperand->ui32RegisterNumber);
             break;
         }
+        case OPERAND_TYPE_SPECIAL_OUTBASECOLOUR:
+        {
+            bcatcstr(glsl, "BaseColour");
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_OUTOFFSETCOLOUR:
+        {
+            bcatcstr(glsl, "OffsetColour");
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_POSITION:
+        {
+            bcatcstr(glsl, "gl_Position");
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_FOG:
+        {
+            bcatcstr(glsl, "Fog");
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_POINTSIZE:
+        {
+            bcatcstr(glsl, "gl_PointSize");
+            break;
+        }
         case OPERAND_TYPE_SPECIAL_ADDRESS:
         {
-            bformata(glsl, "Address");
+            bcatcstr(glsl, "Address");
             break;
         }
         case OPERAND_TYPE_CONSTANT_BUFFER:
