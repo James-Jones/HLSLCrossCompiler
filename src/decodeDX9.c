@@ -311,7 +311,8 @@ static void DecodeDeclarationDX9(const Shader* psShader,
     if(psDecl->asOperands[0].eType == OPERAND_TYPE_OUTPUT)
     {
         psDecl->eOpcode = OPCODE_DCL_OUTPUT;
-        if(psDecl->asOperands[0].ui32RegisterNumber==0)
+
+		if(psDecl->asOperands[0].ui32RegisterNumber==0 && psShader->eShaderType == VERTEX_SHADER)
         {
             psDecl->eOpcode = OPCODE_DCL_OUTPUT_SIV;
             //gl_Position
