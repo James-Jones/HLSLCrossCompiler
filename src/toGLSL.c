@@ -74,34 +74,47 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 
     if(psContext->psShader->ui32MajorVersion <= 3)
     {
-		uint32_t texCoord;
-        bcatcstr(glsl, "vec4 Address;\n");
+		if(psContext->psShader->eShaderType == VERTEX_SHADER)
+		{
+			uint32_t texCoord;
+			bcatcstr(glsl, "vec4 Address;\n");
 
-        if(InOutSupported(psContext->psShader->eTargetLanguage))
-        {
-            bcatcstr(glsl, "out vec4 OffsetColour;\n");
-            bcatcstr(glsl, "out vec4 BaseColour;\n");
-
-            bcatcstr(glsl, "out vec4 Fog;\n");
-
-			for(texCoord=0; texCoord<8; ++texCoord)
+			if(InOutSupported(psContext->psShader->eTargetLanguage))
 			{
-				bformata(glsl, "out vec4 Output%d;\n", texCoord);
+				bcatcstr(glsl, "out vec4 OffsetColour;\n");
+				bcatcstr(glsl, "out vec4 BaseColour;\n");
+
+				bcatcstr(glsl, "out vec4 Fog;\n");
+
+				for(texCoord=0; texCoord<8; ++texCoord)
+				{
+					bformata(glsl, "out vec4 Output%d;\n", texCoord);
+				}
 			}
-        }
-        else
-        {
-            bcatcstr(glsl, "varying vec4 OffsetColour;\n");
-            bcatcstr(glsl, "varying vec4 BaseColour;\n");
-
-            bcatcstr(glsl, "varying vec4 Fog;\n");
-
-			for(texCoord=0; texCoord<8; ++texCoord)
+			else
 			{
-				bformata(glsl, "varying vec4 Output%d;\n", texCoord);
-			}
-        }
+				bcatcstr(glsl, "varying vec4 OffsetColour;\n");
+				bcatcstr(glsl, "varying vec4 BaseColour;\n");
 
+				bcatcstr(glsl, "varying vec4 Fog;\n");
+
+				for(texCoord=0; texCoord<8; ++texCoord)
+				{
+					bformata(glsl, "varying vec4 Output%d;\n", texCoord);
+				}
+			}
+		}
+		else
+		{
+			uint32_t renderTargets;
+
+			ASSERT(WriteToFragData(psContext->psShader->eTargetLanguage));
+
+			for(renderTargets=0; renderTargets<8; ++renderTargets)
+			{
+				bformata(glsl, "#define Output%d gl_FragData[%d]\n", renderTargets, renderTargets);
+			}
+		}
     }
 
 	//Enable conservative depth if the extension is defined by the GLSL compiler.

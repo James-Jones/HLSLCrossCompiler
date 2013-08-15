@@ -1028,31 +1028,34 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         }
     }
 
+	UpdateOperandReferences(psShader, psInst);
+
+    return pui32Token + ui32TokenLength;
+}
+
+void UpdateOperandReferences(Shader* psShader, Instruction* psInst)
+{
+    uint32_t ui32Operand;
+    const uint32_t ui32NumOperands = psInst->ui32NumOperands;
+    for(ui32Operand = 0; ui32Operand < ui32NumOperands; ++ui32Operand)
     {
-        uint32_t ui32Operand;
-        const uint32_t ui32NumOperands = psInst->ui32NumOperands;
-        for(ui32Operand = 0; ui32Operand < ui32NumOperands; ++ui32Operand)
+        Operand* psOperand = &psInst->asOperands[ui32Operand];
+        if(psOperand->eType == OPERAND_TYPE_INPUT || 
+            psOperand->eType == OPERAND_TYPE_INPUT_CONTROL_POINT)
         {
-            Operand* psOperand = &psInst->asOperands[ui32Operand];
-            if(psOperand->eType == OPERAND_TYPE_INPUT || 
-                psOperand->eType == OPERAND_TYPE_INPUT_CONTROL_POINT)
+            if(psOperand->iIndexDims == INDEX_2D)
             {
-                if(psOperand->iIndexDims == INDEX_2D)
-                {
-                    if(psOperand->aui32ArraySizes[1] != 0)//gl_in[].gl_Position
-                    {
-                        psShader->abInputReferencedByInstruction[psOperand->ui32RegisterNumber] = 1;
-                    }
-                }
-                else
+                if(psOperand->aui32ArraySizes[1] != 0)//gl_in[].gl_Position
                 {
                     psShader->abInputReferencedByInstruction[psOperand->ui32RegisterNumber] = 1;
                 }
             }
+            else
+            {
+                psShader->abInputReferencedByInstruction[psOperand->ui32RegisterNumber] = 1;
+            }
         }
     }
-
-    return pui32Token + ui32TokenLength;
 }
 
 const uint32_t* DecodeHullShaderJoinPhase(const uint32_t* pui32Tokens, Shader* psShader)

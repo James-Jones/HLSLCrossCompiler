@@ -8,4 +8,6 @@ Shader* DecodeDXBC(uint32_t* data);
 //like it is SM1/2/3.
 Shader* DecodeDX9BC(const uint32_t* pui32Tokens);
 
+void UpdateOperandReferences(Shader* psShader, Instruction* psInst);
+
 #endif

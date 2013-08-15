@@ -135,7 +135,7 @@ static void DecodeOperandDX9(const Shader* psShader,
 			//Pixel shader: texture coordinate register (a few of these)
 			if(psShader->eShaderType == PIXEL_SHADER)
 			{
-				psOperand->eType = OPERAND_TYPE_OUTPUT;
+				psOperand->eType = OPERAND_TYPE_INPUT;
 			}
 			else
 			{
@@ -382,9 +382,12 @@ static void CreateD3D10Instruction(
 #endif
 
     psInst->eOpcode = eType;
+	psInst->ui32NumOperands = ui32SrcCount;
 
     if(bHasDest)
     {
+		++psInst->ui32NumOperands;
+
         DecodeOperandDX9(psShader,
             pui32Tokens[ui32Offset],
             pui32Tokens[ui32Offset+1],
@@ -804,6 +807,9 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                     break;
                 }
             }
+
+			UpdateOperandReferences(psShader, &psInst[inst]);
+
             inst++;
         }
 
