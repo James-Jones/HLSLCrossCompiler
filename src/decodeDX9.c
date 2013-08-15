@@ -296,7 +296,14 @@ static void DecodeDeclarationDX9(const Shader* psShader,
     uint32_t ui32RegNum = DecodeOperandRegisterNumberDX9(ui32Token1);
     uint32_t ui32RegType = DecodeOperandTypeDX9(ui32Token1);
 
-    psDecl->eOpcode = OPCODE_DCL_INPUT;
+	if(psShader->eShaderType == VERTEX_SHADER)
+	{
+		psDecl->eOpcode = OPCODE_DCL_INPUT;
+	}
+	else
+	{
+		psDecl->eOpcode = OPCODE_DCL_INPUT_PS;
+	}
     psDecl->ui32NumOperands = 1;
     DecodeOperandDX9(psShader, ui32Token1, 0, DX9_DECODE_OPERAND_IS_DECL, &psDecl->asOperands[0]);
 
