@@ -214,3 +214,18 @@ static uint32_t DecodeDestWriteMaskDX9(const uint32_t ui32Token)
     return ui32Token & DX9_WRITEMASK_ALL;
 }
 
+static RESOURCE_DIMENSION DecodeTextureTypeMaskDX9(const uint32_t ui32Token)
+{
+
+    switch(ui32Token & 0x78000000)
+	{
+	case 2 << 27:
+		return RESOURCE_DIMENSION_TEXTURE2D;
+	case 3 << 27:
+		return RESOURCE_DIMENSION_TEXTURECUBE;
+	case 4 << 27:
+		return RESOURCE_DIMENSION_TEXTURE3D;
+	default:
+		return RESOURCE_DIMENSION_UNKNOWN;
+	}
+}

@@ -110,6 +110,12 @@ static void DecodeOperandDX9(const Shader* psShader,
             
             break;
         }
+		case OPERAND_TYPE_DX9_COLOROUT:
+		{
+			ASSERT(psShader->eShaderType == PIXEL_SHADER);
+			psOperand->eType = OPERAND_TYPE_OUTPUT;
+			break;
+		}
         case OPERAND_TYPE_DX9_CONST:
         {
             if(aui32ImmediateConst[ui32RegNum])
@@ -125,9 +131,23 @@ static void DecodeOperandDX9(const Shader* psShader,
         }
         case OPERAND_TYPE_DX9_ADDR:
         {
-            psOperand->eType = OPERAND_TYPE_SPECIAL_ADDRESS;
+			//Vertex shader: address register (only have one of these)
+			//Pixel shader: texture coordinate register (a few of these)
+			if(psShader->eShaderType == PIXEL_SHADER)
+			{
+				psOperand->eType = OPERAND_TYPE_OUTPUT;
+			}
+			else
+			{
+				psOperand->eType = OPERAND_TYPE_SPECIAL_ADDRESS;
+			}
             break;
         }
+		case OPERAND_TYPE_DX9_SAMPLER:
+		{
+			psOperand->eType = OPERAND_TYPE_RESOURCE;			
+			break;
+		}
         default:
         {
             ASSERT(0);
@@ -266,7 +286,7 @@ static void DeclareNumTemps(Shader* psShader,
     psDecl->value.ui32NumTemps = ui32NumTemps;
 }
 
-static void DecodeDeclarationDX9(Shader* psShader,
+static void DecodeDeclarationDX9(const Shader* psShader,
                                 const uint32_t ui32Token0,
                                 const uint32_t ui32Token1,
                                 Declaration* psDecl)
@@ -279,6 +299,14 @@ static void DecodeDeclarationDX9(Shader* psShader,
     psDecl->eOpcode = OPCODE_DCL_INPUT;
     psDecl->ui32NumOperands = 1;
     DecodeOperandDX9(psShader, ui32Token1, 0, DX9_DECODE_OPERAND_IS_DECL, &psDecl->asOperands[0]);
+
+	if(ui32RegType == OPERAND_TYPE_DX9_SAMPLER)
+	{
+		const RESOURCE_DIMENSION eResDim = DecodeTextureTypeMaskDX9(ui32Token0);
+		psDecl->value.eResourceDimension = eResDim;
+		psDecl->ui32IsShadowTex = 0;
+		psDecl->eOpcode = OPCODE_DCL_RESOURCE;
+	}
 
     if(psDecl->asOperands[0].eType == OPERAND_TYPE_OUTPUT)
     {
@@ -659,6 +687,17 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                     CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_ROUND_NI, 1, 1, pui32CurrentToken);
                     break;
                 }
+
+				case OPCODE_DX9_TEX:
+				{
+					//texld r0, t0, s0
+					// srcAddress[.swizzle], srcResource[.swizzle], srcSampler
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_SAMPLE, 1, 2, pui32CurrentToken);
+					psInst->asOperands[2].ui32RegisterNumber = 0;
+
+					
+					break;
+				}
                 case OPCODE_DX9_DST:
                 case OPCODE_DX9_LRP:
                 
@@ -686,7 +725,6 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 
                 case OPCODE_DX9_TEXCOORD:
                 case OPCODE_DX9_TEXKILL:
-                case OPCODE_DX9_TEX:
                 case OPCODE_DX9_TEXBEM:
                 case OPCODE_DX9_TEXBEML:
                 case OPCODE_DX9_TEXREG2AR:

@@ -884,11 +884,13 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         case OPERAND_TYPE_RESOURCE:
         {
             TextureName(psContext, psOperand->ui32RegisterNumber, 0);
+			*pui32IgnoreSwizzle = 1;
             break;
         }
         case OPERAND_TYPE_SAMPLER:
         {
             bformata(glsl, "Sampler%d", psOperand->ui32RegisterNumber);
+			*pui32IgnoreSwizzle = 1;
             break;
         }
         case OPERAND_TYPE_FUNCTION_BODY:
@@ -1070,6 +1072,7 @@ void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32Registe
     bstring glsl = *psContext->currentGLSLString;
     ResourceBinding* psBinding = 0;
 	int found;
+
     found = GetResourceFromBindingPoint(RTYPE_TEXTURE, ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
 
     if(bZCompare)

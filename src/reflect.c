@@ -527,6 +527,48 @@ typedef struct ConstantTableD3D9_TAG
     uint32_t target;
 } ConstantTableD3D9;
 
+// These enums match those in d3dx9shader.h.
+enum RegisterSet
+{
+    RS_BOOL,
+    RS_INT4,
+    RS_FLOAT4,
+    RS_SAMPLER,
+};
+
+enum TypeClass
+{
+    CLASS_SCALAR,
+    CLASS_VECTOR,
+    CLASS_MATRIX_ROWS,
+    CLASS_MATRIX_COLUMNS,
+    CLASS_OBJECT,
+    CLASS_STRUCT,
+};
+
+enum Type
+{
+    PT_VOID,
+    PT_BOOL,
+    PT_INT,
+    PT_FLOAT,
+    PT_STRING,
+    PT_TEXTURE,
+    PT_TEXTURE1D,
+    PT_TEXTURE2D,
+    PT_TEXTURE3D,
+    PT_TEXTURECUBE,
+    PT_SAMPLER,
+    PT_SAMPLER1D,
+    PT_SAMPLER2D,
+    PT_SAMPLER3D,
+    PT_SAMPLERCUBE,
+    PT_PIXELSHADER,
+    PT_VERTEXSHADER,
+    PT_PIXELFRAGMENT,
+    PT_VERTEXFRAGMENT,
+    PT_UNSUPPORTED,
+};
 typedef struct ConstantInfoD3D9_TAG
 {
     uint32_t name;
@@ -563,6 +605,7 @@ void LoadD3D9ConstantTable(const char* data,
     ConstantInfoD3D9* cinfos;
     ConstantBuffer* psConstantBuffer;
     uint16_t maxVec4Register = 0;
+	uint32_t numResourceBindingsNeeded = 0;
 
     ctab = (ConstantTableD3D9*)data;
 
@@ -580,16 +623,65 @@ void LoadD3D9ConstantTable(const char* data,
     psConstantBuffer->ui32NumVars = ctab->constants;
     strcpy(psConstantBuffer->Name, "$Globals");
 
+	//Determine how many resource bindings to create
+	for(constNum = 0; constNum < ctab->constants; ++constNum)
+	{
+		if(cinfos[constNum].registerSet == RS_SAMPLER)
+		{
+			++numResourceBindingsNeeded;
+		}
+	}
+
+	psInfo->psResourceBindings = malloc(numResourceBindingsNeeded*sizeof(ResourceBinding));
+
     for(constNum = 0; constNum < ctab->constants; ++constNum)
     {
-        strcpy(psConstantBuffer->asVars[constNum].Name, data + cinfos[constNum].name);
-        psConstantBuffer->asVars[constNum].ui32Size = cinfos[constNum].registerCount;
-        psConstantBuffer->asVars[constNum].ui32StartOffset = cinfos[constNum].registerIndex;
+		TypeInfoD3D9* typeInfo = (TypeInfoD3D9*) (data + cinfos[constNum].typeInfo);
+		ShaderVar* var = &psConstantBuffer->asVars[constNum];
+
+        strcpy(var->Name, data + cinfos[constNum].name);
+        var->ui32Size = cinfos[constNum].registerCount;
+        var->ui32StartOffset = cinfos[constNum].registerIndex;
 
         if(maxVec4Register < (cinfos[constNum].registerCount + cinfos[constNum].registerIndex))
         {
             maxVec4Register = (cinfos[constNum].registerCount + cinfos[constNum].registerIndex);
         }
+
+		//Create a resource if it is sampler in order to replicate the d3d10+
+		//method of separating samplers from general constants.
+		if(cinfos[constNum].registerSet == RS_SAMPLER)
+		{
+			uint32_t ui32ResourceIndex = psInfo->ui32NumResourceBindings++;
+			ResourceBinding* res = &psInfo->psResourceBindings[ui32ResourceIndex];
+
+			strcpy(res->Name, data + cinfos[constNum].name);
+
+			res->ui32BindPoint = cinfos[constNum].registerIndex;
+			res->ui32BindCount = cinfos[constNum].registerCount;
+			res->ui32Flags = 0;
+			res->ui32NumSamples = 1;
+			res->ui32ReturnType = 0;
+
+			res->eType = RTYPE_TEXTURE;
+
+			switch(typeInfo->type)
+			{
+			case PT_SAMPLER:
+			case PT_SAMPLER1D:
+				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURE1D;
+				break;
+			case PT_SAMPLER2D:
+				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURE2D;
+				break;
+			case PT_SAMPLER3D:
+				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURE2D;
+				break;
+			case PT_SAMPLERCUBE:
+				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURECUBE;
+				break;
+			}
+		}
     }
     psConstantBuffer->ui32TotalSizeInBytes = maxVec4Register * 16;
 }
