@@ -436,8 +436,15 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
             ui32InstLen = DecodeCommentLengthDX9(pui32CurrentToken[0]);
             if(pui32CurrentToken[1] == FOURCC_CTAB)
             {
-                ++ui32NumDeclarations;
-                bDeclareConstantTable = 1;
+                LoadD3D9ConstantTable((char*)(&pui32CurrentToken[2]), &psShader->sInfo);
+
+				ASSERT(psShader->sInfo.ui32NumConstantBuffers);
+
+				if(psShader->sInfo.psConstantBuffers[0].ui32NumVars)
+				{
+					++ui32NumDeclarations;
+					bDeclareConstantTable = 1;
+				}
             }
         }
         else if(eOpcode == OPCODE_DX9_DCL || eOpcode == OPCODE_DX9_DEF)
@@ -500,11 +507,6 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
         else if(eOpcode == OPCODE_DX9_COMMENT)
         {
             ui32InstLen = DecodeCommentLengthDX9(pui32CurrentToken[0]);
-
-            if(pui32CurrentToken[1] == FOURCC_CTAB)
-            {
-                LoadD3D9ConstantTable((char*)(&pui32CurrentToken[2]), &psShader->sInfo);
-            }
         }
         else if(eOpcode == OPCODE_DX9_DCL)
         {
