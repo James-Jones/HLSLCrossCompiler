@@ -790,6 +790,11 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             bcatcstr(glsl, "Address");
             break;
         }
+		case OPERAND_TYPE_SPECIAL_TEXCOORD:
+		{
+			bformata(glsl, "TexCoord%d", psOperand->ui32RegisterNumber);
+			break;
+		}
         case OPERAND_TYPE_CONSTANT_BUFFER:
         {
             const char* StageName = "VS";

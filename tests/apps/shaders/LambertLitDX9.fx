@@ -8,15 +8,13 @@
 //--------------------------------------------------------------------------------------
 // Constant Buffer Variables
 //--------------------------------------------------------------------------------------
-cbuffer SharedConsts
-{
-   matrix World;
-   matrix View;
-   matrix Projection;
-   float4 vLightDir[2];
-   float4 vLightColor[2];
-   float4 vOutputColor;
-};
+
+matrix World : register(c0);
+matrix View : register(c4);
+matrix Projection : register(c8);
+float4 vLightDir[2] : register(c12);
+float4 vLightColor[2] : register(c14);
+float4 vOutputColor : register(c16);
 
 
 //--------------------------------------------------------------------------------------

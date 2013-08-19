@@ -88,7 +88,7 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 
 				for(texCoord=0; texCoord<8; ++texCoord)
 				{
-					bformata(glsl, "out vec4 Output%d;\n", texCoord);
+					bformata(glsl, "out vec4 TexCoord%d;\n", texCoord);
 				}
 			}
 			else
@@ -100,13 +100,23 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 
 				for(texCoord=0; texCoord<8; ++texCoord)
 				{
-					bformata(glsl, "varying vec4 Output%d;\n", texCoord);
+					bformata(glsl, "varying vec4 TexCoord%d;\n", texCoord);
 				}
 			}
 		}
 		else
 		{
-			uint32_t renderTargets;
+			uint32_t renderTargets, texCoord;
+
+			bcatcstr(glsl, "varying vec4 OffsetColour;\n");
+			bcatcstr(glsl, "varying vec4 BaseColour;\n");
+
+			bcatcstr(glsl, "varying vec4 Fog;\n");
+
+			for(texCoord=0; texCoord<8; ++texCoord)
+			{
+				bformata(glsl, "varying vec4 TexCoord%d;\n", texCoord);
+			}
 
 			ASSERT(WriteToFragData(psContext->psShader->eTargetLanguage));
 

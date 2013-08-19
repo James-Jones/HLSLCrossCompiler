@@ -143,6 +143,12 @@ static void DeclareInput(
             }
             default:
             {
+
+				if(psDecl->asOperands[0].eType == OPERAND_TYPE_SPECIAL_TEXCOORD)
+				{
+					InputName = "TexCoord";
+				}
+				
                 if(iNumComponents == 1)
                 {
                     psContext->psShader->abScalarInput[psDecl->asOperands[0].ui32RegisterNumber] = 1;

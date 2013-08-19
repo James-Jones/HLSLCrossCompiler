@@ -178,9 +178,26 @@ static uint32_t CreateOperandTokenDX9(const uint32_t ui32RegNum, const OPERAND_T
     return ui32Token;
 }
 
-static uint32_t DecodeUsageDX9(const uint32_t ui32Token)
+typedef enum { 
+  DECLUSAGE_POSITION      = 0,
+  DECLUSAGE_BLENDWEIGHT   = 1,
+  DECLUSAGE_BLENDINDICES  = 2,
+  DECLUSAGE_NORMAL        = 3,
+  DECLUSAGE_PSIZE         = 4,
+  DECLUSAGE_TEXCOORD      = 5,
+  DECLUSAGE_TANGENT       = 6,
+  DECLUSAGE_BINORMAL      = 7,
+  DECLUSAGE_TESSFACTOR    = 8,
+  DECLUSAGE_POSITIONT     = 9,
+  DECLUSAGE_COLOR         = 10,
+  DECLUSAGE_FOG           = 11,
+  DECLUSAGE_DEPTH         = 12,
+  DECLUSAGE_SAMPLE        = 13
+} DECLUSAGE_DX9;
+
+static DECLUSAGE_DX9 DecodeUsageDX9(const uint32_t ui32Token)
 {
-    return ui32Token & 0x0000000f;
+    return (DECLUSAGE_DX9) (ui32Token & 0x0000000f);
 }
 
 static uint32_t DecodeUsageIndexDX9(const uint32_t ui32Token)

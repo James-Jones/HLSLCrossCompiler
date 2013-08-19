@@ -54,6 +54,21 @@ static void DecodeOperandDX9(const Shader* psShader,
         case OPERAND_TYPE_DX9_INPUT:
         {
             psOperand->eType = OPERAND_TYPE_INPUT;
+
+			if(psShader->eShaderType == PIXEL_SHADER)
+			{
+
+				//0 = base colour, 1 = offset colour.
+				if(ui32RegNum == 0)
+				{
+					psOperand->eType = OPERAND_TYPE_SPECIAL_OUTBASECOLOUR;
+				}
+				else
+				{
+					ASSERT(ui32RegNum == 1);
+					psOperand->eType = OPERAND_TYPE_SPECIAL_OUTOFFSETCOLOUR;
+				}
+			}
             break;
         }
 		//Same value as OPERAND_TYPE_DX9_TEXCRDOUT
@@ -61,6 +76,11 @@ static void DecodeOperandDX9(const Shader* psShader,
         case OPERAND_TYPE_DX9_OUTPUT:
         {
             psOperand->eType = OPERAND_TYPE_OUTPUT;
+
+			if(psShader->eShaderType == VERTEX_SHADER)
+			{
+				psOperand->eType = OPERAND_TYPE_SPECIAL_TEXCOORD;
+			}
             break;
         }
         case OPERAND_TYPE_DX9_RASTOUT:
@@ -135,7 +155,7 @@ static void DecodeOperandDX9(const Shader* psShader,
 			//Pixel shader: texture coordinate register (a few of these)
 			if(psShader->eShaderType == PIXEL_SHADER)
 			{
-				psOperand->eType = OPERAND_TYPE_INPUT;
+				psOperand->eType = OPERAND_TYPE_SPECIAL_TEXCOORD;
 			}
 			else
 			{
@@ -291,7 +311,7 @@ static void DecodeDeclarationDX9(const Shader* psShader,
                                 const uint32_t ui32Token1,
                                 Declaration* psDecl)
 {
-    uint32_t ui32Usage = DecodeUsageDX9(ui32Token0);
+    DECLUSAGE_DX9 eUsage = DecodeUsageDX9(ui32Token0);
     uint32_t ui32UsageIndex = DecodeUsageIndexDX9(ui32Token0);
     uint32_t ui32RegNum = DecodeOperandRegisterNumberDX9(ui32Token1);
     uint32_t ui32RegType = DecodeOperandTypeDX9(ui32Token1);
@@ -458,9 +478,24 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 				}
             }
         }
-        else if(eOpcode == OPCODE_DX9_DCL || eOpcode == OPCODE_DX9_DEF)
+		else if(eOpcode == OPCODE_DX9_DEF)
+		{
+			++ui32NumDeclarations;
+		}
+        else if(eOpcode == OPCODE_DX9_DCL)
         {
-            ++ui32NumDeclarations;
+			const OPERAND_TYPE_DX9 eType = DecodeOperandTypeDX9(pui32CurrentToken[2]);
+			uint32_t ignoreDCL = 0;
+
+			//Inputs and outputs are declared in AddVersionDependentCode
+			if(psShader->eShaderType == PIXEL_SHADER && (OPERAND_TYPE_DX9_CONST != eType && OPERAND_TYPE_DX9_SAMPLER != eType))
+			{
+				ignoreDCL = 1;
+			}
+			if(!ignoreDCL)
+			{
+				++ui32NumDeclarations;
+			}
         }
         else
         {
@@ -521,8 +556,19 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
         }
         else if(eOpcode == OPCODE_DX9_DCL)
         {
-            DecodeDeclarationDX9(psShader, pui32CurrentToken[1], pui32CurrentToken[2], &psDecl[decl]);
-            decl++;
+			const OPERAND_TYPE_DX9 eType = DecodeOperandTypeDX9(pui32CurrentToken[2]);
+			uint32_t ignoreDCL = 0;
+			//Inputs and outputs are declared in AddVersionDependentCode
+			if(psShader->eShaderType == PIXEL_SHADER && (OPERAND_TYPE_DX9_CONST != eType && OPERAND_TYPE_DX9_SAMPLER != eType))
+			{
+				ignoreDCL = 1;
+			}
+
+			if(!ignoreDCL)
+			{
+				DecodeDeclarationDX9(psShader, pui32CurrentToken[1], pui32CurrentToken[2], &psDecl[decl]);
+				decl++;
+			}
         }
         else if(eOpcode == OPCODE_DX9_DEF)
         {
@@ -834,7 +880,11 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 
     if(bDeclareConstantTable)
     {
-        DecodeDeclarationDX9(psShader, 0, CreateOperandTokenDX9(0, OPERAND_TYPE_DX9_CONST), &psDecl[decl]);
+		//Pick any constant register in the table. Might not start at c0 (e.g. when register(cX) is used).
+		const uint32_t ui32AnyRegisterInConstantTable = psShader->sInfo.psConstantBuffers->asVars[0].ui32StartOffset;
+		//Declaring one constant from a constant buffer will cause all constants in the buffer decalared.
+		//In dx9 there is only one constant buffer per shader.
+		DecodeDeclarationDX9(psShader, 0, CreateOperandTokenDX9(ui32AnyRegisterInConstantTable, OPERAND_TYPE_DX9_CONST), &psDecl[decl]);
     }
 
     return psShader;
