@@ -183,7 +183,6 @@ static void DecodeOperandDX9(const Shader* psShader,
     psOperand->iWriteMaskEnabled = 0;
     psOperand->iGSInput = 0;
     psOperand->iExtended = 0;
-    psOperand->eModifier = OPERAND_MODIFIER_NONE;
     psOperand->psSubOperand[0] = 0;
     psOperand->psSubOperand[1] = 0;
     psOperand->psSubOperand[2] = 0;
@@ -193,6 +192,41 @@ static void DecodeOperandDX9(const Shader* psShader,
     psOperand->iIntegerImmediate = 0;
 
     psOperand->pszSpecialName[0] ='\0';
+
+
+	psOperand->eModifier = OPERAND_MODIFIER_NONE;
+	if(ui32Flags & DX9_DECODE_OPERAND_IS_SRC)
+	{
+		uint32_t ui32Modifier = DecodeSrcModifierDX9(ui32Token);
+
+		switch(ui32Modifier)
+		{
+			case SRCMOD_DX9_NONE:
+			{
+				break;
+			}
+			case SRCMOD_DX9_NEG:
+			{
+				psOperand->eModifier = OPERAND_MODIFIER_NEG;
+				break;
+			}
+			case SRCMOD_DX9_ABS:
+			{
+				psOperand->eModifier = OPERAND_MODIFIER_ABS;
+				break;
+			}
+			case SRCMOD_DX9_ABSNEG:
+			{
+				psOperand->eModifier = OPERAND_MODIFIER_ABSNEG;
+				break;
+			}
+			default:
+			{
+				ASSERT(0);
+				break;
+			}
+		}
+	}
 
     if((ui32Flags & DX9_DECODE_OPERAND_IS_DECL)==0)
     {
@@ -413,6 +447,11 @@ static void CreateD3D10Instruction(
             pui32Tokens[ui32Offset+1],
             DX9_DECODE_OPERAND_IS_DEST,
             &psInst->asOperands[0]);
+
+		if(DecodeDestModifierDX9(pui32Tokens[ui32Offset]) & DESTMOD_DX9_SATURATE)
+		{
+			psInst->bSaturate = 1;
+		}
 
         ui32Offset++;
     }

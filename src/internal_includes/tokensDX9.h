@@ -246,3 +246,37 @@ static RESOURCE_DIMENSION DecodeTextureTypeMaskDX9(const uint32_t ui32Token)
 		return RESOURCE_DIMENSION_UNKNOWN;
 	}
 }
+
+
+
+static const uint32_t DESTMOD_DX9_NONE	= 0;
+static const uint32_t DESTMOD_DX9_SATURATE	= (1 << 20);
+static const uint32_t DESTMOD_DX9_PARTIALPRECISION	= (2 << 20);
+static const uint32_t DESTMOD_DX9_MSAMPCENTROID = (4 << 20);
+static uint32_t DecodeDestModifierDX9(const uint32_t ui32Token)
+{
+    return ui32Token & 0xf00000;
+}
+
+typedef enum
+{
+	SRCMOD_DX9_NONE = 0 << 24,
+	SRCMOD_DX9_NEG = 1 << 24,
+	SRCMOD_DX9_BIAS = 2 << 24,
+	SRCMOD_DX9_BIASNEG = 3 << 24,
+	SRCMOD_DX9_SIGN = 4 << 24,
+	SRCMOD_DX9_SIGNNEG = 5 << 24,
+	SRCMOD_DX9_COMP = 6 << 24,
+	SRCMOD_DX9_X2 = 7 << 24,
+	SRCMOD_DX9_X2NEG = 8 << 24,
+	SRCMOD_DX9_DZ = 9 << 24,
+	SRCMOD_DX9_DW = 10 << 24,
+	SRCMOD_DX9_ABS = 11 << 24,
+	SRCMOD_DX9_ABSNEG = 12 << 24,
+	SRCMOD_DX9_NOT = 13 << 24,
+	SRCMOD_DX9_FORCE_DWORD = 0xffffffff
+} SRCMOD_DX9;
+static uint32_t DecodeSrcModifierDX9(const uint32_t ui32Token)
+{
+    return ui32Token & 0xf000000;
+}
