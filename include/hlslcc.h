@@ -141,7 +141,9 @@ typedef struct ResourceBinding_TAG
 typedef struct ShaderVar_TAG
 {
     char Name[MAX_REFLECT_STRING_LENGTH];
-    uint32_t ui32DefaultValue;
+	int haveDefaultValue;
+    uint32_t* pui32DefaultValues;
+	//Offset/Size in bytes.
     uint32_t ui32StartOffset;
     uint32_t ui32Size;
 } ShaderVar;

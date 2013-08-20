@@ -153,14 +153,26 @@ static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
 			uint32_t SamplerSize = *pui32VarToken++;
 		}
 
+		psVar->haveDefaultValue = 0;
+
         if(ui32DefaultValueOffset)
         {
-            if(psVar->ui32Size == 4)
-            {
-                const uint32_t* pui32DefaultValToken = (const uint32_t*)((const char*)pui32FirstConstBufToken+ui32DefaultValueOffset);
+			uint32_t i = 0;
+			const uint32_t ui32NumDefaultValues = psVar->ui32Size / 4;
+			const uint32_t* pui32DefaultValToken = (const uint32_t*)((const char*)pui32FirstConstBufToken+ui32DefaultValueOffset);
 
-                psVar->ui32DefaultValue = *pui32DefaultValToken;
-            }
+			//Always a sequence of 4-bytes at the moment.
+			//bool const becomes 0 or 0xFFFFFFFF int, int & float are 4-bytes.
+			ASSERT(psVar->ui32Size%4 == 0);
+
+			psVar->haveDefaultValue = 1;
+
+			psVar->pui32DefaultValues = malloc(psVar->ui32Size);
+
+			for(i=0; i<ui32NumDefaultValues;++i)
+			{
+				psVar->pui32DefaultValues[i] = pui32DefaultValToken[i];
+			}
         }
 
         if(ui32TypeOffset)
@@ -501,6 +513,21 @@ void LoadShaderInfo(const uint32_t ui32MajorVersion,
 
 void FreeShaderInfo(ShaderInfo* psShaderInfo)
 {
+	//Free any default values for constants.
+	uint32_t cbuf;
+	for(cbuf=0; cbuf<psShaderInfo->ui32NumConstantBuffers; ++cbuf)
+	{
+		ConstantBuffer* psCBuf = &psShaderInfo->psConstantBuffers[cbuf];
+		uint32_t var;
+		for(var=0; var < psCBuf->ui32NumVars; ++var)
+		{
+			ShaderVar* psVar = &psCBuf->asVars[var];
+			if(psVar->haveDefaultValue)
+			{
+				free(psVar->pui32DefaultValues);
+			}
+		}
+	}
     free(psShaderInfo->psInputSignatures);
     free(psShaderInfo->psResourceBindings);
     free(psShaderInfo->psConstantBuffers);
