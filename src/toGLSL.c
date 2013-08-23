@@ -584,6 +584,30 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
     bcatcstr(glsl, "}\n");
 }
 
+static void FreeSubOperands(Instruction* psInst, const uint32_t ui32NumInsts)
+{
+	uint32_t ui32Inst;
+	for(ui32Inst = 0; ui32Inst < ui32NumInsts; ++ui32Inst)
+	{
+		Instruction* psCurrentInst = &psInst[ui32Inst];
+		const uint32_t ui32NumOperands = psCurrentInst->ui32NumOperands;
+		uint32_t ui32Operand;
+
+		for(ui32Operand = 0; ui32Operand < ui32NumOperands; ++ui32Operand)
+		{
+			uint32_t ui32SubOperand;
+			for(ui32SubOperand = 0; ui32SubOperand < MAX_SUB_OPERANDS; ++ui32SubOperand)
+			{
+				if(psCurrentInst->asOperands[ui32Operand].psSubOperand[ui32SubOperand])
+				{
+					free(psCurrentInst->asOperands[ui32Operand].psSubOperand[ui32SubOperand]);
+					psCurrentInst->asOperands[ui32Operand].psSubOperand[ui32SubOperand] = NULL;
+				}
+			}
+		}
+	}
+}
+
 HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
     unsigned int flags,
     GLLang language,
@@ -659,17 +683,21 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
         }
 
         free(psShader->psHSControlPointPhaseDecl);
+		FreeSubOperands(psShader->psHSControlPointPhaseInstr, psShader->ui32HSControlPointInstrCount);
         free(psShader->psHSControlPointPhaseInstr);
 
         for(i=0; i < psShader->ui32ForkPhaseCount; ++i)
         {
             free(psShader->apsHSForkPhaseDecl[i]);
+			FreeSubOperands(psShader->apsHSForkPhaseInstr[i], psShader->aui32HSForkInstrCount[i]);
             free(psShader->apsHSForkPhaseInstr[i]);
         }
         free(psShader->psHSJoinPhaseDecl);
+		FreeSubOperands(psShader->psHSJoinPhaseInstr, psShader->ui32HSJoinInstrCount);
         free(psShader->psHSJoinPhaseInstr);
 
         free(psShader->psDecl);
+		FreeSubOperands(psShader->psInst, psShader->ui32InstCount);
         free(psShader->psInst);
         
         result->reflection = psShader->sInfo;

@@ -7,6 +7,8 @@
 #include "internal_includes/tokens.h"
 #include "internal_includes/reflect.h"
 
+static enum{ MAX_SUB_OPERANDS = 3};
+
 typedef struct Operand_TAG
 {
     int iExtended;
@@ -40,7 +42,7 @@ typedef struct Operand_TAG
 
     OPERAND_INDEX_REPRESENTATION eIndexRep[3];
 
-    struct Operand_TAG* psSubOperand[3];
+    struct Operand_TAG* psSubOperand[MAX_SUB_OPERANDS];
 
 #ifdef _DEBUG
     uint64_t id;
