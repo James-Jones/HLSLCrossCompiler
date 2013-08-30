@@ -280,3 +280,20 @@ static uint32_t DecodeSrcModifierDX9(const uint32_t ui32Token)
 {
     return ui32Token & 0xf000000;
 }
+
+typedef enum
+{
+	D3DSPC_RESERVED0 = 0,
+	D3DSPC_GT = 1,
+	D3DSPC_EQ = 2,
+	D3DSPC_GE = 3,
+	D3DSPC_LT = 4,
+	D3DSPC_NE = 5,
+	D3DSPC_LE = 6,
+	D3DSPC_RESERVED1 = 7
+} COMPARISON_DX9;
+
+static COMPARISON_DX9 DecodeComparisonDX9(const uint32_t ui32Token)
+{
+    return (COMPARISON_DX9)((ui32Token & (0x07<<16))>>16);
+}

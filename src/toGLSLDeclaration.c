@@ -965,8 +965,14 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             const Operand* psSrc = &psDecl->asOperands[1];
 
             ASSERT(psSrc->eType == OPERAND_TYPE_IMMEDIATE32);
-
-            bformata(glsl, "const vec4 ImmConst%d = ", psDest->ui32RegisterNumber);
+			if(psDest->eType == OPERAND_TYPE_SPECIAL_IMMCONSTINT)
+			{
+				bformata(glsl, "const ivec4 IntImmConst%d = ", psDest->ui32RegisterNumber);
+			}
+			else
+			{
+				bformata(glsl, "const vec4 ImmConst%d = ", psDest->ui32RegisterNumber);
+			}
             TranslateOperand(psContext, psSrc, TO_FLAG_NONE);
             bcatcstr(glsl, ";\n");
             break;

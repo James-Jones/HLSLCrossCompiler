@@ -136,6 +136,11 @@ static void DecodeOperandDX9(const Shader* psShader,
 			psOperand->eType = OPERAND_TYPE_OUTPUT;
 			break;
 		}
+		case OPERAND_TYPE_DX9_CONSTINT:
+		{
+			psOperand->eType = OPERAND_TYPE_SPECIAL_IMMCONSTINT;
+			break;
+		}
         case OPERAND_TYPE_DX9_CONST:
         {
             if(aui32ImmediateConst[ui32RegNum])
@@ -394,6 +399,7 @@ static void DecodeDeclarationDX9(const Shader* psShader,
 
 static void DefineDX9(Shader* psShader,
                       const uint32_t ui32RegNum,
+					  const int iIntegerImmediate,
                       const uint32_t c0,
                       const uint32_t c1,
                       const uint32_t c2,
@@ -404,14 +410,21 @@ static void DefineDX9(Shader* psShader,
     psDecl->ui32NumOperands = 2;
 
     memset(&psDecl->asOperands[0], 0, sizeof(Operand));
-    psDecl->asOperands[0].eType = OPERAND_TYPE_SPECIAL_IMMCONST;
-    psDecl->asOperands[0].ui32RegisterNumber = ui32RegNum;
-
-    aui32ImmediateConst[ui32RegNum] = 1;
+	psDecl->asOperands[0].eType = OPERAND_TYPE_SPECIAL_IMMCONST;
+	if(iIntegerImmediate)
+	{
+		psDecl->asOperands[0].eType = OPERAND_TYPE_SPECIAL_IMMCONSTINT;
+	}
+	else
+	{
+		psDecl->asOperands[0].ui32RegisterNumber = ui32RegNum;
+		aui32ImmediateConst[ui32RegNum] = 1;
+	}
 
     memset(&psDecl->asOperands[1], 0, sizeof(Operand));
     psDecl->asOperands[1].eType = OPERAND_TYPE_IMMEDIATE32;
     psDecl->asOperands[1].iNumComponents = 4;
+	psDecl->asOperands[1].iIntegerImmediate = iIntegerImmediate;
     psDecl->asOperands[1].afImmediates[0] = *((float*)&c0);
     psDecl->asOperands[1].afImmediates[1] = *((float*)&c1);
     psDecl->asOperands[1].afImmediates[2] = *((float*)&c2);
@@ -462,7 +475,7 @@ static void CreateD3D10Instruction(
             pui32Tokens[ui32Offset],
             pui32Tokens[ui32Offset+1],
             DX9_DECODE_OPERAND_IS_SRC,
-            &psInst->asOperands[1+ui32Src]);
+            &psInst->asOperands[bHasDest+ui32Src]);
 
         ui32Offset++;
     }
@@ -517,7 +530,7 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 				}
             }
         }
-		else if(eOpcode == OPCODE_DX9_DEF)
+		else if((eOpcode == OPCODE_DX9_DEF)||(eOpcode == OPCODE_DX9_DEFI))
 		{
 			++ui32NumDeclarations;
 		}
@@ -609,7 +622,7 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 				decl++;
 			}
         }
-        else if(eOpcode == OPCODE_DX9_DEF)
+        else if((eOpcode == OPCODE_DX9_DEF)||(eOpcode == OPCODE_DX9_DEFI))
         {
             const uint32_t ui32Const0 = *(pui32CurrentToken+2);
             const uint32_t ui32Const1 = *(pui32CurrentToken+3);
@@ -618,6 +631,7 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 
             DefineDX9(psShader,
                 DecodeOperandRegisterNumberDX9(pui32CurrentToken[1]),
+				(eOpcode == OPCODE_DX9_DEFI) ? 1 : 0,
                 ui32Const0,
                 ui32Const1,
                 ui32Const2,
@@ -791,9 +805,58 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 					//texld r0, t0, s0
 					// srcAddress[.swizzle], srcResource[.swizzle], srcSampler
 					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_SAMPLE, 1, 2, pui32CurrentToken);
-					psInst->asOperands[2].ui32RegisterNumber = 0;
+					psInst[inst].asOperands[2].ui32RegisterNumber = 0;
 
 					
+					break;
+				}
+				case OPCODE_DX9_TEXLDL:
+				{
+					//texld r0, t0, s0
+					// srcAddress[.swizzle], srcResource[.swizzle], srcSampler
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_SAMPLE_L, 1, 2, pui32CurrentToken);
+					psInst->asOperands[2].ui32RegisterNumber = 0;
+
+					//Lod comes from fourth coordinate of address.
+					memcpy(&psInst[inst].asOperands[4], &psInst[inst].asOperands[1], sizeof(Operand));
+
+					psInst[inst].ui32NumOperands = 5;
+					
+					break;
+				}
+
+                case OPCODE_DX9_IFC:
+				{
+					const COMPARISON_DX9 eCmpOp = DecodeComparisonDX9(pui32CurrentToken[0]);
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_IF, 0, 2, pui32CurrentToken);
+					psInst[inst].eDX9TestType = eCmpOp;
+					break;
+				}
+                case OPCODE_DX9_ELSE:
+				{
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_ELSE, 0, 0, pui32CurrentToken);
+					break;
+				}
+                case OPCODE_DX9_CMP:
+				{
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_MOVC, 1, 3, pui32CurrentToken);
+					break;
+				}
+                case OPCODE_DX9_REP:
+				{
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_REP, 0, 1, pui32CurrentToken);
+					break;
+				}
+                case OPCODE_DX9_ENDREP:
+				{
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_ENDREP, 0, 0, pui32CurrentToken);
+					break;
+				}
+                case OPCODE_DX9_BREAKC:
+				{
+					const COMPARISON_DX9 eCmpOp = DecodeComparisonDX9(pui32CurrentToken[0]);
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_BREAKC, 0, 2, pui32CurrentToken);
+					psInst[inst].eDX9TestType = eCmpOp;
 					break;
 				}
                 case OPCODE_DX9_DST:
@@ -811,15 +874,9 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                 case OPCODE_DX9_CRS:
                 case OPCODE_DX9_SGN:
                 case OPCODE_DX9_ABS:
-                
-                case OPCODE_DX9_REP:
-                case OPCODE_DX9_ENDREP:
+
                 case OPCODE_DX9_IF:
-                case OPCODE_DX9_IFC:
-                case OPCODE_DX9_ELSE:
-                case OPCODE_DX9_BREAKC:
                 case OPCODE_DX9_DEFB:
-                case OPCODE_DX9_DEFI:
 
                 case OPCODE_DX9_TEXCOORD:
                 case OPCODE_DX9_TEXKILL:
@@ -842,14 +899,12 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                 case OPCODE_DX9_TEXDP3:
                 case OPCODE_DX9_TEXM3x3:
                 case OPCODE_DX9_TEXDEPTH:
-                case OPCODE_DX9_CMP:
                 case OPCODE_DX9_BEM:
                 case OPCODE_DX9_DP2ADD:
                 case OPCODE_DX9_DSX:
                 case OPCODE_DX9_DSY:
                 case OPCODE_DX9_TEXLDD:
                 case OPCODE_DX9_SETP:
-                case OPCODE_DX9_TEXLDL:
                 case OPCODE_DX9_BREAKP:
                 {
                     ASSERT(0);

@@ -53,6 +53,7 @@ typedef struct Instruction_TAG
 {
     OPCODE_TYPE eOpcode;
     INSTRUCTION_TEST_BOOLEAN eBooleanTestType;
+	COMPARISON_DX9 eDX9TestType;
     uint32_t ui32SyncFlags;
     uint32_t ui32NumOperands;
     Operand asOperands[6];

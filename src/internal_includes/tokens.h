@@ -55,6 +55,8 @@ static EXTENDED_OPCODE_TYPE DecodeExtendedOpcodeType(uint32_t ui32Token)
 typedef enum
 {
     //For DX9
+	OPCODE_ENDREP = -3,
+	OPCODE_REP = -2,
     OPCODE_SPECIAL_DCL_IMMCONST = -1,
 
     OPCODE_ADD,
@@ -333,6 +335,7 @@ static OPERAND_INDEX_DIMENSION DecodeOperandIndexDimension(uint32_t ui32Token)
 
 typedef enum OPERAND_TYPE
 {
+	OPERAND_TYPE_SPECIAL_IMMCONSTINT = -9,
 	OPERAND_TYPE_SPECIAL_TEXCOORD = -8,
     OPERAND_TYPE_SPECIAL_POSITION = -7,
     OPERAND_TYPE_SPECIAL_FOG = -6,

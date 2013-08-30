@@ -755,6 +755,11 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             bformata(glsl, "Temp%d", psOperand->ui32RegisterNumber);
             break;
         }
+		case OPERAND_TYPE_SPECIAL_IMMCONSTINT:
+		{
+            bformata(glsl, "IntImmConst%d", psOperand->ui32RegisterNumber);
+            break;
+		}
         case OPERAND_TYPE_SPECIAL_IMMCONST:
         {
             bformata(glsl, "ImmConst%d", psOperand->ui32RegisterNumber);
