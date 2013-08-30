@@ -669,6 +669,7 @@ void LoadD3D9ConstantTable(const char* data,
         strcpy(var->Name, data + cinfos[constNum].name);
         var->ui32Size = cinfos[constNum].registerCount;
         var->ui32StartOffset = cinfos[constNum].registerIndex;
+        var->haveDefaultValue = 0;
 
         if(maxVec4Register < (cinfos[constNum].registerCount + cinfos[constNum].registerIndex))
         {
