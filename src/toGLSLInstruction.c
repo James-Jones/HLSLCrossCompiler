@@ -1670,13 +1670,58 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			{
 				switch(psInst->eDX9TestType)
 				{
+					case D3DSPC_GT:
+					{
+						bcatcstr(glsl, "if(");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, " > ");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, "){ break; }\n");
+						break;
+					}
+					case D3DSPC_EQ:
+					{
+						bcatcstr(glsl, "if(");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, " == ");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, "){ break; }\n");
+						break;
+					}
+					case D3DSPC_GE:
+					{
+						bcatcstr(glsl, "if(");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, " >= ");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, "){ break; }\n");
+						break;
+					}
 					case D3DSPC_LT:
 					{
-						bcatcstr(glsl, "if((");
+						bcatcstr(glsl, "if(");
 						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, ") < (");
+						bcatcstr(glsl, " < ");
 						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, ")!=0){ break; }\n");
+						bcatcstr(glsl, "){ break; }\n");
+						break;
+					}
+					case D3DSPC_NE:
+					{
+						bcatcstr(glsl, "if(");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, " != ");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, "){ break; }\n");
+						break;
+					}
+					case D3DSPC_LE:
+					{
+						bcatcstr(glsl, "if(");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, " <= ");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, "){ break; }\n");
 						break;
 					}
 					default:
