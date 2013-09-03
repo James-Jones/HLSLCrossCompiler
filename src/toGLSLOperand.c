@@ -1000,6 +1000,11 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             bformata(glsl, "UAV%d", psOperand->ui32RegisterNumber);
             break;
         }
+		case OPERAND_TYPE_INPUT_PRIMITIVEID:
+		{
+			bcatcstr(glsl, "gl_PrimitiveID");
+			break;
+		}
         default:
         {
             ASSERT(0);
