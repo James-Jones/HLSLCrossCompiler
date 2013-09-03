@@ -2349,6 +2349,19 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             break;
         }
         case OPCODE_INEG:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//INEG\n");
+#endif
+			//dest = 0 - src0
+			AddIndentation(psContext);
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION|TO_FLAG_INTEGER);
+			bcatcstr(glsl, " = 0 - ");
+			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE|TO_FLAG_INTEGER);
+			bcatcstr(glsl, ";\n");
+			break;
+		}
         case OPCODE_SWAPC:
         case OPCODE_IMM_ATOMIC_ALLOC:
         case OPCODE_IMM_ATOMIC_CONSUME:
