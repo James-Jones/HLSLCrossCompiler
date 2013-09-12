@@ -586,14 +586,21 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
     if(psOperand->eType != OPERAND_TYPE_IMMEDIATE32 &&
         psOperand->eType != OPERAND_TYPE_IMMEDIATE64 )
     {
+		const uint32_t swizCount = psOperand->iNumComponents;
         if((ui32TOFlag & (TO_FLAG_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_INTEGER)
         {
-            bcatcstr(glsl, "ivec4(");
+			if(swizCount == 1)
+				bformata(glsl, "int(");
+			else
+				bformata(glsl, "ivec%d(", swizCount);
             integerConstructor = 1;
         }
         if((ui32TOFlag & (TO_FLAG_UNSIGNED_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_UNSIGNED_INTEGER)
         {
-            bcatcstr(glsl, "uvec4(");
+			if(swizCount == 1)
+				bformata(glsl, "uint(");
+			else
+				bformata(glsl, "uvec%d(", swizCount);
             integerConstructor = 1;
         }
     }
