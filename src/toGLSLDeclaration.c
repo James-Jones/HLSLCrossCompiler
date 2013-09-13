@@ -17,73 +17,80 @@
 
 extern void AddIndentation(HLSLCrossCompilerContext* psContext);
 
-void DeclareConstBufferShaderVariable(bstring glsl, const SHADER_VARIABLE_CLASS eClass, const SHADER_VARIABLE_TYPE eType,
-    const char* pszName)
+void DeclareConstBufferShaderVariable(bstring glsl, const ShaderVar* psVar)
+	//const SHADER_VARIABLE_CLASS eClass, const SHADER_VARIABLE_TYPE eType,
+    //const char* pszName)
 {
-    if(eClass == SVC_MATRIX_COLUMNS || eClass == SVC_MATRIX_ROWS)
+	if(psVar->sType.Class == SVC_MATRIX_COLUMNS || psVar->sType.Class == SVC_MATRIX_ROWS)
     {
-        switch(eType)
+        switch(psVar->sType.Type)
         {
             case SVT_FLOAT:
             {
-                bformata(glsl, "\tvec4 %s[4];\n", pszName);
+                bformata(glsl, "\tvec4 %s[4];\n", psVar->Name);
                 break;
             }
         }
     }
     else
-    if(eClass == SVC_VECTOR)
+    if(psVar->sType.Class == SVC_VECTOR)
     {
-        switch(eType)
+        switch(psVar->sType.Type)
         {
             case SVT_FLOAT:
             {
-                bformata(glsl, "\tvec4 %s;\n", pszName);
+                bformata(glsl, "\tvec4 %s;\n", psVar->Name);
                 break;
             }
             case SVT_UINT:
             {
-                bformata(glsl, "\tuvec4 %s;\n", pszName);
+                bformata(glsl, "\tuvec4 %s;\n", psVar->Name);
                 break;
             }
             case SVT_INT:
             {
-                bformata(glsl, "\tivec4 %s;\n", pszName);
+                bformata(glsl, "\tivec4 %s;\n", psVar->Name);
                 break;
             }
             case SVT_DOUBLE:
             {
-                bformata(glsl, "\tdvec4 %s;\n", pszName);
+                bformata(glsl, "\tdvec4 %s;\n", psVar->Name);
                 break;
             }
         }
     }
     else
-    if(eClass == SVC_SCALAR)
+    if(psVar->sType.Class == SVC_SCALAR)
     {
-        switch(eType)
+        switch(psVar->sType.Type)
         {
             case SVT_FLOAT:
             {
-                bformata(glsl, "\tfloat %s;\n", pszName);
+                bformata(glsl, "\tfloat %s", psVar->Name);
                 break;
             }
             case SVT_UINT:
             {
-                bformata(glsl, "\tuint %s;\n", pszName);
+                bformata(glsl, "\tuint %s", psVar->Name);
                 break;
             }
             case SVT_INT:
             {
-                bformata(glsl, "\tint %s;\n", pszName);
+                bformata(glsl, "\tint %s", psVar->Name);
                 break;
             }
             case SVT_DOUBLE:
             {
-                bformata(glsl, "\tdouble %s;\n", pszName);
+                bformata(glsl, "\tdouble %s", psVar->Name);
                 break;
             }
         }
+
+		if(psVar->sType.Elements > 1)
+		{
+			bformata(glsl, "[%d]", psVar->sType.Elements);
+		}
+		bformata(glsl, ";\n");
     }
 }
 
@@ -1217,9 +1224,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 for(i=0; i < psCBuf->ui32NumVars; ++i)
                 {
                     DeclareConstBufferShaderVariable(glsl,
-                        psCBuf->asVars[i].sType.Class,
-                        psCBuf->asVars[i].sType.Type,
-                        psCBuf->asVars[i].Name);
+                        &psCBuf->asVars[i]);
                 }
                 
                 bcatcstr(glsl, "} ");
