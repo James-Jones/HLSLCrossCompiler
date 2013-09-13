@@ -911,6 +911,12 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                     {
                         bformata(glsl, "[%d]", index);
                     }
+					else if(psOperand->psSubOperand[1] != NULL)
+					{
+						bcatcstr(glsl, "[int("); //Indexes must be integral.
+						TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
+						bcatcstr(glsl, ")]");
+					}
                 }
 			}
 #endif
