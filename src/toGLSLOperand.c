@@ -917,6 +917,11 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 						TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
 						bcatcstr(glsl, ")]");
 					}
+
+					if(psVar->sType.Class == SVC_SCALAR)
+					{
+						*pui32IgnoreSwizzle = 1;
+					}
                 }
 			}
 #endif
