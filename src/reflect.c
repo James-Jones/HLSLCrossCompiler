@@ -736,7 +736,7 @@ void LoadD3D9ConstantTable(const char* data,
     uint32_t constNum;
     ConstantInfoD3D9* cinfos;
     ConstantBuffer* psConstantBuffer;
-    uint16_t maxVec4Register = 0;
+    uint32_t ui32ConstantBufferSize = 0;
 	uint32_t numResourceBindingsNeeded = 0;
 
     ctab = (ConstantTableD3D9*)data;
@@ -772,13 +772,13 @@ void LoadD3D9ConstantTable(const char* data,
 		ShaderVar* var = &psConstantBuffer->asVars[constNum];
 
         strcpy(var->Name, data + cinfos[constNum].name);
-        var->ui32Size = cinfos[constNum].registerCount;
-        var->ui32StartOffset = cinfos[constNum].registerIndex;
+        var->ui32Size = cinfos[constNum].registerCount * 16;
+        var->ui32StartOffset = cinfos[constNum].registerIndex * 16;
         var->haveDefaultValue = 0;
 
-        if(maxVec4Register < (cinfos[constNum].registerCount + cinfos[constNum].registerIndex))
+		if(ui32ConstantBufferSize < (var->ui32Size + var->ui32StartOffset))
         {
-            maxVec4Register = (cinfos[constNum].registerCount + cinfos[constNum].registerIndex);
+            ui32ConstantBufferSize = var->ui32Size + var->ui32StartOffset;
         }
 
 		//Create a resource if it is sampler in order to replicate the d3d10+
@@ -816,5 +816,5 @@ void LoadD3D9ConstantTable(const char* data,
 			}
 		}
     }
-    psConstantBuffer->ui32TotalSizeInBytes = maxVec4Register * 16;
+    psConstantBuffer->ui32TotalSizeInBytes = ui32ConstantBufferSize;
 }
