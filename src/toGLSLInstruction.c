@@ -570,6 +570,10 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         {
             bcatcstr(glsl, ", ");
             TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
+			if(psContext->psShader->ui32MajorVersion < 4)
+			{
+				bcatcstr(glsl, ".w");
+			}
         }
         else
         if(ui32Flags & TEXSMP_FLAG_FIRSTLOD)
@@ -1004,7 +1008,16 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
                 TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
                 if(s0ElemCount>1)
                     bcatcstr(glsl, swizzle[destElem]);
-                bcatcstr(glsl, " != 0) {\n");
+
+				if(psContext->psShader->ui32MajorVersion < 4)
+				{
+					//cmp opcode uses >= 0
+					bcatcstr(glsl, " >= 0) {\n");
+				}
+				else
+				{
+					bcatcstr(glsl, " != 0) {\n");
+				}
 
                 psContext->indent++;
                 AddIndentation(psContext);
@@ -1595,6 +1608,40 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, ");\n");
 			break;
         }
+		case OPCODE_REP:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//REP\n");
+#endif
+			//Need to handle nesting.
+			//Max of 4 for rep - 'Flow Control Limitations' http://msdn.microsoft.com/en-us/library/windows/desktop/bb219848(v=vs.85).aspx
+
+			AddIndentation(psContext);
+			bcatcstr(glsl, "RepCounter = ");
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+			bcatcstr(glsl, ".x;\n");
+
+            AddIndentation(psContext);
+            bcatcstr(glsl, "while(RepCounter!=0){\n");
+            ++psContext->indent;
+            break;
+		}
+		case OPCODE_ENDREP:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//ENDREP\n");
+#endif
+            AddIndentation(psContext);
+            bcatcstr(glsl, "RepCounter--;\n");
+
+			--psContext->indent;
+
+            AddIndentation(psContext);
+			bcatcstr(glsl, "}\n");
+            break;
+		}
         case OPCODE_LOOP:
         {
 #ifdef _DEBUG
@@ -1634,19 +1681,87 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//BREAKC\n");
 #endif
             AddIndentation(psContext);
-            if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
-            {
-                bcatcstr(glsl, "if((");
-                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-                bcatcstr(glsl, ")==0){break;}\n");
-            }
-            else
-            {
-                ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
-                bcatcstr(glsl, "if((");
-                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-                bcatcstr(glsl, ")!=0){break;}\n");
-            }
+
+			if(psContext->psShader->ui32MajorVersion < 4)
+			{
+				switch(psInst->eDX9TestType)
+				{
+					case D3DSPC_GT:
+					{
+						bcatcstr(glsl, "if(");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, " > ");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, "){ break; }\n");
+						break;
+					}
+					case D3DSPC_EQ:
+					{
+						bcatcstr(glsl, "if(");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, " == ");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, "){ break; }\n");
+						break;
+					}
+					case D3DSPC_GE:
+					{
+						bcatcstr(glsl, "if(");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, " >= ");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, "){ break; }\n");
+						break;
+					}
+					case D3DSPC_LT:
+					{
+						bcatcstr(glsl, "if(");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, " < ");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, "){ break; }\n");
+						break;
+					}
+					case D3DSPC_NE:
+					{
+						bcatcstr(glsl, "if(");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, " != ");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, "){ break; }\n");
+						break;
+					}
+					case D3DSPC_LE:
+					{
+						bcatcstr(glsl, "if(");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, " <= ");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, "){ break; }\n");
+						break;
+					}
+					default:
+					{
+						break;
+					}
+				}
+			}
+			else
+			{
+				if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
+				{
+					bcatcstr(glsl, "if((");
+					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+					bcatcstr(glsl, ")==0){break;}\n");
+				}
+				else
+				{
+					ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
+					bcatcstr(glsl, "if((");
+					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+					bcatcstr(glsl, ")!=0){break;}\n");
+				}
+			}
             break;
         }
         case OPCODE_IF:
@@ -1656,19 +1771,52 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//IF\n");
 #endif
             AddIndentation(psContext);
-            if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
-            {
-                bcatcstr(glsl, "if((");
-                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-                bcatcstr(glsl, ")==0){\n");
-            }
-            else
-            {
-                ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
-                bcatcstr(glsl, "if((");
-                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-                bcatcstr(glsl, ")!=0){\n");
-            }
+
+			if(psContext->psShader->ui32MajorVersion < 4)
+			{
+				switch(psInst->eDX9TestType)
+				{
+					case D3DSPC_LT:
+					{
+						bcatcstr(glsl, "if((");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, ") < (");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, ")){\n");
+						break;
+					}
+					case D3DSPC_NE:
+					{
+						bcatcstr(glsl, "if((");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, ") != (");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, ")){\n");
+						break;
+					}
+					default:
+					{
+						bcatcstr(glsl, "//IF\n");
+						break;
+					}
+				}
+			}
+			else
+			{
+				if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
+				{
+					bcatcstr(glsl, "if((");
+					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+					bcatcstr(glsl, ")==0){\n");
+				}
+				else
+				{
+					ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
+					bcatcstr(glsl, "if((");
+					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+					bcatcstr(glsl, ")!=0){\n");
+				}
+			}
             ++psContext->indent;
             break;
         }
@@ -2285,6 +2433,19 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             break;
         }
         case OPCODE_INEG:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//INEG\n");
+#endif
+			//dest = 0 - src0
+			AddIndentation(psContext);
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION|TO_FLAG_INTEGER);
+			bcatcstr(glsl, " = 0 - ");
+			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE|TO_FLAG_INTEGER);
+			bcatcstr(glsl, ";\n");
+			break;
+		}
         case OPCODE_SWAPC:
         case OPCODE_IMM_ATOMIC_ALLOC:
         case OPCODE_IMM_ATOMIC_CONSUME:

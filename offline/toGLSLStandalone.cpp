@@ -249,6 +249,10 @@ GLLang LanguageFromString(const char* str)
     {
         return LANG_430;
     }
+    if(strcmp(str, "440")==0)
+    {
+        return LANG_440;
+    }
     return LANG_DEFAULT;
 }
 

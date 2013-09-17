@@ -7,6 +7,8 @@
 #include "internal_includes/tokens.h"
 #include "internal_includes/reflect.h"
 
+static enum{ MAX_SUB_OPERANDS = 3};
+
 typedef struct Operand_TAG
 {
     int iExtended;
@@ -40,7 +42,7 @@ typedef struct Operand_TAG
 
     OPERAND_INDEX_REPRESENTATION eIndexRep[3];
 
-    struct Operand_TAG* psSubOperand[3];
+    struct Operand_TAG* psSubOperand[MAX_SUB_OPERANDS];
 
 #ifdef _DEBUG
     uint64_t id;
@@ -51,6 +53,7 @@ typedef struct Instruction_TAG
 {
     OPCODE_TYPE eOpcode;
     INSTRUCTION_TEST_BOOLEAN eBooleanTestType;
+	COMPARISON_DX9 eDX9TestType;
     uint32_t ui32SyncFlags;
     uint32_t ui32NumOperands;
     Operand asOperands[6];
@@ -82,7 +85,7 @@ typedef struct Declaration_TAG
 
     uint32_t ui32NumOperands;
 
-    Operand asOperands[1];
+    Operand asOperands[2];
 
 	ICBVec4 asImmediateConstBuffer[MAX_IMMEDIATE_CONST_BUFFER_VEC4_SIZE];
     //The declaration can set one of these

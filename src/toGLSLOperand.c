@@ -608,14 +608,21 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         psOperand->eType != OPERAND_TYPE_IMMEDIATE64 &&
         psOperand->eType != OPERAND_TYPE_CONSTANT_BUFFER)
     {
+		const uint32_t swizCount = psOperand->iNumComponents;
         if((ui32TOFlag & (TO_FLAG_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_INTEGER)
         {
-            bcatcstr(glsl, "ivec4(");
+			if(swizCount == 1)
+				bformata(glsl, "int(");
+			else
+				bformata(glsl, "ivec%d(", swizCount);
             integerConstructor = 1;
         }
         if((ui32TOFlag & (TO_FLAG_UNSIGNED_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_UNSIGNED_INTEGER)
         {
-            bcatcstr(glsl, "uvec4(");
+			if(swizCount == 1)
+				bformata(glsl, "uint(");
+			else
+				bformata(glsl, "uvec%d(", swizCount);
             integerConstructor = 1;
         }
     }
@@ -815,6 +822,51 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             }
             break;
         }
+		case OPERAND_TYPE_SPECIAL_IMMCONSTINT:
+		{
+            bformata(glsl, "IntImmConst%d", psOperand->ui32RegisterNumber);
+            break;
+		}
+        case OPERAND_TYPE_SPECIAL_IMMCONST:
+        {
+            bformata(glsl, "ImmConst%d", psOperand->ui32RegisterNumber);
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_OUTBASECOLOUR:
+        {
+            bcatcstr(glsl, "BaseColour");
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_OUTOFFSETCOLOUR:
+        {
+            bcatcstr(glsl, "OffsetColour");
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_POSITION:
+        {
+            bcatcstr(glsl, "gl_Position");
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_FOG:
+        {
+            bcatcstr(glsl, "Fog");
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_POINTSIZE:
+        {
+            bcatcstr(glsl, "gl_PointSize");
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_ADDRESS:
+        {
+            bcatcstr(glsl, "Address");
+            break;
+        }
+		case OPERAND_TYPE_SPECIAL_TEXCOORD:
+		{
+			bformata(glsl, "TexCoord%d", psOperand->ui32RegisterNumber);
+			break;
+		}
         case OPERAND_TYPE_CONSTANT_BUFFER:
         {
             const char* StageName = "VS";
@@ -930,11 +982,13 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         case OPERAND_TYPE_RESOURCE:
         {
             TextureName(psContext, psOperand->ui32RegisterNumber, 0);
+			*pui32IgnoreSwizzle = 1;
             break;
         }
         case OPERAND_TYPE_SAMPLER:
         {
             bformata(glsl, "Sampler%d", psOperand->ui32RegisterNumber);
+			*pui32IgnoreSwizzle = 1;
             break;
         }
         case OPERAND_TYPE_FUNCTION_BODY:
@@ -1034,6 +1088,11 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             bformata(glsl, "UAV%d", psOperand->ui32RegisterNumber);
             break;
         }
+		case OPERAND_TYPE_INPUT_PRIMITIVEID:
+		{
+			bcatcstr(glsl, "gl_PrimitiveID");
+			break;
+		}
         default:
         {
             ASSERT(0);
@@ -1238,6 +1297,7 @@ void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32Registe
     bstring glsl = *psContext->currentGLSLString;
     ResourceBinding* psBinding = 0;
 	int found;
+
     found = GetResourceFromBindingPoint(RTYPE_TEXTURE, ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
 
     if(bZCompare)

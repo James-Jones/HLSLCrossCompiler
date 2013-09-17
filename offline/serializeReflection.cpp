@@ -38,7 +38,10 @@ static void WriteResourceBinding(ResourceBinding* psBinding, cJSON* obj)
 static void WriteShaderVar(ShaderVar* psVar, cJSON* obj)
 {
     cJSON_AddItemToObject(obj, "Name", cJSON_CreateString(psVar->Name));
-    cJSON_AddItemToObject(obj, "ui32DefaultValue", cJSON_CreateNumber(psVar->ui32DefaultValue));
+	if(psVar->haveDefaultValue)
+	{
+		cJSON_AddItemToObject(obj, "aui32DefaultValues", cJSON_CreateIntArray((int*)psVar->pui32DefaultValues, psVar->ui32Size/4));
+	}
     cJSON_AddItemToObject(obj, "ui32StartOffset", cJSON_CreateNumber(psVar->ui32StartOffset));
     cJSON_AddItemToObject(obj, "ui32Size", cJSON_CreateNumber(psVar->ui32Size));
 }

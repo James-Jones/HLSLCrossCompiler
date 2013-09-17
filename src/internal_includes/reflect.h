@@ -32,6 +32,9 @@ void LoadShaderInfo(const uint32_t ui32MajorVersion,
     const ReflectionChunks* psChunks,
     ShaderInfo* psInfo);
 
+void LoadD3D9ConstantTable(const char* data,
+    ShaderInfo* psInfo);
+
 void FreeShaderInfo(ShaderInfo* psShaderInfo);
 
 #if 0
