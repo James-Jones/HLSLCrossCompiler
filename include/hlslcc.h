@@ -83,6 +83,17 @@ typedef enum {
   INOUT_COMPONENT_FLOAT32  = 3
 } INOUT_COMPONENT_TYPE;
 
+typedef enum MIN_PRECISION { 
+  D3D_MIN_PRECISION_DEFAULT    = 0,
+  D3D_MIN_PRECISION_FLOAT_16   = 1,
+  D3D_MIN_PRECISION_FLOAT_2_8  = 2,
+  D3D_MIN_PRECISION_RESERVED   = 3,
+  D3D_MIN_PRECISION_SINT_16    = 4,
+  D3D_MIN_PRECISION_UINT_16    = 5,
+  D3D_MIN_PRECISION_ANY_16     = 0xf0,
+  D3D_MIN_PRECISION_ANY_10     = 0xf1
+} MIN_PRECISION;
+
 typedef struct InOutSignature_TAG
 {
     char SemanticName[MAX_REFLECT_STRING_LENGTH];
@@ -92,6 +103,9 @@ typedef struct InOutSignature_TAG
     uint32_t ui32Register;
     uint32_t ui32Mask;
     uint32_t ui32ReadWriteMask;
+
+	uint32_t ui32Stream;
+	MIN_PRECISION eMinPrec;
 } InOutSignature;
 
 typedef enum ResourceType_TAG
