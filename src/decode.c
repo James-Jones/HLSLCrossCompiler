@@ -15,6 +15,9 @@ static enum {FOURCC_ISGN = FOURCC('I', 'S', 'G', 'N')}; //Input signature
 static enum {FOURCC_IFCE = FOURCC('I', 'F', 'C', 'E')}; //Interface (for dynamic linking)
 static enum {FOURCC_OSGN = FOURCC('O', 'S', 'G', 'N')}; //Output signature
 
+static enum {FOURCC_ISG1 = FOURCC('I', 'S', 'G', '1')}; //Input signature with Stream and MinPrecision
+static enum {FOURCC_OSG1 = FOURCC('O', 'S', 'G', '1')}; //Output signature with Stream and MinPrecision
+
 typedef struct DXBCContainerHeaderTAG
 {
 	unsigned fourcc;
@@ -1421,6 +1424,8 @@ Shader* DecodeDXBC(uint32_t* data)
     refChunks.pui32Interfaces = NULL;
     refChunks.pui32Outputs = NULL;
     refChunks.pui32Resources = NULL;
+	refChunks.pui32Inputs11 = NULL;
+	refChunks.pui32Outputs11 = NULL;
 
 	chunkOffsets = (uint32_t*)(header + 1);
 
@@ -1439,6 +1444,11 @@ Shader* DecodeDXBC(uint32_t* data)
                 refChunks.pui32Inputs = (uint32_t*)(chunk + 1);
                 break;
             }
+			case FOURCC_ISG1:
+			{
+                refChunks.pui32Inputs11 = (uint32_t*)(chunk + 1);
+                break;
+			}
             case FOURCC_RDEF:
             {
                 refChunks.pui32Resources = (uint32_t*)(chunk + 1);
@@ -1452,6 +1462,11 @@ Shader* DecodeDXBC(uint32_t* data)
             case FOURCC_OSGN:
             {
                 refChunks.pui32Outputs = (uint32_t*)(chunk + 1);
+                break;
+            }
+			case FOURCC_OSG1:
+            {
+                refChunks.pui32Outputs11 = (uint32_t*)(chunk + 1);
                 break;
             }
             case FOURCC_SHDR:
