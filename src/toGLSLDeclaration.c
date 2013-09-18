@@ -80,6 +80,11 @@ void DeclareConstBufferShaderVariable(bstring glsl, const ShaderVar* psVar)
                 bformata(glsl, "\tvec4 %s[4];\n", psVar->Name);
                 break;
             }
+			default:
+			{
+				ASSERT(0);
+				break;
+			}
         }
     }
     else
@@ -107,6 +112,11 @@ void DeclareConstBufferShaderVariable(bstring glsl, const ShaderVar* psVar)
                 bformata(glsl, "\tdvec4 %s;\n", psVar->Name);
                 break;
             }
+			default:
+			{
+				ASSERT(0);
+				break;
+			}
         }
     }
     else
@@ -134,6 +144,19 @@ void DeclareConstBufferShaderVariable(bstring glsl, const ShaderVar* psVar)
                 bformata(glsl, "\tdouble %s", psVar->Name);
                 break;
             }
+			case SVT_BOOL:
+			{
+				//Use int instead of bool.
+				//Allows implicit conversions to integer and
+				//bool consumes 4-bytes in HLSL and GLSL anyway.
+				bformata(glsl, "\tint %s", psVar->Name);
+				break;
+			}
+			default:
+			{
+				ASSERT(0);
+				break;
+			}
         }
 
 		if(psVar->sType.Elements > 1)
