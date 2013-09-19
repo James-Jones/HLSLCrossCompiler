@@ -1173,7 +1173,10 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             {
                  bformata(glsl, "vec4 Temp%d;\n", i);
                  bformata(glsl, "ivec4 Temp%d_int;\n", i);
-                 bformata(glsl, "uvec4 Temp%d_uint;\n", i);
+				 if(HaveUVec(psShader->eTargetLanguage))
+				 {
+					bformata(glsl, "uvec4 Temp%d_uint;\n", i);
+				 }
             }
             break;
         }
