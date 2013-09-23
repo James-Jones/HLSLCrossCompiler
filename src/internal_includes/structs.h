@@ -7,7 +7,7 @@
 #include "internal_includes/tokens.h"
 #include "internal_includes/reflect.h"
 
-static enum{ MAX_SUB_OPERANDS = 3};
+enum{ MAX_SUB_OPERANDS = 3};
 
 typedef struct Operand_TAG
 {

@@ -38,6 +38,12 @@ static uint64_t operandID = 0;
 static uint64_t instructionID = 0;
 #endif
 
+#if defined(_WIN32)
+#define osSprintf(dest, size, src) sprintf_s(dest, size, src)
+#else
+#define osSprintf(dest, size, src) sprintf(dest, src)
+#endif
+
 void DecodeNameToken(const uint32_t* pui32NameToken, Operand* psOperand)
 {
     const size_t MAX_BUFFER_SIZE = sizeof(psOperand->pszSpecialName);
@@ -46,57 +52,57 @@ void DecodeNameToken(const uint32_t* pui32NameToken, Operand* psOperand)
 	{
         case NAME_UNDEFINED:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "undefined");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "undefined");
             break;
         }
         case NAME_POSITION:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "position");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "position");
             break;
         }
         case NAME_CLIP_DISTANCE:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "clipDistance");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "clipDistance");
             break;
         }
         case NAME_CULL_DISTANCE:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "cullDistance");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "cullDistance");
             break;
         }
         case NAME_RENDER_TARGET_ARRAY_INDEX:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "renderTargetArrayIndex");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "renderTargetArrayIndex");
             break;
         }
         case NAME_VIEWPORT_ARRAY_INDEX:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "viewportArrayIndex");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "viewportArrayIndex");
             break;
         }
         case NAME_VERTEX_ID:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "vertexID");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "vertexID");
             break;
         }
         case NAME_PRIMITIVE_ID:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "primitiveID");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "primitiveID");
             break;
         }
         case NAME_INSTANCE_ID:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "instanceID");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "instanceID");
             break;
         }
         case NAME_IS_FRONT_FACE:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "isFrontFace");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "isFrontFace");
             break;
         }
         case NAME_SAMPLE_INDEX:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "sampleIndex");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "sampleIndex");
             break;
         }
         //For the quadrilateral domain, there are 6 factors (4 sides, 2 inner).
@@ -117,7 +123,7 @@ void DecodeNameToken(const uint32_t* pui32NameToken, Operand* psOperand)
 		case NAME_FINAL_LINE_DETAIL_TESSFACTOR:
 		case NAME_FINAL_LINE_DENSITY_TESSFACTOR:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "tessFactor");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "tessFactor");
             break;
         }
         default:

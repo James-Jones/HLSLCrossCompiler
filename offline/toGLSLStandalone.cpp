@@ -3,18 +3,23 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include <string>
+#include <string.h>
 #include "hash.h"
 #include "serializeReflection.h"
 
 #ifdef _WIN32
 #include <direct.h>
+#else
+#include <sys/stat.h>
 #endif
 
 #include "timer.h"
 
+#if defined(_WIN32)
 #define VALIDATE_OUTPUT
+#endif
 
-#if defined(VALIDATE_OUTPUT) && defined(_WIN32)
+#if defined(VALIDATE_OUTPUT)
 #if defined(_WIN32)
 #include <windows.h>
 #include <gl/GL.h>
@@ -282,17 +287,17 @@ void InitOptions(Options* psOptions)
 
     psOptions->shaderFile = NULL;
 
-    psOptions->linkIn[0][0] = NULL;
-    psOptions->linkIn[1][0] = NULL;
-    psOptions->linkIn[2][0] = NULL;
-    psOptions->linkIn[3][0] = NULL;
-    psOptions->linkIn[4][0] = NULL;
+    psOptions->linkIn[0][0] = 0;
+    psOptions->linkIn[1][0] = 0;
+    psOptions->linkIn[2][0] = 0;
+    psOptions->linkIn[3][0] = 0;
+    psOptions->linkIn[4][0] = 0;
 
-    psOptions->linkOut[0][0] = NULL;
-    psOptions->linkOut[1][0] = NULL;
-    psOptions->linkOut[2][0] = NULL;
-    psOptions->linkOut[3][0] = NULL;
-    psOptions->linkOut[4][0] = NULL;
+    psOptions->linkOut[0][0] = 0;
+    psOptions->linkOut[1][0] = 0;
+    psOptions->linkOut[2][0] = 0;
+    psOptions->linkOut[3][0] = 0;
+    psOptions->linkOut[4][0] = 0;
 }
 
 void PrintHelp()

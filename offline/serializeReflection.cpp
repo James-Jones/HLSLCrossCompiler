@@ -1,6 +1,7 @@
 #include "serializeReflection.h"
 #include "cJSON.h"
 #include <string>
+#include <sstream>
 
 void* jsonMalloc(size_t sz)
 {
@@ -10,6 +11,13 @@ void jsonFree(void* ptr)
 {
     char* charPtr = static_cast<char*>(ptr);
     delete [] charPtr;
+}
+
+static void AppendIntToString(std::string& str, uint32_t num)
+{
+    std::stringstream ss;
+    ss << num;
+    str += ss.str();
 }
 
 static void WriteInOutSignature(InOutSignature* psSignature, cJSON* obj)
@@ -55,7 +63,7 @@ static void WriteConstantBuffer(ConstantBuffer* psCBuf, cJSON* obj)
     {
         std::string name;
         name += "var";
-        name += std::to_string((long long)i);
+        AppendIntToString(name, i);
 
         cJSON* varObj = cJSON_CreateObject();
         cJSON_AddItemToObject(obj, name.c_str(), varObj);
@@ -104,7 +112,7 @@ const char* SerializeReflection(ShaderInfo* psReflection)
     {
         std::string name;
         name += "input";
-        name += std::to_string((long long)i);
+		AppendIntToString(name, i);
 
         cJSON* obj = cJSON_CreateObject();
         cJSON_AddItemToObject(root, name.c_str(), obj);
@@ -118,7 +126,7 @@ const char* SerializeReflection(ShaderInfo* psReflection)
     {
         std::string name;
         name += "output";
-        name += std::to_string((long long)i);
+        AppendIntToString(name, i);
 
         cJSON* obj = cJSON_CreateObject();
         cJSON_AddItemToObject(root, name.c_str(), obj);
@@ -132,7 +140,7 @@ const char* SerializeReflection(ShaderInfo* psReflection)
     {
         std::string name;
         name += "resource";
-        name += std::to_string((long long)i);
+        AppendIntToString(name, i);
 
         cJSON* obj = cJSON_CreateObject();
         cJSON_AddItemToObject(root, name.c_str(), obj);
@@ -146,7 +154,7 @@ const char* SerializeReflection(ShaderInfo* psReflection)
     {
         std::string name;
         name += "cbuf";
-        name += std::to_string((long long)i);
+        AppendIntToString(name, i);
 
         cJSON* obj = cJSON_CreateObject();
         cJSON_AddItemToObject(root, name.c_str(), obj);
@@ -161,7 +169,7 @@ const char* SerializeReflection(ShaderInfo* psReflection)
     {
         std::string name;
         name += "classType";
-        name += std::to_string((long long)i);
+        AppendIntToString(name, i);
 
         cJSON* obj = cJSON_CreateObject();
         cJSON_AddItemToObject(root, name.c_str(), obj);
@@ -173,7 +181,7 @@ const char* SerializeReflection(ShaderInfo* psReflection)
     {
         std::string name;
         name += "classInst";
-        name += std::to_string((long long)i);
+        AppendIntToString(name, i);
 
         cJSON* obj = cJSON_CreateObject();
         cJSON_AddItemToObject(root, name.c_str(), obj);
