@@ -29,7 +29,8 @@ static void ReadStringFromTokenStream(const uint32_t* tokens, char* str)
 }
 
 static void ReadInputSignatures(const uint32_t* pui32Tokens,
-                        ShaderInfo* psShaderInfo)
+                        ShaderInfo* psShaderInfo,
+						const int extended)
 {
     uint32_t i;
 
@@ -46,7 +47,15 @@ static void ReadInputSignatures(const uint32_t* pui32Tokens,
     {
         uint32_t ui32ComponentMasks;
         InOutSignature* psCurrentSignature = psSignatures + i;
-        const uint32_t ui32SemanticNameOffset = *pui32Tokens++;
+        uint32_t ui32SemanticNameOffset;
+
+		psCurrentSignature->ui32Stream = 0;
+		psCurrentSignature->eMinPrec = D3D_MIN_PRECISION_DEFAULT;
+
+		if(extended)
+			psCurrentSignature->ui32Stream = *pui32Tokens++;
+
+		ui32SemanticNameOffset = *pui32Tokens++;
         psCurrentSignature->ui32SemanticIndex = *pui32Tokens++;
         psCurrentSignature->eSystemValueType = (SPECIAL_NAME) *pui32Tokens++;
         psCurrentSignature->eComponentType = (INOUT_COMPONENT_TYPE) *pui32Tokens++;
@@ -57,12 +66,16 @@ static void ReadInputSignatures(const uint32_t* pui32Tokens,
         //Shows which components are read
         psCurrentSignature->ui32ReadWriteMask = (ui32ComponentMasks & 0x7F00) >> 8;
 
+		if(extended)
+			psCurrentSignature->eMinPrec = *pui32Tokens++;
+
         ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstSignatureToken+ui32SemanticNameOffset), psCurrentSignature->SemanticName);
     }
 }
 
 static void ReadOutputSignatures(const uint32_t* pui32Tokens,
-                        ShaderInfo* psShaderInfo)
+                        ShaderInfo* psShaderInfo,
+						const int extended)
 {
     uint32_t i;
 
@@ -79,7 +92,15 @@ static void ReadOutputSignatures(const uint32_t* pui32Tokens,
     {
         uint32_t ui32ComponentMasks;
         InOutSignature* psCurrentSignature = psSignatures + i;
-        const uint32_t ui32SemanticNameOffset = *pui32Tokens++;
+        uint32_t ui32SemanticNameOffset;
+
+		psCurrentSignature->ui32Stream = 0;
+		psCurrentSignature->eMinPrec = D3D_MIN_PRECISION_DEFAULT;
+
+		if(extended)
+			psCurrentSignature->ui32Stream = *pui32Tokens++;
+
+		ui32SemanticNameOffset = *pui32Tokens++;
         psCurrentSignature->ui32SemanticIndex = *pui32Tokens++;
         psCurrentSignature->eSystemValueType = (SPECIAL_NAME)*pui32Tokens++;
         psCurrentSignature->eComponentType = (INOUT_COMPONENT_TYPE) *pui32Tokens++;
@@ -89,6 +110,9 @@ static void ReadOutputSignatures(const uint32_t* pui32Tokens,
         psCurrentSignature->ui32Mask = ui32ComponentMasks & 0x7F;
         //Shows which components are NEVER written.
         psCurrentSignature->ui32ReadWriteMask = (ui32ComponentMasks & 0x7F00) >> 8;
+
+		if(extended)
+			psCurrentSignature->eMinPrec = *pui32Tokens++;
 
         ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstSignatureToken+ui32SemanticNameOffset), psCurrentSignature->SemanticName);
     }
@@ -153,14 +177,26 @@ static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
 			uint32_t SamplerSize = *pui32VarToken++;
 		}
 
+		psVar->haveDefaultValue = 0;
+
         if(ui32DefaultValueOffset)
         {
-            if(psVar->ui32Size == 4)
-            {
-                const uint32_t* pui32DefaultValToken = (const uint32_t*)((const char*)pui32FirstConstBufToken+ui32DefaultValueOffset);
+			uint32_t i = 0;
+			const uint32_t ui32NumDefaultValues = psVar->ui32Size / 4;
+			const uint32_t* pui32DefaultValToken = (const uint32_t*)((const char*)pui32FirstConstBufToken+ui32DefaultValueOffset);
 
-                psVar->ui32DefaultValue = *pui32DefaultValToken;
-            }
+			//Always a sequence of 4-bytes at the moment.
+			//bool const becomes 0 or 0xFFFFFFFF int, int & float are 4-bytes.
+			ASSERT(psVar->ui32Size%4 == 0);
+
+			psVar->haveDefaultValue = 1;
+
+			psVar->pui32DefaultValues = malloc(psVar->ui32Size);
+
+			for(i=0; i<ui32NumDefaultValues;++i)
+			{
+				psVar->pui32DefaultValues[i] = pui32DefaultValToken[i];
+			}
         }
 
         if(ui32TypeOffset)
@@ -465,9 +501,11 @@ void LoadShaderInfo(const uint32_t ui32MajorVersion,
     ShaderInfo* psInfo)
 {
     const uint32_t* pui32Inputs = psChunks->pui32Inputs;
+	const uint32_t* pui32Inputs11 = psChunks->pui32Inputs11;
     const uint32_t* pui32Resources = psChunks->pui32Resources;
     const uint32_t* pui32Interfaces = psChunks->pui32Interfaces;
     const uint32_t* pui32Outputs = psChunks->pui32Outputs;
+	const uint32_t* pui32Outputs11 = psChunks->pui32Outputs11;
 
     psInfo->eTessOutPrim = TESSELLATOR_OUTPUT_UNDEFINED;
     psInfo->eTessPartitioning = TESSELLATOR_PARTITIONING_UNDEFINED;
@@ -477,13 +515,17 @@ void LoadShaderInfo(const uint32_t ui32MajorVersion,
 
 
     if(pui32Inputs)
-        ReadInputSignatures(pui32Inputs, psInfo);
+        ReadInputSignatures(pui32Inputs, psInfo, 0);
+    if(pui32Inputs11)
+        ReadInputSignatures(pui32Inputs11, psInfo, 1);
     if(pui32Resources)
         ReadResources(pui32Resources, psInfo);
     if(pui32Interfaces)
         ReadInterfaces(pui32Interfaces, psInfo);
     if(pui32Outputs)
-        ReadOutputSignatures(pui32Outputs, psInfo);
+        ReadOutputSignatures(pui32Outputs, psInfo, 0);
+    if(pui32Outputs11)
+        ReadOutputSignatures(pui32Outputs11, psInfo, 1);
 
     {
         uint32_t i;
@@ -501,6 +543,21 @@ void LoadShaderInfo(const uint32_t ui32MajorVersion,
 
 void FreeShaderInfo(ShaderInfo* psShaderInfo)
 {
+	//Free any default values for constants.
+	uint32_t cbuf;
+	for(cbuf=0; cbuf<psShaderInfo->ui32NumConstantBuffers; ++cbuf)
+	{
+		ConstantBuffer* psCBuf = &psShaderInfo->psConstantBuffers[cbuf];
+		uint32_t var;
+		for(var=0; var < psCBuf->ui32NumVars; ++var)
+		{
+			ShaderVar* psVar = &psCBuf->asVars[var];
+			if(psVar->haveDefaultValue)
+			{
+				free(psVar->pui32DefaultValues);
+			}
+		}
+	}
     free(psShaderInfo->psInputSignatures);
     free(psShaderInfo->psResourceBindings);
     free(psShaderInfo->psConstantBuffers);
@@ -516,3 +573,173 @@ void FreeShaderInfo(ShaderInfo* psShaderInfo)
     psShaderInfo->ui32NumOutputSignatures = 0;
 }
 
+typedef struct ConstantTableD3D9_TAG
+{
+    uint32_t size;
+    uint32_t creator;
+    uint32_t version;
+    uint32_t constants;
+    uint32_t constantInfos;
+    uint32_t flags;
+    uint32_t target;
+} ConstantTableD3D9;
+
+// These enums match those in d3dx9shader.h.
+enum RegisterSet
+{
+    RS_BOOL,
+    RS_INT4,
+    RS_FLOAT4,
+    RS_SAMPLER,
+};
+
+enum TypeClass
+{
+    CLASS_SCALAR,
+    CLASS_VECTOR,
+    CLASS_MATRIX_ROWS,
+    CLASS_MATRIX_COLUMNS,
+    CLASS_OBJECT,
+    CLASS_STRUCT,
+};
+
+enum Type
+{
+    PT_VOID,
+    PT_BOOL,
+    PT_INT,
+    PT_FLOAT,
+    PT_STRING,
+    PT_TEXTURE,
+    PT_TEXTURE1D,
+    PT_TEXTURE2D,
+    PT_TEXTURE3D,
+    PT_TEXTURECUBE,
+    PT_SAMPLER,
+    PT_SAMPLER1D,
+    PT_SAMPLER2D,
+    PT_SAMPLER3D,
+    PT_SAMPLERCUBE,
+    PT_PIXELSHADER,
+    PT_VERTEXSHADER,
+    PT_PIXELFRAGMENT,
+    PT_VERTEXFRAGMENT,
+    PT_UNSUPPORTED,
+};
+typedef struct ConstantInfoD3D9_TAG
+{
+    uint32_t name;
+    uint16_t registerSet;
+    uint16_t registerIndex;
+    uint16_t registerCount;
+    uint16_t reserved;
+    uint32_t typeInfo;
+    uint32_t defaultValue;
+} ConstantInfoD3D9;
+
+typedef struct TypeInfoD3D9_TAG
+{
+    uint16_t typeClass;
+    uint16_t type;
+    uint16_t rows;
+    uint16_t columns;
+    uint16_t elements;
+    uint16_t structMembers;
+    uint32_t structMemberInfos;
+} TypeInfoD3D9;
+
+typedef struct StructMemberInfoD3D9_TAG
+{
+    uint32_t name;
+    uint32_t typeInfo;
+} StructMemberInfoD3D9;
+
+void LoadD3D9ConstantTable(const char* data,
+    ShaderInfo* psInfo)
+{
+    ConstantTableD3D9* ctab;
+    uint32_t constNum;
+    ConstantInfoD3D9* cinfos;
+    ConstantBuffer* psConstantBuffer;
+    uint32_t ui32ConstantBufferSize = 0;
+	uint32_t numResourceBindingsNeeded = 0;
+
+    ctab = (ConstantTableD3D9*)data;
+
+    cinfos = (ConstantInfoD3D9*) (data + ctab->constantInfos);
+
+    psInfo->ui32NumConstantBuffers++;
+
+    //Only 1 Constant Table in d3d9
+    ASSERT(psInfo->ui32NumConstantBuffers==1);
+
+    psConstantBuffer = malloc(sizeof(ConstantBuffer));
+
+    psInfo->psConstantBuffers = psConstantBuffer;
+
+    psConstantBuffer->ui32NumVars = ctab->constants;
+    strcpy(psConstantBuffer->Name, "$Globals");
+
+	//Determine how many resource bindings to create
+	for(constNum = 0; constNum < ctab->constants; ++constNum)
+	{
+		if(cinfos[constNum].registerSet == RS_SAMPLER)
+		{
+			++numResourceBindingsNeeded;
+		}
+	}
+
+	psInfo->psResourceBindings = malloc(numResourceBindingsNeeded*sizeof(ResourceBinding));
+
+    for(constNum = 0; constNum < ctab->constants; ++constNum)
+    {
+		TypeInfoD3D9* typeInfo = (TypeInfoD3D9*) (data + cinfos[constNum].typeInfo);
+		ShaderVar* var = &psConstantBuffer->asVars[constNum];
+
+        strcpy(var->Name, data + cinfos[constNum].name);
+        var->ui32Size = cinfos[constNum].registerCount * 16;
+        var->ui32StartOffset = cinfos[constNum].registerIndex * 16;
+        var->haveDefaultValue = 0;
+
+		if(ui32ConstantBufferSize < (var->ui32Size + var->ui32StartOffset))
+        {
+            ui32ConstantBufferSize = var->ui32Size + var->ui32StartOffset;
+        }
+
+		//Create a resource if it is sampler in order to replicate the d3d10+
+		//method of separating samplers from general constants.
+		if(cinfos[constNum].registerSet == RS_SAMPLER)
+		{
+			uint32_t ui32ResourceIndex = psInfo->ui32NumResourceBindings++;
+			ResourceBinding* res = &psInfo->psResourceBindings[ui32ResourceIndex];
+
+			strcpy(res->Name, data + cinfos[constNum].name);
+
+			res->ui32BindPoint = cinfos[constNum].registerIndex;
+			res->ui32BindCount = cinfos[constNum].registerCount;
+			res->ui32Flags = 0;
+			res->ui32NumSamples = 1;
+			res->ui32ReturnType = 0;
+
+			res->eType = RTYPE_TEXTURE;
+
+			switch(typeInfo->type)
+			{
+			case PT_SAMPLER:
+			case PT_SAMPLER1D:
+				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURE1D;
+				break;
+			case PT_SAMPLER2D:
+				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURE2D;
+				break;
+			case PT_SAMPLER3D:
+				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURE2D;
+				break;
+			case PT_SAMPLERCUBE:
+				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURECUBE;
+				break;
+			}
+		}
+    }
+    psConstantBuffer->ui32TotalSizeInBytes = ui32ConstantBufferSize;
+}

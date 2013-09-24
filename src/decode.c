@@ -15,6 +15,9 @@ static enum {FOURCC_ISGN = FOURCC('I', 'S', 'G', 'N')}; //Input signature
 static enum {FOURCC_IFCE = FOURCC('I', 'F', 'C', 'E')}; //Interface (for dynamic linking)
 static enum {FOURCC_OSGN = FOURCC('O', 'S', 'G', 'N')}; //Output signature
 
+static enum {FOURCC_ISG1 = FOURCC('I', 'S', 'G', '1')}; //Input signature with Stream and MinPrecision
+static enum {FOURCC_OSG1 = FOURCC('O', 'S', 'G', '1')}; //Output signature with Stream and MinPrecision
+
 typedef struct DXBCContainerHeaderTAG
 {
 	unsigned fourcc;
@@ -35,6 +38,12 @@ static uint64_t operandID = 0;
 static uint64_t instructionID = 0;
 #endif
 
+#if defined(_WIN32)
+#define osSprintf(dest, size, src) sprintf_s(dest, size, src)
+#else
+#define osSprintf(dest, size, src) sprintf(dest, src)
+#endif
+
 void DecodeNameToken(const uint32_t* pui32NameToken, Operand* psOperand)
 {
     const size_t MAX_BUFFER_SIZE = sizeof(psOperand->pszSpecialName);
@@ -43,57 +52,57 @@ void DecodeNameToken(const uint32_t* pui32NameToken, Operand* psOperand)
 	{
         case NAME_UNDEFINED:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "undefined");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "undefined");
             break;
         }
         case NAME_POSITION:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "position");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "position");
             break;
         }
         case NAME_CLIP_DISTANCE:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "clipDistance");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "clipDistance");
             break;
         }
         case NAME_CULL_DISTANCE:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "cullDistance");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "cullDistance");
             break;
         }
         case NAME_RENDER_TARGET_ARRAY_INDEX:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "renderTargetArrayIndex");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "renderTargetArrayIndex");
             break;
         }
         case NAME_VIEWPORT_ARRAY_INDEX:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "viewportArrayIndex");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "viewportArrayIndex");
             break;
         }
         case NAME_VERTEX_ID:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "vertexID");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "vertexID");
             break;
         }
         case NAME_PRIMITIVE_ID:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "primitiveID");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "primitiveID");
             break;
         }
         case NAME_INSTANCE_ID:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "instanceID");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "instanceID");
             break;
         }
         case NAME_IS_FRONT_FACE:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "isFrontFace");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "isFrontFace");
             break;
         }
         case NAME_SAMPLE_INDEX:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "sampleIndex");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "sampleIndex");
             break;
         }
         //For the quadrilateral domain, there are 6 factors (4 sides, 2 inner).
@@ -114,7 +123,7 @@ void DecodeNameToken(const uint32_t* pui32NameToken, Operand* psOperand)
 		case NAME_FINAL_LINE_DETAIL_TESSFACTOR:
 		case NAME_FINAL_LINE_DENSITY_TESSFACTOR:
         {
-            sprintf_s(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "tessFactor");
+            osSprintf(psOperand->pszSpecialName, MAX_BUFFER_SIZE, "tessFactor");
             break;
         }
         default:
@@ -261,6 +270,15 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
             ui32NumTokens ++;
         }
     }
+    else
+    if(psOperand->eType == OPERAND_TYPE_IMMEDIATE64)
+    {
+        for(i=0; i< psOperand->iNumComponents; ++i)
+        {
+            psOperand->adImmediates[i] = *((double*)(&pui32Tokens[ui32NumTokens]));
+            ui32NumTokens +=2;
+        }
+    }
 
     for(i=0; i <psOperand->iIndexDims; ++i)
     {
@@ -311,16 +329,6 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
     }
 
     psOperand->pszSpecialName[0] ='\0';
-
-    //Because swizzle on GLSL sampler uniform does not make sense and
-    //is not permitted.
-    //TODO: Should really be done during the translation to
-    //GLSL to keep this function generic for any future non-glsl targets.
-    if(psOperand->eType == OPERAND_TYPE_SAMPLER ||
-       psOperand->eType == OPERAND_TYPE_RESOURCE)
-    {
-        psOperand->iWriteMaskEnabled = 0;
-    }
 
     return ui32NumTokens;
 }
@@ -856,6 +864,9 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_FIRSTBIT_LO:
         case OPCODE_FIRSTBIT_SHI:
         case OPCODE_BFREV:
+        case OPCODE_F32TOF16:
+        case OPCODE_F16TOF32:
+        case OPCODE_RCP:
         {
             psInst->ui32NumOperands = 2;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -1054,31 +1065,34 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         }
     }
 
+	UpdateOperandReferences(psShader, psInst);
+
+    return pui32Token + ui32TokenLength;
+}
+
+void UpdateOperandReferences(Shader* psShader, Instruction* psInst)
+{
+    uint32_t ui32Operand;
+    const uint32_t ui32NumOperands = psInst->ui32NumOperands;
+    for(ui32Operand = 0; ui32Operand < ui32NumOperands; ++ui32Operand)
     {
-        uint32_t ui32Operand;
-        const uint32_t ui32NumOperands = psInst->ui32NumOperands;
-        for(ui32Operand = 0; ui32Operand < ui32NumOperands; ++ui32Operand)
+        Operand* psOperand = &psInst->asOperands[ui32Operand];
+        if(psOperand->eType == OPERAND_TYPE_INPUT || 
+            psOperand->eType == OPERAND_TYPE_INPUT_CONTROL_POINT)
         {
-            Operand* psOperand = &psInst->asOperands[ui32Operand];
-            if(psOperand->eType == OPERAND_TYPE_INPUT || 
-                psOperand->eType == OPERAND_TYPE_INPUT_CONTROL_POINT)
+            if(psOperand->iIndexDims == INDEX_2D)
             {
-                if(psOperand->iIndexDims == INDEX_2D)
-                {
-                    if(psOperand->aui32ArraySizes[1] != 0)//gl_in[].gl_Position
-                    {
-                        psShader->abInputReferencedByInstruction[psOperand->ui32RegisterNumber] = 1;
-                    }
-                }
-                else
+                if(psOperand->aui32ArraySizes[1] != 0)//gl_in[].gl_Position
                 {
                     psShader->abInputReferencedByInstruction[psOperand->ui32RegisterNumber] = 1;
                 }
             }
+            else
+            {
+                psShader->abInputReferencedByInstruction[psOperand->ui32RegisterNumber] = 1;
+            }
         }
     }
-
-    return pui32Token + ui32TokenLength;
 }
 
 const uint32_t* DecodeHullShaderJoinPhase(const uint32_t* pui32Tokens, Shader* psShader)
@@ -1422,6 +1436,14 @@ Shader* DecodeDXBC(uint32_t* data)
 
 	if(header->fourcc != FOURCC_DXBC)
 	{
+        //Could be SM1/2/3. If the shader type token
+        //looks valid then we continue
+        uint32_t type = DecodeShaderTypeDX9(data[0]);
+
+        if(type != INVALID_SHADER)
+        {
+            return DecodeDX9BC(data);
+        }
 		return 0;
 	}
 
@@ -1429,6 +1451,8 @@ Shader* DecodeDXBC(uint32_t* data)
     refChunks.pui32Interfaces = NULL;
     refChunks.pui32Outputs = NULL;
     refChunks.pui32Resources = NULL;
+	refChunks.pui32Inputs11 = NULL;
+	refChunks.pui32Outputs11 = NULL;
 
 	chunkOffsets = (uint32_t*)(header + 1);
 
@@ -1447,6 +1471,11 @@ Shader* DecodeDXBC(uint32_t* data)
                 refChunks.pui32Inputs = (uint32_t*)(chunk + 1);
                 break;
             }
+			case FOURCC_ISG1:
+			{
+                refChunks.pui32Inputs11 = (uint32_t*)(chunk + 1);
+                break;
+			}
             case FOURCC_RDEF:
             {
                 refChunks.pui32Resources = (uint32_t*)(chunk + 1);
@@ -1460,6 +1489,11 @@ Shader* DecodeDXBC(uint32_t* data)
             case FOURCC_OSGN:
             {
                 refChunks.pui32Outputs = (uint32_t*)(chunk + 1);
+                break;
+            }
+			case FOURCC_OSG1:
+            {
+                refChunks.pui32Outputs11 = (uint32_t*)(chunk + 1);
                 break;
             }
             case FOURCC_SHDR:

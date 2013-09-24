@@ -409,7 +409,7 @@ void ShaderEffect::SetVec4(std::string& name, int count, float* v) {
     int loc = glGetUniformLocation(mProgram, (name + std::string("VS")).c_str());
     glUniform4fv(loc, count, v);
 
-    if(mDomain)
+    if(mDomain != InvalidShaderHandle)
     {
         loc = glGetUniformLocation(mProgram, (name + std::string("HS")).c_str());
         glUniform4fv(loc, count, v);
@@ -418,7 +418,7 @@ void ShaderEffect::SetVec4(std::string& name, int count, float* v) {
         glUniform4fv(loc, count, v);
     }
 
-    if(mGeometry)
+    if(mGeometry != InvalidShaderHandle)
     {
         loc = glGetUniformLocation(mProgram, (name + std::string("GS")).c_str());
         glUniform4fv(loc, count, v);

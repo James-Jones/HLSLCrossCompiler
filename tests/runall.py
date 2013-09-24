@@ -87,6 +87,15 @@ else:
 
 print "Using " + executable + "\n"
 
+for files in glob.glob("vs2/*.o"):
+	RunTest(files, "120")
+
+for files in glob.glob("ps2/*.o"):
+	RunTest(files, "120")
+
+for files in glob.glob("ps3/*.o"):
+	RunTest(files, "150")
+
 for files in glob.glob("vs4/*.o"):
 	RunTest(files, "150")
 

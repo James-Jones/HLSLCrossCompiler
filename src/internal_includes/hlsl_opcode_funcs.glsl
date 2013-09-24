@@ -26,7 +26,6 @@ void HLSL_and(out float dest, float a, float b) {
 	int ib = int(b);
 	dest = float(ia & ib);
 }
-#endif
 
 void HLSL_ilt(out vec4 dest, vec4 a, vec4 b) {
 	ivec4 ia = ivec4(a);
@@ -34,16 +33,17 @@ void HLSL_ilt(out vec4 dest, vec4 a, vec4 b) {
    dest = vec4(lessThan(ia, ib));
 }
 
-void HLSL_ilt(out float dest, float a, float b) {
-	int ia = int(a);
-	int ib = int(b);
-    dest = (ia < ib) ? 1.0 : 0.0;
-}
-
 void HLSL_ult(out vec4 dest, vec4 a, vec4 b) {
 	uvec4 ia = uvec4(a);
 	uvec4 ib = uvec4(b);
    dest = vec4(lessThan(ia, ib));
+}
+#endif
+
+void HLSL_ilt(out float dest, float a, float b) {
+	int ia = int(a);
+	int ib = int(b);
+    dest = (ia < ib) ? 1.0 : 0.0;
 }
 
 void HLSL_ult(out float dest, float a, float b) {

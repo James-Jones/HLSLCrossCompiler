@@ -91,7 +91,7 @@ void display(void)
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(gGlobals), &gGlobals);
     mLambertLitEffect.SetUniformBlock(std::string("SharedConsts"), 0, ubo);
 #else
-    mLambertLitEffect.SetVec4(std::string("SharedConsts"), GlobalsVec4Count, (float*)&gGlobals);
+    mLambertLitEffect.SetVec4(std::string("Globals"), GlobalsVec4Count, (float*)&gGlobals);
 #endif 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gIndexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, gVertexBuffer);
@@ -120,7 +120,7 @@ void display(void)
         glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(gGlobals), &gGlobals);
         mSolidColour.SetUniformBlock(std::string("SharedConsts"), 1, ubo2);
 #else
-        mSolidColour.SetVec4(std::string("SharedConsts"), GlobalsVec4Count, (float*)&gGlobals);
+        mSolidColour.SetVec4(std::string("Globals"), GlobalsVec4Count, (float*)&gGlobals);
 #endif
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
     }
@@ -189,19 +189,26 @@ void Init(int argc, char** argv)
     mLambertLitEffect.Create();
 #if UBO
     mLambertLitEffect.AddCompileFlags(HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT);
-#endif
     mLambertLitEffect.FromByteFile(std::string("shaders/LambertLitPS.o"));
     mLambertLitEffect.FromByteFile(std::string("shaders/LambertLitVS.o"));
+
+#else
+	mLambertLitEffect.FromByteFile(std::string("shaders/LambertLitDX9PS.o"));
+    mLambertLitEffect.FromByteFile(std::string("shaders/LambertLitDX9VS.o"));
+#endif
     
     mLambertLitEffect.Link();
 
     mSolidColour.Create();
 #if UBO
     mSolidColour.AddCompileFlags(HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT);
-#endif
     mSolidColour.FromByteFile(std::string("shaders/LambertLitSolidPS.o"));
     mSolidColour.FromByteFile(std::string("shaders/LambertLitVS.o"));
-    mSolidColour.Link();
+#else
+    mSolidColour.FromByteFile(std::string("shaders/LambertLitDX9SolidPS.o"));
+    mSolidColour.FromByteFile(std::string("shaders/LambertLitDX9VS.o"));
+#endif
+	mSolidColour.Link();
 
 #if UBO
     mLambertLitEffect.CreateUniformBlock(std::string("SharedConsts"), ubo);

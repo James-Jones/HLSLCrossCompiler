@@ -578,9 +578,32 @@ void TranslateOperandIndexMAD(HLSLCrossCompilerContext* psContext, const Operand
 
 static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag, uint32_t* pui32IgnoreSwizzle)
 {
+    int integerConstructor = 0;
     bstring glsl = *psContext->currentGLSLString;
 
     *pui32IgnoreSwizzle = 0;
+
+    if(psOperand->eType != OPERAND_TYPE_IMMEDIATE32 &&
+        psOperand->eType != OPERAND_TYPE_IMMEDIATE64 )
+    {
+		const uint32_t swizCount = psOperand->iNumComponents;
+        if((ui32TOFlag & (TO_FLAG_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_INTEGER)
+        {
+			if(swizCount == 1)
+				bformata(glsl, "int(");
+			else
+				bformata(glsl, "ivec%d(", swizCount);
+            integerConstructor = 1;
+        }
+        if((ui32TOFlag & (TO_FLAG_UNSIGNED_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_UNSIGNED_INTEGER)
+        {
+			if(swizCount == 1)
+				bformata(glsl, "uint(");
+			else
+				bformata(glsl, "uvec%d(", swizCount);
+            integerConstructor = 1;
+        }
+    }
 
     switch(psOperand->eType)
     {
@@ -588,6 +611,12 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         {
             if(psOperand->iNumComponents == 1)
             {
+				if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
+				{
+					bformata(glsl, "%du",
+						*((int*)(&psOperand->afImmediates[0])));
+				}
+                else
 				if((ui32TOFlag & TO_FLAG_INTEGER) || psOperand->iIntegerImmediate || fpcheck(psOperand->afImmediates[0]))
 				{
 					bformata(glsl, "%d",
@@ -602,6 +631,15 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             else
             if(psOperand->iNumComponents == 4)
             {
+                if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
+                {
+                    bformata(glsl, "uvec4(%d, %d, %d, %d)",
+                        *(int*)&psOperand->afImmediates[0],
+                        *(int*)&psOperand->afImmediates[1],
+                        *(int*)&psOperand->afImmediates[2],
+                        *(int*)&psOperand->afImmediates[3]);
+                }
+                else
                 if((ui32TOFlag & TO_FLAG_INTEGER) ||
                     psOperand->iIntegerImmediate ||
                     fpcheck(psOperand->afImmediates[0]) ||
@@ -609,7 +647,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                     fpcheck(psOperand->afImmediates[2]) ||
                     fpcheck(psOperand->afImmediates[3]))
                 {
-                    bformata(glsl, "vec4(%d, %d, %d, %d)",
+                    bformata(glsl, "ivec4(%d, %d, %d, %d)",
                         *(int*)&psOperand->afImmediates[0],
                         *(int*)&psOperand->afImmediates[1],
                         *(int*)&psOperand->afImmediates[2],
@@ -623,6 +661,24 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                         psOperand->afImmediates[2],
                         psOperand->afImmediates[3]);
                 }
+            }
+            break;
+        }
+        case OPERAND_TYPE_IMMEDIATE64:
+        {
+            if(psOperand->iNumComponents == 1)
+            {
+                bformata(glsl, "%f",
+                    psOperand->adImmediates[0]);
+            }
+            else
+            if(psOperand->iNumComponents == 4)
+            {
+                bformata(glsl, "dvec4(%f, %f, %f, %f)",
+                    psOperand->adImmediates[0],
+                    psOperand->adImmediates[1],
+                    psOperand->adImmediates[2],
+                    psOperand->adImmediates[3]);
             }
             break;
         }
@@ -706,6 +762,51 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             bformata(glsl, "Temp%d", psOperand->ui32RegisterNumber);
             break;
         }
+		case OPERAND_TYPE_SPECIAL_IMMCONSTINT:
+		{
+            bformata(glsl, "IntImmConst%d", psOperand->ui32RegisterNumber);
+            break;
+		}
+        case OPERAND_TYPE_SPECIAL_IMMCONST:
+        {
+            bformata(glsl, "ImmConst%d", psOperand->ui32RegisterNumber);
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_OUTBASECOLOUR:
+        {
+            bcatcstr(glsl, "BaseColour");
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_OUTOFFSETCOLOUR:
+        {
+            bcatcstr(glsl, "OffsetColour");
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_POSITION:
+        {
+            bcatcstr(glsl, "gl_Position");
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_FOG:
+        {
+            bcatcstr(glsl, "Fog");
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_POINTSIZE:
+        {
+            bcatcstr(glsl, "gl_PointSize");
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_ADDRESS:
+        {
+            bcatcstr(glsl, "Address");
+            break;
+        }
+		case OPERAND_TYPE_SPECIAL_TEXCOORD:
+		{
+			bformata(glsl, "TexCoord%d", psOperand->ui32RegisterNumber);
+			break;
+		}
         case OPERAND_TYPE_CONSTANT_BUFFER:
         {
             const char* StageName = "VS";
@@ -778,7 +879,16 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 				//$Globals.
 				if(psCBuf->Name[0] == '$')
 				{
-					bformata(glsl, "Globals%s[%d]", StageName, psOperand->aui32ArraySizes[1]);
+                    if(psOperand->psSubOperand[0])
+                    {
+                        bformata(glsl, "Globals%s[int(", StageName);
+                        TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
+                        bcatcstr(glsl, ")]");
+                    }
+                    else
+                    {
+                        bformata(glsl, "Globals%s[%d]", StageName, psOperand->aui32ArraySizes[1]);
+                    }
 				}
 				else
 				{
@@ -791,11 +901,13 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         case OPERAND_TYPE_RESOURCE:
         {
             TextureName(psContext, psOperand->ui32RegisterNumber, 0);
+			*pui32IgnoreSwizzle = 1;
             break;
         }
         case OPERAND_TYPE_SAMPLER:
         {
             bformata(glsl, "Sampler%d", psOperand->ui32RegisterNumber);
+			*pui32IgnoreSwizzle = 1;
             break;
         }
         case OPERAND_TYPE_FUNCTION_BODY:
@@ -900,11 +1012,21 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             bformata(glsl, "TGSM%d", psOperand->ui32RegisterNumber);
             break;
         }
+		case OPERAND_TYPE_INPUT_PRIMITIVEID:
+		{
+			bcatcstr(glsl, "gl_PrimitiveID");
+			break;
+		}
         default:
         {
             ASSERT(0);
             break;
         }
+    }
+
+    if(integerConstructor)
+    {
+        bcatcstr(glsl, ")");
     }
 }
 
@@ -977,6 +1099,7 @@ void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32Registe
     bstring glsl = *psContext->currentGLSLString;
     ResourceBinding* psBinding = 0;
 	int found;
+
     found = GetResourceFromBindingPoint(RTYPE_TEXTURE, ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
 
     if(bZCompare)

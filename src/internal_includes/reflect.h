@@ -22,11 +22,16 @@ typedef struct
     uint32_t* pui32Outputs;
     uint32_t* pui32Resources;
     uint32_t* pui32Interfaces;
+    uint32_t* pui32Inputs11;
+    uint32_t* pui32Outputs11;
 } ReflectionChunks;
 
 void LoadShaderInfo(const uint32_t ui32MajorVersion,
     const uint32_t ui32MinorVersion,
     const ReflectionChunks* psChunks,
+    ShaderInfo* psInfo);
+
+void LoadD3D9ConstantTable(const char* data,
     ShaderInfo* psInfo);
 
 void FreeShaderInfo(ShaderInfo* psShaderInfo);

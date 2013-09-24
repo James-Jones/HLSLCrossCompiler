@@ -5,6 +5,7 @@
 
 typedef enum
 {
+    INVALID_SHADER = -1,
     PIXEL_SHADER,
     VERTEX_SHADER,
     GEOMETRY_SHADER,
@@ -53,6 +54,11 @@ static EXTENDED_OPCODE_TYPE DecodeExtendedOpcodeType(uint32_t ui32Token)
 
 typedef enum
 {
+    //For DX9
+	OPCODE_ENDREP = -3,
+	OPCODE_REP = -2,
+    OPCODE_SPECIAL_DCL_IMMCONST = -1,
+
     OPCODE_ADD,
     OPCODE_AND,
     OPCODE_BREAK,
@@ -329,6 +335,15 @@ static OPERAND_INDEX_DIMENSION DecodeOperandIndexDimension(uint32_t ui32Token)
 
 typedef enum OPERAND_TYPE
 {
+	OPERAND_TYPE_SPECIAL_IMMCONSTINT = -9,
+	OPERAND_TYPE_SPECIAL_TEXCOORD = -8,
+    OPERAND_TYPE_SPECIAL_POSITION = -7,
+    OPERAND_TYPE_SPECIAL_FOG = -6,
+    OPERAND_TYPE_SPECIAL_POINTSIZE = -5,
+    OPERAND_TYPE_SPECIAL_OUTOFFSETCOLOUR = -4,
+    OPERAND_TYPE_SPECIAL_OUTBASECOLOUR = -3,
+    OPERAND_TYPE_SPECIAL_ADDRESS = -2,
+    OPERAND_TYPE_SPECIAL_IMMCONST = -1,
     OPERAND_TYPE_TEMP           = 0,  // Temporary Register File
     OPERAND_TYPE_INPUT          = 1,  // General Input Register File
     OPERAND_TYPE_OUTPUT         = 2,  // General Output Register File
@@ -727,5 +742,7 @@ static uint32_t DecodeAccessCoherencyFlags(uint32_t ui32Token)
 {
     return ui32Token & 0x00010000;
 }
+
+#include "tokensDX9.h"
 
 #endif
