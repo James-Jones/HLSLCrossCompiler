@@ -120,6 +120,9 @@ for files in glob.glob("hs5/*.o"):
 for files in glob.glob("ds5/*.o"):
 	RunTest(files, "400")
 
+for files in glob.glob("cs5/*.o"):
+	RunTest(files, "430")
+
 print str(passCount) + " passed; " + str(failCount) + " failed.\n"
 print "Failed tests:"
 for testName in listOfFailedTests:

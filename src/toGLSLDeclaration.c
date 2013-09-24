@@ -1711,16 +1711,32 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             bcatcstr(glsl, ";\n");
             break;
         }
-        case OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED:
         case OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW:
+		{
+            if(psDecl->sUAV.ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
+            {
+                bcatcstr(glsl, "coherent ");
+            }
+			//Should be an unsized array.
+			ASSERT(psDecl->sUAV.ui32BufferSize == 0);
+
+			bcatcstr(glsl, "buffer someType { float data[]; } ");
+
+            TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+            bcatcstr(glsl, ";\n");
+            break;
+		}
+        case OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED:
         {
             if(psDecl->sUAV.ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
             {
                 bcatcstr(glsl, "coherent ");
             }
-            bcatcstr(glsl, "buffer someType { ");
-                bformata(glsl, "float data[%d]; ", psDecl->sUAV.ui32BufferSize/4);
-            bcatcstr(glsl, "} ");
+
+			bcatcstr(glsl, "buffer someType { ");
+				bformata(glsl, "float data[%d]; ", (psDecl->sUAV.ui32BufferSize+3)/4);
+			bcatcstr(glsl, "} ");
+
             TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ";\n");
             break;
