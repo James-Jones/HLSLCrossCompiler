@@ -756,7 +756,7 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                     //SM4+
                     //destSin destCos Angle
 
-                    psInst->ui32NumOperands = 3;
+                    psInst[inst].ui32NumOperands = 3;
 
                     //Set the angle
                     memcpy(&psInst[inst].asOperands[2],&psInst[inst].asOperands[1], sizeof(Operand));
@@ -815,7 +815,7 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 					//texld r0, t0, s0
 					// srcAddress[.swizzle], srcResource[.swizzle], srcSampler
 					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_SAMPLE_L, 1, 2, pui32CurrentToken);
-					psInst->asOperands[2].ui32RegisterNumber = 0;
+					psInst[inst].asOperands[2].ui32RegisterNumber = 0;
 
 					//Lod comes from fourth coordinate of address.
 					memcpy(&psInst[inst].asOperands[4], &psInst[inst].asOperands[1], sizeof(Operand));

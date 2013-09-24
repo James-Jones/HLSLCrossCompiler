@@ -12,7 +12,7 @@ void ResetTimer(Timer_t* psTimer)
 #if defined(_WIN32)
 	QueryPerformanceCounter(&psTimer->startCount);
 #else
-	gettimeofday(&psTimer->startCount, NULL);
+	gettimeofday(&psTimer->startCount, 0);
 #endif
 }
 
@@ -27,7 +27,7 @@ double ReadTimer(Timer_t* psTimer)
     startTimeInMicroSec = psTimer->startCount.QuadPart * freq;
     endTimeInMicroSec = psTimer->endCount.QuadPart * freq;
 #else
-	gettimeofday(&psTimer->endCount, NULL);
+	gettimeofday(&psTimer->endCount, 0);
     startTimeInMicroSec = (psTimer->startCount.tv_sec * 1000000.0) + psTimer->startCount.tv_usec;
     endTimeInMicroSec = (psTimer->endCount.tv_sec * 1000000.0) + psTimer->endCount.tv_usec;
 #endif
