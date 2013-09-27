@@ -22,6 +22,11 @@ uint32_t DX9_DECODE_OPERAND_IS_SRC = 0x1;
 uint32_t DX9_DECODE_OPERAND_IS_DEST = 0x2;
 uint32_t DX9_DECODE_OPERAND_IS_DECL = 0x4;
 
+#define MAX_INPUTS 64
+
+static DECLUSAGE_DX9 aeInputUsage[MAX_INPUTS];
+static uint32_t aui32InputUsageIndex[MAX_INPUTS];
+
 static void DecodeOperandDX9(const Shader* psShader,
                              const uint32_t ui32Token,
 							 const uint32_t ui32Token1,
@@ -55,9 +60,16 @@ static void DecodeOperandDX9(const Shader* psShader,
         {
             psOperand->eType = OPERAND_TYPE_INPUT;
 
+			ASSERT(ui32RegNum < MAX_INPUTS);
+
 			if(psShader->eShaderType == PIXEL_SHADER)
 			{
-
+				if(aeInputUsage[ui32RegNum] == DECLUSAGE_TEXCOORD)
+				{
+					psOperand->eType = OPERAND_TYPE_SPECIAL_TEXCOORD;
+					psOperand->ui32RegisterNumber = aui32InputUsageIndex[ui32RegNum];
+				}
+				else
 				//0 = base colour, 1 = offset colour.
 				if(ui32RegNum == 0)
 				{
@@ -345,6 +357,23 @@ static void DeclareNumTemps(Shader* psShader,
     psDecl->value.ui32NumTemps = ui32NumTemps;
 }
 
+static void SetupRegisterUsage(const Shader* psShader,
+                                const uint32_t ui32Token0,
+                                const uint32_t ui32Token1)
+{
+    DECLUSAGE_DX9 eUsage = DecodeUsageDX9(ui32Token0);
+    uint32_t ui32UsageIndex = DecodeUsageIndexDX9(ui32Token0);
+    uint32_t ui32RegNum = DecodeOperandRegisterNumberDX9(ui32Token1);
+    uint32_t ui32RegType = DecodeOperandTypeDX9(ui32Token1);
+
+	if(ui32RegType == OPERAND_TYPE_DX9_INPUT)
+	{
+		ASSERT(ui32RegNum < MAX_INPUTS);
+		aeInputUsage[ui32RegNum] = eUsage;
+		aui32InputUsageIndex[ui32RegNum] = ui32UsageIndex;
+	}
+}
+
 static void DecodeDeclarationDX9(const Shader* psShader,
                                 const uint32_t ui32Token0,
                                 const uint32_t ui32Token1,
@@ -615,6 +644,8 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 			{
 				ignoreDCL = 1;
 			}
+
+			SetupRegisterUsage(psShader, pui32CurrentToken[1], pui32CurrentToken[2]);
 
 			if(!ignoreDCL)
 			{
