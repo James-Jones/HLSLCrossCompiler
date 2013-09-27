@@ -59,6 +59,27 @@ int GetMaxComponentFromComponentMask(const Operand* psOperand)
     return 4;
 }
 
+//Single component repeated
+//e..g .wwww
+uint32_t IsSwizzleReplacated(const Operand* psOperand)
+{
+    if(psOperand->iWriteMaskEnabled &&
+       psOperand->iNumComponents == 4)
+    {
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+		{
+			if(psOperand->ui32Swizzle == WWWW_SWIZZLE ||
+				psOperand->ui32Swizzle == ZZZZ_SWIZZLE ||
+				psOperand->ui32Swizzle == YYYY_SWIZZLE ||
+				psOperand->ui32Swizzle == XXXX_SWIZZLE)
+			{
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
 //e.g.
 //.z = 1
 //.x = 1

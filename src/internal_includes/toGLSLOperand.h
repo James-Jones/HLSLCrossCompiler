@@ -18,6 +18,7 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
 uint32_t GetNumSwizzleElements(const Operand* psOperand);
 void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t count);
 int GetFirstOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
+uint32_t IsSwizzleReplacated(const Operand* psOperand);
 
 void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32RegisterNumber, const int bZCompare);
 

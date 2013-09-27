@@ -977,10 +977,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_MOVC:
         {
-            const uint32_t destElemCount = GetNumSwizzleElements(&psInst->asOperands[0]);
-            const uint32_t s0ElemCount = GetNumSwizzleElements(&psInst->asOperands[1]);
-            const uint32_t s1ElemCount = GetNumSwizzleElements(&psInst->asOperands[2]);
-            const uint32_t s2ElemCount = GetNumSwizzleElements(&psInst->asOperands[3]);
+            uint32_t destElemCount = GetNumSwizzleElements(&psInst->asOperands[0]);
+            uint32_t s0ElemCount = GetNumSwizzleElements(&psInst->asOperands[1]);
+            uint32_t s1ElemCount = GetNumSwizzleElements(&psInst->asOperands[2]);
+            uint32_t s2ElemCount = GetNumSwizzleElements(&psInst->asOperands[3]);
             uint32_t destElem;
 #ifdef _DEBUG
             AddIndentation(psContext);
@@ -999,6 +999,52 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
                 }
             endfor
 */
+
+			/* Single-component conditional variable (src0) */
+			if(s1ElemCount==1 || IsSwizzleReplacated(&psInst->asOperands[1]))
+			{
+                AddIndentation(psContext);
+                bcatcstr(glsl, "if(vec4(");
+
+                TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+
+				bcatcstr(glsl, ").x");
+
+				if(psContext->psShader->ui32MajorVersion < 4)
+				{
+					//cmp opcode uses >= 0
+					bcatcstr(glsl, " >= 0) {\n");
+				}
+				else
+				{
+					bcatcstr(glsl, " != 0) {\n");
+				}
+
+                psContext->indent++;
+                AddIndentation(psContext);
+                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
+                bcatcstr(glsl, " = ");
+                TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+				if(destElemCount != s1ElemCount)
+					AddSwizzleUsingElementCount(psContext, destElemCount);
+                bcatcstr(glsl, ";\n");
+
+                psContext->indent--;
+                AddIndentation(psContext);
+                bcatcstr(glsl, "} else {\n");
+                psContext->indent++;
+                AddIndentation(psContext);
+                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
+                bcatcstr(glsl, " = ");
+                TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_NONE);
+				if(destElemCount != s2ElemCount)
+					AddSwizzleUsingElementCount(psContext, destElemCount);
+                bcatcstr(glsl, ";\n");
+                psContext->indent--;
+                AddIndentation(psContext);
+                bcatcstr(glsl, "}\n");
+			}
+			else
             for(destElem=0; destElem < destElemCount; ++destElem)
             {
                 const char* swizzle[] = {".x", ".y", ".z", ".w"};
