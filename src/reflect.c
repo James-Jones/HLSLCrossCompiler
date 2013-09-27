@@ -768,6 +768,7 @@ void LoadD3D9ConstantTable(const char* data,
     ConstantBuffer* psConstantBuffer;
     uint32_t ui32ConstantBufferSize = 0;
 	uint32_t numResourceBindingsNeeded = 0;
+	ShaderVar* var;
 
     ctab = (ConstantTableD3D9*)data;
 
@@ -782,7 +783,7 @@ void LoadD3D9ConstantTable(const char* data,
 
     psInfo->psConstantBuffers = psConstantBuffer;
 
-    psConstantBuffer->ui32NumVars = ctab->constants;
+    psConstantBuffer->ui32NumVars = 0;
     strcpy(psConstantBuffer->Name, "$Globals");
 
 	//Determine how many resource bindings to create
@@ -796,110 +797,116 @@ void LoadD3D9ConstantTable(const char* data,
 
 	psInfo->psResourceBindings = malloc(numResourceBindingsNeeded*sizeof(ResourceBinding));
 
+	var = &psConstantBuffer->asVars[0];
+
     for(constNum = 0; constNum < ctab->constants; ++constNum)
     {
 		TypeInfoD3D9* typeInfo = (TypeInfoD3D9*) (data + cinfos[constNum].typeInfo);
-		ShaderVar* var = &psConstantBuffer->asVars[constNum];
 
-        strcpy(var->Name, data + cinfos[constNum].name);
-        var->ui32Size = cinfos[constNum].registerCount * 16;
-        var->ui32StartOffset = cinfos[constNum].registerIndex * 16;
-        var->haveDefaultValue = 0;
-
-		if(ui32ConstantBufferSize < (var->ui32Size + var->ui32StartOffset))
-        {
-            ui32ConstantBufferSize = var->ui32Size + var->ui32StartOffset;
-        }
-
-		var->sType.Columns = typeInfo->columns;
-		var->sType.Elements = typeInfo->elements;
-		var->sType.Members = typeInfo->structMembers;
-		var->sType.Offset = 0;
-
-		switch(typeInfo->typeClass)
+		if(cinfos[constNum].registerSet != RS_SAMPLER)
 		{
-			case CLASS_SCALAR:
-			{
-				var->sType.Class = SVC_SCALAR;
-				break;
-			}
-			case CLASS_VECTOR:
-			{
-				var->sType.Class = SVC_VECTOR;
-				break;
-			}
-			case CLASS_MATRIX_ROWS:
-			{
-				var->sType.Class = SVC_MATRIX_ROWS;
-				break;
-			}
-			case CLASS_MATRIX_COLUMNS:
-			{
-				var->sType.Class = SVC_MATRIX_COLUMNS;
-				break;
-			}
-			case CLASS_OBJECT:
-			{
-				var->sType.Class = SVC_OBJECT;
-				break;
-			}
-			case CLASS_STRUCT:
-			{
-				var->sType.Class = SVC_STRUCT;
-				break;
-			}
-		}
+			strcpy(var->Name, data + cinfos[constNum].name);
+			var->ui32Size = cinfos[constNum].registerCount * 16;
+			var->ui32StartOffset = cinfos[constNum].registerIndex * 16;
+			var->haveDefaultValue = 0;
 
-		switch(cinfos[constNum].registerSet)
-		{
-			case RS_BOOL:
+			if(ui32ConstantBufferSize < (var->ui32Size + var->ui32StartOffset))
 			{
-				var->sType.Type = SVT_BOOL;
-				break;
+				ui32ConstantBufferSize = var->ui32Size + var->ui32StartOffset;
 			}
-			case RS_INT4:
+
+			var->sType.Columns = typeInfo->columns;
+			var->sType.Elements = typeInfo->elements;
+			var->sType.Members = typeInfo->structMembers;
+			var->sType.Offset = 0;
+
+			switch(typeInfo->typeClass)
 			{
-				var->sType.Type = SVT_INT;
-				break;
-			}
-			case RS_FLOAT4:
-			{
-				var->sType.Type = SVT_FLOAT;
-				break;
-			}
-			case RS_SAMPLER:
-			{
-				//Create a resource if it is sampler in order to replicate the d3d10+
-				//method of separating samplers from general constants.
-				uint32_t ui32ResourceIndex = psInfo->ui32NumResourceBindings++;
-				ResourceBinding* res = &psInfo->psResourceBindings[ui32ResourceIndex];
-
-				strcpy(res->Name, data + cinfos[constNum].name);
-
-				res->ui32BindPoint = cinfos[constNum].registerIndex;
-				res->ui32BindCount = cinfos[constNum].registerCount;
-				res->ui32Flags = 0;
-				res->ui32NumSamples = 1;
-				res->ui32ReturnType = 0;
-
-				res->eType = RTYPE_TEXTURE;
-
-				switch(typeInfo->type)
+				case CLASS_SCALAR:
 				{
-				case PT_SAMPLER:
-				case PT_SAMPLER1D:
-					res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURE1D;
-					break;
-				case PT_SAMPLER2D:
-					res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURE2D;
-					break;
-				case PT_SAMPLER3D:
-					res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURE2D;
-					break;
-				case PT_SAMPLERCUBE:
-					res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURECUBE;
+					var->sType.Class = SVC_SCALAR;
 					break;
 				}
+				case CLASS_VECTOR:
+				{
+					var->sType.Class = SVC_VECTOR;
+					break;
+				}
+				case CLASS_MATRIX_ROWS:
+				{
+					var->sType.Class = SVC_MATRIX_ROWS;
+					break;
+				}
+				case CLASS_MATRIX_COLUMNS:
+				{
+					var->sType.Class = SVC_MATRIX_COLUMNS;
+					break;
+				}
+				case CLASS_OBJECT:
+				{
+					var->sType.Class = SVC_OBJECT;
+					break;
+				}
+				case CLASS_STRUCT:
+				{
+					var->sType.Class = SVC_STRUCT;
+					break;
+				}
+			}
+
+			switch(cinfos[constNum].registerSet)
+			{
+				case RS_BOOL:
+				{
+					var->sType.Type = SVT_BOOL;
+					break;
+				}
+				case RS_INT4:
+				{
+					var->sType.Type = SVT_INT;
+					break;
+				}
+				case RS_FLOAT4:
+				{
+					var->sType.Type = SVT_FLOAT;
+					break;
+				}
+			}
+
+			var++;
+			psConstantBuffer->ui32NumVars++;
+		}
+		else
+		{
+			//Create a resource if it is sampler in order to replicate the d3d10+
+			//method of separating samplers from general constants.
+			uint32_t ui32ResourceIndex = psInfo->ui32NumResourceBindings++;
+			ResourceBinding* res = &psInfo->psResourceBindings[ui32ResourceIndex];
+
+			strcpy(res->Name, data + cinfos[constNum].name);
+
+			res->ui32BindPoint = cinfos[constNum].registerIndex;
+			res->ui32BindCount = cinfos[constNum].registerCount;
+			res->ui32Flags = 0;
+			res->ui32NumSamples = 1;
+			res->ui32ReturnType = 0;
+
+			res->eType = RTYPE_TEXTURE;
+
+			switch(typeInfo->type)
+			{
+			case PT_SAMPLER:
+			case PT_SAMPLER1D:
+				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURE1D;
+				break;
+			case PT_SAMPLER2D:
+				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURE2D;
+				break;
+			case PT_SAMPLER3D:
+				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURE2D;
+				break;
+			case PT_SAMPLERCUBE:
+				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURECUBE;
 				break;
 			}
 		}
