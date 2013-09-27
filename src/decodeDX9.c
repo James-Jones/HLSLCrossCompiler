@@ -859,6 +859,18 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 					psInst[inst].eDX9TestType = eCmpOp;
 					break;
 				}
+
+                case OPCODE_DX9_DSX:
+				{
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_DERIV_RTX, 1, 1, pui32CurrentToken);
+					break;
+				}
+                case OPCODE_DX9_DSY:
+				{
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_DERIV_RTY, 1, 1, pui32CurrentToken);
+					break;
+				}
+
                 case OPCODE_DX9_DST:
                 case OPCODE_DX9_LRP:
                 
@@ -901,8 +913,6 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                 case OPCODE_DX9_TEXDEPTH:
                 case OPCODE_DX9_BEM:
                 case OPCODE_DX9_DP2ADD:
-                case OPCODE_DX9_DSX:
-                case OPCODE_DX9_DSY:
                 case OPCODE_DX9_TEXLDD:
                 case OPCODE_DX9_SETP:
                 case OPCODE_DX9_BREAKP:

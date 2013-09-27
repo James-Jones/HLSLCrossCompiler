@@ -2362,6 +2362,32 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			bcatcstr(glsl, ";\n");
 			break;
 		}
+		case OPCODE_DERIV_RTX:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//DERIV_RTX\n");
+#endif
+			AddIndentation(psContext);
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
+			bcatcstr(glsl, " = dFdx(");
+			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+			bcatcstr(glsl, ");\n");
+			break;
+		}
+		case OPCODE_DERIV_RTY:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//DERIV_RTY\n");
+#endif
+			AddIndentation(psContext);
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
+			bcatcstr(glsl, " = dFdy(");
+			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+			bcatcstr(glsl, ");\n");
+			break;
+		}
         case OPCODE_SWAPC:
         case OPCODE_IMM_ATOMIC_ALLOC:
         case OPCODE_IMM_ATOMIC_CONSUME:
