@@ -2071,7 +2071,13 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//DISCARD\n");
 #endif
             AddIndentation(psContext);
-            if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
+			if(psContext->psShader->ui32MajorVersion <= 3)
+			{
+				bcatcstr(glsl, "if(any(lessThan((");
+                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+                bcatcstr(glsl, ").xyz, vec3(0)))){discard;}\n");
+			}
+            else if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
             {
                 bcatcstr(glsl, "if((");
                 TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);

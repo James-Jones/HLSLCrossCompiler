@@ -901,6 +901,11 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_DERIV_RTY, 1, 1, pui32CurrentToken);
 					break;
 				}
+				case OPCODE_DX9_TEXKILL:
+				{
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_DISCARD, 1, 0, pui32CurrentToken);
+					break;
+				}
 
                 case OPCODE_DX9_DST:
                 case OPCODE_DX9_LRP:
@@ -922,7 +927,6 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                 case OPCODE_DX9_DEFB:
 
                 case OPCODE_DX9_TEXCOORD:
-                case OPCODE_DX9_TEXKILL:
                 case OPCODE_DX9_TEXBEM:
                 case OPCODE_DX9_TEXBEML:
                 case OPCODE_DX9_TEXREG2AR:
