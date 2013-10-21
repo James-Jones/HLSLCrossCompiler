@@ -742,10 +742,14 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                     break;
                 }
                 case OPCODE_DX9_SLT:
+				{
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_LT, 1, 2, pui32CurrentToken);
+					break;
+				}
                 case OPCODE_DX9_SGE:
                 {
-                    ASSERT(0);
-                    break;
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_GE, 1, 2, pui32CurrentToken);
+					break;
                 }
                 case OPCODE_DX9_EXP:
                 {
