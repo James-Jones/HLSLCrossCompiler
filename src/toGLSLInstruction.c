@@ -2075,7 +2075,16 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			{
 				bcatcstr(glsl, "if(any(lessThan((");
                 TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-                bcatcstr(glsl, ").xyz, vec3(0)))){discard;}\n");
+
+				if(psContext->psShader->ui32MajorVersion == 1)
+				{
+					/* SM1.X only kills based on the rgb channels */
+					bcatcstr(glsl, ").xyz, vec3(0)))){discard;}\n");
+				}
+				else
+				{
+					bcatcstr(glsl, "), vec4(0)))){discard;}\n");
+				}
 			}
             else if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
             {
