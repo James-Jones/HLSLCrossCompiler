@@ -119,8 +119,6 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 				bformata(glsl, "varying vec4 TexCoord%d;\n", texCoord);
 			}
 
-			ASSERT(WriteToFragData(psContext->psShader->eTargetLanguage));
-
 			for(renderTargets=0; renderTargets<8; ++renderTargets)
 			{
 				bformata(glsl, "#define Output%d gl_FragData[%d]\n", renderTargets, renderTargets);

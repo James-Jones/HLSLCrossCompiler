@@ -906,10 +906,31 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_DISCARD, 1, 0, pui32CurrentToken);
 					break;
 				}
+				case OPCODE_DX9_TEXLDD:
+				{
+					// texldd, dst, src0, src1, src2, src3
+					// srcAddress[.swizzle], srcResource[.swizzle], srcSampler, XGradient, YGradient
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_SAMPLE_D, 1, 4, pui32CurrentToken);
+					psInst[inst].asOperands[2].ui32RegisterNumber = 0;
+					break;
+				}
+				case OPCODE_DX9_LRP:
+				{
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_LRP, 1, 3, pui32CurrentToken);
+					break;
+				}
+				case OPCODE_DX9_DP2ADD:
+				{
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_DP2ADD, 1, 3, pui32CurrentToken);
+					break;
+				}
+				case OPCODE_DX9_POW:
+				{
+					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_POW, 1, 2, pui32CurrentToken);
+					break;
+				}
 
                 case OPCODE_DX9_DST:
-                case OPCODE_DX9_LRP:
-                
                 case OPCODE_DX9_M4x4:
                 case OPCODE_DX9_M4x3:
                 case OPCODE_DX9_M3x4:
@@ -918,7 +939,7 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                 case OPCODE_DX9_CALL:
                 case OPCODE_DX9_CALLNZ:
                 case OPCODE_DX9_LABEL:
-                case OPCODE_DX9_POW:
+                
                 case OPCODE_DX9_CRS:
                 case OPCODE_DX9_SGN:
                 case OPCODE_DX9_ABS:
@@ -947,8 +968,6 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                 case OPCODE_DX9_TEXM3x3:
                 case OPCODE_DX9_TEXDEPTH:
                 case OPCODE_DX9_BEM:
-                case OPCODE_DX9_DP2ADD:
-                case OPCODE_DX9_TEXLDD:
                 case OPCODE_DX9_SETP:
                 case OPCODE_DX9_BREAKP:
                 {

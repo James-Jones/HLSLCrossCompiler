@@ -55,6 +55,9 @@ static EXTENDED_OPCODE_TYPE DecodeExtendedOpcodeType(uint32_t ui32Token)
 typedef enum
 {
     //For DX9
+	OPCODE_POW = -6,
+	OPCODE_DP2ADD = -5,
+	OPCODE_LRP = -4,
 	OPCODE_ENDREP = -3,
 	OPCODE_REP = -2,
     OPCODE_SPECIAL_DCL_IMMCONST = -1,
