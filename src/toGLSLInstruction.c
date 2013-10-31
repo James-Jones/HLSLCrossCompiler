@@ -1840,9 +1840,45 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 						bcatcstr(glsl, ")){\n");
 						break;
 					}
+					case D3DSPC_LE:
+					{
+						bcatcstr(glsl, "if((");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, ") <= (");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, ")){\n");
+						break;
+					}
+					case D3DSPC_GE:
+					{
+						bcatcstr(glsl, "if((");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, ") >= (");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, ")){\n");
+						break;
+					}
+					case D3DSPC_GT:
+					{
+						bcatcstr(glsl, "if((");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, ") > (");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, ")){\n");
+						break;
+					}
+					case D3DSPC_EQ:
+					{
+						bcatcstr(glsl, "if((");
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+						bcatcstr(glsl, ") == (");
+						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+						bcatcstr(glsl, ")){\n");
+						break;
+					}
 					default:
 					{
-						bcatcstr(glsl, "//IF\n");
+						ASSERT(0);
 						break;
 					}
 				}
@@ -2133,7 +2169,22 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//DISCARD\n");
 #endif
             AddIndentation(psContext);
-            if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
+			if(psContext->psShader->ui32MajorVersion <= 3)
+			{
+				bcatcstr(glsl, "if(any(lessThan((");
+                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+
+				if(psContext->psShader->ui32MajorVersion == 1)
+				{
+					/* SM1.X only kills based on the rgb channels */
+					bcatcstr(glsl, ").xyz, vec3(0)))){discard;}\n");
+				}
+				else
+				{
+					bcatcstr(glsl, "), vec4(0)))){discard;}\n");
+				}
+			}
+            else if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
             {
                 bcatcstr(glsl, "if((");
                 TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
@@ -2492,6 +2543,66 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			bcatcstr(glsl, ";\n");
 			break;
 		}
+		case OPCODE_DERIV_RTX:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//DERIV_RTX\n");
+#endif
+			CallHelper1(psContext, "dFdx", psInst, 0, 1);
+			break;
+		}
+		case OPCODE_DERIV_RTY:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//DERIV_RTY\n");
+#endif
+			CallHelper1(psContext, "dFdy", psInst, 0, 1);
+			break;
+		}
+		case OPCODE_LRP:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//LRP\n");
+#endif
+			CallHelper3(psContext, "mix", psInst, 0, 2, 3, 1);
+			break;
+		}
+		case OPCODE_DP2ADD:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//DP2ADD\n");
+#endif
+			AddIndentation(psContext);
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
+			bcatcstr(glsl, " = dot(vec2(");
+			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+			bcatcstr(glsl, "), vec2(");
+			TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+			bcatcstr(glsl, ")) + ");
+			TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_NONE);
+			bcatcstr(glsl, ";\n");
+			break;
+		}
+		case OPCODE_POW:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//POW\n");
+#endif
+			AddIndentation(psContext);
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
+			bcatcstr(glsl, " = pow(abs(");
+			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+			bcatcstr(glsl, "), ");
+			TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+			bcatcstr(glsl, ");\n");
+			break;
+		}
+
         case OPCODE_SWAPC:
         case OPCODE_IMM_ATOMIC_ALLOC:
         case OPCODE_IMM_ATOMIC_CONSUME:
