@@ -656,8 +656,8 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             {
 				if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
 				{
-					bformata(glsl, "%du",
-						*((int*)(&psOperand->afImmediates[0])));
+					bformata(glsl, "%uu",
+						*((unsigned int*)(&psOperand->afImmediates[0])));
 				}
                 else
 				if((ui32TOFlag & TO_FLAG_INTEGER) || psOperand->iIntegerImmediate || fpcheck(psOperand->afImmediates[0]))
@@ -676,11 +676,11 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             {
                 if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
                 {
-                    bformata(glsl, "uvec4(%d, %d, %d, %d)",
-                        *(int*)&psOperand->afImmediates[0],
-                        *(int*)&psOperand->afImmediates[1],
-                        *(int*)&psOperand->afImmediates[2],
-                        *(int*)&psOperand->afImmediates[3]);
+                    bformata(glsl, "uvec4(%uu, %uu, %uu, %uu)",
+                        *(unsigned int*)&psOperand->afImmediates[0],
+                        *(unsigned int*)&psOperand->afImmediates[1],
+                        *(unsigned int*)&psOperand->afImmediates[2],
+                        *(unsigned int*)&psOperand->afImmediates[3]);
                 }
                 else
                 if((ui32TOFlag & TO_FLAG_INTEGER) ||
