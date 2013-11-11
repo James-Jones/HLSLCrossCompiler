@@ -642,48 +642,52 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
     bstring glsl = *psContext->currentGLSLString;
     switch(psInst->eOpcode)
     {
-        case OPCODE_FTOI:
-        {
-#ifdef _DEBUG
-            AddIndentation(psContext);
-            bcatcstr(glsl, "//FTOI.  Use a MOV for now\n");
-#endif
-            // Rounding is always performed towards zero
-            //Use int constructor - int(float). This drops the fractional part.
-        }
-		case OPCODE_FTOU:
-		{
-#ifdef _DEBUG
-            if(psInst->eOpcode == OPCODE_FTOU) //Check for fallthrough from OPCODE_FTOI
-            {
-                AddIndentation(psContext);
-                bcatcstr(glsl, "//FTOU. Use a MOV for now\n");
-            }
-#endif
-		}
+        case OPCODE_FTOI: //Fall-through to MOV
+		case OPCODE_FTOU: //Fall-through to MOV
         case OPCODE_MOV:
         {
 			uint32_t srcCount = GetNumSwizzleElements(&psInst->asOperands[1]);
 			uint32_t dstCount = GetNumSwizzleElements(&psInst->asOperands[0]);
+			uint32_t ui32SrcFlags = TO_FLAG_NONE;
 
+			if(psInst->eOpcode == OPCODE_FTOU)
+			{
 #ifdef _DEBUG
-            AddIndentation(psContext);
-            bcatcstr(glsl, "//MOV\n");
+				AddIndentation(psContext);
+				bcatcstr(glsl, "//FTOU\n");
 #endif
+				ui32SrcFlags |= TO_FLAG_UNSIGNED_INTEGER;
+			}
+			else if(psInst->eOpcode == OPCODE_FTOI)
+			{
+#ifdef _DEBUG
+				AddIndentation(psContext);
+				bcatcstr(glsl, "//FTOI\n");
+#endif
+				ui32SrcFlags |= TO_FLAG_INTEGER;
+			}
+			else
+			{
+#ifdef _DEBUG
+				AddIndentation(psContext);
+				bcatcstr(glsl, "//MOV\n");
+#endif
+			}
+
 			AddIndentation(psContext);
 
 			if(srcCount == dstCount)
 			{
 				TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
 				bcatcstr(glsl, " = ");
-				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+				TranslateOperand(psContext, &psInst->asOperands[1], ui32SrcFlags);
 				bcatcstr(glsl, ";\n");
 			}
 			else
 			{
 				TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
 				bcatcstr(glsl, " = vec4(");
-				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+				TranslateOperand(psContext, &psInst->asOperands[1], ui32SrcFlags);
 				bcatcstr(glsl, ")");
 				TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
 				bcatcstr(glsl, ";\n");
