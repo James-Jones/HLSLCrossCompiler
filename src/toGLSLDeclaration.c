@@ -307,10 +307,10 @@ static void DeclareInput(
                 }
                 else
                 {
-                    bformata(glsl, "%s %s %S%d %s%d [%d];\n", StorageQualifier, Precision, vecType, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber,
+                    bformata(glsl, "%s %s %s%d %s%d [%d];\n", StorageQualifier, Precision, vecType, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber,
                         psDecl->asOperands[0].aui32ArraySizes[0]);
 
-                    bformata(glsl, "%S%d Input%d[%d];\n", vecType, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber,
+                    bformata(glsl, "%s%d Input%d[%d];\n", vecType, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber,
                         psDecl->asOperands[0].aui32ArraySizes[0]);
 
                     psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = psDecl->asOperands[0].aui32ArraySizes[0];
@@ -328,7 +328,7 @@ static void DeclareInput(
                 if(iNumComponents == 1)
                 {
                     psContext->psShader->abScalarInput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-                    bformata(glsl, "%s %s %s %S %s%d;\n", Interpolation, StorageQualifier, Precision, scalarType, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+                    bformata(glsl, "%s %s %s %s %s%d;\n", Interpolation, StorageQualifier, Precision, scalarType, InputName, psDecl->asOperands[0].ui32RegisterNumber);
                     bformata(glsl, "%s1 Input%d;\n", vecType, psDecl->asOperands[0].ui32RegisterNumber);
 
                     psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = -1;
