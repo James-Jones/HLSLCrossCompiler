@@ -1028,9 +1028,16 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
                 AddIndentation(psContext);
                 TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
                 bcatcstr(glsl, " = ");
+				if(destElemCount != s1ElemCount)
+				{
+					bcatcstr(glsl, "vec4(");
+				}
                 TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 				if(destElemCount != s1ElemCount)
+				{
+					bcatcstr(glsl, ")");
 					AddSwizzleUsingElementCount(psContext, destElemCount);
+				}
                 bcatcstr(glsl, ";\n");
 
                 psContext->indent--;
@@ -1040,9 +1047,16 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
                 AddIndentation(psContext);
                 TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
                 bcatcstr(glsl, " = ");
+				if(destElemCount != s2ElemCount)
+				{
+					bcatcstr(glsl, "vec4(");
+				}
                 TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_NONE);
 				if(destElemCount != s2ElemCount)
+				{
+					bcatcstr(glsl, ")");
 					AddSwizzleUsingElementCount(psContext, destElemCount);
+				}
                 bcatcstr(glsl, ";\n");
                 psContext->indent--;
                 AddIndentation(psContext);
