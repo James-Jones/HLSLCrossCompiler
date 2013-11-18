@@ -15,6 +15,10 @@ void HLSL_ige(out int dest, int a, int b) {
     dest = (a >= b) ? 1 : 0;
 }
 
+void HLSL_ieq(out int dest, int a, int b) {
+    dest = (a == b) ? 1 : 0;
+}
+
 void HLSL_ieq(out vec4 dest, vec4 a, vec4 b) {
     dest = vec4(equal(a, b));
 }
@@ -33,6 +37,14 @@ void HLSL_and(out float dest, float a, float b) {
 	int ia = int(a);
 	int ib = int(b);
 	dest = float(ia & ib);
+}
+
+void HLSL_ilt(out int dest, int a, int b) {
+    dest = (a < b) ? 1 : 0;
+}
+
+void HLSL_ilt(out ivec4 dest, ivec4 a, ivec4 b) {
+   dest = ivec4(lessThan(a, b));
 }
 
 void HLSL_ilt(out vec4 dest, vec4 a, vec4 b) {

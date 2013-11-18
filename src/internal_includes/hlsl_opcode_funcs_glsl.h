@@ -17,6 +17,10 @@ const char* psz_hlsl_opcode_funcs_glsl = {
 	    dest = (a >= b) ? 1 : 0;\n \
 	}\n \
 	\n \
+	void HLSL_ieq(out int dest, int a, int b) {\n \
+	    dest = (a == b) ? 1 : 0;\n \
+	}\n \
+	\n \
 	void HLSL_ieq(out vec4 dest, vec4 a, vec4 b) {\n \
 	    dest = vec4(equal(a, b));\n \
 	}\n \
@@ -35,6 +39,14 @@ const char* psz_hlsl_opcode_funcs_glsl = {
 		int ia = int(a);\n \
 		int ib = int(b);\n \
 		dest = float(ia & ib);\n \
+	}\n \
+	\n \
+	void HLSL_ilt(out int dest, int a, int b) {\n \
+	    dest = (a < b) ? 1 : 0;\n \
+	}\n \
+	\n \
+	void HLSL_ilt(out ivec4 dest, ivec4 a, ivec4 b) {\n \
+	   dest = ivec4(lessThan(a, b));\n \
 	}\n \
 	\n \
 	void HLSL_ilt(out vec4 dest, vec4 a, vec4 b) {\n \

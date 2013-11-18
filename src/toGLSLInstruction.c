@@ -769,15 +769,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
 				if(eDestType == SVT_UINT)
 				{
-						bcatcstr(glsl, " = uvec4(");
+					bcatcstr(glsl, " = uvec4(");
 				}
 				else if(eDestType == SVT_INT)
 				{
-						bcatcstr(glsl, " = ivec4(");
+					bcatcstr(glsl, " = ivec4(");
 				}
 				else
 				{
-						bcatcstr(glsl, " = vec4(");
+					bcatcstr(glsl, " = vec4(");
 				}
 
 				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
