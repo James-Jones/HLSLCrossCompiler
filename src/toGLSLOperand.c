@@ -809,18 +809,12 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             {
                 if(ui32TOFlag & TO_FLAG_INTEGER)
                 {
-                    psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] = SVT_INT;
                     bcatcstr(glsl, "_int");
                 }
                 else
                 if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
                 {
-                    psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] = SVT_UINT;
                     bcatcstr(glsl, "_uint");
-                }
-                else
-                {
-                    psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] = SVT_FLOAT;
                 }
             }
             else
@@ -1133,9 +1127,9 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
         const SHADER_VARIABLE_TYPE eCurrentType = psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber];
         return eCurrentType;
     }
-	if(psOperand->eType == OPERAND_TYPE_OUTPUT)
+	else if(psOperand->eType == OPERAND_TYPE_OUTPUT)
 	{
-		const uint32_t ui32Register = psOperand->aui32ArraySizes[0];
+		const uint32_t ui32Register = psOperand->aui32ArraySizes[psOperand->iIndexDims-1];
 		InOutSignature* psOut;
 
 		if(GetOutputSignatureFromRegister(ui32Register, &psContext->psShader->sInfo, &psOut))
@@ -1148,6 +1142,36 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
 			{
 				return SVT_INT;
 			}
+		}
+	}
+	else if(psOperand->eType == OPERAND_TYPE_INPUT)
+	{
+		const uint32_t ui32Register = psOperand->aui32ArraySizes[psOperand->iIndexDims-1];
+		InOutSignature* psIn;
+
+		if(GetInputSignatureFromRegister(ui32Register, &psContext->psShader->sInfo, &psIn))
+		{
+			if( psIn->eComponentType == INOUT_COMPONENT_UINT32)
+			{
+				return SVT_UINT;
+			}
+			else if( psIn->eComponentType == INOUT_COMPONENT_SINT32)
+			{
+				return SVT_INT;
+			}
+		}
+	}
+	else if(psOperand->eType == OPERAND_TYPE_CONSTANT_BUFFER)
+	{
+        ConstantBuffer* psCBuf = NULL;
+        ShaderVar* psVar = NULL;
+        int32_t index = -1;
+		int foundVar;
+        GetConstantBufferFromBindingPoint(psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
+		foundVar = GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVar, &index);
+		if(foundVar && index == -1 && psOperand->psSubOperand[1] == NULL)
+		{
+			return psVar->sType.Type;
 		}
 	}
     return SVT_FLOAT;

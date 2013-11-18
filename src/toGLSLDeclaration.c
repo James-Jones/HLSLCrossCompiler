@@ -1177,6 +1177,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				 {
 					bformata(glsl, "uvec4 Temp%d_uint;\n", i);
 				 }
+				 psContext->psShader->aeTempVecType[i] = SVT_FLOAT;
             }
             break;
         }
