@@ -77,7 +77,7 @@ void DeclareConstBufferShaderVariable(bstring glsl, const ShaderVar* psVar)
         {
             case SVT_FLOAT:
             {
-                bformata(glsl, "\tvec4 %s[4];\n", psVar->Name);
+                bformata(glsl, "\tvec4 %s[4", psVar->Name);
                 break;
             }
 			default:
@@ -86,6 +86,11 @@ void DeclareConstBufferShaderVariable(bstring glsl, const ShaderVar* psVar)
 				break;
 			}
         }
+		if(psVar->sType.Elements > 1)
+		{
+			bformata(glsl, " * %d", psVar->sType.Elements);
+		}
+		bformata(glsl, "];\n");
     }
     else
     if(psVar->sType.Class == SVC_VECTOR)
@@ -94,22 +99,22 @@ void DeclareConstBufferShaderVariable(bstring glsl, const ShaderVar* psVar)
         {
             case SVT_FLOAT:
             {
-                bformata(glsl, "\tvec4 %s;\n", psVar->Name);
+                bformata(glsl, "\tvec4 %s", psVar->Name);
                 break;
             }
             case SVT_UINT:
             {
-                bformata(glsl, "\tuvec4 %s;\n", psVar->Name);
+                bformata(glsl, "\tuvec4 %s", psVar->Name);
                 break;
             }
             case SVT_INT:
             {
-                bformata(glsl, "\tivec4 %s;\n", psVar->Name);
+                bformata(glsl, "\tivec4 %s", psVar->Name);
                 break;
             }
             case SVT_DOUBLE:
             {
-                bformata(glsl, "\tdvec4 %s;\n", psVar->Name);
+                bformata(glsl, "\tdvec4 %s", psVar->Name);
                 break;
             }
 			default:
@@ -118,6 +123,12 @@ void DeclareConstBufferShaderVariable(bstring glsl, const ShaderVar* psVar)
 				break;
 			}
         }
+
+		if(psVar->sType.Elements > 1)
+		{
+			bformata(glsl, "[%d]", psVar->sType.Elements);
+		}
+		bformata(glsl, ";\n");
     }
     else
     if(psVar->sType.Class == SVC_SCALAR)

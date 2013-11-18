@@ -974,7 +974,26 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                     GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVar, &index);
 
                     bformata(glsl, ".%s", psVar->Name);
-                    if(index != -1)
+
+					//Dx9 only?
+					if(psOperand->psSubOperand[0] != NULL)
+					{
+						bcatcstr(glsl, "[int("); //Indexes must be integral.
+						TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
+						bcatcstr(glsl, ")]");
+					}
+					
+					if(index != -1 && psOperand->psSubOperand[1] != NULL)
+					{
+						//Array of matrices is treated as array of vec4s
+						if(index != -1)
+						{
+							bcatcstr(glsl, "[int("); //Indexes must be integral.
+							TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
+							bformata(glsl, ") + %d]", index);
+						}
+					}
+					else if(index != -1)
                     {
                         bformata(glsl, "[%d]", index);
                     }
