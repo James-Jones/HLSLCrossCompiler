@@ -640,6 +640,18 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
 void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psInst)
 {
     bstring glsl = *psContext->currentGLSLString;
+
+#ifdef _DEBUG
+		AddIndentation(psContext);
+		bformata(glsl, "//Instruction %d\n", psInst->id);
+#if 0
+		if(psInst->id == XYZ)
+		{
+			ASSERT(1); //Set breakpoint here to debug an instruction from its ID.
+		}
+#endif
+#endif
+
     switch(psInst->eOpcode)
     {
         case OPCODE_FTOI: //Fall-through to MOV
@@ -648,7 +660,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         {
 			uint32_t srcCount = GetNumSwizzleElements(&psInst->asOperands[1]);
 			uint32_t dstCount = GetNumSwizzleElements(&psInst->asOperands[0]);
-			uint32_t ui32SrcFlags = TO_FLAG_NONE;
+			uint32_t ui32DstFlags = TO_FLAG_DESTINATION;
 
 			if(psInst->eOpcode == OPCODE_FTOU)
 			{
@@ -656,7 +668,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 				AddIndentation(psContext);
 				bcatcstr(glsl, "//FTOU\n");
 #endif
-				ui32SrcFlags |= TO_FLAG_UNSIGNED_INTEGER;
+				ui32DstFlags |= TO_FLAG_UNSIGNED_INTEGER;
+
+				ASSERT(GetOperandDataType(psContext, &psInst->asOperands[1]) == SVT_FLOAT);
 			}
 			else if(psInst->eOpcode == OPCODE_FTOI)
 			{
@@ -664,7 +678,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 				AddIndentation(psContext);
 				bcatcstr(glsl, "//FTOI\n");
 #endif
-				ui32SrcFlags |= TO_FLAG_INTEGER;
+				ui32DstFlags |= TO_FLAG_INTEGER;
+
+				ASSERT(GetOperandDataType(psContext, &psInst->asOperands[1]) == SVT_FLOAT);
 			}
 			else
 			{
@@ -676,20 +692,105 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
 			AddIndentation(psContext);
 
-			if(srcCount == dstCount)
+			if(psInst->eOpcode == OPCODE_FTOU)
 			{
-				TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-				bcatcstr(glsl, " = ");
-				TranslateOperand(psContext, &psInst->asOperands[1], ui32SrcFlags);
-				bcatcstr(glsl, ";\n");
+				TranslateOperand(psContext, &psInst->asOperands[0], ui32DstFlags);
+
+				if(srcCount == 1)
+					bcatcstr(glsl, " = uint(");
+				if(srcCount == 2)
+					bcatcstr(glsl, " = uivec2(");
+				if(srcCount == 3)
+					bcatcstr(glsl, " = uivec3(");
+				if(srcCount == 4)
+					bcatcstr(glsl, " = uivec4(");
+
+				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+				if(srcCount != dstCount)
+				{
+					bcatcstr(glsl, ")");
+					TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+					bcatcstr(glsl, ";\n");
+				}
+				else
+				{
+					bcatcstr(glsl, ");\n");
+				}
+
+				//Change type at the end in case dest and src are the same register.
+				SetOperandDataType(psContext,
+				&psInst->asOperands[0],
+				SVT_UINT);
+			}
+			else
+			if(psInst->eOpcode == OPCODE_FTOI)
+			{
+				TranslateOperand(psContext, &psInst->asOperands[0], ui32DstFlags);
+
+				if(srcCount == 1)
+					bcatcstr(glsl, " = int(");
+				if(srcCount == 2)
+					bcatcstr(glsl, " = ivec2(");
+				if(srcCount == 3)
+					bcatcstr(glsl, " = ivec3(");
+				if(srcCount == 4)
+					bcatcstr(glsl, " = ivec4(");
+
+				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+
+				if(srcCount != dstCount)
+				{
+					bcatcstr(glsl, ")");
+					TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+					bcatcstr(glsl, ";\n");
+				}
+				else
+				{
+					bcatcstr(glsl, ");\n");
+				}
+
+				//Change type at the end in case dest and src are the same register.
+				SetOperandDataType(psContext,
+				&psInst->asOperands[0],
+				SVT_INT);
 			}
 			else
 			{
-				TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-				bcatcstr(glsl, " = vec4(");
-				TranslateOperand(psContext, &psInst->asOperands[1], ui32SrcFlags);
+				const SHADER_VARIABLE_TYPE eDestType = GetOperandDataType(psContext, &psInst->asOperands[0]);
+				const SHADER_VARIABLE_TYPE eSrcType = GetOperandDataType(psContext, &psInst->asOperands[1]);
+
+				if(eDestType != eSrcType)
+				{
+					bcatcstr(glsl, "//WARNING: type mismatch on MOV. Could indicate incorrect data-type handling.\n");
+					AddIndentation(psContext);
+				}
+
+				TranslateOperand(psContext, &psInst->asOperands[0], ui32DstFlags);
+
+				if(eDestType == SVT_UINT)
+				{
+						bcatcstr(glsl, " = uvec4(");
+				}
+				else if(eDestType == SVT_INT)
+				{
+						bcatcstr(glsl, " = ivec4(");
+				}
+				else
+				{
+						bcatcstr(glsl, " = vec4(");
+				}
+
+				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 				bcatcstr(glsl, ")");
-				TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+				//Mismatched element count or destination has any swizzle
+				if(srcCount != dstCount || (GetFirstOperandSwizzle(psContext, &psInst->asOperands[0]) != -1))
+				{
+					TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+				}
+				else
+				{
+					AddSwizzleUsingElementCount(psContext, dstCount);
+				}
 				bcatcstr(glsl, ";\n");
 			}
             break;

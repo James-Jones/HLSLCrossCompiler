@@ -1133,8 +1133,33 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
         const SHADER_VARIABLE_TYPE eCurrentType = psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber];
         return eCurrentType;
     }
+	if(psOperand->eType == OPERAND_TYPE_OUTPUT)
+	{
+		const uint32_t ui32Register = psOperand->aui32ArraySizes[0];
+		InOutSignature* psOut;
+
+		if(GetOutputSignatureFromRegister(ui32Register, &psContext->psShader->sInfo, &psOut))
+		{
+			if( psOut->eComponentType == INOUT_COMPONENT_UINT32)
+			{
+				return SVT_UINT;
+			}
+			else if( psOut->eComponentType == INOUT_COMPONENT_SINT32)
+			{
+				return SVT_INT;
+			}
+		}
+	}
     return SVT_FLOAT;
 }
+void SetOperandDataType(HLSLCrossCompilerContext* psContext, const Operand* psOperand, SHADER_VARIABLE_TYPE eNewType)
+{
+	if(psOperand->eType == OPERAND_TYPE_TEMP)
+	{
+		psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] = eNewType;
+	}
+}
+
 void CheckOperandForTempTypeChange(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag)
 {
     if(psOperand->eType == OPERAND_TYPE_TEMP)
