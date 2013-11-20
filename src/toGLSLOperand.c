@@ -742,7 +742,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                         const char* name = "Input";
                         if(ui32TOFlag & TO_FLAG_DECLARATION_NAME)
                         {
-                            name = GetDeclaredName(psContext->psShader->eShaderType, psContext->flags);
+                            name = GetDeclaredName(psContext, psContext->psShader->eShaderType, psOperand);
                         }
                         
                         bformata(glsl, "%s%d", name, psOperand->aui32ArraySizes[1]);
@@ -771,7 +771,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                             const char* name = "Input";
                             if(ui32TOFlag & TO_FLAG_DECLARATION_NAME)
                             {
-                                name = GetDeclaredName(psContext->psShader->eShaderType, psContext->flags);
+                                name = GetDeclaredName(psContext, psContext->psShader->eShaderType, psOperand);
                             }
 
                             bformata(glsl, "%s%d", name, psOperand->ui32RegisterNumber);

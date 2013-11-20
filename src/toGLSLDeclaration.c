@@ -178,33 +178,85 @@ void DeclareConstBufferShaderVariable(bstring glsl, const ShaderVar* psVar)
     }
 }
 
-const char* GetDeclaredName(SHADER_TYPE eShaderType, unsigned int flags)
+const char* GetDeclaredName(const HLSLCrossCompilerContext* psContext, const SHADER_TYPE eShaderType, const Operand* psOperand)
 {
-	if(eShaderType == GEOMETRY_SHADER)
+	if(psOperand->eType == OPERAND_TYPE_INPUT)
 	{
-		return "VtxOutput";
+		if(psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES)
+		{
+			InOutSignature* psIn;
+			if(GetInputSignatureFromRegister(psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psIn))
+			{
+				return psIn->SemanticName;
+			}
+		}
+
+		if(eShaderType == GEOMETRY_SHADER)
+		{
+			return "VtxOutput";
+		}
+
+		if(eShaderType == HULL_SHADER)
+		{
+			return "VtxGeoOutput";
+		}
+
+		if(eShaderType == DOMAIN_SHADER)
+		{
+			return "HullOutput";
+		}
+
+		if(eShaderType == PIXEL_SHADER)
+		{
+			if(psContext->flags & HLSLCC_FLAG_TESS_ENABLED)
+			{
+				return "DomOutput";
+			}
+			return "VtxGeoOutput";
+		}
+
+		ASSERT(eShaderType == VERTEX_SHADER);
+
+		return "dcl_Input";
 	}
+	else
+	{
+		ASSERT(psOperand->eType == OPERAND_TYPE_OUTPUT);
 
-    if(eShaderType == HULL_SHADER)
-    {
-        return "VtxGeoOutput";
-    }
+		if(psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES)
+		{
+			InOutSignature* psOut;
+			if(GetOutputSignatureFromRegister(psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psOut))
+			{
+				return psOut->SemanticName;
+			}
+		}
 
-    if(eShaderType == DOMAIN_SHADER)
-    {
-        return "HullOutput";
-    }
+		if(eShaderType == GEOMETRY_SHADER)
+		{
+			return "VtxGeoOutput";
+		}
 
-    if(eShaderType == PIXEL_SHADER)
-    {
-        if(flags & HLSLCC_FLAG_TESS_ENABLED)
-        {
-            return "DomOutput";
-        }
-        return "VtxGeoOutput";
-    }
+		if(eShaderType == DOMAIN_SHADER)
+		{
+			return "DomOutput";
+		}
 
-    return "dcl_Input";
+		if(eShaderType == VERTEX_SHADER)
+		{
+			if(psContext->flags & HLSLCC_FLAG_GS_ENABLED)
+			{
+				return "VtxOutput";
+			}
+			else
+			{
+				return "VtxGeoOutput";
+			}
+		}
+
+		ASSERT(eShaderType == HULL_SHADER);
+		return "HullOutput";
+	}
 }
 
 const char* GetInterpolationString(INTERPOLATION_MODE eMode)
@@ -679,12 +731,14 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 						}
 						else
 						{
+							const char* InputName = GetDeclaredName(psContext, PIXEL_SHADER, psOperand);
+
                             if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage) || HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage))
                             {
                                 uint32_t index = 0;
                                 uint32_t renderTarget = psDecl->asOperands[0].ui32RegisterNumber;
 
-                                if((psContext->flags & HLSLCC_DUAL_SOURCE_BLENDING) && DualSourceBlendSupported(psContext->psShader->eTargetLanguage))
+                                if((psContext->flags & HLSLCC_FLAG_DUAL_SOURCE_BLENDING) && DualSourceBlendSupported(psContext->psShader->eTargetLanguage))
                                 {
                                     if(renderTarget > 0)
                                     {
@@ -699,8 +753,8 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
                                 }
                             }
 
-							bformata(glsl, "out %s %s4 PixOutput%d;\n", Precision, type, psDecl->asOperands[0].ui32RegisterNumber);
-							bformata(glsl, "#define Output%d PixOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+							bformata(glsl, "out %s %s4 %s%d;\n", Precision, type, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+							bformata(glsl, "#define Output%d %s%d\n", psDecl->asOperands[0].ui32RegisterNumber, InputName, psDecl->asOperands[0].ui32RegisterNumber);
 						}
 						break;
 					}
@@ -711,6 +765,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 			{
 				int iNumComponents = 4;//GetMaxComponentFromComponentMask(&psDecl->asOperands[0]);
                 const char* Interpolation = "";
+				const char* InputName = GetDeclaredName(psContext, VERTEX_SHADER, psOperand);
 
                 if(psContext->psDependencies)
                 {
@@ -725,56 +780,54 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
 
-				if(psContext->flags & HLSLCC_FLAG_GS_ENABLED)
+				if(InOutSupported(psContext->psShader->eTargetLanguage))
 				{
-					bformata(glsl, "out %s%d VtxOutput%d;\n", type, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
-					bformata(glsl, "#define Output%d VtxOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+					bformata(glsl, "%s out %s %s%d %s%d;\n", Interpolation, Precision, type, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber);
 				}
 				else
 				{
-					if(InOutSupported(psContext->psShader->eTargetLanguage))
-					{
-						bformata(glsl, "%s out %s %s%d VtxGeoOutput%d;\n", Interpolation, Precision, type, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
-					}
-					else
-					{
-						bformata(glsl, "%s varying %s %s%d VtxGeoOutput%d;\n", Interpolation, Precision, type, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
-					}
-					bformata(glsl, "#define Output%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+					bformata(glsl, "%s varying %s %s%d %s%d;\n", Interpolation, Precision, type, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber);
 				}
+				bformata(glsl, "#define Output%d %s%d\n", psDecl->asOperands[0].ui32RegisterNumber, InputName,psDecl->asOperands[0].ui32RegisterNumber);
+
 				break;
 			}
 			case GEOMETRY_SHADER:
 			{
+				const char* InputName = GetDeclaredName(psContext, GEOMETRY_SHADER, psOperand);
+
                 if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
                 {
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
 
-				bformata(glsl, "out %s4 VtxGeoOutput%d;\n", type, psDecl->asOperands[0].ui32RegisterNumber);
-				bformata(glsl, "#define Output%d VtxGeoOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "out %s4 %s%d;\n", type, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "#define Output%d %s%d\n", psDecl->asOperands[0].ui32RegisterNumber, InputName, psDecl->asOperands[0].ui32RegisterNumber);
 				break;
 			}
 			case HULL_SHADER:
 			{
+				const char* InputName = GetDeclaredName(psContext, HULL_SHADER, psOperand);
+
                 ASSERT(psDecl->asOperands[0].ui32RegisterNumber!=0);//Reg 0 should be gl_out[gl_InvocationID].gl_Position.
 
                 if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
                 {
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
-				bformata(glsl, "out %s4 HullOutput%d[];\n", type, psDecl->asOperands[0].ui32RegisterNumber);
-				bformata(glsl, "#define Output%d HullOutput%d[gl_InvocationID]\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "out %s4 %s%d[];\n", type, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "#define Output%d %s%d[gl_InvocationID]\n", psDecl->asOperands[0].ui32RegisterNumber, InputName, psDecl->asOperands[0].ui32RegisterNumber);
 				break;
 			}
 			case DOMAIN_SHADER:
 			{
+				const char* InputName = GetDeclaredName(psContext, DOMAIN_SHADER, psOperand);
                 if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
                 {
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
-				bformata(glsl, "out %s4 DomOutput%d;\n", type, psDecl->asOperands[0].ui32RegisterNumber);
-				bformata(glsl, "#define Output%d DomOutput%d\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "out %s4 %s%d;\n", type, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "#define Output%d %s%d\n", psDecl->asOperands[0].ui32RegisterNumber, InputName, psDecl->asOperands[0].ui32RegisterNumber);
 				break;
 			}
 		}
@@ -1012,7 +1065,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 */
             int iNumComponents = 4;//GetMaxComponentFromComponentMask(psOperand);
 			const char* StorageQualifier = "attribute";
-            const char* InputName = GetDeclaredName(psShader->eShaderType, psContext->flags);
+            const char* InputName = GetDeclaredName(psContext, psShader->eShaderType, psOperand);
             const char* Precision = "";
 
 			if(psOperand->eType == OPERAND_TYPE_INPUT_DOMAIN_POINT)
@@ -1092,7 +1145,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             int iNumComponents = 4;//GetMaxComponentFromComponentMask(psOperand);
 			const char* StorageQualifier = "varying";
             const char* Precision = "";
-            const char* InputName = GetDeclaredName(PIXEL_SHADER, psContext->flags);
+            const char* InputName = GetDeclaredName(psContext, PIXEL_SHADER, psOperand);
             const char* Interpolation = "";
 
 			if(InOutSupported(psContext->psShader->eTargetLanguage))

@@ -389,7 +389,10 @@ static const unsigned int HLSLCC_FLAG_TESS_ENABLED = 0x20;
 //Either use this flag or glBindFragDataLocationIndexed.
 //When set the first pixel shader output is the first input to blend
 //equation, the others go to the second input.
-static const unsigned int HLSLCC_DUAL_SOURCE_BLENDING = 0x40;
+static const unsigned int HLSLCC_FLAG_DUAL_SOURCE_BLENDING = 0x40;
+
+//If set, shader inputs and outputs are declared with their semantic name.
+static const unsigned int HLSLCC_FLAG_INOUT_SEMANTIC_NAMES = 0x80;
 
 HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
                                                      unsigned int flags,

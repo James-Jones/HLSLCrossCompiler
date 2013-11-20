@@ -5,7 +5,7 @@
 
 void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration* psDecl);
 
-const char* GetDeclaredName(SHADER_TYPE eShaderType, unsigned int flags);
+const char* GetDeclaredName(const HLSLCrossCompilerContext* psContext, const SHADER_TYPE eShaderType, const Operand* psOperand);
 
 //Hull shaders have multiple phases.
 //Each phase has its own temps.
