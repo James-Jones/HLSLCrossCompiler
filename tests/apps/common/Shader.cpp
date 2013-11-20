@@ -203,6 +203,7 @@ void ShaderEffect::FromByteFile(std::string& path)
 
     uint_t shader = 0;
 
+#if 0 //Disabled to allow running with only a vertex shader + rasterizer discard.
     if(PixelInterpDependency(result.GLSLLanguage))
     {
         //Must compile pixel shader first!
@@ -211,6 +212,7 @@ void ShaderEffect::FromByteFile(std::string& path)
             ASSERT(0);
         }
     }
+#endif
 
     switch(result.shaderType)
     {
@@ -366,6 +368,11 @@ void ShaderEffect::ApplyGLState()
             glDisable(GL_CLIP_DISTANCE0+plane);
         }
     }
+}
+
+void ShaderEffect::SetTransformFeedback(const int count, const char * const *varyings)
+{
+	glTransformFeedbackVaryings(mProgram, count, varyings, GL_INTERLEAVED_ATTRIBS);
 }
 
 void ShaderEffect::Link()

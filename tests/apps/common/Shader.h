@@ -46,6 +46,7 @@ public:
     void FromGLSLFile(uint_t eShaderType, std::string& path);
 
     void Link();
+	void SetTransformFeedback(const int count, const char * const *varyings);
 
     void Enable();
 
