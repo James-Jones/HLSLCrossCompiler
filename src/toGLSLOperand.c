@@ -923,94 +923,66 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                 }
             }
 
-
-#if CBUFFER_USE_STRUCT_AND_NAMES
+            if(ui32TOFlag & TO_FLAG_DECLARATION_NAME)
             {
-                char* pszContBuffName;
-
-                pszContBuffName = psCBuf->Name;
-                
-                if(psCBuf->Name[0] == '$')//$Global or $Param
-                    pszContBuffName++;
-
-                ASSERT(psOperand->aui32ArraySizes[1] < psCBuf->ui32NumVars);
-                
-                bformata(glsl, "%s%s.%s", pszContBuffName, StageName, psCBuf->asVars[psOperand->aui32ArraySizes[1]].Name);
+                pui32IgnoreSwizzle[0] = 1;
             }
-#else
-			if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
+
+			if((psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)!=HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
 			{
-                if((psCBuf->Name[0] == '$') && (psContext->flags & HLSLCC_FLAG_GLOBAL_CONSTS_NEVER_IN_UBO))
-                {
-                    bformata(glsl, "Globals%s[%d]", StageName, psOperand->aui32ArraySizes[1]);
-                }
-                else
-                {
-				    //Each uniform block is given the HLSL consant buffer name.
-				    //Within each uniform block is a constant array named ConstN
-				    bformata(glsl, "Const%d[%d]", psOperand->aui32ArraySizes[0], psOperand->aui32ArraySizes[1]);
-                }
-			}
-			else
-			{
-                if(ui32TOFlag & TO_FLAG_DECLARATION_NAME)
-                {
-                    pui32IgnoreSwizzle[0] = 1;
-                }
 				//$Globals.
 				if(psCBuf->Name[0] == '$')
 				{
-					bformata(glsl, "Globals%s", StageName);
+					bformata(glsl, "Globals%s.", StageName);
 				}
 				else
 				{
-					bformata(glsl, "%s%s", psCBuf->Name, StageName);
+					bformata(glsl, "%s%s.", psCBuf->Name, StageName);
 				}
+			}
 
-                if((ui32TOFlag & TO_FLAG_DECLARATION_NAME) != TO_FLAG_DECLARATION_NAME)
-                {
-                    //Work out the variable name. Don't apply swizzle to that variable yet.
+            if((ui32TOFlag & TO_FLAG_DECLARATION_NAME) != TO_FLAG_DECLARATION_NAME)
+            {
+                //Work out the variable name. Don't apply swizzle to that variable yet.
 
-                    GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVar, &index);
+                GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVar, &index);
 
-                    bformata(glsl, ".%s", psVar->Name);
+                bformata(glsl, "%s", psVar->Name);
 
-					//Dx9 only?
-					if(psOperand->psSubOperand[0] != NULL)
-					{
-						bcatcstr(glsl, "[int("); //Indexes must be integral.
-						TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
-						bcatcstr(glsl, ")]");
-					}
+				//Dx9 only?
+				if(psOperand->psSubOperand[0] != NULL)
+				{
+					bcatcstr(glsl, "[int("); //Indexes must be integral.
+					TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
+					bcatcstr(glsl, ")]");
+				}
 					
-					if(index != -1 && psOperand->psSubOperand[1] != NULL)
-					{
-						//Array of matrices is treated as array of vec4s
-						if(index != -1)
-						{
-							bcatcstr(glsl, "[int("); //Indexes must be integral.
-							TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
-							bformata(glsl, ") + %d]", index);
-						}
-					}
-					else if(index != -1)
-                    {
-                        bformata(glsl, "[%d]", index);
-                    }
-					else if(psOperand->psSubOperand[1] != NULL)
+				if(index != -1 && psOperand->psSubOperand[1] != NULL)
+				{
+					//Array of matrices is treated as array of vec4s
+					if(index != -1)
 					{
 						bcatcstr(glsl, "[int("); //Indexes must be integral.
 						TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
-						bcatcstr(glsl, ")]");
+						bformata(glsl, ") + %d]", index);
 					}
-
-					if(psVar->sType.Class == SVC_SCALAR)
-					{
-						*pui32IgnoreSwizzle = 1;
-					}
+				}
+				else if(index != -1)
+                {
+                    bformata(glsl, "[%d]", index);
                 }
-			}
-#endif
+				else if(psOperand->psSubOperand[1] != NULL)
+				{
+					bcatcstr(glsl, "[int("); //Indexes must be integral.
+					TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
+					bcatcstr(glsl, ")]");
+				}
+
+				if(psVar->sType.Class == SVC_SCALAR)
+				{
+					*pui32IgnoreSwizzle = 1;
+				}
+            }
             break;
         }
         case OPERAND_TYPE_RESOURCE:

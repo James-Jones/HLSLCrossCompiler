@@ -836,6 +836,59 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
     }
 }
 
+void DeclareUBOConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui32BindingPoint,
+							ConstantBuffer* psCBuf,
+							bstring glsl)
+{
+    uint32_t i;
+	const char* Name = psCBuf->Name;
+	if(psCBuf->Name[0] == '$') //For $Globals
+	{
+		Name++;
+	}
+
+    /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
+    if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
+        bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
+
+	bformata(glsl, "uniform %s {\n ", Name);
+
+    for(i=0; i < psCBuf->ui32NumVars; ++i)
+    {
+        DeclareConstBufferShaderVariable(glsl,
+            &psCBuf->asVars[i]);
+    }
+                
+    bcatcstr(glsl, "};\n");
+}
+
+void DeclareStructConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui32BindingPoint,
+							ConstantBuffer* psCBuf, const Operand* psOperand,
+							bstring glsl)
+{
+    uint32_t i;
+
+    /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
+    if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
+        bformata(glsl, "layout(location = %d) ", ui32BindingPoint);
+    bcatcstr(glsl, "uniform struct ");
+    TranslateOperand(psContext, psOperand, TO_FLAG_DECLARATION_NAME);
+
+    bcatcstr(glsl, "_Type {\n");
+
+    for(i=0; i < psCBuf->ui32NumVars; ++i)
+    {
+        DeclareConstBufferShaderVariable(glsl,
+            &psCBuf->asVars[i]);
+    }
+                
+    bcatcstr(glsl, "} ");
+
+    TranslateOperand(psContext, psOperand, TO_FLAG_DECLARATION_NAME);
+
+    bcatcstr(glsl, ";\n");
+}
+
 void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration* psDecl)
 {
     bstring glsl = *psContext->currentGLSLString;
@@ -1306,118 +1359,21 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
             }
 
-#if CBUFFER_USE_STRUCT_AND_NAMES
-            {
-                ConstantBuffer* psCBuf = NULL;
-                uint32_t ui32Member = 0;
-                char* pszContBuffName;
-                int iUseUniformBlock = 0;
-                GetConstantBufferFromBindingPoint(ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
-
-                pszContBuffName = psCBuf->Name;
-
-                if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
-                {
-                    iUseUniformBlock = 1;
-                }
-                
-                if(psCBuf->Name[0] == '$')//$Global or $Param
-                {
-                    pszContBuffName++;
-
-                    if(psContext->flags & HLSLCC_FLAG_GLOBAL_CONSTS_NEVER_IN_UBO)
-                    {
-                        iUseUniformBlock = 0;
-                    }
-                }
-
-                if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
-                {
-                    if(iUseUniformBlock)
-                        bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
-                    else
-                        bformata(glsl, "layout(location = %d) ", ui32BindingPoint);
-                }
-
-                if(iUseUniformBlock)
-                    bformata(glsl, "uniform %s%s_TAG {\n", pszContBuffName, StageName);
-
-                bformata(glsl, "uniform struct %s%s_TAG {\n", pszContBuffName, StageName);
-                
-                for(ui32Member=0; ui32Member < psCBuf->ui32NumVars; ++ui32Member)
-                {
-                    ShaderVar* psVar = &psCBuf->asVars[ui32Member];
-
-                    bformata(glsl, "\t vec4 %s;\n", psVar->Name);
-                }
-
-                bformata(glsl, "} %s%s;\n", pszContBuffName, StageName);
-            }
-#else
             if(psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
             {
-                /*
-                    [layout(binding = X)] uniform UniformBufferName
-                    {
-                        vec4 ConstsX[numConsts];
-                    };
-                */
-				if(psCBuf->Name[0] == '$')
+				if(psContext->flags & HLSLCC_FLAG_GLOBAL_CONSTS_NEVER_IN_UBO && psCBuf->Name[0] == '$')
 				{
-					if(psContext->flags & HLSLCC_FLAG_GLOBAL_CONSTS_NEVER_IN_UBO)
-					{
-                        if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
-                            bformata(glsl, "layout(location = %d) ", ui32BindingPoint);
-						bcatcstr(glsl, "uniform vec4 ");
-						TranslateOperand(psContext, psOperand, TO_FLAG_NONE);
-						bcatcstr(glsl, ";\n");
-					}
-					else
-					{
-                        if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
-                            bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
-
-						bformata(glsl, "uniform Globals%s {\n\tvec4 ", StageName);
-                        TranslateOperand(psContext, psOperand, TO_FLAG_NONE);
-						bcatcstr(glsl, ";\n};\n");
-					}
+					DeclareStructConstants(psContext, ui32BindingPoint, psCBuf, psOperand, glsl);
 				}
 				else
 				{
-                    if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
-                        bformata(glsl, "layout(binding = %d)", ui32BindingPoint);
-
-					bformata(glsl, "uniform %s {\n\tvec4 ", psCBuf->Name);
-                        //Make it the same size accross all shader types by using the constant buffer total size rather than the largest-used-in-this-shader size.
-                        bformata(glsl, "Const%d[%d]", psOperand->aui32ArraySizes[0], (int)ceil(psCBuf->ui32TotalSizeInBytes / 16.0f));//16 bytes in a vec4 float.
-					bcatcstr(glsl, ";\n};\n");
+					DeclareUBOConstants(psContext, ui32BindingPoint, psCBuf, glsl);
 				}
             }
             else
             {
-                uint32_t i;
-
-                /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
-                if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
-                    bformata(glsl, "layout(location = %d) ", ui32BindingPoint);
-                bcatcstr(glsl, "uniform struct ");
-                TranslateOperand(psContext, psOperand, TO_FLAG_DECLARATION_NAME);
-
-                bcatcstr(glsl, "_Type {\n");
-
-                for(i=0; i < psCBuf->ui32NumVars; ++i)
-                {
-                    DeclareConstBufferShaderVariable(glsl,
-                        &psCBuf->asVars[i]);
-                }
-                
-                bcatcstr(glsl, "} ");
-
-                TranslateOperand(psContext, psOperand, TO_FLAG_DECLARATION_NAME);
-
-                bcatcstr(glsl, ";\n");
+				DeclareStructConstants(psContext, ui32BindingPoint, psCBuf, psOperand, glsl);
             }
-#endif
             break;
         }
         case OPCODE_DCL_RESOURCE:
