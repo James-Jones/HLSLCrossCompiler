@@ -742,7 +742,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                         const char* name = "Input";
                         if(ui32TOFlag & TO_FLAG_DECLARATION_NAME)
                         {
-                            name = GetDeclaredName(psContext, psContext->psShader->eShaderType, psOperand);
+                            name = GetDeclaredInputName(psContext, psContext->psShader->eShaderType, psOperand);
                         }
                         
                         bformata(glsl, "%s%d", name, psOperand->aui32ArraySizes[1]);
@@ -771,7 +771,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                             const char* name = "Input";
                             if(ui32TOFlag & TO_FLAG_DECLARATION_NAME)
                             {
-                                name = GetDeclaredName(psContext, psContext->psShader->eShaderType, psOperand);
+                                name = GetDeclaredInputName(psContext, psContext->psShader->eShaderType, psOperand);
                             }
 
                             bformata(glsl, "%s%d", name, psOperand->ui32RegisterNumber);
@@ -933,11 +933,15 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 				//$Globals.
 				if(psCBuf->Name[0] == '$')
 				{
-					bformata(glsl, "Globals%s.", StageName);
+					bformata(glsl, "Globals%s", StageName);
 				}
 				else
 				{
-					bformata(glsl, "%s%s.", psCBuf->Name, StageName);
+					bformata(glsl, "%s%s", psCBuf->Name, StageName);
+				}
+				if((ui32TOFlag & TO_FLAG_DECLARATION_NAME) != TO_FLAG_DECLARATION_NAME)
+				{
+					bcatcstr(glsl, ".");
 				}
 			}
 
