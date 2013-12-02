@@ -768,13 +768,15 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                         }
                         else
                         {
-                            const char* name = "Input";
                             if(ui32TOFlag & TO_FLAG_DECLARATION_NAME)
                             {
-                                name = GetDeclaredInputName(psContext, psContext->psShader->eShaderType, psOperand);
+                                const char* name = GetDeclaredInputName(psContext, psContext->psShader->eShaderType, psOperand);
+								bcatcstr(glsl, name);
                             }
-
-                            bformata(glsl, "%s%d", name, psOperand->ui32RegisterNumber);
+							else
+							{
+								bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
+							}
                         }
                     }
                     break;

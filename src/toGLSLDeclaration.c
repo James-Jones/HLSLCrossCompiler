@@ -180,83 +180,92 @@ void DeclareConstBufferShaderVariable(bstring glsl, const ShaderVar* psVar)
 
 const char* GetDeclaredInputName(const HLSLCrossCompilerContext* psContext, const SHADER_TYPE eShaderType, const Operand* psOperand)
 {
-	if(psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES)
-	{
-		InOutSignature* psIn;
-		if(GetInputSignatureFromRegister(psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psIn))
-		{
-			return psIn->SemanticName;
-		}
-	}
+	bstring inputName;
+	char* cstr;
+	InOutSignature* psIn;
 
-	if(eShaderType == GEOMETRY_SHADER)
+	if((psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES) &&
+		GetInputSignatureFromRegister(psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psIn))
 	{
-		return "VtxOutput";
+		inputName = bformat("%s%d", psIn->SemanticName, psIn->ui32SemanticIndex);
 	}
-
-	if(eShaderType == HULL_SHADER)
+	else if(eShaderType == GEOMETRY_SHADER)
 	{
-		return "VtxGeoOutput";
+		inputName = bformat("VtxOutput%d", psOperand->ui32RegisterNumber);
 	}
-
-	if(eShaderType == DOMAIN_SHADER)
+	else if(eShaderType == HULL_SHADER)
 	{
-		return "HullOutput";
+		inputName = bformat("VtxGeoOutput%d", psOperand->ui32RegisterNumber);
 	}
-
-	if(eShaderType == PIXEL_SHADER)
+	else if(eShaderType == DOMAIN_SHADER)
+	{
+		inputName = bformat("HullOutput%d", psOperand->ui32RegisterNumber);
+	}
+	else if(eShaderType == PIXEL_SHADER)
 	{
 		if(psContext->flags & HLSLCC_FLAG_TESS_ENABLED)
 		{
-			return "DomOutput";
-		}
-		return "VtxGeoOutput";
-	}
-
-	ASSERT(eShaderType == VERTEX_SHADER);
-
-	return "dcl_Input";
-}
-const char* GetDeclaredOutputName(const HLSLCrossCompilerContext* psContext, const SHADER_TYPE eShaderType, const Operand* psOperand)
-{
-	if(psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES)
-	{
-		InOutSignature* psOut;
-		if(GetOutputSignatureFromRegister(psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psOut))
-		{
-			return psOut->SemanticName;
-		}
-	}
-
-	if(eShaderType == GEOMETRY_SHADER)
-	{
-		return "VtxGeoOutput";
-	}
-
-	if(eShaderType == DOMAIN_SHADER)
-	{
-		return "DomOutput";
-	}
-
-	if(eShaderType == VERTEX_SHADER)
-	{
-		if(psContext->flags & HLSLCC_FLAG_GS_ENABLED)
-		{
-			return "VtxOutput";
+			inputName = bformat("DomOutput%d", psOperand->ui32RegisterNumber);
 		}
 		else
 		{
-			return "VtxGeoOutput";
+			inputName = bformat("VtxGeoOutput%d", psOperand->ui32RegisterNumber);
 		}
 	}
-
-	if(eShaderType == PIXEL_SHADER)
+	else
 	{
-		return "PixOutput";
+		ASSERT(eShaderType == VERTEX_SHADER);
+		inputName = bformat("dcl_Input%d", psOperand->ui32RegisterNumber);
 	}
 
-	ASSERT(eShaderType == HULL_SHADER);
-	return "HullOutput";
+	cstr = bstr2cstr(inputName, '\0');
+	bdestroy(inputName);
+	return cstr;
+}
+
+const char* GetDeclaredOutputName(const HLSLCrossCompilerContext* psContext, const SHADER_TYPE eShaderType, const Operand* psOperand)
+{
+	bstring outputName;
+	char* cstr;
+	InOutSignature* psOut;
+
+	if((psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES) &&
+		GetOutputSignatureFromRegister(psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psOut))
+	{
+		outputName = bformat("%s%d", psOut->SemanticName, psOut->ui32SemanticIndex);
+	}
+	else if(eShaderType == GEOMETRY_SHADER)
+	{
+		outputName = bformat("VtxGeoOutput%d", psOperand->ui32RegisterNumber);
+	}
+	else if(eShaderType == DOMAIN_SHADER)
+	{
+		outputName = bformat("DomOutput%d", psOperand->ui32RegisterNumber);
+	}
+	else if(eShaderType == VERTEX_SHADER)
+	{
+		if(psContext->flags & HLSLCC_FLAG_GS_ENABLED)
+		{
+			outputName = bformat("VtxOutput%d", psOperand->ui32RegisterNumber);
+		}
+		else
+		{
+			outputName = bformat("VtxGeoOutput%d", psOperand->ui32RegisterNumber);
+		}
+	}
+	else if(eShaderType == PIXEL_SHADER)
+	{
+		outputName = bformat("PixOutput%d", psOperand->ui32RegisterNumber);
+	}
+	else
+	{
+		ASSERT(eShaderType == HULL_SHADER);
+		outputName = bformat("HullOutput%d", psOperand->ui32RegisterNumber);
+	}
+
+	cstr = bstr2cstr(outputName, '\0');
+	bdestroy(outputName);
+	return cstr;
 }
 
 const char* GetInterpolationString(INTERPOLATION_MODE eMode)
@@ -361,8 +370,8 @@ static void DeclareInput(
 
 				    psContext->psShader->abScalarInput[psDecl->asOperands[0].ui32RegisterNumber] = -1;
 
-                    bformata(glsl, "%s %s %s %s%d [%d];\n", StorageQualifier, Precision, scalarType, InputName, regNum,
-                        arraySize);
+					bformata(glsl, "%s %s %s %s [%d];\n", StorageQualifier, Precision, scalarType, InputName,
+						arraySize);
 
                     bformata(glsl, "%s1 Input%d;\n", vecType, psDecl->asOperands[0].ui32RegisterNumber);
 
@@ -370,8 +379,8 @@ static void DeclareInput(
                 }
                 else
                 {
-                    bformata(glsl, "%s %s %s%d %s%d [%d];\n", StorageQualifier, Precision, vecType, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber,
-                        psDecl->asOperands[0].aui32ArraySizes[0]);
+					bformata(glsl, "%s %s %s%d %s [%d];\n", StorageQualifier, Precision, vecType, iNumComponents, InputName,
+						psDecl->asOperands[0].aui32ArraySizes[0]);
 
                     bformata(glsl, "%s%d Input%d[%d];\n", vecType, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber,
                         psDecl->asOperands[0].aui32ArraySizes[0]);
@@ -391,7 +400,8 @@ static void DeclareInput(
                 if(iNumComponents == 1)
                 {
                     psContext->psShader->abScalarInput[psDecl->asOperands[0].ui32RegisterNumber] = 1;
-                    bformata(glsl, "%s %s %s %s %s%d;\n", Interpolation, StorageQualifier, Precision, scalarType, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+
+					bformata(glsl, "%s %s %s %s %s;\n", Interpolation, StorageQualifier, Precision, scalarType, InputName);
                     bformata(glsl, "%s1 Input%d;\n", vecType, psDecl->asOperands[0].ui32RegisterNumber);
 
                     psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = -1;
@@ -400,7 +410,7 @@ static void DeclareInput(
                 {
                     if(psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber])
                     {
-                        bformata(glsl, "%s %s %s %s%d %s%d", Interpolation, StorageQualifier, Precision, vecType, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+						bformata(glsl, "%s %s %s %s%d %s", Interpolation, StorageQualifier, Precision, vecType, iNumComponents, InputName);
                         bformata(glsl, "[%d];\n", psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber]);
 
                         bformata(glsl, "%s%d Input%d[%d];\n", vecType, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber,
@@ -411,7 +421,7 @@ static void DeclareInput(
                     }
                     else
                     {
-                        bformata(glsl, "%s %s %s %s%d %s%d;\n", Interpolation, StorageQualifier, Precision, vecType, iNumComponents, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+						bformata(glsl, "%s %s %s %s%d %s;\n", Interpolation, StorageQualifier, Precision, vecType, iNumComponents, InputName);
                         bformata(glsl, "%s%d Input%d;\n", vecType, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
 
                         psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = -1;
@@ -430,7 +440,7 @@ static void DeclareInput(
         if(psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] == -1) //Not an array
         {
             AddIndentation(psContext);
-            bformata(psContext->earlyMain, "Input%d = %s%d;\n", psDecl->asOperands[0].ui32RegisterNumber, InputName, psDecl->asOperands[0].ui32RegisterNumber);
+			bformata(psContext->earlyMain, "Input%d = %s;\n", psDecl->asOperands[0].ui32RegisterNumber, InputName);
         }
         else
         {
@@ -439,8 +449,9 @@ static void DeclareInput(
             while(arrayIndex)
             {
                 AddIndentation(psContext);
-                bformata(psContext->earlyMain, "Input%d[%d] = %s%d[%d];\n", psDecl->asOperands[0].ui32RegisterNumber, arrayIndex-1,
-                    InputName, psDecl->asOperands[0].ui32RegisterNumber, arrayIndex-1);
+				bformata(psContext->earlyMain, "Input%d[%d] = %s[%d];\n", psDecl->asOperands[0].ui32RegisterNumber, arrayIndex-1,
+					InputName, arrayIndex-1);
+
                 arrayIndex--;
             }
         }
@@ -753,8 +764,8 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
                                 }
                             }
 
-							bformata(glsl, "out %s %s4 %s%d;\n", Precision, type, OutputName, psDecl->asOperands[0].ui32RegisterNumber);
-							bformata(glsl, "#define Output%d %s%d\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName, psDecl->asOperands[0].ui32RegisterNumber);
+							bformata(glsl, "out %s %s4 %s;\n", Precision, type, OutputName);
+							bformata(glsl, "#define Output%d %s\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName);
 						}
 						break;
 					}
@@ -782,13 +793,13 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 
 				if(InOutSupported(psContext->psShader->eTargetLanguage))
 				{
-					bformata(glsl, "%s out %s %s%d %s%d;\n", Interpolation, Precision, type, iNumComponents, OutputName, psDecl->asOperands[0].ui32RegisterNumber);
+					bformata(glsl, "%s out %s %s%d %s;\n", Interpolation, Precision, type, iNumComponents, OutputName);
 				}
 				else
 				{
-					bformata(glsl, "%s varying %s %s%d %s%d;\n", Interpolation, Precision, type, iNumComponents, OutputName, psDecl->asOperands[0].ui32RegisterNumber);
+					bformata(glsl, "%s varying %s %s%d %s;\n", Interpolation, Precision, type, iNumComponents, OutputName);
 				}
-				bformata(glsl, "#define Output%d %s%d\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName,psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "#define Output%d %s\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName);
 
 				break;
 			}
@@ -801,8 +812,8 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
 
-				bformata(glsl, "out %s4 %s%d;\n", type, OutputName, psDecl->asOperands[0].ui32RegisterNumber);
-				bformata(glsl, "#define Output%d %s%d\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "out %s4 %s;\n", type, OutputName);
+				bformata(glsl, "#define Output%d %s\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName);
 				break;
 			}
 			case HULL_SHADER:
@@ -815,8 +826,8 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
                 {
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
-				bformata(glsl, "out %s4 %s%d[];\n", type, OutputName, psDecl->asOperands[0].ui32RegisterNumber);
-				bformata(glsl, "#define Output%d %s%d[gl_InvocationID]\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "out %s4 %s[];\n", type, OutputName);
+				bformata(glsl, "#define Output%d %s[gl_InvocationID]\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName);
 				break;
 			}
 			case DOMAIN_SHADER:
@@ -826,8 +837,8 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
                 {
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
-				bformata(glsl, "out %s4 %s%d;\n", type, OutputName, psDecl->asOperands[0].ui32RegisterNumber);
-				bformata(glsl, "#define Output%d %s%d\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "out %s4 %s;\n", type, OutputName);
+				bformata(glsl, "#define Output%d %s\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName);
 				break;
 			}
 		}
