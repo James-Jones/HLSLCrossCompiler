@@ -93,13 +93,19 @@ void display(void)
 
     float* capturedVaryings = (float*)glMapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, GL_READ_ONLY);
 
-	printf("%.2f %.2f %.2f %.2f\n", capturedVaryings[0], capturedVaryings[1], capturedVaryings[2], capturedVaryings[3]);
-	printf("%d\n", ((int*)capturedVaryings)[4]);
+	if(capturedVaryings[0] != (color.getX()*gGlobals.ColorFactor[0]) || capturedVaryings[1] != (color.getY()*gGlobals.ColorFactor[0]) || capturedVaryings[2] != (color.getZ()*gGlobals.ColorFactor[0]) || capturedVaryings[3] != (color.getW()*gGlobals.ColorFactor[0]))
+	{
+		printf("Colour mismatch\n");
+	}
+	else if(((int*)capturedVaryings)[4] != gGlobals.ColorFactor[0])
+	{
+		printf("Factor mismatch\n");
+	}
+	else
+	{
+		printf("Passed\n");
+	}
 
-        /*if(capturedVaryings[i] != expectedProgramPointSize)
-        {
-            printf("FAILED %s: xfb point size %.2f instead of %.2f\n", desc, mappedPointSizes[i], expectedProgramPointSize);
-        }*/
     glUnmapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER);
 
     glutSwapBuffers();
@@ -128,7 +134,7 @@ void Init(int argc, char** argv)
     glutInit(&argc, argv);
     glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 
-glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
+	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
     glewInit();
 
@@ -166,7 +172,7 @@ glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 	mVertexShader.SetLanguage(LANG_400);
     mVertexShader.AddCompileFlags(HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT|HLSLCC_FLAG_INOUT_SEMANTIC_NAMES);
     mVertexShader.FromByteFile(std::string("shaders/IntegerVS.o"));
-	const char* varyings [] = {"COLOR2", "FACTOR3"};
+	const char* varyings [] = {"COLOR0", "FACTOR0"};
 	mVertexShader.SetTransformFeedback(2, varyings);
 
     glGenBuffers(1, &feedbackBuffer);
