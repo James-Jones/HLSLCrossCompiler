@@ -230,7 +230,7 @@ const char* GetDeclaredOutputName(const HLSLCrossCompilerContext* psContext, con
 	InOutSignature* psOut;
 
 	if((psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES) &&
-		GetOutputSignatureFromRegister(psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psOut))
+		GetOutputSignatureFromRegister(psOperand->ui32RegisterNumber, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psOut))
 	{
 		outputName = bformat("%s%d", psOut->SemanticName, psOut->ui32SemanticIndex);
 	}
@@ -499,13 +499,13 @@ void AddBuiltinOutput(HLSLCrossCompilerContext* psContext, const Declaration* ps
 
     const uint32_t declared = psContext->currentPhase + 1;
 
-    psContext->haveOutputBuiltins[psContext->currentPhase] = 1;
+    psContext->havePostShaderCode[psContext->currentPhase] = 1;
 
     if(psShader->aiOutputDeclared[psDecl->asOperands[0].ui32RegisterNumber] != declared)
     {
         InOutSignature* psSignature = NULL;
 
-        GetOutputSignatureFromRegister(psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psSignature);
+        GetOutputSignatureFromRegister(psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32CompMask, &psShader->sInfo, &psSignature);
 
         bcatcstr(glsl, "#undef ");
         TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
@@ -525,7 +525,7 @@ void AddBuiltinOutput(HLSLCrossCompilerContext* psContext, const Declaration* ps
         else
             bcatcstr(glsl, ";\n");
 
-        psContext->currentGLSLString = &psContext->writeBuiltins[psContext->currentPhase];
+        psContext->currentGLSLString = &psContext->postShaderCode[psContext->currentPhase];
         glsl = *psContext->currentGLSLString;
         psContext->indent++;
         if(arrayElements)
@@ -654,7 +654,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 
         InOutSignature* psSignature = NULL;
 
-        GetOutputSignatureFromRegister(psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psSignature);
+        GetOutputSignatureFromRegister(psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32CompMask, &psShader->sInfo, &psSignature);
 
         switch(psSignature->eComponentType)
         {
@@ -845,6 +845,80 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 
         psShader->aiOutputDeclared[psDecl->asOperands[0].ui32RegisterNumber] = declared;
     }
+	else
+	{
+		/*
+			Multiple outputs can be packed into one register. e.g.
+			// Name                 Index   Mask Register SysValue  Format   Used
+			// -------------------- ----- ------ -------- -------- ------- ------
+			// FACTOR                   0   x           3     NONE     int   x   
+			// MAX                      0    y          3     NONE     int    y  
+
+			We want unique outputs to make it easier to use transform feedback.
+
+			out  ivec4 FACTOR0;
+			#define Output3 FACTOR0
+			out  ivec4 MAX0;
+
+			MAIN SHADER CODE. Writes factor and max to Output3 which aliases FACTOR0.
+
+			MAX0.x = FACTOR0.y;
+
+			This unpacking of outputs is only done when using HLSLCC_FLAG_INOUT_SEMANTIC_NAMES.
+			When not set the application will be using HLSL reflection information to discover
+			what the input and outputs mean if need be.
+		*/
+
+		//
+
+		if((psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES) && (psDecl->asOperands[0].eType == OPERAND_TYPE_OUTPUT))
+		{
+			const Operand* psOperand = &psDecl->asOperands[0];
+			InOutSignature* psSignature = NULL;
+			const char* type = "vec";
+			const char* OutputName = GetDeclaredOutputName(psContext, psShader->eShaderType, psOperand);
+
+			GetOutputSignatureFromRegister(psOperand->ui32RegisterNumber, psOperand->ui32CompMask, &psShader->sInfo, &psSignature);
+
+			if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
+			{
+				bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
+			}
+
+			switch(psSignature->eComponentType)
+			{
+				case INOUT_COMPONENT_UINT32:
+				{
+					type = "uvec";
+					break;
+				}
+				case INOUT_COMPONENT_SINT32:
+				{
+					type = "ivec";
+					break;
+				}
+				case INOUT_COMPONENT_FLOAT32:
+				{
+					break;
+				}
+			}
+			bformata(glsl, "out %s4 %s;\n", type, OutputName);
+
+			psContext->havePostShaderCode[psContext->currentPhase] = 1;
+
+			psContext->currentGLSLString = &psContext->postShaderCode[psContext->currentPhase];
+			glsl = *psContext->currentGLSLString;
+
+			bcatcstr(glsl, OutputName);
+			AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psOperand));
+			bformata(glsl, " = Output%d", psOperand->ui32RegisterNumber);
+			TranslateOperandSwizzle(psContext, psOperand);
+			bcatcstr(glsl, ";\n");
+
+			psContext->currentGLSLString = &psContext->glsl;
+			glsl = *psContext->currentGLSLString;
+		}
+	}
 }
 
 void DeclareUBOConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui32BindingPoint,

@@ -288,7 +288,7 @@ void CallHelper2(HLSLCrossCompilerContext* psContext, const char* name, Instruct
     bcatcstr(glsl, ";\n");
 }
 
-void CallHelper2UInt(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
+void CallHelper2Int(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0, int src1)
 {
     bstring glsl = *psContext->currentGLSLString;
@@ -296,12 +296,12 @@ void CallHelper2UInt(HLSLCrossCompilerContext* psContext, const char* name, Inst
 
 	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_DESTINATION);
 
-	bcatcstr(glsl, " = uvec4(");
+	bcatcstr(glsl, " = ivec4(");
 
     bcatcstr(glsl, name);
-    bcatcstr(glsl, "(uint(");
+    bcatcstr(glsl, "(int(");
     TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_INTEGER);
-    bcatcstr(glsl, "), uint(");
+    bcatcstr(glsl, "), int(");
     TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_INTEGER);
     bcatcstr(glsl, ")))");
     TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
@@ -666,8 +666,8 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #ifdef _DEBUG
 		AddIndentation(psContext);
 		bformata(glsl, "//Instruction %d\n", psInst->id);
-#if 0
-		if(psInst->id == XYZ)
+#if 1
+		if(psInst->id == 48)
 		{
 			ASSERT(1); //Set breakpoint here to debug an instruction from its ID.
 		}
@@ -1002,7 +1002,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
 			//destQuotient, destRemainder, src0, src1
 			CallBinaryOp(psContext, "/", psInst, 0, 2, 3, TO_FLAG_UNSIGNED_INTEGER);
-			CallHelper2UInt(psContext, "mod", psInst, 1, 2, 3);
+			CallHelper2Int(psContext, "mod", psInst, 1, 2, 3);
             break;
         }
         case OPCODE_DIV:
@@ -1377,7 +1377,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//IMAX\n");
 #endif
-			CallHelper2(psContext, "max", psInst, 0, 1, 2);
+			SetOperandDataType(psContext, &psInst->asOperands[1], SVT_INT);
+			SetOperandDataType(psContext, &psInst->asOperands[2], SVT_INT);
+
+			CallHelper2Int(psContext, "max", psInst, 0, 1, 2);
             break;
         }
 		case OPCODE_MAX:
@@ -1603,13 +1606,13 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//RET\n");
 #endif
-            if(psContext->haveOutputBuiltins[psContext->currentPhase])
+            if(psContext->havePostShaderCode[psContext->currentPhase])
             {
 #ifdef _DEBUG
                 AddIndentation(psContext);
                 bcatcstr(glsl, "//--- Start builtin outputs ---\n");
 #endif
-                bconcat(glsl, psContext->writeBuiltins[psContext->currentPhase]);
+                bconcat(glsl, psContext->postShaderCode[psContext->currentPhase]);
 #ifdef _DEBUG
                 AddIndentation(psContext);
                 bcatcstr(glsl, "//--- End builtin outputs ---\n");
@@ -1780,13 +1783,13 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//EMIT\n");
 #endif
-            if(psContext->haveOutputBuiltins[psContext->currentPhase])
+            if(psContext->havePostShaderCode[psContext->currentPhase])
             {
 #ifdef _DEBUG
                 AddIndentation(psContext);
                 bcatcstr(glsl, "//--- Start builtin outputs ---\n");
 #endif
-                bconcat(glsl, psContext->writeBuiltins[psContext->currentPhase]);
+                bconcat(glsl, psContext->postShaderCode[psContext->currentPhase]);
 #ifdef _DEBUG
                 AddIndentation(psContext);
                 bcatcstr(glsl, "//--- End builtin outputs ---\n");

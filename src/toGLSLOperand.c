@@ -1129,7 +1129,7 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
 		const uint32_t ui32Register = psOperand->aui32ArraySizes[psOperand->iIndexDims-1];
 		InOutSignature* psOut;
 
-		if(GetOutputSignatureFromRegister(ui32Register, &psContext->psShader->sInfo, &psOut))
+		if(GetOutputSignatureFromRegister(ui32Register, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psOut))
 		{
 			if( psOut->eComponentType == INOUT_COMPONENT_UINT32)
 			{

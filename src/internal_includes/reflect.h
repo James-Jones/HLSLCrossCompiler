@@ -13,7 +13,7 @@ void GetUAVBufferFromBindingPoint(const uint32_t ui32BindPoint, const ShaderInfo
 int GetInterfaceVarFromOffset(uint32_t ui32Offset, ShaderInfo* psShaderInfo, ShaderVar** ppsShaderVar);
 
 int GetInputSignatureFromRegister(const uint32_t ui32Register, ShaderInfo* psShaderInfo, InOutSignature** ppsOut);
-int GetOutputSignatureFromRegister(const uint32_t ui32Register, ShaderInfo* psShaderInfo, InOutSignature** ppsOut);
+int GetOutputSignatureFromRegister(const uint32_t ui32Register, const uint32_t ui32CompMask, ShaderInfo* psShaderInfo, InOutSignature** ppsOut);
 
 int GetOutputSignatureFromSystemValue(SPECIAL_NAME eSystemValueType, uint32_t ui32SemanticIndex, ShaderInfo* psShaderInfo, InOutSignature** ppsOut);
 

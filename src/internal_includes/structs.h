@@ -224,11 +224,11 @@ typedef struct HLSLCrossCompilerContext_TAG
 {
     bstring glsl;
 	bstring earlyMain;//Code to be inserted at the start of main()
-    bstring writeBuiltins[NUM_PHASES];//End of main or before emit()
+    bstring postShaderCode[NUM_PHASES];//End of main or before emit()
 
     bstring* currentGLSLString;//either glsl or earlyMain
 
-    int haveOutputBuiltins[NUM_PHASES];
+    int havePostShaderCode[NUM_PHASES];
     uint32_t currentPhase;
 
     int indent;

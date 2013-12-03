@@ -60,17 +60,17 @@ const char* psz_hlsl_opcode_funcs_glsl = {
 		uvec4 ib = uvec4(b);\n \
 	   dest = vec4(lessThan(ia, ib));\n \
 	}\n \
+	\n \
+	void HLSL_ult(out float dest, float a, float b) {\n \
+		uint ia = uint(a);\n \
+		uint ib = uint(b);\n \
+	    dest = (ia < ib) ? 1.0 : 0.0;\n \
+	}\n \
 	#endif\n \
 	\n \
 	void HLSL_ilt(out float dest, float a, float b) {\n \
 		int ia = int(a);\n \
 		int ib = int(b);\n \
-	    dest = (ia < ib) ? 1.0 : 0.0;\n \
-	}\n \
-	\n \
-	void HLSL_ult(out float dest, float a, float b) {\n \
-		uint ia = uint(a);\n \
-		uint ib = uint(b);\n \
 	    dest = (ia < ib) ? 1.0 : 0.0;\n \
 	}\n \
 	\n \
