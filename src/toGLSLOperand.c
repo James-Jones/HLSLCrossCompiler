@@ -961,8 +961,10 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 					bcatcstr(glsl, "[int("); //Indexes must be integral.
 					TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
 					bcatcstr(glsl, ")]");
+
+					ASSERT(index == 0 || index == -1);
 				}
-					
+				else
 				if(index != -1 && psOperand->psSubOperand[1] != NULL)
 				{
 					//Array of matrices is treated as array of vec4s

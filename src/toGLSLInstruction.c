@@ -1610,12 +1610,12 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             {
 #ifdef _DEBUG
                 AddIndentation(psContext);
-                bcatcstr(glsl, "//--- Start builtin outputs ---\n");
+                bcatcstr(glsl, "//--- Post shader code ---\n");
 #endif
                 bconcat(glsl, psContext->postShaderCode[psContext->currentPhase]);
 #ifdef _DEBUG
                 AddIndentation(psContext);
-                bcatcstr(glsl, "//--- End builtin outputs ---\n");
+                bcatcstr(glsl, "//--- End post shader code ---\n");
 #endif
             }
             AddIndentation(psContext);
@@ -1787,12 +1787,12 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             {
 #ifdef _DEBUG
                 AddIndentation(psContext);
-                bcatcstr(glsl, "//--- Start builtin outputs ---\n");
+                bcatcstr(glsl, "//--- Post shader code ---\n");
 #endif
                 bconcat(glsl, psContext->postShaderCode[psContext->currentPhase]);
 #ifdef _DEBUG
                 AddIndentation(psContext);
-                bcatcstr(glsl, "//--- End builtin outputs ---\n");
+                bcatcstr(glsl, "//--- End post shader code ---\n");
 #endif
                 AddIndentation(psContext);
             }

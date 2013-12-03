@@ -593,6 +593,11 @@ int GetShaderVarFromOffset(const uint32_t ui32Vec4Offset, const uint32_t* pui32S
                     }
                 }
 
+				if(psCBuf->asVars[i].sType.Class == SVC_VECTOR && psCBuf->asVars[i].sType.Elements > 1)
+				{
+					pi32Index[0] = (ui32ByteOffset - psCBuf->asVars[i].ui32StartOffset) / 16;
+				}
+
 		        *ppsShaderVar = &psCBuf->asVars[i];
 		        return 1;
             }
@@ -816,6 +821,7 @@ void LoadD3D9ConstantTable(const char* data,
 				ui32ConstantBufferSize = var->ui32Size + var->ui32StartOffset;
 			}
 
+			var->sType.Rows = typeInfo->rows;
 			var->sType.Columns = typeInfo->columns;
 			var->sType.Elements = typeInfo->elements;
 			var->sType.Members = typeInfo->structMembers;
