@@ -35,15 +35,11 @@ struct cbChangesEveryFrame
 	float padding[3];
 };
 
-const size_t ChangesEveryFrameVec4Count = sizeof(cbChangesEveryFrame)/sizeof(float)/4;
-
 struct cbUserChanges
 {
     float Explode;
 	float padding[3];
 };
-
-const size_t UserChangesVec4Count = sizeof(cbUserChanges)/sizeof(float)/4;
 
 using namespace Vectormath::Aos;
 
@@ -56,7 +52,7 @@ public:
 	void Init();
 	void Display(float t);
 	void ResizeDisplay(int w, int h) {
-	   glViewport (0, 0, (GLsizei) w, (GLsizei) h);
+		glViewport (0, 0, (GLsizei) w, (GLsizei) h);
         //D3D clip space (z = 0, +1) to GL (z = -1 to +1)
         gProjection = Matrix4::scale(Vector3(1, -1, 2));
         gProjection *= Matrix4::translation(Vector3(0, 0, -0.5));
@@ -78,13 +74,21 @@ public:
 		SetFloatArray(gProjection, gChangesEveryFrame.Projection);
 
 		gChangesEveryFrame.Time = gTime;
-		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrame"), ChangesEveryFrameVec4Count, (float*)&gChangesEveryFrame);
+		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameVS.World"), 4, gChangesEveryFrame.World);
+		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameVS.View"), 4, gChangesEveryFrame.View);
+		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameVS.Projection"), 4, gChangesEveryFrame.Projection);
+		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameVS.Time"), 1, &gChangesEveryFrame.Time);
+
+		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameGS.World"), 4, gChangesEveryFrame.World);
+		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameGS.View"), 4, gChangesEveryFrame.View);
+		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameGS.Projection"), 4, gChangesEveryFrame.Projection);
+		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameGS.Time"), 1, &gChangesEveryFrame.Time);
 
 		SetFloatArray(vLightDirs, &gConstant.vLightDir[0]);
-		mExtrudeEffect.SetVec4(std::string("cbConstant"), ConstantVec4Count, (float*)&gConstant);
+		mExtrudeEffect.SetVec4(std::string("cbConstantPS.vLightDir"), 1, (float*)&gConstant);
 
 		gUserChanges.Explode = gExplode;
-		mExtrudeEffect.SetVec4(std::string("cbUserChanges"), UserChangesVec4Count, (float*)&gUserChanges);
+		mExtrudeEffect.SetVec4(std::string("cbUserChangesGS.Explode"), 1, (float*)&gUserChanges);
 
         mExtrudeEffect.SetTexture(std::string("g_txDiffuse"), 0);
 	}

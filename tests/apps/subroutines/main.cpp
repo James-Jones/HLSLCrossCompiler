@@ -23,14 +23,6 @@ struct Vertex
 	float TexCoord[3];
 };
 
-struct cbConstant
-{
-	float vLightDir[3];
-	float padding;
-};
-
-const size_t ConstantVec4Count = sizeof(cbConstant)/sizeof(float)/4;
-
 struct cbChangesEveryFrame
 {
 	float World[16];
@@ -39,8 +31,6 @@ struct cbChangesEveryFrame
 	float Time;
 	float padding[3];
 };
-
-const size_t ChangesEveryFrameVec4Count = sizeof(cbChangesEveryFrame)/sizeof(float)/4;
 
 using namespace Vectormath::Aos;
 
@@ -76,10 +66,10 @@ public:
 
 		gChangesEveryFrame.Time = gTime;
 
-		mEffect.SetVec4(std::string("cbChangesEveryFrame"), ChangesEveryFrameVec4Count, (float*)&gChangesEveryFrame);
-
-		SetFloatArray(vLightDirs, &gConstant.vLightDir[0]);
-		mEffect.SetVec4(std::string("cbConstant"), ConstantVec4Count, (float*)&gConstant);
+		mEffect.SetVec4(std::string("cbChangesEveryFrameVS.World"), 4, gChangesEveryFrame.World);
+		mEffect.SetVec4(std::string("cbChangesEveryFrameVS.View"), 4, gChangesEveryFrame.View);
+		mEffect.SetVec4(std::string("cbChangesEveryFrameVS.Projection"), 4, gChangesEveryFrame.Projection);
+		mEffect.SetVec4(std::string("cbChangesEveryFrameVS.Time"), 1, &gChangesEveryFrame.Time);
 
         mEffect.SetTexture(std::string("g_txDiffuse"), 0);
 	}
@@ -92,12 +82,10 @@ private:
 	GLuint gIndexBuffer;
 	GLuint gVertexBuffer;
 
-	cbConstant gConstant;
 	cbChangesEveryFrame gChangesEveryFrame;
 
 	Model gModel;
 
-	Vector4 vLightDirs;
 	float gTime;
 };
 
@@ -120,8 +108,6 @@ void Demo::Display(float t) {
     gWorld *= Matrix4::rotationX(-90.0f * 3.14159f / 180.f);
 
 	gTime = t;
-
-    vLightDirs = Vector4(-0.577f, 0.577f, -0.577f, 1.0f);
 
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

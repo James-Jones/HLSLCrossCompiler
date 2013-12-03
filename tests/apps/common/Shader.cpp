@@ -413,25 +413,7 @@ void ShaderEffect::SetTexture(std::string& name, int imageUnit) {
 }
 
 void ShaderEffect::SetVec4(std::string& name, int count, float* v) {
-    int loc = glGetUniformLocation(mProgram, (name + std::string("VS")).c_str());
-    glUniform4fv(loc, count, v);
-
-    if(mDomain != InvalidShaderHandle)
-    {
-        loc = glGetUniformLocation(mProgram, (name + std::string("HS")).c_str());
-        glUniform4fv(loc, count, v);
-
-        loc = glGetUniformLocation(mProgram, (name + std::string("DS")).c_str());
-        glUniform4fv(loc, count, v);
-    }
-
-    if(mGeometry != InvalidShaderHandle)
-    {
-        loc = glGetUniformLocation(mProgram, (name + std::string("GS")).c_str());
-        glUniform4fv(loc, count, v);
-    }
-
-    loc = glGetUniformLocation(mProgram, (name + std::string("PS")).c_str());
+    int loc = glGetUniformLocation(mProgram, name.c_str());
     glUniform4fv(loc, count, v);
 }
 
