@@ -92,14 +92,26 @@ void display(void)
 	glDisable(GL_RASTERIZER_DISCARD);
 
     float* capturedVaryings = (float*)glMapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, GL_READ_ONLY);
+	int* iCapturedVaryings = (int*)capturedVaryings;
 
 	if(capturedVaryings[0] != (color.getX()*gGlobals.ColorFactor[0]) || capturedVaryings[1] != (color.getY()*gGlobals.ColorFactor[0]) || capturedVaryings[2] != (color.getZ()*gGlobals.ColorFactor[0]) || capturedVaryings[3] != (color.getW()*gGlobals.ColorFactor[0]))
 	{
-		printf("Colour mismatch\n");
+		printf("Colour varying mismatched\n");
 	}
-	else if(((int*)capturedVaryings)[4] != gGlobals.ColorFactor[0])
+	else if(iCapturedVaryings[4] != gGlobals.ColorFactor[0])
 	{
-		printf("Factor mismatch\n");
+		printf("Factor varying mismatched\n");
+	}
+	else if(((ceil(capturedVaryings[0]*10.0f)*2) != iCapturedVaryings[8]) ||
+		((ceil(capturedVaryings[1]*10.0f)*2) != iCapturedVaryings[9]) ||
+		((ceil(capturedVaryings[2]*10.0f)*2) != iCapturedVaryings[10]) ||
+		((ceil(capturedVaryings[3]*10.0f)*2) != iCapturedVaryings[11]))
+	{
+		printf("IntColor varying mismatched\n");
+	}
+	else if(iCapturedVaryings[12] != 10)
+	{
+		printf("Max varying mismatched\n");
 	}
 	else
 	{
@@ -172,12 +184,12 @@ void Init(int argc, char** argv)
 	mVertexShader.SetLanguage(LANG_400);
     mVertexShader.AddCompileFlags(HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT|HLSLCC_FLAG_INOUT_SEMANTIC_NAMES);
     mVertexShader.FromByteFile(std::string("shaders/IntegerVS.o"));
-	const char* varyings [] = {"COLOR0", "FACTOR0"};
-	mVertexShader.SetTransformFeedback(2, varyings);
+	const char* varyings [] = {"COLOR0", "FACTOR0", "INTCOLOR0", "MAX0"};
+	mVertexShader.SetTransformFeedback(4, varyings);
 
     glGenBuffers(1, &feedbackBuffer);
     glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, feedbackBuffer);
-    glBufferData(GL_TRANSFORM_FEEDBACK_BUFFER, sizeof(float)*4+sizeof(int)*4, NULL, GL_STATIC_DRAW);
+    glBufferData(GL_TRANSFORM_FEEDBACK_BUFFER, sizeof(float)*4+sizeof(int)*12, NULL, GL_STATIC_DRAW);
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, feedbackBuffer);
 
     mVertexShader.Link();

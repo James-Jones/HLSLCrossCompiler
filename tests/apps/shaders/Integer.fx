@@ -31,6 +31,8 @@ struct VS_OUTPUT
     float3 Norm : TEXCOORD0;
 	float4 Color: COLOR0;
 	int Factor : FACTOR;
+	int4 IntColor : INTCOLOR;
+	int Max : MAX;
 };
 
 
@@ -46,7 +48,12 @@ VS_OUTPUT main( VS_INPUT input )
     output.Norm = mul( input.Norm, World );
 	output.Color = vOutputColor * ColorFactor;
 	output.Factor = ColorFactor;
+	
     
+	int4 intColours = ceil(output.Color * float4(10, 10, 10, 10));
+	output.IntColor = intColours << 1;
+
+	output.Max = max(intColours, int4(10, 100, 1000, 10000));
+
     return output;
 }
-
