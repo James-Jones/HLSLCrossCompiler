@@ -9,6 +9,7 @@ const char* psz_hlsl_opcode_funcs_glsl = {
 	    dest = (a >= b) ? 1.0 : 0.0;\n \
 	}\n \
 	\n \
+	#if defined(ENABLE_INTEGER_TEMPS)\n \
 	void HLSL_ige(out ivec4 dest, ivec4 a, ivec4 b) {\n \
 	    dest = ivec4(greaterThanEqual(a, b));\n \
 	}\n \
@@ -20,6 +21,7 @@ const char* psz_hlsl_opcode_funcs_glsl = {
 	void HLSL_ieq(out int dest, int a, int b) {\n \
 	    dest = (a == b) ? 1 : 0;\n \
 	}\n \
+	#endif\n \
 	\n \
 	void HLSL_ieq(out vec4 dest, vec4 a, vec4 b) {\n \
 	    dest = vec4(equal(a, b));\n \
@@ -41,6 +43,7 @@ const char* psz_hlsl_opcode_funcs_glsl = {
 		dest = float(ia & ib);\n \
 	}\n \
 	\n \
+	#if defined(ENABLE_INTEGER_TEMPS)\n \
 	void HLSL_ilt(out int dest, int a, int b) {\n \
 	    dest = (a < b) ? 1 : 0;\n \
 	}\n \
@@ -48,6 +51,7 @@ const char* psz_hlsl_opcode_funcs_glsl = {
 	void HLSL_ilt(out ivec4 dest, ivec4 a, ivec4 b) {\n \
 	   dest = ivec4(lessThan(a, b));\n \
 	}\n \
+	#endif\n \
 	\n \
 	void HLSL_ilt(out vec4 dest, vec4 a, vec4 b) {\n \
 		ivec4 ia = ivec4(a);\n \

@@ -210,7 +210,7 @@ typedef struct Shader_TAG
 	int aiOpcodeUsed[NUM_OPCODES];
 
     //Class is SVC_VECTOR.
-    SHADER_VARIABLE_TYPE aeTempVecType[MAX_TEMP_VEC4];
+    SHADER_VARIABLE_TYPE aeTempVecType[MAX_TEMP_VEC4 * 4];
 
 } Shader;
 

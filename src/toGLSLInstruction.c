@@ -139,7 +139,7 @@ void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruc
 	uint32_t src0SwizCount = GetNumSwizzleElements(&psInst->asOperands[src0]);
 	uint32_t dstSwizCount = GetNumSwizzleElements(&psInst->asOperands[dest]);
 
-    CheckOperandForTempTypeChange(psContext,
+    /*CheckOperandForTempTypeChange(psContext,
         &psInst->asOperands[dest],
         TO_FLAG_DESTINATION|dataType);
     CheckOperandForTempTypeChange(psContext,
@@ -147,7 +147,7 @@ void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruc
         dataType);
     CheckOperandForTempTypeChange(psContext,
         &psInst->asOperands[src1],
-        dataType);
+        dataType);*/
 
     AddIndentation(psContext);
 
@@ -296,12 +296,12 @@ void CallHelper2Int(HLSLCrossCompilerContext* psContext, const char* name, Instr
 
 	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_DESTINATION);
 
-	bcatcstr(glsl, " = ivec4(");
+	bcatcstr(glsl, " = uvec4(");
 
     bcatcstr(glsl, name);
-    bcatcstr(glsl, "(int(");
+    bcatcstr(glsl, "(uint(");
     TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_INTEGER);
-    bcatcstr(glsl, "), int(");
+    bcatcstr(glsl, "), uint(");
     TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_INTEGER);
     bcatcstr(glsl, ")))");
     TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
@@ -667,13 +667,14 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		AddIndentation(psContext);
 		bformata(glsl, "//Instruction %d\n", psInst->id);
 #if 1
-		if(psInst->id == 48)
+		if(psInst->id == 43)
 		{
 			ASSERT(1); //Set breakpoint here to debug an instruction from its ID.
 		}
 #endif
 #endif
 
+#if defined(ENABLE_INTEGER_TEMPS)
 	//Writes to temp produces float result unless one of the
 	//following opcodes
 	switch(psInst->eOpcode)
@@ -690,8 +691,14 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	case OPCODE_INEG:
 	case OPCODE_ISHL:
 	case OPCODE_ISHR:
-		SetOperandDataType(psContext, &psInst->asOperands[0], SVT_INT);
-		break;
+		{
+			uint32_t ui32Operand;
+			for(ui32Operand = 0; ui32Operand < 1/*psInst->ui32NumOperands*/; ++ui32Operand)
+			{
+				SetOperandDataType(psContext, &psInst->asOperands[ui32Operand], SVT_INT);
+			}
+			break;
+		}
 	case OPCODE_UDIV:
 	case OPCODE_ULT:
 	case OPCODE_UGE:
@@ -701,7 +708,14 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	case OPCODE_UMIN:
 	case OPCODE_USHR:
 	case OPCODE_LD_UAV_TYPED:
-		SetOperandDataType(psContext, &psInst->asOperands[0], SVT_UINT);
+		{
+			uint32_t ui32Operand;
+			for(ui32Operand = 0; ui32Operand < 1 /*psInst->ui32NumOperands*/; ++ui32Operand)
+			{
+				SetOperandDataType(psContext, &psInst->asOperands[ui32Operand], SVT_UINT);
+			}
+			break;
+		}
 		break;
 	case OPCODE_ITOF:
 	case OPCODE_UTOF:
@@ -711,12 +725,14 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	case OPCODE_SWITCH:
 	case OPCODE_MOVC:
 	case OPCODE_MOV:
+	case OPCODE_BREAKC:
 		//Explicitly handled later.
 	break;
 	default:
 		SetOperandDataType(psContext, &psInst->asOperands[0], SVT_FLOAT);
 		break;
 	}
+#endif
 
     switch(psInst->eOpcode)
     {
@@ -1377,9 +1393,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//IMAX\n");
 #endif
-			SetOperandDataType(psContext, &psInst->asOperands[1], SVT_INT);
-			SetOperandDataType(psContext, &psInst->asOperands[2], SVT_INT);
-
 			CallHelper2Int(psContext, "max", psInst, 0, 1, 2);
             break;
         }

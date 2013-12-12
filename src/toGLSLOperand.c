@@ -804,9 +804,18 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         }
         case OPERAND_TYPE_TEMP:
         {
+			SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand);
             bformata(glsl, "Temp%d", psOperand->ui32RegisterNumber);
 
-            if(psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] == SVT_VOID ||
+#if defined(ENABLE_INTEGER_TEMPS)
+
+		//--- Integer temp register support. When disabled integers will be stored in float variables ---
+		//Needs improving.
+		//1)Currenly tracks data type at register-granularity, but needs to be per-component. tests\apps\Shaders\ExtrudeGS seems
+		//to be a good test for this.
+		//2)Will there ever be dyncamically index temp array containing a mix of integer and floating point data?
+
+            if(eType == SVT_VOID ||
                 (ui32TOFlag & TO_FLAG_DESTINATION))
             {
                 if(ui32TOFlag & TO_FLAG_INTEGER)
@@ -820,7 +829,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                 }
             }
             else
-            if(psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] == SVT_INT)
+            if(eType == SVT_INT)
             {
                 if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
                 {
@@ -829,7 +838,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                 bcatcstr(glsl, "_int");
             }
             else
-            if(psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] == SVT_UINT)
+            if(eType == SVT_UINT)
             {
                 if(ui32TOFlag & TO_FLAG_INTEGER)
                 {
@@ -837,6 +846,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                 }
                 bcatcstr(glsl, "_uint");
             }
+#endif
             break;
         }
 		case OPERAND_TYPE_SPECIAL_IMMCONSTINT:
@@ -1123,8 +1133,52 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
 {
     if(psOperand->eType == OPERAND_TYPE_TEMP)
     {
-        const SHADER_VARIABLE_TYPE eCurrentType = psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber];
-        return eCurrentType;
+        SHADER_VARIABLE_TYPE eCurrentType;
+		const uint32_t ui32RegIndex = psOperand->ui32RegisterNumber*4;
+		int i = 0;
+
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+		{
+			return psContext->psShader->aeTempVecType[ui32RegIndex+psOperand->aui32Swizzle[0]];
+		}
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+		{
+			if(psOperand->ui32Swizzle == (NO_SWIZZLE))
+			{
+				return psContext->psShader->aeTempVecType[ui32RegIndex]; 
+			}
+			return psContext->psShader->aeTempVecType[ui32RegIndex+psOperand->aui32Swizzle[0]];
+		}
+
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+		{
+			ASSERT(psOperand->ui32CompMask);
+			for(;i<4;++i)
+			{
+				if(psOperand->ui32CompMask & (1<<i))
+				{
+					eCurrentType = psContext->psShader->aeTempVecType[ui32RegIndex+i];
+					break;
+				}
+			}
+
+#ifdef _DEBUG
+			//Check if all elements have the same basic type.
+			for(;i<4;++i)
+			{
+				if(psOperand->ui32CompMask & (1<<i))
+				{
+					if(eCurrentType != psContext->psShader->aeTempVecType[ui32RegIndex+i])
+					{
+						ASSERT(0);
+					}
+				}
+			}
+#endif
+			return eCurrentType;
+		}
+
+		ASSERT(0);
     }
 	else if(psOperand->eType == OPERAND_TYPE_OUTPUT)
 	{
@@ -1179,12 +1233,63 @@ void SetOperandDataType(HLSLCrossCompilerContext* psContext, const Operand* psOp
 {
 	if(psOperand->eType == OPERAND_TYPE_TEMP)
 	{
-		psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] = eNewType;
+#if 0
+		const uint32_t ui32RegIndex = psOperand->ui32RegisterNumber*4;
+		int i = 0;
+		ASSERT(psOperand->ui32CompMask);
+
+		for(;i<4;++i)
+		{
+			if(psOperand->ui32CompMask & (1<<i))
+				psContext->psShader->aeTempVecType[ui32RegIndex+i] = eNewType;
+		}
+#else
+		const uint32_t ui32RegIndex = psOperand->ui32RegisterNumber*4;
+		int i = 0;
+
+	if(psContext->psShader->aeTempVecType[8+3] == SVT_INT)
+	{
+		ASSERT(0);
+	}
+
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+		{
+			psContext->psShader->aeTempVecType[ui32RegIndex+psOperand->aui32Swizzle[0]] = eNewType;
+		}
+		else if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+		{
+			if(psOperand->ui32Swizzle == (NO_SWIZZLE))
+			{
+				psContext->psShader->aeTempVecType[ui32RegIndex] = eNewType; 
+			}
+			else
+			{
+				psContext->psShader->aeTempVecType[ui32RegIndex+psOperand->aui32Swizzle[0]] = eNewType;
+			}
+		}
+		else if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+		{
+			ASSERT(psOperand->ui32CompMask);
+			for(;i<4;++i)
+			{
+				if(psOperand->ui32CompMask & (1<<i))
+				{
+					psContext->psShader->aeTempVecType[ui32RegIndex+i] = eNewType;
+				}
+			}
+		}
+#endif
+	}
+
+	if(psContext->psShader->aeTempVecType[8+3] == SVT_INT)
+	{
+		ASSERT(0);
 	}
 }
 
 void CheckOperandForTempTypeChange(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag)
 {
+#if 0//defined(ENABLE_INTEGER_TEMPS)
     if(psOperand->eType == OPERAND_TYPE_TEMP)
     {
         const SHADER_VARIABLE_TYPE eCurrentType = psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber];
@@ -1294,6 +1399,7 @@ void CheckOperandForTempTypeChange(HLSLCrossCompilerContext* psContext, const Op
 
         psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] = eNewType;
     }
+#endif
 }
 
 

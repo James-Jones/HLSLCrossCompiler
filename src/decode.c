@@ -1345,7 +1345,7 @@ void Decode(const uint32_t* pui32Tokens, Shader* psShader)
 
     psShader->pui32FirstToken = pui32Tokens;
 
-    for(i=0; i < MAX_TEMP_VEC4; ++i)
+    for(i=0; i < MAX_TEMP_VEC4 * 4; ++i)
     {
         psShader->aeTempVecType[i] = SVT_VOID;
     }
