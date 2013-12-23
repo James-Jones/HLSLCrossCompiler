@@ -25,8 +25,6 @@ void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32Registe
 //Non-zero means the components overlap
 int CompareOperandSwizzles(const Operand* psOperandA, const Operand* psOperandB);
 
-void SetOperandDataType(HLSLCrossCompilerContext* psContext, const Operand* psOperand, SHADER_VARIABLE_TYPE eNewType);
-
 void CheckOperandForTempTypeChange(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag);
 
 SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, const Operand* psOperand);

@@ -44,6 +44,9 @@ typedef struct Operand_TAG
 
     struct Operand_TAG* psSubOperand[MAX_SUB_OPERANDS];
 
+	//One type for each component.
+	SHADER_VARIABLE_TYPE aeDataType[4];
+
 #ifdef _DEBUG
     uint64_t id;
 #endif
@@ -208,9 +211,6 @@ typedef struct Shader_TAG
     int abInputReferencedByInstruction[MAX_SHADER_VEC4_INPUT];
 
 	int aiOpcodeUsed[NUM_OPCODES];
-
-    //Class is SVC_VECTOR.
-    SHADER_VARIABLE_TYPE aeTempVecType[MAX_TEMP_VEC4 * 4];
 
 } Shader;
 

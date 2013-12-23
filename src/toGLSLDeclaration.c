@@ -1373,20 +1373,15 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 
             for(i=0; i < ui32NumTemps; ++i)
             {
-				uint32_t k;
                 bformata(glsl, "vec4 Temp%d;\n", i);
 
 #if defined(ENABLE_INTEGER_TEMPS)
                 bformata(glsl, "ivec4 Temp%d_int;\n", i);
 				if(HaveUVec(psShader->eTargetLanguage))
 				{
-				bformata(glsl, "uvec4 Temp%d_uint;\n", i);
+					bformata(glsl, "uvec4 Temp%d_uint;\n", i);
 				}
 #endif
-				for(k=0; k<4; k++)
-				{
-					psContext->psShader->aeTempVecType[i*4+k] = SVT_FLOAT;
-				}
             }
             break;
         }

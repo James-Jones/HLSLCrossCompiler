@@ -659,6 +659,293 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
 }
 
 
+void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, const int32_t i32InstCount)
+{
+#if defined(ENABLE_INTEGER_TEMPS)
+
+	int32_t i;
+
+	SHADER_VARIABLE_TYPE aeTempVecType[MAX_TEMP_VEC4 * 4];
+	SHADER_VARIABLE_TYPE eNewType;
+
+    for(i=0; i < MAX_TEMP_VEC4 * 4; ++i)
+    {
+        aeTempVecType[i] = SVT_FLOAT;
+    }
+
+	for(i=0; i < i32InstCount; ++i, psInst++)
+	{
+		int k = 0;
+
+		if(psInst->ui32NumOperands == 0)
+			continue;
+
+		//Preserve the current type on sources.
+		for(k = psInst->ui32NumOperands-1; k > 0; --k)
+		{
+			int32_t subOperand;
+			Operand* psOperand = &psInst->asOperands[k];
+
+			if(psOperand->eType == OPERAND_TYPE_TEMP)
+			{
+				const uint32_t ui32RegIndex = psOperand->ui32RegisterNumber*4;
+
+				if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+				{
+					psOperand->aeDataType[psOperand->aui32Swizzle[0]] = aeTempVecType[ui32RegIndex+psOperand->aui32Swizzle[0]];
+				}
+				else if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+				{
+					if(psOperand->ui32Swizzle == (NO_SWIZZLE))
+					{
+						psOperand->aeDataType[0] = aeTempVecType[ui32RegIndex];
+						psOperand->aeDataType[1] = aeTempVecType[ui32RegIndex];
+						psOperand->aeDataType[2] = aeTempVecType[ui32RegIndex];
+						psOperand->aeDataType[3] = aeTempVecType[ui32RegIndex];
+					}
+					else
+					{
+						psOperand->aeDataType[psOperand->aui32Swizzle[0]] = aeTempVecType[ui32RegIndex+psOperand->aui32Swizzle[0]];
+					}
+				}
+				else if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+				{
+					int c = 0;
+					uint32_t ui32CompMask = psOperand->ui32CompMask;
+					if(!psOperand->ui32CompMask)
+					{
+						ui32CompMask = OPERAND_4_COMPONENT_MASK_ALL;
+					}
+
+					for(;c<4;++c)
+					{
+						if(ui32CompMask & (1<<c))
+						{
+							psOperand->aeDataType[c] = aeTempVecType[ui32RegIndex+c];
+						}
+					}
+				}
+			}
+
+			for(subOperand=0; subOperand < MAX_SUB_OPERANDS; subOperand++)
+			{
+				if(psOperand->psSubOperand[subOperand] != 0)
+				{
+					Operand* psSubOperand = psOperand->psSubOperand[subOperand];
+					if(psSubOperand->eType == OPERAND_TYPE_TEMP)
+					{
+						const uint32_t ui32RegIndex = psSubOperand->ui32RegisterNumber*4;
+
+						if(psSubOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+						{
+							psSubOperand->aeDataType[psSubOperand->aui32Swizzle[0]] = aeTempVecType[ui32RegIndex+psSubOperand->aui32Swizzle[0]];
+						}
+						else if(psSubOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+						{
+							if(psSubOperand->ui32Swizzle == (NO_SWIZZLE))
+							{
+								psSubOperand->aeDataType[0] = aeTempVecType[ui32RegIndex];
+								psSubOperand->aeDataType[1] = aeTempVecType[ui32RegIndex];
+								psSubOperand->aeDataType[2] = aeTempVecType[ui32RegIndex];
+								psSubOperand->aeDataType[3] = aeTempVecType[ui32RegIndex];
+							}
+							else
+							{
+								psSubOperand->aeDataType[psSubOperand->aui32Swizzle[0]] = aeTempVecType[ui32RegIndex+psSubOperand->aui32Swizzle[0]];
+							}
+						}
+						else if(psSubOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+						{
+							int c = 0;
+							uint32_t ui32CompMask = psSubOperand->ui32CompMask;
+							if(!psSubOperand->ui32CompMask)
+							{
+								ui32CompMask = OPERAND_4_COMPONENT_MASK_ALL;
+							}
+
+
+							for(;c<4;++c)
+							{
+								if(ui32CompMask & (1<<c))
+								{
+									psSubOperand->aeDataType[c] = aeTempVecType[ui32RegIndex+c];
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+
+		switch(psInst->eOpcode)
+		{
+		case OPCODE_IADD:
+		case OPCODE_IEQ:
+		case OPCODE_IGE:
+		case OPCODE_ILT:
+		case OPCODE_IMAD:
+		case OPCODE_IMAX:
+		case OPCODE_IMIN:
+		case OPCODE_IMUL:
+		case OPCODE_INE:
+		case OPCODE_INEG:
+		case OPCODE_ISHL:
+		case OPCODE_ISHR:
+			{
+				eNewType = SVT_INT;
+				break;
+			}
+		case OPCODE_UDIV:
+		case OPCODE_ULT:
+		case OPCODE_UGE:
+		case OPCODE_UMUL:
+		case OPCODE_UMAD:
+		case OPCODE_UMAX:
+		case OPCODE_UMIN:
+		case OPCODE_USHR:
+		case OPCODE_LD_UAV_TYPED:
+			{
+				eNewType = SVT_UINT;
+				break;
+			}
+
+		case OPCODE_MOV:
+		{
+			//Inherit the type of the source operand
+			const Operand* psOperand = &psInst->asOperands[0];
+			if(psOperand->eType == OPERAND_TYPE_TEMP)
+			{
+				eNewType = GetOperandDataType(psContext, &psInst->asOperands[1]);
+			}
+			break;
+		}
+		case OPCODE_FTOI:
+			{
+				ASSERT(GetOperandDataType(psContext, &psInst->asOperands[1]) == SVT_FLOAT);
+				eNewType = SVT_INT;
+				break;
+			}
+		case OPCODE_FTOU:
+			{
+				ASSERT(GetOperandDataType(psContext, &psInst->asOperands[1]) == SVT_FLOAT);
+				eNewType = SVT_UINT;
+				break;
+			}
+
+		case OPCODE_UTOF:
+		case OPCODE_ITOF:
+		{
+			ASSERT(GetOperandDataType(psContext, &psInst->asOperands[1]) == SVT_UINT || GetOperandDataType(psContext, &psInst->asOperands[1]) == SVT_INT);
+			eNewType = SVT_FLOAT;
+			break;
+		}
+		case OPCODE_IF:
+		case OPCODE_SWITCH:
+		case OPCODE_MOVC:
+		case OPCODE_BREAKC:
+			{
+				const Operand* psOperand = &psInst->asOperands[0];
+				if(psOperand->eType == OPERAND_TYPE_TEMP)
+				{
+					const uint32_t ui32RegIndex = psOperand->ui32RegisterNumber*4;
+
+					if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+					{
+						eNewType = aeTempVecType[ui32RegIndex+psOperand->aui32Swizzle[0]];
+					}
+					else if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+					{
+						if(psOperand->ui32Swizzle == (NO_SWIZZLE))
+						{
+							eNewType = aeTempVecType[ui32RegIndex];
+						}
+						else
+						{
+							eNewType = aeTempVecType[ui32RegIndex+psOperand->aui32Swizzle[0]];
+						}
+					}
+					else if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+					{
+						uint32_t ui32CompMask = psOperand->ui32CompMask;
+						if(!psOperand->ui32CompMask)
+						{
+							ui32CompMask = OPERAND_4_COMPONENT_MASK_ALL;
+						}
+						for(;k<4;++k)
+						{
+							if(ui32CompMask & (1<<k))
+							{
+								eNewType = aeTempVecType[ui32RegIndex+k];
+							}
+						}
+					}
+				}
+			break;
+			}
+		default:
+			{
+				eNewType = SVT_FLOAT;
+				break;
+			}
+		}
+
+		//Process the destination last in order to handle instructions
+		//where the destination register is also used as a source.
+		for(k = 0; k < 1; ++k)
+		{
+			Operand* psOperand = &psInst->asOperands[k];
+			if(psOperand->eType == OPERAND_TYPE_TEMP)
+			{
+				const uint32_t ui32RegIndex = psOperand->ui32RegisterNumber*4;
+
+				if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+				{
+					aeTempVecType[ui32RegIndex+psOperand->aui32Swizzle[0]] = eNewType;
+					psOperand->aeDataType[psOperand->aui32Swizzle[0]] = eNewType;
+				}
+				else if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+				{
+					if(psOperand->ui32Swizzle == (NO_SWIZZLE))
+					{
+						aeTempVecType[ui32RegIndex] = eNewType; 
+						psOperand->aeDataType[0] = eNewType;
+						psOperand->aeDataType[1] = eNewType;
+						psOperand->aeDataType[2] = eNewType;
+						psOperand->aeDataType[3] = eNewType;
+					}
+					else
+					{
+						aeTempVecType[ui32RegIndex+psOperand->aui32Swizzle[0]] = eNewType;
+						psOperand->aeDataType[psOperand->aui32Swizzle[0]] = eNewType;
+					}
+				}
+				else if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+				{
+					int c = 0;
+					uint32_t ui32CompMask = psOperand->ui32CompMask;
+					if(!psOperand->ui32CompMask)
+					{
+						ui32CompMask = OPERAND_4_COMPONENT_MASK_ALL;
+					}
+
+					for(;c<4;++c)
+					{
+						if(ui32CompMask & (1<<c))
+						{
+							aeTempVecType[ui32RegIndex+c] = eNewType;
+							psOperand->aeDataType[c] = eNewType;
+						}
+					}
+				}
+			}
+		}
+
+	}
+
+#endif
+}
+
 void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psInst)
 {
     bstring glsl = *psContext->currentGLSLString;
@@ -667,71 +954,11 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		AddIndentation(psContext);
 		bformata(glsl, "//Instruction %d\n", psInst->id);
 #if 1
-		if(psInst->id == 43)
+		if(psInst->id == 73)
 		{
 			ASSERT(1); //Set breakpoint here to debug an instruction from its ID.
 		}
 #endif
-#endif
-
-#if defined(ENABLE_INTEGER_TEMPS)
-	//Writes to temp produces float result unless one of the
-	//following opcodes
-	switch(psInst->eOpcode)
-	{
-	case OPCODE_IADD:
-	case OPCODE_IEQ:
-	case OPCODE_IGE:
-	case OPCODE_ILT:
-	case OPCODE_IMAD:
-	case OPCODE_IMAX:
-	case OPCODE_IMIN:
-	case OPCODE_IMUL:
-	case OPCODE_INE:
-	case OPCODE_INEG:
-	case OPCODE_ISHL:
-	case OPCODE_ISHR:
-		{
-			uint32_t ui32Operand;
-			for(ui32Operand = 0; ui32Operand < 1/*psInst->ui32NumOperands*/; ++ui32Operand)
-			{
-				SetOperandDataType(psContext, &psInst->asOperands[ui32Operand], SVT_INT);
-			}
-			break;
-		}
-	case OPCODE_UDIV:
-	case OPCODE_ULT:
-	case OPCODE_UGE:
-	case OPCODE_UMUL:
-	case OPCODE_UMAD:
-	case OPCODE_UMAX:
-	case OPCODE_UMIN:
-	case OPCODE_USHR:
-	case OPCODE_LD_UAV_TYPED:
-		{
-			uint32_t ui32Operand;
-			for(ui32Operand = 0; ui32Operand < 1 /*psInst->ui32NumOperands*/; ++ui32Operand)
-			{
-				SetOperandDataType(psContext, &psInst->asOperands[ui32Operand], SVT_UINT);
-			}
-			break;
-		}
-		break;
-	case OPCODE_ITOF:
-	case OPCODE_UTOF:
-	case OPCODE_FTOI:
-	case OPCODE_FTOU:
-	case OPCODE_IF:
-	case OPCODE_SWITCH:
-	case OPCODE_MOVC:
-	case OPCODE_MOV:
-	case OPCODE_BREAKC:
-		//Explicitly handled later.
-	break;
-	default:
-		SetOperandDataType(psContext, &psInst->asOperands[0], SVT_FLOAT);
-		break;
-	}
 #endif
 
     switch(psInst->eOpcode)
@@ -800,9 +1027,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 				}
 
 				//Change type at the end in case dest and src are the same register.
-				SetOperandDataType(psContext,
+				/*SetOperandDataType(psContext,
 				&psInst->asOperands[0],
-				SVT_UINT);
+				SVT_UINT);*/
 			}
 			else
 			if(psInst->eOpcode == OPCODE_FTOI)
@@ -832,9 +1059,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 				}
 
 				//Change type at the end in case dest and src are the same register.
-				SetOperandDataType(psContext,
+				/*SetOperandDataType(psContext,
 				&psInst->asOperands[0],
-				SVT_INT);
+				SVT_INT);*/
 			}
 			else
 			{
@@ -876,7 +1103,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 				bcatcstr(glsl, ";\n");
 
 				//Dest and src might be the same register so set the type again.
-				SetOperandDataType(psContext, &psInst->asOperands[0], eSrcType);
+				//SetOperandDataType(psContext, &psInst->asOperands[0], eSrcType);
 			}
             break;
         }
@@ -904,17 +1131,17 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			}
 #endif
             AddIndentation(psContext);
-			SetOperandDataType(psContext, &psInst->asOperands[0], SVT_FLOAT);
+			//SetOperandDataType(psContext, &psInst->asOperands[0], SVT_FLOAT);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
             bcatcstr(glsl, " = vec4(");
-			SetOperandDataType(psContext, &psInst->asOperands[1], eSrcType);
+			//SetOperandDataType(psContext, &psInst->asOperands[1], eSrcType);
             TranslateOperand(psContext, &psInst->asOperands[1], (eSrcType == SVT_INT) ? TO_FLAG_INTEGER : TO_FLAG_UNSIGNED_INTEGER);
             bcatcstr(glsl, ")");
             TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ";\n");
 			
 			//Dest and src might be the same register so set the type again.
-			SetOperandDataType(psContext, &psInst->asOperands[0], SVT_FLOAT);
+			//SetOperandDataType(psContext, &psInst->asOperands[0], SVT_FLOAT);
             break;
         }
         case OPCODE_MAD:
