@@ -376,8 +376,11 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 
         if(psShader->ui32HSControlPointInstrCount)
         {
+			SetDataTypes(psContext, psShader->psHSControlPointPhaseInstr, psShader->ui32HSControlPointInstrCount);
+
             bcatcstr(glsl, "void control_point_phase()\n{\n");
             psContext->indent++;
+
                 for(i=0; i < psShader->ui32HSControlPointInstrCount; ++i)
                 {
                     TranslateInstruction(psContext, psShader->psHSControlPointPhaseInstr+i);
@@ -402,6 +405,8 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 
             bformata(glsl, "void fork_phase%d()\n{\n", forkIndex);
             psContext->indent++;
+
+			SetDataTypes(psContext, psShader->apsHSForkPhaseInstr[forkIndex], psShader->aui32HSForkInstrCount[forkIndex]-1);
 
                 if(haveInstancedForkPhase)
                 {
@@ -456,6 +461,8 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 
         if(psShader->ui32HSJoinInstrCount)
         {
+			SetDataTypes(psContext, psShader->psHSJoinPhaseInstr, psShader->ui32HSJoinInstrCount);
+
             bcatcstr(glsl, "void join_phase()\n{\n");
             psContext->indent++;
 
