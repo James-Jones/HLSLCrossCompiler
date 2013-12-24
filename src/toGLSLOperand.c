@@ -807,29 +807,13 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 			SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand);
             bformata(glsl, "Temp%d", psOperand->ui32RegisterNumber);
 
-#if defined(ENABLE_INTEGER_TEMPS)
-
-		//--- Integer temp register support. When disabled integers will be stored in float variables ---
-		//Needs improving.
-		//1)Currenly tracks data type at register-granularity, but needs to be per-component. tests\apps\Shaders\ExtrudeGS seems
-		//to be a good test for this.
-		//2)Will there ever be dyncamically index temp array containing a mix of integer and floating point data?
-
             if(eType == SVT_INT)
             {
-                if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
-                {
-                    //ASSERT(0);
-                }
                 bcatcstr(glsl, "_int");
             }
             else
             if(eType == SVT_UINT)
             {
-                if(ui32TOFlag & TO_FLAG_INTEGER)
-                {
-                    //ASSERT(0);
-                }
                 bcatcstr(glsl, "_uint");
             }
             else if(eType == SVT_VOID ||
@@ -845,7 +829,6 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                     bcatcstr(glsl, "_uint");
                 }
             }
-#endif
             break;
         }
 		case OPERAND_TYPE_SPECIAL_IMMCONSTINT:
@@ -1236,122 +1219,6 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
 	}
     return SVT_FLOAT;
 }
-
-void CheckOperandForTempTypeChange(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag)
-{
-#if 0//defined(ENABLE_INTEGER_TEMPS)
-    if(psOperand->eType == OPERAND_TYPE_TEMP)
-    {
-        const SHADER_VARIABLE_TYPE eCurrentType = psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber];
-        SHADER_VARIABLE_TYPE eNewType;
-        bstring glsl = *psContext->currentGLSLString;
-
-        if(ui32TOFlag & TO_FLAG_INTEGER)
-        {
-            eNewType = SVT_INT;
-        }
-        else
-        if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
-        {
-            eNewType = SVT_UINT;
-        }
-        else
-        {
-            //Setting eNewType to SVT_FLOAT will break MOV
-            eNewType = eCurrentType;
-        }
-
-        if(eCurrentType != SVT_VOID &&
-            eCurrentType != eNewType &&
-            ((ui32TOFlag & TO_FLAG_DESTINATION)!=TO_FLAG_DESTINATION))//Void until first use
-        {
-            const uint32_t ui32VecSize = GetNumSwizzleElements(psOperand);
-
-            AddIndentation(psContext);
-
-            if(eNewType == SVT_INT)
-            {
-                if(eCurrentType == SVT_UINT)
-                {
-                    bformata(glsl, "Temp%d_int", psOperand->ui32RegisterNumber);
-                    TranslateOperandSwizzle(psContext, psOperand);
-                    if(ui32VecSize>1)
-                        bformata(glsl, " = ivec%d(Temp%d_uint", ui32VecSize, psOperand->ui32RegisterNumber);
-                    else
-                        bformata(glsl, " = int(Temp%d_uint", psOperand->ui32RegisterNumber);
-                    TranslateOperandSwizzle(psContext, psOperand);
-                    bcatcstr(glsl, ");\n");
-                }
-                if(eCurrentType == SVT_FLOAT)
-                {
-                    bformata(glsl, "Temp%d_int", psOperand->ui32RegisterNumber);
-                    TranslateOperandSwizzle(psContext, psOperand);
-                    if(ui32VecSize>1)
-                        bformata(glsl, " = ivec%d(Temp%d", ui32VecSize, psOperand->ui32RegisterNumber);
-                    else
-                        bformata(glsl, " = int(Temp%d", psOperand->ui32RegisterNumber);
-
-                    TranslateOperandSwizzle(psContext, psOperand);
-                    bcatcstr(glsl, ");\n");
-                }
-            }
-            if(eNewType == SVT_UINT)
-            {
-                if(eCurrentType == SVT_INT)
-                {
-                    bformata(glsl, "Temp%d_uint", psOperand->ui32RegisterNumber);
-                    TranslateOperandSwizzle(psContext, psOperand);
-                    if(ui32VecSize>1)
-                        bformata(glsl, " = uvec%d(Temp%d_int", ui32VecSize, psOperand->ui32RegisterNumber);
-                    else
-                        bformata(glsl, " = uint(Temp%d_int", psOperand->ui32RegisterNumber);
-                    TranslateOperandSwizzle(psContext, psOperand);
-                    bcatcstr(glsl, ");\n");
-                }
-                if(eCurrentType == SVT_FLOAT)
-                {
-                    bformata(glsl, "Temp%d_uint", psOperand->ui32RegisterNumber);
-                    TranslateOperandSwizzle(psContext, psOperand);
-                    if(ui32VecSize>1)
-                        bformata(glsl, " = uvec%d(Temp%d", ui32VecSize, psOperand->ui32RegisterNumber);
-                    else
-                        bformata(glsl, " = uint(Temp%d", psOperand->ui32RegisterNumber);
-                    TranslateOperandSwizzle(psContext, psOperand);
-                    bcatcstr(glsl, ");\n");
-                }
-            }
-            if(eNewType == SVT_FLOAT)
-            {
-                if(eCurrentType == SVT_UINT)
-                {
-                    bformata(glsl, "Temp%d", psOperand->ui32RegisterNumber);
-                    TranslateOperandSwizzle(psContext, psOperand);
-                    if(ui32VecSize>1)
-                        bformata(glsl, " = vec%d(Temp%d_uint", ui32VecSize, psOperand->ui32RegisterNumber);
-                    else
-                        bformata(glsl, " = float(Temp%d_uint", psOperand->ui32RegisterNumber);
-                    TranslateOperandSwizzle(psContext, psOperand);
-                    bcatcstr(glsl, ");\n");
-                }
-                if(eCurrentType == SVT_INT)
-                {
-                    bformata(glsl, "Temp%d", psOperand->ui32RegisterNumber);
-                    TranslateOperandSwizzle(psContext, psOperand);
-                    if(ui32VecSize>1)
-                        bformata(glsl, " = vec%d(Temp%d_int", ui32VecSize, psOperand->ui32RegisterNumber);
-                    else
-                        bformata(glsl, " = float(Temp%d_int", psOperand->ui32RegisterNumber);
-                    TranslateOperandSwizzle(psContext, psOperand);
-                    bcatcstr(glsl, ");\n");
-                }
-            }
-        }
-
-        psContext->psShader->aeTempVecType[psOperand->ui32RegisterNumber] = eNewType;
-    }
-#endif
-}
-
 
 void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag)
 {

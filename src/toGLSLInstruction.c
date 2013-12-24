@@ -139,16 +139,6 @@ void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruc
 	uint32_t src0SwizCount = GetNumSwizzleElements(&psInst->asOperands[src0]);
 	uint32_t dstSwizCount = GetNumSwizzleElements(&psInst->asOperands[dest]);
 
-    /*CheckOperandForTempTypeChange(psContext,
-        &psInst->asOperands[dest],
-        TO_FLAG_DESTINATION|dataType);
-    CheckOperandForTempTypeChange(psContext,
-        &psInst->asOperands[src0],
-        dataType);
-    CheckOperandForTempTypeChange(psContext,
-        &psInst->asOperands[src1],
-        dataType);*/
-
     AddIndentation(psContext);
 
 	if(src1SwizCount == src0SwizCount == dstSwizCount)
@@ -661,8 +651,6 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
 
 void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, const int32_t i32InstCount)
 {
-#if defined(ENABLE_INTEGER_TEMPS)
-
 	int32_t i;
 
 	SHADER_VARIABLE_TYPE aeTempVecType[MAX_TEMP_VEC4 * 4];
@@ -953,8 +941,6 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		}
 
 	}
-
-#endif
 }
 
 void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psInst)
@@ -964,7 +950,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #ifdef _DEBUG
 		AddIndentation(psContext);
 		bformata(glsl, "//Instruction %d\n", psInst->id);
-#if 1
+#if 0
 		if(psInst->id == 73)
 		{
 			ASSERT(1); //Set breakpoint here to debug an instruction from its ID.
@@ -1125,10 +1111,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			const SHADER_VARIABLE_TYPE eSrcType = GetOperandDataType(psContext, &psInst->asOperands[1]);
 
 			ASSERT(eSrcType == SVT_INT || eSrcType == SVT_UINT);
-			/*if(!(eSrcType == SVT_INT || eSrcType == SVT_UINT))
-			{
-				bcatcstr(glsl, "//ERROR src not int/uint\n");
-			}*/
 
 #ifdef _DEBUG
 			AddIndentation(psContext);

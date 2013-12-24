@@ -208,10 +208,6 @@ void AddOpcodeFuncs(HLSLCrossCompilerContext* psContext)
 
     bcatcstr(glsl, "\n");
 
-#if defined(ENABLE_INTEGER_TEMPS)
-	bcatcstr(glsl, "#define ENABLE_INTEGER_TEMPS");
-#endif
-
     bcatcstr(glsl, psz_hlsl_opcode_funcs_glsl);
 
     bcatcstr(glsl, "\n");
