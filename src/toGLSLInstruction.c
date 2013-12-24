@@ -820,6 +820,18 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 			}
 			break;
 		}
+		case OPCODE_MOVC:
+		{
+			//Inherit the type of the source operand
+			const Operand* psOperand = &psInst->asOperands[0];
+			if(psOperand->eType == OPERAND_TYPE_TEMP)
+			{
+				eNewType = GetOperandDataType(psContext, &psInst->asOperands[2]);
+				//Check assumption that both the values which MOVC might pick have the same basic data type.
+				ASSERT(GetOperandDataType(psContext, &psInst->asOperands[2]) == GetOperandDataType(psContext, &psInst->asOperands[3]));
+			}
+			break;
+		}
 		case OPCODE_FTOI:
 			{
 				ASSERT(GetOperandDataType(psContext, &psInst->asOperands[1]) == SVT_FLOAT);
@@ -842,7 +854,6 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		}
 		case OPCODE_IF:
 		case OPCODE_SWITCH:
-		case OPCODE_MOVC:
 		case OPCODE_BREAKC:
 			{
 				const Operand* psOperand = &psInst->asOperands[0];
