@@ -296,12 +296,12 @@ void CallHelper2Int(HLSLCrossCompilerContext* psContext, const char* name, Instr
 
 	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_DESTINATION);
 
-	bcatcstr(glsl, " = uvec4(");
+	bcatcstr(glsl, " = ivec4(");
 
     bcatcstr(glsl, name);
-    bcatcstr(glsl, "(uint(");
+    bcatcstr(glsl, "(int(");
     TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_INTEGER);
-    bcatcstr(glsl, "), uint(");
+    bcatcstr(glsl, "), int(");
     TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_INTEGER);
     bcatcstr(glsl, ")))");
     TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
