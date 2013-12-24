@@ -112,4 +112,18 @@ static int PixelInterpDependency(const GLLang eLang)
     return 0;
 }
 
+static int HaveUVec(const GLLang eLang)
+{
+    switch(eLang)
+    {
+	case LANG_ES_100:
+	case LANG_120:
+        return 0;
+	default:
+		break;
+    }
+    return 1;
+}
+
+
 #endif

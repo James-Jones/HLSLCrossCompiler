@@ -267,6 +267,8 @@ typedef struct
 {
     GLLang language;
 
+	int flags;
+
     const char* shaderFile;
     char* outputShaderFile;
 
@@ -282,6 +284,7 @@ typedef struct
 void InitOptions(Options* psOptions)
 {
     psOptions->language = LANG_DEFAULT;
+	psOptions->flags = 0;
     psOptions->numLinkShaders = 0;
     psOptions->reflectPath = NULL;
 
@@ -305,6 +308,7 @@ void PrintHelp()
     printf("Command line options:\n");
     
     printf("\t-lang=X \t GLSL language to use. e.g. es100 or 140.\n");
+	printf("\t-flags=X \t The integer value of the HLSLCC_FLAGS to used.\n");
     printf("\t-reflect=X \t File to write reflection JSON to.\n");
     printf("\t-in=X \t Shader file to compile.\n");
     printf("\t-out=X \t File to write the compiled shader from -in to.\n");
@@ -346,6 +350,12 @@ int GetOptions(int argc, char** argv, Options* psOptions)
 		if(option != NULL)
 		{
             psOptions->language = LanguageFromString((&option[strlen("-lang=")]));
+		}
+
+		option = strstr(argv[i],"-flags=");
+		if(option != NULL)
+		{
+			psOptions->flags = atol(&option[strlen("-flags=")]);
 		}
 
 		option = strstr(argv[i],"-in=");
@@ -557,7 +567,7 @@ int GetOptions(int argc, char** argv, Options* psOptions)
     return 1;
 }
 
-int Run(const char* srcPath, const char* destPath, GLLang language, const char* reflectPath, GLSLCrossDependencyData* dependencies)
+int Run(const char* srcPath, const char* destPath, GLLang language, int flags, const char* reflectPath, GLSLCrossDependencyData* dependencies)
 {
     FILE* outputFile;
     GLSLShader result;
@@ -569,7 +579,7 @@ int Run(const char* srcPath, const char* destPath, GLLang language, const char* 
     InitTimer(&timer);
 
     ResetTimer(&timer);
-    compiledOK = TranslateHLSLFromFile(srcPath, 0, language, dependencies, &result);
+    compiledOK = TranslateHLSLFromFile(srcPath, flags, language, dependencies, &result);
     crossCompileTime = ReadTimer(&timer);
 
     if(compiledOK)
@@ -619,7 +629,7 @@ int main(int argc, char** argv)
 
     if(options.shaderFile)
     {
-        if(!Run(options.shaderFile, options.outputShaderFile, options.language, options.reflectPath, NULL))
+        if(!Run(options.shaderFile, options.outputShaderFile, options.language, options.flags, options.reflectPath, NULL))
         {
             return 1;
         }
@@ -628,7 +638,7 @@ int main(int argc, char** argv)
     GLSLCrossDependencyData depends;
     for(i=0; i<options.numLinkShaders; ++i)
     {
-        if(!Run(options.linkIn[i], options.linkOut[i][0] ? options.linkOut[i] : NULL, options.language, NULL, &depends))
+        if(!Run(options.linkIn[i], options.linkOut[i][0] ? options.linkOut[i] : NULL, options.language, options.flags, NULL, &depends))
         {
             return 1;
         }

@@ -180,6 +180,10 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
     //Some defaults
     psOperand->iWriteMaskEnabled = 1;
     psOperand->iGSInput = 0;
+	psOperand->aeDataType[0] = SVT_FLOAT;
+	psOperand->aeDataType[1] = SVT_FLOAT;
+	psOperand->aeDataType[2] = SVT_FLOAT;
+	psOperand->aeDataType[3] = SVT_FLOAT;
 
     psOperand->iExtended = DecodeIsOperandExtended(*pui32Tokens);
 
@@ -1333,6 +1337,7 @@ void Decode(const uint32_t* pui32Tokens, Shader* psShader)
     const uint32_t ui32ShaderLength = pui32Tokens[1];
     Instruction* psInst;
     Declaration* psDecl;
+
 	psShader->ui32MajorVersion = DecodeProgramMajorVersion(*pui32CurrentToken);
 	psShader->ui32MinorVersion = DecodeProgramMinorVersion(*pui32CurrentToken);
 	psShader->eShaderType = DecodeShaderType(*pui32CurrentToken);

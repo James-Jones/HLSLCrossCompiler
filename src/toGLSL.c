@@ -146,6 +146,17 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
     bcatcstr(glsl,"\tfloat x;\n");
     bcatcstr(glsl,"};\n");
 
+	if(HaveUVec(psContext->psShader->eTargetLanguage))
+	{
+		bcatcstr(glsl,"struct uvec1 {\n");
+		bcatcstr(glsl,"\tuint x;\n");
+		bcatcstr(glsl,"};\n");
+	}
+
+    bcatcstr(glsl,"struct ivec1 {\n");
+    bcatcstr(glsl,"\tint x;\n");
+    bcatcstr(glsl,"};\n");
+
     /*
         OpenGL 4.1 API spec:
         To use any built-in input or output in the gl_PerVertex block in separable
@@ -317,7 +328,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 	psContext->earlyMain = bfromcstralloc (1024, "");
     for(i=0; i<NUM_PHASES;++i)
     {
-        psContext->writeBuiltins[i] = bfromcstralloc (1024, "");
+        psContext->postShaderCode[i] = bfromcstralloc (1024, "");
     }
     psContext->currentGLSLString = &glsl;
     psShader->eTargetLanguage = language;
@@ -361,8 +372,11 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 
         if(psShader->ui32HSControlPointInstrCount)
         {
+			SetDataTypes(psContext, psShader->psHSControlPointPhaseInstr, psShader->ui32HSControlPointInstrCount);
+
             bcatcstr(glsl, "void control_point_phase()\n{\n");
             psContext->indent++;
+
                 for(i=0; i < psShader->ui32HSControlPointInstrCount; ++i)
                 {
                     TranslateInstruction(psContext, psShader->psHSControlPointPhaseInstr+i);
@@ -388,6 +402,8 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
             bformata(glsl, "void fork_phase%d()\n{\n", forkIndex);
             psContext->indent++;
 
+			SetDataTypes(psContext, psShader->apsHSForkPhaseInstr[forkIndex], psShader->aui32HSForkInstrCount[forkIndex]-1);
+
                 if(haveInstancedForkPhase)
                 {
                     AddIndentation(psContext);
@@ -409,16 +425,16 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
                     AddIndentation(psContext);
                     bcatcstr(glsl, "}\n");
 
-                    if(psContext->haveOutputBuiltins[psContext->currentPhase])
+                    if(psContext->havePostShaderCode[psContext->currentPhase])
                     {
 #ifdef _DEBUG
                         AddIndentation(psContext);
-                        bcatcstr(glsl, "//--- Start builtin outputs ---\n");
+                        bcatcstr(glsl, "//--- Post shader code ---\n");
 #endif
-                        bconcat(glsl, psContext->writeBuiltins[psContext->currentPhase]);
+                        bconcat(glsl, psContext->postShaderCode[psContext->currentPhase]);
 #ifdef _DEBUG
                         AddIndentation(psContext);
-                        bcatcstr(glsl, "//--- End builtin outputs ---\n");
+                        bcatcstr(glsl, "//--- End post shader code ---\n");
 #endif
                     }
                 }
@@ -441,6 +457,8 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 
         if(psShader->ui32HSJoinInstrCount)
         {
+			SetDataTypes(psContext, psShader->psHSJoinPhaseInstr, psShader->ui32HSJoinInstrCount);
+
             bcatcstr(glsl, "void join_phase()\n{\n");
             psContext->indent++;
 
@@ -573,6 +591,8 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 
     MarkIntegerImmediates(psContext);
 
+	SetDataTypes(psContext, psShader->psInst, ui32InstCount);
+
     for(i=0; i < ui32InstCount; ++i)
     {
         TranslateInstruction(psContext, psShader->psInst+i);
@@ -634,7 +654,7 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
 
         for(i=0; i<NUM_PHASES;++i)
         {
-            sContext.haveOutputBuiltins[i] = 0;
+            sContext.havePostShaderCode[i] = 0;
         }
 
         TranslateToGLSL(&sContext, &language);
@@ -678,7 +698,7 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
 		bdestroy(sContext.earlyMain);
         for(i=0; i<NUM_PHASES; ++i)
         {
-            bdestroy(sContext.writeBuiltins[i]);
+            bdestroy(sContext.postShaderCode[i]);
         }
 
         free(psShader->psHSControlPointPhaseDecl);

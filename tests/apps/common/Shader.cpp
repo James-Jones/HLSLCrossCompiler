@@ -203,6 +203,7 @@ void ShaderEffect::FromByteFile(std::string& path)
 
     uint_t shader = 0;
 
+#if 0 //Disabled to allow running with only a vertex shader + rasterizer discard.
     if(PixelInterpDependency(result.GLSLLanguage))
     {
         //Must compile pixel shader first!
@@ -211,6 +212,7 @@ void ShaderEffect::FromByteFile(std::string& path)
             ASSERT(0);
         }
     }
+#endif
 
     switch(result.shaderType)
     {
@@ -368,6 +370,11 @@ void ShaderEffect::ApplyGLState()
     }
 }
 
+void ShaderEffect::SetTransformFeedback(const int count, const char * const *varyings)
+{
+	glTransformFeedbackVaryings(mProgram, count, varyings, GL_INTERLEAVED_ATTRIBS);
+}
+
 void ShaderEffect::Link()
 {
     glLinkProgram(mProgram);
@@ -406,26 +413,13 @@ void ShaderEffect::SetTexture(std::string& name, int imageUnit) {
 }
 
 void ShaderEffect::SetVec4(std::string& name, int count, float* v) {
-    int loc = glGetUniformLocation(mProgram, (name + std::string("VS")).c_str());
+    int loc = glGetUniformLocation(mProgram, name.c_str());
     glUniform4fv(loc, count, v);
+}
 
-    if(mDomain != InvalidShaderHandle)
-    {
-        loc = glGetUniformLocation(mProgram, (name + std::string("HS")).c_str());
-        glUniform4fv(loc, count, v);
-
-        loc = glGetUniformLocation(mProgram, (name + std::string("DS")).c_str());
-        glUniform4fv(loc, count, v);
-    }
-
-    if(mGeometry != InvalidShaderHandle)
-    {
-        loc = glGetUniformLocation(mProgram, (name + std::string("GS")).c_str());
-        glUniform4fv(loc, count, v);
-    }
-
-    loc = glGetUniformLocation(mProgram, (name + std::string("PS")).c_str());
-    glUniform4fv(loc, count, v);
+void ShaderEffect::SetFloat(std::string& name, int count, float* v) {
+    int loc = glGetUniformLocation(mProgram, name.c_str());
+    glUniform1fv(loc, count, v);
 }
 
 void ShaderEffect::CreateUniformBlock(std::string& name, uint_t& ubo)

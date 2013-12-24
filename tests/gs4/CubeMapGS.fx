@@ -172,7 +172,7 @@ struct VS_INSTCUBEMAP_IN
 struct GS_INSTCUBEMAP_IN
 {
     float4 Pos : SV_POSITION;     // Projection coord
-    float2 Tex : TEXCOORD0;       // Texture coord
+    float2 Tex : VTX_TEXCOORD0;       // Texture coord
     uint RTIndex : RTARRAYINDEX;
 };
 

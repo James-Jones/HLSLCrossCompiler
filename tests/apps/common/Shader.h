@@ -46,6 +46,7 @@ public:
     void FromGLSLFile(uint_t eShaderType, std::string& path);
 
     void Link();
+	void SetTransformFeedback(const int count, const char * const *varyings);
 
     void Enable();
 
@@ -54,6 +55,7 @@ public:
     void SetTexture(const char* name, int imageUnit);
     void SetTexture(std::string& name, int imageUnit);
     void SetVec4(std::string& name, int count, float* v);
+	void SetFloat(std::string& name, int count, float* v);
     void SetUniformBlock(std::string& name, uint_t bufIndex);
     void SetUniformBlock(std::string& name, uint_t bufIndex, uint_t ubo);
     void SetSubroutineUniforms(uint_t eShaderType, SubroutineLink* link, int numLinks);

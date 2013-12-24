@@ -44,6 +44,9 @@ typedef struct Operand_TAG
 
     struct Operand_TAG* psSubOperand[MAX_SUB_OPERANDS];
 
+	//One type for each component.
+	SHADER_VARIABLE_TYPE aeDataType[4];
+
 #ifdef _DEBUG
     uint64_t id;
 #endif
@@ -126,6 +129,8 @@ typedef struct Declaration_TAG
 	uint32_t ui32IsShadowTex;
 
 } Declaration;
+
+static enum {MAX_TEMP_VEC4 = 512};
 
 typedef struct Shader_TAG
 {
@@ -219,11 +224,11 @@ typedef struct HLSLCrossCompilerContext_TAG
 {
     bstring glsl;
 	bstring earlyMain;//Code to be inserted at the start of main()
-    bstring writeBuiltins[NUM_PHASES];//End of main or before emit()
+    bstring postShaderCode[NUM_PHASES];//End of main or before emit()
 
     bstring* currentGLSLString;//either glsl or earlyMain
 
-    int haveOutputBuiltins[NUM_PHASES];
+    int havePostShaderCode[NUM_PHASES];
     uint32_t currentPhase;
 
     int indent;
