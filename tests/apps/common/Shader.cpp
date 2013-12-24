@@ -417,6 +417,11 @@ void ShaderEffect::SetVec4(std::string& name, int count, float* v) {
     glUniform4fv(loc, count, v);
 }
 
+void ShaderEffect::SetFloat(std::string& name, int count, float* v) {
+    int loc = glGetUniformLocation(mProgram, name.c_str());
+    glUniform1fv(loc, count, v);
+}
+
 void ShaderEffect::CreateUniformBlock(std::string& name, uint_t& ubo)
 {
 	GLuint bufferID;

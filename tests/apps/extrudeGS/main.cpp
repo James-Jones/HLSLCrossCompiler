@@ -82,13 +82,13 @@ public:
 		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameGS.World"), 4, gChangesEveryFrame.World);
 		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameGS.View"), 4, gChangesEveryFrame.View);
 		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameGS.Projection"), 4, gChangesEveryFrame.Projection);
-		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameGS.Time"), 1, &gChangesEveryFrame.Time);
+		mExtrudeEffect.SetFloat(std::string("cbChangesEveryFrameGS.Time"), 1, &gChangesEveryFrame.Time);
 
 		SetFloatArray(vLightDirs, &gConstant.vLightDir[0]);
-		mExtrudeEffect.SetVec4(std::string("cbConstantPS.vLightDir"), 1, (float*)&gConstant);
+		mExtrudeEffect.SetVec4(std::string("cbConstantPS.vLightDir"), 1, &gConstant.vLightDir[0]);
 
 		gUserChanges.Explode = gExplode;
-		mExtrudeEffect.SetVec4(std::string("cbUserChangesGS.Explode"), 1, (float*)&gUserChanges);
+		mExtrudeEffect.SetFloat(std::string("cbUserChangesGS.Explode"), 1, (float*)&gUserChanges.Explode);
 
         mExtrudeEffect.SetTexture(std::string("g_txDiffuse"), 0);
 	}
