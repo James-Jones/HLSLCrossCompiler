@@ -1022,11 +1022,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 				{
 					bcatcstr(glsl, ");\n");
 				}
-
-				//Change type at the end in case dest and src are the same register.
-				/*SetOperandDataType(psContext,
-				&psInst->asOperands[0],
-				SVT_UINT);*/
 			}
 			else
 			if(psInst->eOpcode == OPCODE_FTOI)
@@ -1054,11 +1049,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 				{
 					bcatcstr(glsl, ");\n");
 				}
-
-				//Change type at the end in case dest and src are the same register.
-				/*SetOperandDataType(psContext,
-				&psInst->asOperands[0],
-				SVT_INT);*/
 			}
 			else
 			{
@@ -1098,9 +1088,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 					AddSwizzleUsingElementCount(psContext, dstCount);
 				}
 				bcatcstr(glsl, ";\n");
-
-				//Dest and src might be the same register so set the type again.
-				//SetOperandDataType(psContext, &psInst->asOperands[0], eSrcType);
 			}
             break;
         }
@@ -1124,17 +1111,12 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			}
 #endif
             AddIndentation(psContext);
-			//SetOperandDataType(psContext, &psInst->asOperands[0], SVT_FLOAT);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
             bcatcstr(glsl, " = vec4(");
-			//SetOperandDataType(psContext, &psInst->asOperands[1], eSrcType);
             TranslateOperand(psContext, &psInst->asOperands[1], (eSrcType == SVT_INT) ? TO_FLAG_INTEGER : TO_FLAG_UNSIGNED_INTEGER);
             bcatcstr(glsl, ")");
             TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ";\n");
-			
-			//Dest and src might be the same register so set the type again.
-			//SetOperandDataType(psContext, &psInst->asOperands[0], SVT_FLOAT);
             break;
         }
         case OPCODE_MAD:
