@@ -672,20 +672,10 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
                 GetUAVBufferFromBindingPoint(psBinding->ui32BindPoint, &psShader->sInfo, &psBuffer);
                 psDecl->sUAV.ui32BufferSize = psBuffer->ui32TotalSizeInBytes;
             }
-            else if(GetResourceFromBindingPoint(RTYPE_UAV_RWSTRUCTURED_WITH_COUNTER, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding))
-            {
-                GetUAVBufferFromBindingPoint(psBinding->ui32BindPoint, &psShader->sInfo, &psBuffer);
-                psDecl->sUAV.ui32BufferSize = psBuffer->ui32TotalSizeInBytes;
-				psDecl->sUAV.bCounter = 1;
-            }
-            else if(GetResourceFromBindingPoint(RTYPE_UAV_APPEND_STRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding))
-            {
-                GetUAVBufferFromBindingPoint(psBinding->ui32BindPoint, &psShader->sInfo, &psBuffer);
-                psDecl->sUAV.ui32BufferSize = psBuffer->ui32TotalSizeInBytes;
-				psDecl->sUAV.bCounter = 1;
-            }
-            else if(GetResourceFromBindingPoint(RTYPE_UAV_CONSUME_STRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding))
-            {
+            else if(GetResourceFromBindingPoint(RTYPE_UAV_RWSTRUCTURED_WITH_COUNTER, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding) ||
+				GetResourceFromBindingPoint(RTYPE_UAV_APPEND_STRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding) ||
+				GetResourceFromBindingPoint(RTYPE_UAV_CONSUME_STRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding))
+            { 
                 GetUAVBufferFromBindingPoint(psBinding->ui32BindPoint, &psShader->sInfo, &psBuffer);
                 psDecl->sUAV.ui32BufferSize = psBuffer->ui32TotalSizeInBytes;
 				psDecl->sUAV.bCounter = 1;
