@@ -633,6 +633,8 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
             psDecl->ui32NumOperands = 1;
             psDecl->value.eResourceDimension = DecodeResourceDimension(*pui32Token);
             psDecl->sUAV.ui32GloballyCoherentAccess = DecodeAccessCoherencyFlags(*pui32Token);
+			psDecl->sUAV.bCounter = 0;
+			psDecl->sUAV.ui32BufferSize = 0;
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
@@ -643,6 +645,8 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 
             psDecl->ui32NumOperands = 1;
             psDecl->sUAV.ui32GloballyCoherentAccess = DecodeAccessCoherencyFlags(*pui32Token);
+			psDecl->sUAV.bCounter = 0;
+			psDecl->sUAV.ui32BufferSize = 0;
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
 
             if(GetResourceFromBindingPoint(RTYPE_UAV_RWBYTEADDRESS, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding))
@@ -659,12 +663,32 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 
             psDecl->ui32NumOperands = 1;
             psDecl->sUAV.ui32GloballyCoherentAccess = DecodeAccessCoherencyFlags(*pui32Token);
+			psDecl->sUAV.bCounter = 0;
+			psDecl->sUAV.ui32BufferSize = 0;
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
 
             if(GetResourceFromBindingPoint(RTYPE_UAV_RWSTRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding))
             {
                 GetUAVBufferFromBindingPoint(psBinding->ui32BindPoint, &psShader->sInfo, &psBuffer);
                 psDecl->sUAV.ui32BufferSize = psBuffer->ui32TotalSizeInBytes;
+            }
+            else if(GetResourceFromBindingPoint(RTYPE_UAV_RWSTRUCTURED_WITH_COUNTER, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding))
+            {
+                GetUAVBufferFromBindingPoint(psBinding->ui32BindPoint, &psShader->sInfo, &psBuffer);
+                psDecl->sUAV.ui32BufferSize = psBuffer->ui32TotalSizeInBytes;
+				psDecl->sUAV.bCounter = 1;
+            }
+            else if(GetResourceFromBindingPoint(RTYPE_UAV_APPEND_STRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding))
+            {
+                GetUAVBufferFromBindingPoint(psBinding->ui32BindPoint, &psShader->sInfo, &psBuffer);
+                psDecl->sUAV.ui32BufferSize = psBuffer->ui32TotalSizeInBytes;
+				psDecl->sUAV.bCounter = 1;
+            }
+            else if(GetResourceFromBindingPoint(RTYPE_UAV_CONSUME_STRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding))
+            {
+                GetUAVBufferFromBindingPoint(psBinding->ui32BindPoint, &psShader->sInfo, &psBuffer);
+                psDecl->sUAV.ui32BufferSize = psBuffer->ui32TotalSizeInBytes;
+				psDecl->sUAV.bCounter = 1;
             }
             break;
         }

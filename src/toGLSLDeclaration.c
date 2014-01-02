@@ -1989,6 +1989,12 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         case OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED:
         case OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW:
         {
+
+			if(psDecl->sUAV.bCounter)
+			{
+				bformata(glsl, "layout (binding = 1) uniform atomic_uint UAV%d_counter;\n", psDecl->asOperands[0].ui32RegisterNumber);
+			}
+
             if(psDecl->sUAV.ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
             {
                 bcatcstr(glsl, "coherent ");

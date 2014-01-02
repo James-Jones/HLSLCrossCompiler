@@ -122,6 +122,7 @@ typedef struct Declaration_TAG
     {
         uint32_t ui32GloballyCoherentAccess;
         uint32_t ui32BufferSize;
+		uint8_t bCounter;
     } sUAV;
 
     uint32_t ui32TableLength;

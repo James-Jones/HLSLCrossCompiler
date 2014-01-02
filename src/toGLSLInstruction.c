@@ -793,6 +793,8 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		case OPCODE_UMIN:
 		case OPCODE_USHR:
 		case OPCODE_LD_UAV_TYPED:
+		case OPCODE_IMM_ATOMIC_ALLOC:
+		case OPCODE_IMM_ATOMIC_CONSUME:
 			{
 				eNewType = SVT_UINT;
 				break;
@@ -2763,9 +2765,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
             bcatcstr(glsl, " = atomicAdd(");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
             bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_INTEGER);
             bcatcstr(glsl, ");\n");
             break;
         }
@@ -3016,9 +3018,34 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			break;
 		}
 
+		case OPCODE_IMM_ATOMIC_ALLOC:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//IMM_ATOMIC_ALLOC\n");
+#endif
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
+            bcatcstr(glsl, " = atomicCounterIncrement(");
+			bformata(glsl, "UAV%d_counter", psInst->asOperands[1].ui32RegisterNumber);
+            bcatcstr(glsl, ");\n");
+            break;
+		}
+		case OPCODE_IMM_ATOMIC_CONSUME:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//IMM_ATOMIC_CONSUME\n");
+#endif
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
+            bcatcstr(glsl, " = atomicCounterDecrement(");
+			bformata(glsl, "UAV%d_counter", psInst->asOperands[1].ui32RegisterNumber);
+            bcatcstr(glsl, ");\n");
+            break;
+		}
+
         case OPCODE_SWAPC:
-        case OPCODE_IMM_ATOMIC_ALLOC:
-        case OPCODE_IMM_ATOMIC_CONSUME:
         case OPCODE_IMM_ATOMIC_IADD:
         case OPCODE_IMM_ATOMIC_AND:
         case OPCODE_IMM_ATOMIC_OR:
