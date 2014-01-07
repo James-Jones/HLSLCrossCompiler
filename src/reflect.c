@@ -137,27 +137,48 @@ static const uint32_t* ReadResourceBinding(const uint32_t* pui32FirstResourceTok
     return pui32Tokens;
 }
 
-static void ReadShaderVariableType(const uint32_t ui32MajorVersion, const uint32_t* pui32tokens, ShaderVarType* varType)
+//Read D3D11_SHADER_TYPE_DESC
+static void ReadShaderVariableType(const uint32_t ui32MajorVersion,
+								   const uint32_t* pui32FirstConstBufToken,
+								   const uint32_t* pui32tokens, ShaderVarType* varType)
 {
     const uint16_t* pui16Tokens = (const uint16_t*) pui32tokens;
     uint16_t ui32MemberCount;
     uint32_t ui32MemberOffset;
-
+	const uint32_t* pui32MemberTokens;
+	uint32_t i;
 
     varType->Class = (SHADER_VARIABLE_CLASS)pui16Tokens[0];
     varType->Type = (SHADER_VARIABLE_TYPE)pui16Tokens[1];
     varType->Rows = pui16Tokens[2];
     varType->Columns = pui16Tokens[3];
     varType->Elements = pui16Tokens[4];
+	varType->Offset = 0;
 
-    ui32MemberCount = pui16Tokens[5];
+    varType->MemberCount = ui32MemberCount = pui16Tokens[5];
+	varType->Members = 0;
 
-    ui32MemberOffset = pui32tokens[4];
+	if(ui32MemberCount)
+	{
+		varType->Members = (ShaderVarType*)malloc(sizeof(ShaderVarType)*ui32MemberCount);
 
-    if (ui32MajorVersion  >= 5)
-    {
-    }
+		ui32MemberOffset = pui32tokens[3];
+	
+		pui32MemberTokens = (const uint32_t*)((const char*)pui32FirstConstBufToken+ui32MemberOffset);
 
+		for(i=0; i< ui32MemberCount; ++i)
+		{
+			uint32_t ui32NameOffset = *pui32MemberTokens++;
+			uint32_t ui32MemberTypeOffset = *pui32MemberTokens++;
+			
+			varType->Members[i].Offset = *pui32MemberTokens++;
+
+			ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstConstBufToken+ui32NameOffset), varType->Members[i].Name);
+
+			ReadShaderVariableType(ui32MajorVersion, pui32FirstConstBufToken, 
+				(const uint32_t*)((const char*)pui32FirstConstBufToken+ui32MemberTypeOffset), &varType->Members[i]);
+		}
+	}
 }
 
 static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
@@ -191,7 +212,8 @@ static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
         ui32Flags = *pui32VarToken++;
         ui32TypeOffset = *pui32VarToken++;
 
-        ReadShaderVariableType(psShaderInfo->ui32MajorVersion, (const uint32_t*)((const char*)pui32FirstConstBufToken+ui32TypeOffset), &psVar->sType);
+        ReadShaderVariableType(psShaderInfo->ui32MajorVersion, pui32FirstConstBufToken, 
+			(const uint32_t*)((const char*)pui32FirstConstBufToken+ui32TypeOffset), &psVar->sType);
 
         ui32DefaultValueOffset = *pui32VarToken++;
 
@@ -224,24 +246,6 @@ static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
 			{
 				psVar->pui32DefaultValues[i] = pui32DefaultValToken[i];
 			}
-        }
-
-        if(ui32TypeOffset)
-        {
-            //D3D11_SHADER_TYPE_DESC
-            const uint16_t* pui16TypeToken = (const uint16_t*)((const char*)pui32FirstConstBufToken+ui32TypeOffset);
-
-            uint16_t varClass = *pui16TypeToken++;
-            uint16_t varType = *pui16TypeToken++;
-
-            uint16_t varRows = *pui16TypeToken++;
-            uint16_t varCols = *pui16TypeToken++;
-
-            uint16_t varElemCount = *pui16TypeToken++;
-            uint16_t varMemberCount = *pui16TypeToken++;
-
-            uint32_t varMemberOffset = *pui16TypeToken++ << 16;
-            varMemberOffset |= *pui16TypeToken++;
         }
     }
 
@@ -824,7 +828,8 @@ void LoadD3D9ConstantTable(const char* data,
 			var->sType.Rows = typeInfo->rows;
 			var->sType.Columns = typeInfo->columns;
 			var->sType.Elements = typeInfo->elements;
-			var->sType.Members = typeInfo->structMembers;
+			var->sType.MemberCount = typeInfo->structMembers;
+			var->sType.Members = 0;
 			var->sType.Offset = 0;
 
 			switch(typeInfo->typeClass)

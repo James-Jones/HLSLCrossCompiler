@@ -222,9 +222,11 @@ typedef struct ShaderVarType_TAG {
   uint32_t                  Rows;
   uint32_t                      Columns;
   uint32_t                      Elements;
-  uint32_t                      Members;
+  uint32_t                      MemberCount;
   uint32_t                      Offset;
   char                    Name[MAX_REFLECT_STRING_LENGTH];
+
+  struct ShaderVarType_TAG * Members;
 } ShaderVarType;
 
 typedef struct ShaderVar_TAG
