@@ -153,10 +153,18 @@ static void ReadShaderVariableType(const uint32_t ui32MajorVersion,
     varType->Rows = pui16Tokens[2];
     varType->Columns = pui16Tokens[3];
     varType->Elements = pui16Tokens[4];
-	varType->Offset = 0;
 
     varType->MemberCount = ui32MemberCount = pui16Tokens[5];
 	varType->Members = 0;
+
+	if(varType->ParentCount)
+	{
+		ASSERT( (strlen(varType->Parent->FullName) + 1 + strlen(varType->Name) + 1 + 2) < MAX_REFLECT_STRING_LENGTH);
+
+		strcpy(varType->FullName, varType->Parent->FullName);
+		strcat(varType->FullName, ".");
+		strcat(varType->FullName, varType->Name);
+	}
 
 	if(ui32MemberCount)
 	{
@@ -171,6 +179,9 @@ static void ReadShaderVariableType(const uint32_t ui32MajorVersion,
 			uint32_t ui32NameOffset = *pui32MemberTokens++;
 			uint32_t ui32MemberTypeOffset = *pui32MemberTokens++;
 			
+			varType->Members[i].Parent = varType;
+			varType->Members[i].ParentCount = varType->ParentCount + 1;
+
 			varType->Members[i].Offset = *pui32MemberTokens++;
 
 			ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstConstBufToken+ui32NameOffset), varType->Members[i].Name);
@@ -211,6 +222,12 @@ static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
         psVar->ui32Size = *pui32VarToken++;
         ui32Flags = *pui32VarToken++;
         ui32TypeOffset = *pui32VarToken++;
+
+		strcpy(psVar->sType.Name, psVar->Name);
+		strcpy(psVar->sType.FullName, psVar->Name);
+		psVar->sType.Parent = 0;
+		psVar->sType.ParentCount = 0;
+		psVar->sType.Offset = 0;
 
         ReadShaderVariableType(psShaderInfo->ui32MajorVersion, pui32FirstConstBufToken, 
 			(const uint32_t*)((const char*)pui32FirstConstBufToken+ui32TypeOffset), &psVar->sType);
@@ -544,7 +561,81 @@ int GetOutputSignatureFromSystemValue(SPECIAL_NAME eSystemValueType, uint32_t ui
     return 0;
 }
 
-int GetShaderVarFromOffset(const uint32_t ui32Vec4Offset, const uint32_t* pui32Swizzle, ConstantBuffer* psCBuf, ShaderVar** ppsShaderVar, int32_t* pi32Index)
+static int IsOffsetInType(ShaderVarType* psType, uint32_t parentOffset, uint32_t offsetToFind, const uint32_t* pui32Swizzle, int32_t* pi32Index)
+{
+	uint32_t thisOffset = parentOffset + psType->Offset;
+	uint32_t thisSize = psType->Columns * psType->Rows * 4;
+
+	if(psType->Elements)
+	{
+		thisSize *= psType->Elements;
+	}
+
+    if(psType->Class == SVC_SCALAR)
+    {
+        //Swizzle can point to another variable. In the example below
+		//cbUIUpdates.g_uMaxFaces would be cb1[2].z. The scalars are combined
+		//into vectors. psCBuf->ui32NumVars will be 3.
+
+		// cbuffer cbUIUpdates
+		// {
+		//
+		//   float g_fLifeSpan;                 // Offset:    0 Size:     4
+		//   float g_fLifeSpanVar;              // Offset:    4 Size:     4 [unused]
+		//   float g_fRadiusMin;                // Offset:    8 Size:     4 [unused]
+		//   float g_fRadiusMax;                // Offset:   12 Size:     4 [unused]
+		//   float g_fGrowTime;                 // Offset:   16 Size:     4 [unused]
+		//   float g_fStepSize;                 // Offset:   20 Size:     4
+		//   float g_fTurnRate;                 // Offset:   24 Size:     4
+		//   float g_fTurnSpeed;                // Offset:   28 Size:     4 [unused]
+		//   float g_fLeafRate;                 // Offset:   32 Size:     4
+		//   float g_fShrinkTime;               // Offset:   36 Size:     4 [unused]
+		//   uint g_uMaxFaces;                  // Offset:   40 Size:     4
+		//
+		// }
+
+		// Name                                 Type  Format         Dim Slot Elements
+		// ------------------------------ ---------- ------- ----------- ---- --------
+		// cbUIUpdates                       cbuffer      NA          NA    1        1
+
+        if(pui32Swizzle[0] == OPERAND_4_COMPONENT_Y)
+        {
+            offsetToFind += 4;
+        }
+        else
+        if(pui32Swizzle[0] == OPERAND_4_COMPONENT_Z)
+        {
+            offsetToFind += 8;
+        }
+        else
+        if(pui32Swizzle[0] == OPERAND_4_COMPONENT_W)
+        {
+            offsetToFind += 12;
+        }
+	}
+
+	if((offsetToFind >= thisOffset) &&
+		offsetToFind < (thisOffset + thisSize))
+	{
+
+        if(psType->Class == SVC_MATRIX_ROWS || 
+            psType->Class == SVC_MATRIX_COLUMNS)
+        {
+			//Matrices are treated as arrays of vectors.
+			pi32Index[0] = (offsetToFind - thisOffset) / 16;
+        }
+		//Check for array of vectors
+		else if(psType->Class == SVC_VECTOR && psType->Elements > 1)
+		{
+			pi32Index[0] = (offsetToFind - thisOffset) / 16;
+		}
+
+		return 1;
+	}
+	return 0;
+}
+
+int GetShaderVarFromOffset(const uint32_t ui32Vec4Offset, const uint32_t* pui32Swizzle, ConstantBuffer* psCBuf, ShaderVarType** ppsShaderVar, int32_t* pi32Index)
 {
     uint32_t i;
     const uint32_t ui32BaseByteOffset = ui32Vec4Offset * 16;
@@ -555,57 +646,31 @@ int GetShaderVarFromOffset(const uint32_t ui32Vec4Offset, const uint32_t* pui32S
 
     for(i=0; i<ui32NumVars; ++i)
     {
-        if(ui32ByteOffset >= psCBuf->asVars[i].ui32StartOffset && 
-            ui32ByteOffset < (psCBuf->asVars[i].ui32StartOffset + psCBuf->asVars[i].ui32Size))
-	    {
-            if(psCBuf->asVars[i].sType.Class == SVC_SCALAR)
-            {
-                //Swizzle can point to another variable.
-                if(pui32Swizzle[0] == OPERAND_4_COMPONENT_Y)
-                {
-                    ui32ByteOffset += 4;
-                }
-                else
-                if(pui32Swizzle[0] == OPERAND_4_COMPONENT_Z)
-                {
-                    ui32ByteOffset += 8;
-                }
-                else
-                if(pui32Swizzle[0] == OPERAND_4_COMPONENT_W)
-                {
-                    ui32ByteOffset += 12;
-                }
+		if(psCBuf->asVars[i].sType.Class == SVC_STRUCT)
+		{
+			uint32_t m = 0;
 
-                for(;i<ui32NumVars; ++i)
-                {
-                    if(ui32ByteOffset >= psCBuf->asVars[i].ui32StartOffset && 
-                        ui32ByteOffset < (psCBuf->asVars[i].ui32StartOffset + psCBuf->asVars[i].ui32Size))
-                    {
-		                *ppsShaderVar = &psCBuf->asVars[i];
-		                return 1;
-                    }
-                }
-            }
-            else
-            {
-                if(psCBuf->asVars[i].sType.Class == SVC_MATRIX_ROWS || 
-                    psCBuf->asVars[i].sType.Class == SVC_MATRIX_COLUMNS)
-                {
-                    if(psCBuf->asVars[i].ui32Size > 4)
-                    {
-                        pi32Index[0] = (ui32ByteOffset - psCBuf->asVars[i].ui32StartOffset) / 16;
-                    }
-                }
+			for(m=0; m < psCBuf->asVars[i].sType.MemberCount; ++m)
+			{
+				ShaderVarType* psMember = psCBuf->asVars[i].sType.Members + m;
 
-				if(psCBuf->asVars[i].sType.Class == SVC_VECTOR && psCBuf->asVars[i].sType.Elements > 1)
+				ASSERT(psMember->Class != SVC_STRUCT);
+
+				if(IsOffsetInType(psMember, psCBuf->asVars[i].ui32StartOffset, ui32ByteOffset, pui32Swizzle, pi32Index))
 				{
-					pi32Index[0] = (ui32ByteOffset - psCBuf->asVars[i].ui32StartOffset) / 16;
+					ppsShaderVar[0] = psMember;
+					return 1;
 				}
-
-		        *ppsShaderVar = &psCBuf->asVars[i];
-		        return 1;
-            }
-	    }
+			}
+		}
+		else
+		{
+			if(IsOffsetInType(&psCBuf->asVars[i].sType, psCBuf->asVars[i].ui32StartOffset, ui32ByteOffset, pui32Swizzle, pi32Index))
+			{
+				ppsShaderVar[0] = &psCBuf->asVars[i].sType;
+				return 1;
+			}
+		}
     }
     return 0;
 }
@@ -831,6 +896,9 @@ void LoadD3D9ConstantTable(const char* data,
 			var->sType.MemberCount = typeInfo->structMembers;
 			var->sType.Members = 0;
 			var->sType.Offset = 0;
+			strcpy(var->sType.FullName, var->Name);
+			var->sType.Parent = 0;
+			var->sType.ParentCount = 0;
 
 			switch(typeInfo->typeClass)
 			{

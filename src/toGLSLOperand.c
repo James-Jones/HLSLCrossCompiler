@@ -880,7 +880,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         {
             const char* StageName = "VS";
             ConstantBuffer* psCBuf = NULL;
-            ShaderVar* psVar = NULL;
+            ShaderVarType* psVarType = NULL;
             int32_t index = -1;
             GetConstantBufferFromBindingPoint(psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
 
@@ -943,9 +943,9 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             {
                 //Work out the variable name. Don't apply swizzle to that variable yet.
 
-                GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVar, &index);
+                GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index);
 
-                bformata(glsl, "%s", psVar->Name);
+				bformata(glsl, "%s", psVarType->FullName);
 
 				//Dx9 only?
 				if(psOperand->psSubOperand[0] != NULL)
@@ -978,7 +978,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 					bcatcstr(glsl, ")]");
 				}
 
-				if(psVar->sType.Class == SVC_SCALAR)
+				if(psVarType->Class == SVC_SCALAR)
 				{
 					*pui32IgnoreSwizzle = 1;
 				}
@@ -1203,14 +1203,14 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
 	else if(psOperand->eType == OPERAND_TYPE_CONSTANT_BUFFER)
 	{
         ConstantBuffer* psCBuf = NULL;
-        ShaderVar* psVar = NULL;
+        ShaderVarType* psVarType = NULL;
         int32_t index = -1;
 		int foundVar;
         GetConstantBufferFromBindingPoint(psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
-		foundVar = GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVar, &index);
+		foundVar = GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index);
 		if(foundVar && index == -1 && psOperand->psSubOperand[1] == NULL)
 		{
-			return psVar->sType.Type;
+			return psVarType->Type;
 		}
 	}
 	else if(psOperand->eType == OPERAND_TYPE_IMMEDIATE32)

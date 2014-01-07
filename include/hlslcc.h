@@ -226,6 +226,11 @@ typedef struct ShaderVarType_TAG {
   uint32_t                      Offset;
   char                    Name[MAX_REFLECT_STRING_LENGTH];
 
+  uint32_t ParentCount;
+  struct ShaderVarType_TAG * Parent;
+  //Includes all parent names.
+  char                    FullName[MAX_REFLECT_STRING_LENGTH];
+
   struct ShaderVarType_TAG * Members;
 } ShaderVarType;
 

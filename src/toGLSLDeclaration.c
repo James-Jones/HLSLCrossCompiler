@@ -65,19 +65,21 @@ const uint32_t GetTypeElementCount(GLVARTYPE eType)
     }
 }
 
-
-
-void DeclareConstBufferShaderVariable(bstring glsl, const ShaderVar* psVar)
+void DeclareConstBufferShaderVariable(bstring glsl, const char* Name, const struct ShaderVarType_TAG* psType)
 	//const SHADER_VARIABLE_CLASS eClass, const SHADER_VARIABLE_TYPE eType,
     //const char* pszName)
 {
-	if(psVar->sType.Class == SVC_MATRIX_COLUMNS || psVar->sType.Class == SVC_MATRIX_ROWS)
+	if(psType->Class == SVC_STRUCT)
+	{
+		bformata(glsl, "\t%s_Type %s;\n", Name, Name);
+	}
+	else if(psType->Class == SVC_MATRIX_COLUMNS || psType->Class == SVC_MATRIX_ROWS)
     {
-        switch(psVar->sType.Type)
+        switch(psType->Type)
         {
             case SVT_FLOAT:
             {
-                bformata(glsl, "\tvec4 %s[4", psVar->Name);
+                bformata(glsl, "\tvec4 %s[4", Name);
                 break;
             }
 			default:
@@ -86,35 +88,35 @@ void DeclareConstBufferShaderVariable(bstring glsl, const ShaderVar* psVar)
 				break;
 			}
         }
-		if(psVar->sType.Elements > 1)
+		if(psType->Elements > 1)
 		{
-			bformata(glsl, " * %d", psVar->sType.Elements);
+			bformata(glsl, " * %d", psType->Elements);
 		}
 		bformata(glsl, "];\n");
     }
     else
-    if(psVar->sType.Class == SVC_VECTOR)
+    if(psType->Class == SVC_VECTOR)
     {
-        switch(psVar->sType.Type)
+        switch(psType->Type)
         {
             case SVT_FLOAT:
             {
-                bformata(glsl, "\tvec4 %s", psVar->Name);
+                bformata(glsl, "\tvec4 %s", Name);
                 break;
             }
             case SVT_UINT:
             {
-                bformata(glsl, "\tuvec4 %s", psVar->Name);
+                bformata(glsl, "\tuvec4 %s", Name);
                 break;
             }
             case SVT_INT:
             {
-                bformata(glsl, "\tivec4 %s", psVar->Name);
+                bformata(glsl, "\tivec4 %s", Name);
                 break;
             }
             case SVT_DOUBLE:
             {
-                bformata(glsl, "\tdvec4 %s", psVar->Name);
+                bformata(glsl, "\tdvec4 %s", Name);
                 break;
             }
 			default:
@@ -124,35 +126,35 @@ void DeclareConstBufferShaderVariable(bstring glsl, const ShaderVar* psVar)
 			}
         }
 
-		if(psVar->sType.Elements > 1)
+		if(psType->Elements > 1)
 		{
-			bformata(glsl, "[%d]", psVar->sType.Elements);
+			bformata(glsl, "[%d]", psType->Elements);
 		}
 		bformata(glsl, ";\n");
     }
     else
-    if(psVar->sType.Class == SVC_SCALAR)
+    if(psType->Class == SVC_SCALAR)
     {
-        switch(psVar->sType.Type)
+        switch(psType->Type)
         {
             case SVT_FLOAT:
             {
-                bformata(glsl, "\tfloat %s", psVar->Name);
+                bformata(glsl, "\tfloat %s", Name);
                 break;
             }
             case SVT_UINT:
             {
-                bformata(glsl, "\tuint %s", psVar->Name);
+                bformata(glsl, "\tuint %s", Name);
                 break;
             }
             case SVT_INT:
             {
-                bformata(glsl, "\tint %s", psVar->Name);
+                bformata(glsl, "\tint %s", Name);
                 break;
             }
             case SVT_DOUBLE:
             {
-                bformata(glsl, "\tdouble %s", psVar->Name);
+                bformata(glsl, "\tdouble %s", Name);
                 break;
             }
 			case SVT_BOOL:
@@ -160,7 +162,7 @@ void DeclareConstBufferShaderVariable(bstring glsl, const ShaderVar* psVar)
 				//Use int instead of bool.
 				//Allows implicit conversions to integer and
 				//bool consumes 4-bytes in HLSL and GLSL anyway.
-				bformata(glsl, "\tint %s", psVar->Name);
+				bformata(glsl, "\tint %s", Name);
 				break;
 			}
 			default:
@@ -170,12 +172,30 @@ void DeclareConstBufferShaderVariable(bstring glsl, const ShaderVar* psVar)
 			}
         }
 
-		if(psVar->sType.Elements > 1)
+		if(psType->Elements > 1)
 		{
-			bformata(glsl, "[%d]", psVar->sType.Elements);
+			bformata(glsl, "[%d]", psType->Elements);
 		}
 		bformata(glsl, ";\n");
     }
+}
+
+//In GLSL embedded structure definitions are not supported.
+void PreDeclareStructType(bstring glsl, const char* Name, const struct ShaderVarType_TAG* psType)
+{
+	if(psType->Class == SVC_STRUCT)
+	{
+		uint32_t i;
+		bformata(glsl, "struct %s_Type {\n", Name);
+
+		for(i=0; i<psType->MemberCount; ++i)
+		{
+			ASSERT(psType->Members != 0);
+			DeclareConstBufferShaderVariable(glsl, psType->Members[i].Name, &psType->Members[i]);
+		}
+
+		bformata(glsl, "};\n");
+	}
 }
 
 const char* GetDeclaredInputName(const HLSLCrossCompilerContext* psContext, const SHADER_TYPE eShaderType, const Operand* psOperand)
@@ -932,6 +952,13 @@ void DeclareUBOConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui3
 		Name++;
 	}
 
+	for(i=0; i < psCBuf->ui32NumVars; ++i)
+	{
+        PreDeclareStructType(glsl,
+			psCBuf->asVars[i].Name,
+            &psCBuf->asVars[i].sType);
+	}
+
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
     if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
         bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
@@ -941,17 +968,62 @@ void DeclareUBOConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui3
     for(i=0; i < psCBuf->ui32NumVars; ++i)
     {
         DeclareConstBufferShaderVariable(glsl,
-            &psCBuf->asVars[i]);
+			psCBuf->asVars[i].Name,
+            &psCBuf->asVars[i].sType);
     }
                 
     bcatcstr(glsl, "};\n");
 }
+
+void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t ui32BindingPoint,
+							ConstantBuffer* psCBuf, const Operand* psOperand,
+							const uint32_t ui32GloballyCoherentAccess,
+							bstring glsl)
+{
+    uint32_t i;
+
+	for(i=0; i < psCBuf->ui32NumVars; ++i)
+	{
+        PreDeclareStructType(glsl,
+			psCBuf->asVars[i].Name,
+            &psCBuf->asVars[i].sType);
+	}
+
+    /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
+    if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
+        bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
+
+    if(ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
+    {
+        bcatcstr(glsl, "coherent ");
+    }
+
+    bcatcstr(glsl, "buffer ");
+    TranslateOperand(psContext, psOperand, TO_FLAG_DECLARATION_NAME);
+
+    for(i=0; i < psCBuf->ui32NumVars; ++i)
+    {
+        DeclareConstBufferShaderVariable(glsl,
+			psCBuf->asVars[i].Name,
+            &psCBuf->asVars[i].sType);
+    }
+                
+    bcatcstr(glsl, "};\n ");
+}
+
 
 void DeclareStructConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui32BindingPoint,
 							ConstantBuffer* psCBuf, const Operand* psOperand,
 							bstring glsl)
 {
     uint32_t i;
+
+	for(i=0; i < psCBuf->ui32NumVars; ++i)
+	{
+        PreDeclareStructType(glsl,
+			psCBuf->asVars[i].Name,
+            &psCBuf->asVars[i].sType);
+	}
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
     if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
@@ -964,7 +1036,8 @@ void DeclareStructConstants(HLSLCrossCompilerContext* psContext, const uint32_t 
     for(i=0; i < psCBuf->ui32NumVars; ++i)
     {
         DeclareConstBufferShaderVariable(glsl,
-            &psCBuf->asVars[i]);
+			psCBuf->asVars[i].Name,
+            &psCBuf->asVars[i].sType);
     }
                 
     bcatcstr(glsl, "} ");
@@ -1989,21 +2062,25 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         case OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED:
         case OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW:
         {
+			const uint32_t ui32BindingPoint = psDecl->asOperands[0].aui32ArraySizes[0];
+			ConstantBuffer* psCBuf = NULL;
 
 			if(psDecl->sUAV.bCounter)
 			{
 				bformata(glsl, "layout (binding = 1) uniform atomic_uint UAV%d_counter;\n", psDecl->asOperands[0].ui32RegisterNumber);
 			}
 
-            if(psDecl->sUAV.ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
-            {
-                bcatcstr(glsl, "coherent ");
-            }
-            bcatcstr(glsl, "buffer someType { ");
+			GetConstantBufferFromBindingPoint(ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
+
+			DeclareBufferVariable(psContext, ui32BindingPoint, psCBuf, &psDecl->asOperands[0], 
+				psDecl->sUAV.ui32GloballyCoherentAccess, glsl);
+
+            /*bcatcstr(glsl, "buffer someType { ");
                 bformata(glsl, "float data[%d]; ", psDecl->sUAV.ui32BufferSize/4);
             bcatcstr(glsl, "} ");
             TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
-            bcatcstr(glsl, ";\n");
+            bcatcstr(glsl, ";\n");*/
+
             break;
         }
         case OPCODE_DCL_RESOURCE_STRUCTURED:
