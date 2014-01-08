@@ -1,8 +1,10 @@
 
 #include "internal_includes/reflect.h"
 #include "internal_includes/debug.h"
+#include "internal_includes/decode.h"
 #include "bstrlib.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 static void ReadStringFromTokenStream(const uint32_t* tokens, char* str)
 {
@@ -135,11 +137,66 @@ static const uint32_t* ReadResourceBinding(const uint32_t* pui32FirstResourceTok
     return pui32Tokens;
 }
 
+//Read D3D11_SHADER_TYPE_DESC
+static void ReadShaderVariableType(const uint32_t ui32MajorVersion,
+								   const uint32_t* pui32FirstConstBufToken,
+								   const uint32_t* pui32tokens, ShaderVarType* varType)
+{
+    const uint16_t* pui16Tokens = (const uint16_t*) pui32tokens;
+    uint16_t ui32MemberCount;
+    uint32_t ui32MemberOffset;
+	const uint32_t* pui32MemberTokens;
+	uint32_t i;
+
+    varType->Class = (SHADER_VARIABLE_CLASS)pui16Tokens[0];
+    varType->Type = (SHADER_VARIABLE_TYPE)pui16Tokens[1];
+    varType->Rows = pui16Tokens[2];
+    varType->Columns = pui16Tokens[3];
+    varType->Elements = pui16Tokens[4];
+
+    varType->MemberCount = ui32MemberCount = pui16Tokens[5];
+	varType->Members = 0;
+
+	if(varType->ParentCount)
+	{
+		ASSERT( (strlen(varType->Parent->FullName) + 1 + strlen(varType->Name) + 1 + 2) < MAX_REFLECT_STRING_LENGTH);
+
+		strcpy(varType->FullName, varType->Parent->FullName);
+		strcat(varType->FullName, ".");
+		strcat(varType->FullName, varType->Name);
+	}
+
+	if(ui32MemberCount)
+	{
+		varType->Members = (ShaderVarType*)malloc(sizeof(ShaderVarType)*ui32MemberCount);
+
+		ui32MemberOffset = pui32tokens[3];
+	
+		pui32MemberTokens = (const uint32_t*)((const char*)pui32FirstConstBufToken+ui32MemberOffset);
+
+		for(i=0; i< ui32MemberCount; ++i)
+		{
+			uint32_t ui32NameOffset = *pui32MemberTokens++;
+			uint32_t ui32MemberTypeOffset = *pui32MemberTokens++;
+			
+			varType->Members[i].Parent = varType;
+			varType->Members[i].ParentCount = varType->ParentCount + 1;
+
+			varType->Members[i].Offset = *pui32MemberTokens++;
+
+			ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstConstBufToken+ui32NameOffset), varType->Members[i].Name);
+
+			ReadShaderVariableType(ui32MajorVersion, pui32FirstConstBufToken, 
+				(const uint32_t*)((const char*)pui32FirstConstBufToken+ui32MemberTypeOffset), &varType->Members[i]);
+		}
+	}
+}
+
 static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
     const uint32_t* pui32FirstConstBufToken, const uint32_t* pui32Tokens, ConstantBuffer* psBuffer)
 {
     uint32_t i;
-    uint32_t ui32NameOffset = *pui32Tokens++;    
+    uint32_t ui32NameOffset = *pui32Tokens++;
     uint32_t ui32VarCount = *pui32Tokens++;
     uint32_t ui32VarOffset = *pui32Tokens++;
     const uint32_t* pui32VarToken = (const uint32_t*)((const char*)pui32FirstConstBufToken+ui32VarOffset);
@@ -165,6 +222,15 @@ static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
         psVar->ui32Size = *pui32VarToken++;
         ui32Flags = *pui32VarToken++;
         ui32TypeOffset = *pui32VarToken++;
+
+		strcpy(psVar->sType.Name, psVar->Name);
+		strcpy(psVar->sType.FullName, psVar->Name);
+		psVar->sType.Parent = 0;
+		psVar->sType.ParentCount = 0;
+		psVar->sType.Offset = 0;
+
+        ReadShaderVariableType(psShaderInfo->ui32MajorVersion, pui32FirstConstBufToken, 
+			(const uint32_t*)((const char*)pui32FirstConstBufToken+ui32TypeOffset), &psVar->sType);
 
         ui32DefaultValueOffset = *pui32VarToken++;
 
@@ -197,24 +263,6 @@ static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
 			{
 				psVar->pui32DefaultValues[i] = pui32DefaultValToken[i];
 			}
-        }
-
-        if(ui32TypeOffset)
-        {
-            //D3D11_SHADER_TYPE_DESC
-            const uint16_t* pui16TypeToken = (const uint16_t*)((const char*)pui32FirstConstBufToken+ui32TypeOffset);
-
-            uint16_t varClass = *pui16TypeToken++;
-            uint16_t varType = *pui16TypeToken++;
-
-            uint16_t varRows = *pui16TypeToken++;
-            uint16_t varCols = *pui16TypeToken++;
-
-            uint16_t varElemCount = *pui16TypeToken++;
-            uint16_t varMemberCount = *pui16TypeToken++;
-
-            uint32_t varMemberOffset = *pui16TypeToken++ << 16;
-            varMemberOffset |= *pui16TypeToken++;
         }
     }
 
@@ -272,6 +320,10 @@ static void ReadResources(const uint32_t* pui32Tokens,//in
             }
             case RTYPE_UAV_RWBYTEADDRESS:
             case RTYPE_UAV_RWSTRUCTURED:
+			case RTYPE_UAV_RWTYPED:
+			case RTYPE_UAV_APPEND_STRUCTURED:
+			case RTYPE_UAV_CONSUME_STRUCTURED:
+			case RTYPE_UAV_RWSTRUCTURED_WITH_COUNTER:
             {
                 ASSERT(k < MAX_UAV);
                 psShaderInfo->aui32UAVBindpointRemap[psResBindings[i].ui32BindPoint] = k++;
@@ -460,7 +512,24 @@ int GetInterfaceVarFromOffset(uint32_t ui32Offset, ShaderInfo* psShaderInfo, Sha
     return 0;
 }
 
-int GetOutputSignatureFromRegister(uint32_t ui32Register, ShaderInfo* psShaderInfo, InOutSignature** ppsOut)
+int GetInputSignatureFromRegister(const uint32_t ui32Register, ShaderInfo* psShaderInfo, InOutSignature** ppsOut)
+{
+    uint32_t i;
+    const uint32_t ui32NumVars = psShaderInfo->ui32NumInputSignatures;
+
+    for(i=0; i<ui32NumVars; ++i)
+    {
+        InOutSignature* psInputSignatures = psShaderInfo->psInputSignatures;
+        if(ui32Register == psInputSignatures[i].ui32Register)
+	    {
+		    *ppsOut = psInputSignatures+i;
+		    return 1;
+	    }
+    }
+    return 0;
+}
+
+int GetOutputSignatureFromRegister(const uint32_t ui32Register, const uint32_t ui32CompMask, ShaderInfo* psShaderInfo, InOutSignature** ppsOut)
 {
     uint32_t i;
     const uint32_t ui32NumVars = psShaderInfo->ui32NumOutputSignatures;
@@ -468,7 +537,8 @@ int GetOutputSignatureFromRegister(uint32_t ui32Register, ShaderInfo* psShaderIn
     for(i=0; i<ui32NumVars; ++i)
     {
         InOutSignature* psOutputSignatures = psShaderInfo->psOutputSignatures;
-        if(ui32Register == psOutputSignatures[i].ui32Register)
+        if(ui32Register == psOutputSignatures[i].ui32Register &&
+			(ui32CompMask & psOutputSignatures[i].ui32Mask))
 	    {
 		    *ppsOut = psOutputSignatures+i;
 		    return 1;
@@ -491,6 +561,120 @@ int GetOutputSignatureFromSystemValue(SPECIAL_NAME eSystemValueType, uint32_t ui
 		    *ppsOut = psOutputSignatures+i;
 		    return 1;
 	    }
+    }
+    return 0;
+}
+
+static int IsOffsetInType(ShaderVarType* psType, uint32_t parentOffset, uint32_t offsetToFind, const uint32_t* pui32Swizzle, int32_t* pi32Index)
+{
+	uint32_t thisOffset = parentOffset + psType->Offset;
+	uint32_t thisSize = psType->Columns * psType->Rows * 4;
+
+	if(psType->Elements)
+	{
+		thisSize *= psType->Elements;
+	}
+
+    if(psType->Class == SVC_SCALAR)
+    {
+        //Swizzle can point to another variable. In the example below
+		//cbUIUpdates.g_uMaxFaces would be cb1[2].z. The scalars are combined
+		//into vectors. psCBuf->ui32NumVars will be 3.
+
+		// cbuffer cbUIUpdates
+		// {
+		//
+		//   float g_fLifeSpan;                 // Offset:    0 Size:     4
+		//   float g_fLifeSpanVar;              // Offset:    4 Size:     4 [unused]
+		//   float g_fRadiusMin;                // Offset:    8 Size:     4 [unused]
+		//   float g_fRadiusMax;                // Offset:   12 Size:     4 [unused]
+		//   float g_fGrowTime;                 // Offset:   16 Size:     4 [unused]
+		//   float g_fStepSize;                 // Offset:   20 Size:     4
+		//   float g_fTurnRate;                 // Offset:   24 Size:     4
+		//   float g_fTurnSpeed;                // Offset:   28 Size:     4 [unused]
+		//   float g_fLeafRate;                 // Offset:   32 Size:     4
+		//   float g_fShrinkTime;               // Offset:   36 Size:     4 [unused]
+		//   uint g_uMaxFaces;                  // Offset:   40 Size:     4
+		//
+		// }
+
+		// Name                                 Type  Format         Dim Slot Elements
+		// ------------------------------ ---------- ------- ----------- ---- --------
+		// cbUIUpdates                       cbuffer      NA          NA    1        1
+
+        if(pui32Swizzle[0] == OPERAND_4_COMPONENT_Y)
+        {
+            offsetToFind += 4;
+        }
+        else
+        if(pui32Swizzle[0] == OPERAND_4_COMPONENT_Z)
+        {
+            offsetToFind += 8;
+        }
+        else
+        if(pui32Swizzle[0] == OPERAND_4_COMPONENT_W)
+        {
+            offsetToFind += 12;
+        }
+	}
+
+	if((offsetToFind >= thisOffset) &&
+		offsetToFind < (thisOffset + thisSize))
+	{
+
+        if(psType->Class == SVC_MATRIX_ROWS || 
+            psType->Class == SVC_MATRIX_COLUMNS)
+        {
+			//Matrices are treated as arrays of vectors.
+			pi32Index[0] = (offsetToFind - thisOffset) / 16;
+        }
+		//Check for array of vectors
+		else if(psType->Class == SVC_VECTOR && psType->Elements > 1)
+		{
+			pi32Index[0] = (offsetToFind - thisOffset) / 16;
+		}
+
+		return 1;
+	}
+	return 0;
+}
+
+int GetShaderVarFromOffset(const uint32_t ui32Vec4Offset, const uint32_t* pui32Swizzle, ConstantBuffer* psCBuf, ShaderVarType** ppsShaderVar, int32_t* pi32Index)
+{
+    uint32_t i;
+    const uint32_t ui32BaseByteOffset = ui32Vec4Offset * 16;
+
+    uint32_t ui32ByteOffset = ui32Vec4Offset * 16;
+
+    const uint32_t ui32NumVars = psCBuf->ui32NumVars;
+
+    for(i=0; i<ui32NumVars; ++i)
+    {
+		if(psCBuf->asVars[i].sType.Class == SVC_STRUCT)
+		{
+			uint32_t m = 0;
+
+			for(m=0; m < psCBuf->asVars[i].sType.MemberCount; ++m)
+			{
+				ShaderVarType* psMember = psCBuf->asVars[i].sType.Members + m;
+
+				ASSERT(psMember->Class != SVC_STRUCT);
+
+				if(IsOffsetInType(psMember, psCBuf->asVars[i].ui32StartOffset, ui32ByteOffset, pui32Swizzle, pi32Index))
+				{
+					ppsShaderVar[0] = psMember;
+					return 1;
+				}
+			}
+		}
+		else
+		{
+			if(IsOffsetInType(&psCBuf->asVars[i].sType, psCBuf->asVars[i].ui32StartOffset, ui32ByteOffset, pui32Swizzle, pi32Index))
+			{
+				ppsShaderVar[0] = &psCBuf->asVars[i].sType;
+				return 1;
+			}
+		}
     }
     return 0;
 }
@@ -663,6 +847,7 @@ void LoadD3D9ConstantTable(const char* data,
     ConstantBuffer* psConstantBuffer;
     uint32_t ui32ConstantBufferSize = 0;
 	uint32_t numResourceBindingsNeeded = 0;
+	ShaderVar* var;
 
     ctab = (ConstantTableD3D9*)data;
 
@@ -677,7 +862,7 @@ void LoadD3D9ConstantTable(const char* data,
 
     psInfo->psConstantBuffers = psConstantBuffer;
 
-    psConstantBuffer->ui32NumVars = ctab->constants;
+    psConstantBuffer->ui32NumVars = 0;
     strcpy(psConstantBuffer->Name, "$Globals");
 
 	//Determine how many resource bindings to create
@@ -691,25 +876,94 @@ void LoadD3D9ConstantTable(const char* data,
 
 	psInfo->psResourceBindings = malloc(numResourceBindingsNeeded*sizeof(ResourceBinding));
 
+	var = &psConstantBuffer->asVars[0];
+
     for(constNum = 0; constNum < ctab->constants; ++constNum)
     {
 		TypeInfoD3D9* typeInfo = (TypeInfoD3D9*) (data + cinfos[constNum].typeInfo);
-		ShaderVar* var = &psConstantBuffer->asVars[constNum];
 
-        strcpy(var->Name, data + cinfos[constNum].name);
-        var->ui32Size = cinfos[constNum].registerCount * 16;
-        var->ui32StartOffset = cinfos[constNum].registerIndex * 16;
-        var->haveDefaultValue = 0;
-
-		if(ui32ConstantBufferSize < (var->ui32Size + var->ui32StartOffset))
-        {
-            ui32ConstantBufferSize = var->ui32Size + var->ui32StartOffset;
-        }
-
-		//Create a resource if it is sampler in order to replicate the d3d10+
-		//method of separating samplers from general constants.
-		if(cinfos[constNum].registerSet == RS_SAMPLER)
+		if(cinfos[constNum].registerSet != RS_SAMPLER)
 		{
+			strcpy(var->Name, data + cinfos[constNum].name);
+			var->ui32Size = cinfos[constNum].registerCount * 16;
+			var->ui32StartOffset = cinfos[constNum].registerIndex * 16;
+			var->haveDefaultValue = 0;
+
+			if(ui32ConstantBufferSize < (var->ui32Size + var->ui32StartOffset))
+			{
+				ui32ConstantBufferSize = var->ui32Size + var->ui32StartOffset;
+			}
+
+			var->sType.Rows = typeInfo->rows;
+			var->sType.Columns = typeInfo->columns;
+			var->sType.Elements = typeInfo->elements;
+			var->sType.MemberCount = typeInfo->structMembers;
+			var->sType.Members = 0;
+			var->sType.Offset = 0;
+			strcpy(var->sType.FullName, var->Name);
+			var->sType.Parent = 0;
+			var->sType.ParentCount = 0;
+
+			switch(typeInfo->typeClass)
+			{
+				case CLASS_SCALAR:
+				{
+					var->sType.Class = SVC_SCALAR;
+					break;
+				}
+				case CLASS_VECTOR:
+				{
+					var->sType.Class = SVC_VECTOR;
+					break;
+				}
+				case CLASS_MATRIX_ROWS:
+				{
+					var->sType.Class = SVC_MATRIX_ROWS;
+					break;
+				}
+				case CLASS_MATRIX_COLUMNS:
+				{
+					var->sType.Class = SVC_MATRIX_COLUMNS;
+					break;
+				}
+				case CLASS_OBJECT:
+				{
+					var->sType.Class = SVC_OBJECT;
+					break;
+				}
+				case CLASS_STRUCT:
+				{
+					var->sType.Class = SVC_STRUCT;
+					break;
+				}
+			}
+
+			switch(cinfos[constNum].registerSet)
+			{
+				case RS_BOOL:
+				{
+					var->sType.Type = SVT_BOOL;
+					break;
+				}
+				case RS_INT4:
+				{
+					var->sType.Type = SVT_INT;
+					break;
+				}
+				case RS_FLOAT4:
+				{
+					var->sType.Type = SVT_FLOAT;
+					break;
+				}
+			}
+
+			var++;
+			psConstantBuffer->ui32NumVars++;
+		}
+		else
+		{
+			//Create a resource if it is sampler in order to replicate the d3d10+
+			//method of separating samplers from general constants.
 			uint32_t ui32ResourceIndex = psInfo->ui32NumResourceBindings++;
 			ResourceBinding* res = &psInfo->psResourceBindings[ui32ResourceIndex];
 

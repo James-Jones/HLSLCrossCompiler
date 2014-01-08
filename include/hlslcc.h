@@ -106,6 +106,7 @@ typedef struct InOutSignature_TAG
 
 	uint32_t ui32Stream;
 	MIN_PRECISION eMinPrec;
+
 } InOutSignature;
 
 typedef enum ResourceType_TAG
@@ -152,6 +153,87 @@ typedef struct ResourceBinding_TAG
     uint32_t ui32NumSamples;
 } ResourceBinding;
 
+typedef enum _SHADER_VARIABLE_TYPE { 
+  SVT_VOID                         = 0,
+  SVT_BOOL                         = 1,
+  SVT_INT                          = 2,
+  SVT_FLOAT                        = 3,
+  SVT_STRING                       = 4,
+  SVT_TEXTURE                      = 5,
+  SVT_TEXTURE1D                    = 6,
+  SVT_TEXTURE2D                    = 7,
+  SVT_TEXTURE3D                    = 8,
+  SVT_TEXTURECUBE                  = 9,
+  SVT_SAMPLER                      = 10,
+  SVT_PIXELSHADER                  = 15,
+  SVT_VERTEXSHADER                 = 16,
+  SVT_UINT                         = 19,
+  SVT_UINT8                        = 20,
+  SVT_GEOMETRYSHADER               = 21,
+  SVT_RASTERIZER                   = 22,
+  SVT_DEPTHSTENCIL                 = 23,
+  SVT_BLEND                        = 24,
+  SVT_BUFFER                       = 25,
+  SVT_CBUFFER                      = 26,
+  SVT_TBUFFER                      = 27,
+  SVT_TEXTURE1DARRAY               = 28,
+  SVT_TEXTURE2DARRAY               = 29,
+  SVT_RENDERTARGETVIEW             = 30,
+  SVT_DEPTHSTENCILVIEW             = 31,
+  SVT_TEXTURE2DMS                  = 32,
+  SVT_TEXTURE2DMSARRAY             = 33,
+  SVT_TEXTURECUBEARRAY             = 34,
+  SVT_HULLSHADER                   = 35,
+  SVT_DOMAINSHADER                 = 36,
+  SVT_INTERFACE_POINTER            = 37,
+  SVT_COMPUTESHADER                = 38,
+  SVT_DOUBLE                       = 39,
+  SVT_RWTEXTURE1D                  = 40,
+  SVT_RWTEXTURE1DARRAY             = 41,
+  SVT_RWTEXTURE2D                  = 42,
+  SVT_RWTEXTURE2DARRAY             = 43,
+  SVT_RWTEXTURE3D                  = 44,
+  SVT_RWBUFFER                     = 45,
+  SVT_BYTEADDRESS_BUFFER           = 46,
+  SVT_RWBYTEADDRESS_BUFFER         = 47,
+  SVT_STRUCTURED_BUFFER            = 48,
+  SVT_RWSTRUCTURED_BUFFER          = 49,
+  SVT_APPEND_STRUCTURED_BUFFER     = 50,
+  SVT_CONSUME_STRUCTURED_BUFFER    = 51,
+
+  SVT_FORCE_DWORD                  = 0x7fffffff
+} SHADER_VARIABLE_TYPE;
+
+typedef enum _SHADER_VARIABLE_CLASS { 
+  SVC_SCALAR               = 0,
+  SVC_VECTOR               = ( SVC_SCALAR + 1 ),
+  SVC_MATRIX_ROWS          = ( SVC_VECTOR + 1 ),
+  SVC_MATRIX_COLUMNS       = ( SVC_MATRIX_ROWS + 1 ),
+  SVC_OBJECT               = ( SVC_MATRIX_COLUMNS + 1 ),
+  SVC_STRUCT               = ( SVC_OBJECT + 1 ),
+  SVC_INTERFACE_CLASS      = ( SVC_STRUCT + 1 ),
+  SVC_INTERFACE_POINTER    = ( SVC_INTERFACE_CLASS + 1 ),
+  SVC_FORCE_DWORD          = 0x7fffffff
+} SHADER_VARIABLE_CLASS;
+
+typedef struct ShaderVarType_TAG {
+  SHADER_VARIABLE_CLASS Class;
+  SHADER_VARIABLE_TYPE  Type;
+  uint32_t                  Rows;
+  uint32_t                      Columns;
+  uint32_t                      Elements;
+  uint32_t                      MemberCount;
+  uint32_t                      Offset;
+  char                    Name[MAX_REFLECT_STRING_LENGTH];
+
+  uint32_t ParentCount;
+  struct ShaderVarType_TAG * Parent;
+  //Includes all parent names.
+  char                    FullName[MAX_REFLECT_STRING_LENGTH];
+
+  struct ShaderVarType_TAG * Members;
+} ShaderVarType;
+
 typedef struct ShaderVar_TAG
 {
     char Name[MAX_REFLECT_STRING_LENGTH];
@@ -160,6 +242,8 @@ typedef struct ShaderVar_TAG
 	//Offset/Size in bytes.
     uint32_t ui32StartOffset;
     uint32_t ui32Size;
+
+    ShaderVarType sType;
 } ShaderVar;
 
 typedef struct ConstantBuffer_TAG
@@ -312,7 +396,10 @@ static const unsigned int HLSLCC_FLAG_TESS_ENABLED = 0x20;
 //Either use this flag or glBindFragDataLocationIndexed.
 //When set the first pixel shader output is the first input to blend
 //equation, the others go to the second input.
-static const unsigned int HLSLCC_DUAL_SOURCE_BLENDING = 0x40;
+static const unsigned int HLSLCC_FLAG_DUAL_SOURCE_BLENDING = 0x40;
+
+//If set, shader inputs and outputs are declared with their semantic name.
+static const unsigned int HLSLCC_FLAG_INOUT_SEMANTIC_NAMES = 0x80;
 
 HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
                                                      unsigned int flags,

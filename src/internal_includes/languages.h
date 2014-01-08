@@ -112,4 +112,45 @@ static int PixelInterpDependency(const GLLang eLang)
     return 0;
 }
 
+static int HaveUVec(const GLLang eLang)
+{
+    switch(eLang)
+    {
+	case LANG_ES_100:
+	case LANG_120:
+        return 0;
+	default:
+		break;
+    }
+    return 1;
+}
+
+static int HaveGather(const GLLang eLang)
+{
+	if(eLang >= LANG_400)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+static int HaveQueryLod(const GLLang eLang)
+{
+	if(eLang >= LANG_400)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+static int HaveAtomicCounter(const GLLang eLang)
+{
+	if(eLang >= LANG_420)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+
 #endif

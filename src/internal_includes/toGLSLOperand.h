@@ -18,10 +18,13 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
 uint32_t GetNumSwizzleElements(const Operand* psOperand);
 void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t count);
 int GetFirstOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
+uint32_t IsSwizzleReplacated(const Operand* psOperand);
 
 void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32RegisterNumber, const int bZCompare);
 
 //Non-zero means the components overlap
 int CompareOperandSwizzles(const Operand* psOperandA, const Operand* psOperandB);
+
+SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
 
 #endif

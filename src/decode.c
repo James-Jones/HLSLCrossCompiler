@@ -180,6 +180,10 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
     //Some defaults
     psOperand->iWriteMaskEnabled = 1;
     psOperand->iGSInput = 0;
+	psOperand->aeDataType[0] = SVT_FLOAT;
+	psOperand->aeDataType[1] = SVT_FLOAT;
+	psOperand->aeDataType[2] = SVT_FLOAT;
+	psOperand->aeDataType[3] = SVT_FLOAT;
 
     psOperand->iExtended = DecodeIsOperandExtended(*pui32Tokens);
 
@@ -629,6 +633,8 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
             psDecl->ui32NumOperands = 1;
             psDecl->value.eResourceDimension = DecodeResourceDimension(*pui32Token);
             psDecl->sUAV.ui32GloballyCoherentAccess = DecodeAccessCoherencyFlags(*pui32Token);
+			psDecl->sUAV.bCounter = 0;
+			psDecl->sUAV.ui32BufferSize = 0;
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
@@ -639,6 +645,8 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 
             psDecl->ui32NumOperands = 1;
             psDecl->sUAV.ui32GloballyCoherentAccess = DecodeAccessCoherencyFlags(*pui32Token);
+			psDecl->sUAV.bCounter = 0;
+			psDecl->sUAV.ui32BufferSize = 0;
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
 			//This should be a RTYPE_UAV_RWBYTEADDRESS buffer. It is memory backed by
 			//a shader storage buffer whose is unknown at compile time.
@@ -652,12 +660,22 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 
             psDecl->ui32NumOperands = 1;
             psDecl->sUAV.ui32GloballyCoherentAccess = DecodeAccessCoherencyFlags(*pui32Token);
+			psDecl->sUAV.bCounter = 0;
+			psDecl->sUAV.ui32BufferSize = 0;
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
 
             if(GetResourceFromBindingPoint(RTYPE_UAV_RWSTRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding))
             {
                 GetUAVBufferFromBindingPoint(psBinding->ui32BindPoint, &psShader->sInfo, &psBuffer);
                 psDecl->sUAV.ui32BufferSize = psBuffer->ui32TotalSizeInBytes;
+            }
+            else if(GetResourceFromBindingPoint(RTYPE_UAV_RWSTRUCTURED_WITH_COUNTER, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding) ||
+				GetResourceFromBindingPoint(RTYPE_UAV_APPEND_STRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding) ||
+				GetResourceFromBindingPoint(RTYPE_UAV_CONSUME_STRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding))
+            { 
+                GetUAVBufferFromBindingPoint(psBinding->ui32BindPoint, &psShader->sInfo, &psBuffer);
+                psDecl->sUAV.ui32BufferSize = psBuffer->ui32TotalSizeInBytes;
+				psDecl->sUAV.bCounter = 1;
             }
             break;
         }
@@ -864,6 +882,8 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_F32TOF16:
         case OPCODE_F16TOF32:
         case OPCODE_RCP:
+		case OPCODE_DERIV_RTX:
+		case OPCODE_DERIV_RTY:
         {
             psInst->ui32NumOperands = 2;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -1356,6 +1376,7 @@ void Decode(const uint32_t* pui32Tokens, Shader* psShader)
     const uint32_t ui32ShaderLength = pui32Tokens[1];
     Instruction* psInst;
     Declaration* psDecl;
+
 	psShader->ui32MajorVersion = DecodeProgramMajorVersion(*pui32CurrentToken);
 	psShader->ui32MinorVersion = DecodeProgramMinorVersion(*pui32CurrentToken);
 	psShader->eShaderType = DecodeShaderType(*pui32CurrentToken);

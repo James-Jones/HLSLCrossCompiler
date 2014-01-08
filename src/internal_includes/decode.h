@@ -1,6 +1,8 @@
 #ifndef DECODE_H
 #define DECODE_H
 
+#include "internal_includes/structs.h"
+
 Shader* DecodeDXBC(uint32_t* data);
 
 //You don't need to call this directly because DecodeDXBC

@@ -21,7 +21,7 @@ static void APIENTRY OpenGLDebugCallback (GLenum source,
     {
         case GL_DEBUG_SOURCE_API_ARB:
         {
-            pszSource = "OpenGL API: ";
+            pszSource = "OpenGL API";
             break;
         }
         case GL_DEBUG_SOURCE_WINDOW_SYSTEM_ARB:
@@ -60,17 +60,17 @@ static void APIENTRY OpenGLDebugCallback (GLenum source,
     {
         case GL_DEBUG_SEVERITY_HIGH_ARB:
         {
-            pszSeverity = "OpenGL API: ";
+            pszSeverity = "High";
             break;
         }
         case GL_DEBUG_SEVERITY_MEDIUM_ARB:
         {
-            pszSeverity = "Window system";
+            pszSeverity = "Medium";
             break;
         }
         case GL_DEBUG_SEVERITY_LOW_ARB:
         {
-            pszSeverity = "OpenGL shader compiler";
+            pszSeverity = "Low";
             break;
         }
         default:
@@ -84,27 +84,27 @@ static void APIENTRY OpenGLDebugCallback (GLenum source,
     {
         case GL_DEBUG_TYPE_ERROR_ARB:
         {
-            pszType = "OpenGL API: ";
+            pszType = "Error";
             break;
         }
         case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_ARB:
         {
-            pszType = "Window system";
+            pszType = "Deprecated";
             break;
         }
         case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB:
         {
-            pszType = "OpenGL shader compiler";
+            pszType = "Undefined";
             break;
         }
         case GL_DEBUG_TYPE_PORTABILITY_ARB:
         {
-            pszType = "3rd party";
+            pszType = "Portability";
             break;
         }
         case GL_DEBUG_TYPE_PERFORMANCE_ARB:
         {
-            pszType = "Self";
+            pszType = "Performance";
             break;
         }
         case GL_DEBUG_TYPE_OTHER_ARB:
