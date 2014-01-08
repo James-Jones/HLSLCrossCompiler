@@ -1294,29 +1294,28 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 */
             int iNumComponents = 4;//GetMaxComponentFromComponentMask(psOperand);
 			const char* StorageQualifier = "attribute";
-            const char* InputName = GetDeclaredInputName(psContext, psShader->eShaderType, psOperand);
+            const char* InputName;
             const char* Precision = "";
 
-			if(psOperand->eType == OPERAND_TYPE_INPUT_DOMAIN_POINT)
+			if((psOperand->eType == OPERAND_TYPE_INPUT_DOMAIN_POINT)||
+            (psOperand->eType == OPERAND_TYPE_OUTPUT_CONTROL_POINT_ID)||
+            (psOperand->eType == OPERAND_TYPE_INPUT_COVERAGE_MASK)||
+			(psOperand->eType == OPERAND_TYPE_INPUT_THREAD_ID)||
+			(psOperand->eType == OPERAND_TYPE_INPUT_THREAD_GROUP_ID)||
+			(psOperand->eType == OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP)||
+			(psOperand->eType == OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED)||
+			(OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED))
 			{
 				break;
 			}
-
-            if(psOperand->eType == OPERAND_TYPE_OUTPUT_CONTROL_POINT_ID)
-            {
-                break;
-            }
-
-            if(psOperand->eType == OPERAND_TYPE_INPUT_COVERAGE_MASK)
-            {
-                break;
-            }
 
             //Already declared as part of an array.
             if(psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber] == -1)
             {
                 break;
             }
+
+			InputName = GetDeclaredInputName(psContext, psShader->eShaderType, psOperand);
 
 			if(InOutSupported(psContext->psShader->eTargetLanguage))
 			{
@@ -2078,7 +2077,6 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             break;
         }
         case OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED:
-        case OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW:
         {
 			const uint32_t ui32BindingPoint = psDecl->asOperands[0].aui32ArraySizes[0];
 			ConstantBuffer* psCBuf = NULL;
@@ -2101,6 +2099,16 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 
             break;
         }
+        case OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW:
+		{
+			if(psDecl->sUAV.bCounter)
+			{
+				bformata(glsl, "layout (binding = 1) uniform atomic_uint UAV%d_counter;\n", psDecl->asOperands[0].ui32RegisterNumber);
+			}
+
+			bformata(glsl, "buffer Block%d {\n\tuint UAV%d[];\n};\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+			break;
+		}
         case OPCODE_DCL_RESOURCE_STRUCTURED:
         {
             //bcatcstr(glsl, "uniform res_structured");
@@ -2115,6 +2123,14 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             //bcatcstr(glsl, ";\n");
             break;
         }
+		case OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED:
+		{
+			bcatcstr(glsl, "shared float ");
+			TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+            bformata(glsl, "[%d];\n",
+				psDecl->sTGSM.ui32Stride * psDecl->sTGSM.ui32Count / 4);
+			break;
+		}
         default:
         {
             ASSERT(0);

@@ -129,6 +129,15 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 	//Enable conservative depth if the extension is defined by the GLSL compiler.
 	bcatcstr(glsl,"#ifdef GL_ARB_conservative_depth\n\t#extension GL_ARB_conservative_depth : enable\n#endif\n");
 
+	if(!HaveCompute(psContext->psShader->eTargetLanguage))
+	{
+		if(psContext->psShader->eShaderType == COMPUTE_SHADER)
+		{
+			bcatcstr(glsl,"#extension GL_ARB_compute_shader : enable\n");
+			bcatcstr(glsl,"#extension GL_ARB_shader_storage_buffer_object : enable\n");
+		}
+	}
+
 	if(!HaveAtomicCounter(psContext->psShader->eTargetLanguage))
 	{
 		if(psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_ALLOC] ||
