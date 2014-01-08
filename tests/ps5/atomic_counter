@@ -6,10 +6,18 @@ struct PS_INPUT
 struct MyStruct
 {
 	uint unused;
+	struct {
+		uint unused2;
+	} s3;
+};
+
+struct MyStruct2
+{
+	uint unused;
 };
 
 RWStructuredBuffer<MyStruct> BufferIncr;
-RWStructuredBuffer<MyStruct> BufferDecr;
+RWStructuredBuffer<MyStruct2> BufferDecr;
 
 //Append and Consume structured buffers have compiler-managed counters.
 AppendStructuredBuffer<uint> app;

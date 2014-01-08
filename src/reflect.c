@@ -320,6 +320,10 @@ static void ReadResources(const uint32_t* pui32Tokens,//in
             }
             case RTYPE_UAV_RWBYTEADDRESS:
             case RTYPE_UAV_RWSTRUCTURED:
+			case RTYPE_UAV_RWTYPED:
+			case RTYPE_UAV_APPEND_STRUCTURED:
+			case RTYPE_UAV_CONSUME_STRUCTURED:
+			case RTYPE_UAV_RWSTRUCTURED_WITH_COUNTER:
             {
                 ASSERT(k < MAX_UAV);
                 psShaderInfo->aui32UAVBindpointRemap[psResBindings[i].ui32BindPoint] = k++;

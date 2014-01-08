@@ -12,15 +12,22 @@
 //   {
 //       
 //       uint unused;                   // Offset:    0
+//       
+//       struct MyStruct::<unnamed>
+//       {
+//           
+//           uint unused2;              // Offset:    4
 //
-//   } $Element;                        // Offset:    0 Size:     4
+//       } s3;                          // Offset:    4
+//
+//   } $Element;                        // Offset:    0 Size:     8
 //
 // }
 //
 // Resource bind info for BufferDecr
 // {
 //
-//   struct MyStruct
+//   struct MyStruct2
 //   {
 //       
 //       uint unused;                   // Offset:    0
@@ -70,7 +77,7 @@
 //
 ps_5_0
 dcl_globalFlags refactoringAllowed
-dcl_uav_structured_opc u1, 4
+dcl_uav_structured_opc u1, 8
 dcl_uav_structured_opc u2, 4
 dcl_uav_structured u3, 4
 dcl_uav_structured u4, 4

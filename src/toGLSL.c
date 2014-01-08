@@ -135,6 +135,8 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_CONSUME])
 		{
 			bcatcstr(glsl,"#extension GL_ARB_shader_atomic_counters : enable\n");
+
+			bcatcstr(glsl,"#extension GL_ARB_shader_storage_buffer_object : enable\n");
 		}
 	}
 

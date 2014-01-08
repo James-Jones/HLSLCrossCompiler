@@ -5,7 +5,6 @@
 #include "bstrlib.h"
 #include "internal_includes/debug.h"
 #include <math.h>
-
 #include <float.h>
 
 #ifdef _MSC_VER
@@ -183,14 +182,30 @@ void DeclareConstBufferShaderVariable(bstring glsl, const char* Name, const stru
 //In GLSL embedded structure definitions are not supported.
 void PreDeclareStructType(bstring glsl, const char* Name, const struct ShaderVarType_TAG* psType)
 {
+	uint32_t i;
+
+	for(i=0; i<psType->MemberCount; ++i)
+	{
+		if(psType->Members[i].Class == SVC_STRUCT)
+		{
+			PreDeclareStructType(glsl, psType->Members[i].Name, &psType->Members[i]);
+		}
+	}
+
 	if(psType->Class == SVC_STRUCT)
 	{
-		uint32_t i;
+		
+		uint32_t unnamed_struct = strcmp(Name, "$Element") == 0 ? 1 : 0;
+
+		//Not supported at the moment
+		ASSERT(!unnamed_struct);
+
 		bformata(glsl, "struct %s_Type {\n", Name);
 
 		for(i=0; i<psType->MemberCount; ++i)
 		{
 			ASSERT(psType->Members != 0);
+
 			DeclareConstBufferShaderVariable(glsl, psType->Members[i].Name, &psType->Members[i]);
 		}
 
@@ -980,14 +995,19 @@ void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t u
 							const uint32_t ui32GloballyCoherentAccess,
 							bstring glsl)
 {
-    uint32_t i;
+	bstring StructName;
+	uint32_t unnamed_struct = strcmp(psCBuf->asVars[0].Name, "$Element") == 0 ? 1 : 0;
 
-	for(i=0; i < psCBuf->ui32NumVars; ++i)
-	{
-        PreDeclareStructType(glsl,
-			psCBuf->asVars[i].Name,
-            &psCBuf->asVars[i].sType);
-	}
+	ASSERT(psCBuf->ui32NumVars == 1);
+	ASSERT(unnamed_struct);
+
+	StructName = bfromcstr("");
+
+	bformata(StructName, "UAV%d", psOperand->ui32RegisterNumber);
+
+    PreDeclareStructType(glsl,
+		bstr2cstr(StructName, '\0'),
+        &psCBuf->asVars[0].sType);
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
     if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
@@ -998,17 +1018,15 @@ void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t u
         bcatcstr(glsl, "coherent ");
     }
 
-    bcatcstr(glsl, "buffer ");
-    TranslateOperand(psContext, psOperand, TO_FLAG_DECLARATION_NAME);
+    bformata(glsl, "buffer Block%d {\n", psOperand->ui32RegisterNumber);
 
-    for(i=0; i < psCBuf->ui32NumVars; ++i)
-    {
-        DeclareConstBufferShaderVariable(glsl,
-			psCBuf->asVars[i].Name,
-            &psCBuf->asVars[i].sType);
-    }
-                
-    bcatcstr(glsl, "};\n ");
+	DeclareConstBufferShaderVariable(glsl,
+	bstr2cstr(StructName, '\0'),
+    &psCBuf->asVars[0].sType);
+
+	bcatcstr(glsl, "};\n");
+
+	bdestroy(StructName);
 }
 
 
@@ -2070,7 +2088,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				bformata(glsl, "layout (binding = 1) uniform atomic_uint UAV%d_counter;\n", psDecl->asOperands[0].ui32RegisterNumber);
 			}
 
-			GetConstantBufferFromBindingPoint(ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
+			GetUAVBufferFromBindingPoint(ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
 
 			DeclareBufferVariable(psContext, ui32BindingPoint, psCBuf, &psDecl->asOperands[0], 
 				psDecl->sUAV.ui32GloballyCoherentAccess, glsl);
