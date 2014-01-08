@@ -129,6 +129,34 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 	//Enable conservative depth if the extension is defined by the GLSL compiler.
 	bcatcstr(glsl,"#ifdef GL_ARB_conservative_depth\n\t#extension GL_ARB_conservative_depth : enable\n#endif\n");
 
+	if(!HaveAtomicCounter(psContext->psShader->eTargetLanguage))
+	{
+		if(psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_ALLOC] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_CONSUME])
+		{
+			bcatcstr(glsl,"#extension GL_ARB_shader_atomic_counters : enable\n");
+		}
+	}
+
+	if(!HaveGather(psContext->psShader->eTargetLanguage))
+	{
+		if(psContext->psShader->aiOpcodeUsed[OPCODE_GATHER4] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_GATHER4_PO_C] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_GATHER4_PO] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_GATHER4_C])
+		{
+			bcatcstr(glsl,"#extension GL_ARB_texture_gather : enable\n");
+		}
+	}
+
+	if(!HaveQueryLod(psContext->psShader->eTargetLanguage))
+	{
+		if(psContext->psShader->aiOpcodeUsed[OPCODE_LOD])
+		{
+			bcatcstr(glsl,"#extension GL_ARB_texture_query_lod : enable\n");
+		}
+	}
+
     if((psContext->flags & HLSLCC_FLAG_ORIGIN_UPPER_LEFT)
         && (psContext->psShader->eTargetLanguage >= LANG_150))
     {

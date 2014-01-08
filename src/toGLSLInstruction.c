@@ -2627,7 +2627,19 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-            bcatcstr(glsl, " = textureQueryLOD(");
+
+			//If the core language does not have query-lod feature,
+			//then the extension is used. The name of the function
+			//changed between extension and core.
+			if(HaveQueryLod(psContext->psShader->eTargetLanguage))
+			{
+				bcatcstr(glsl, " = textureQueryLod(");
+			}
+			else
+			{
+				bcatcstr(glsl, " = textureQueryLOD(");
+			}
+
             TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
             bcatcstr(glsl, ",");
             TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
