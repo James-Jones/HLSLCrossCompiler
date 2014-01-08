@@ -1303,8 +1303,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			(psOperand->eType == OPERAND_TYPE_INPUT_THREAD_ID)||
 			(psOperand->eType == OPERAND_TYPE_INPUT_THREAD_GROUP_ID)||
 			(psOperand->eType == OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP)||
-			(psOperand->eType == OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED)||
-			(OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED))
+			(psOperand->eType == OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED))
 			{
 				break;
 			}
