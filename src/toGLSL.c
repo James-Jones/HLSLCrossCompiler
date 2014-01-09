@@ -138,10 +138,30 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 		}
 	}
 
-	if(!HaveAtomicCounter(psContext->psShader->eTargetLanguage))
+	if (!HaveAtomicMem(psContext->psShader->eTargetLanguage) ||
+		!HaveAtomicCounter(psContext->psShader->eTargetLanguage))
 	{
-		if(psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_ALLOC] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_CONSUME])
+		if( psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_ALLOC] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_CONSUME] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_CMP_STORE] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_AND] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_IADD] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_OR] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_XOR] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_IMAX] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_UMAX] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_IMIN] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_UMIN] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_IADD] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_AND] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_OR] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_XOR] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_EXCH] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_CMP_EXCH] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_IMAX] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_IMIN] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_UMAX] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_UMIN] )
 		{
 			bcatcstr(glsl,"#extension GL_ARB_shader_atomic_counters : enable\n");
 

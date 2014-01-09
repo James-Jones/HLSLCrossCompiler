@@ -152,6 +152,15 @@ static int HaveAtomicCounter(const GLLang eLang)
 	return 0;
 }
 
+static int HaveAtomicMem(const GLLang eLang)
+{
+	if(eLang >= LANG_430)
+	{
+		return 1;
+	}
+	return 0;
+}
+
 static int HaveCompute(const GLLang eLang)
 {
 	if(eLang >= LANG_430)

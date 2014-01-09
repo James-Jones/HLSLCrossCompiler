@@ -2842,16 +2842,52 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_ATOMIC_IADD:
         {
+			ConstantBuffer* psCBuf = NULL;
+            ShaderVarType* psVarType = NULL;
+            int32_t index = -1;
+			uint32_t aui32Swizzle[4] = {OPERAND_4_COMPONENT_X};
+			uint32_t ui32DataTypeFlag = TO_FLAG_INTEGER;
+			int found;
+			int byteOffset;
+			int vec4Offset;
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//ATOMIC_IADD\n");
 #endif
             AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-            bcatcstr(glsl, " = atomicAdd(");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_INTEGER);
+            bcatcstr(glsl, "atomicAdd(");
+
+			//Src0 is the UAV.
+			//Src1 is the address with that UAV to write to.
+			byteOffset = ((int*)psInst->asOperands[1].afImmediates)[1];
+			switch(byteOffset % 16)
+			{
+			case 0:
+				aui32Swizzle[0] = OPERAND_4_COMPONENT_X;
+				break;
+			case 4:
+				aui32Swizzle[0] = OPERAND_4_COMPONENT_Y;
+				break;
+			case 8:
+				aui32Swizzle[0] = OPERAND_4_COMPONENT_Z;
+				break;
+			case 12:
+				aui32Swizzle[0] = OPERAND_4_COMPONENT_W;
+				break;
+			}
+			vec4Offset = byteOffset / 16;
+
+			GetUAVBufferFromBindingPoint(psInst->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+			found = GetShaderVarFromOffset(vec4Offset, aui32Swizzle, psCBuf, &psVarType, &index);
+			ASSERT(found);
+			bformata(glsl, "UAV%d.%s,", psInst->asOperands[0].ui32RegisterNumber, psVarType->Name);
+
+			if(psVarType->Type == SVT_UINT)
+			{
+				ui32DataTypeFlag = TO_FLAG_UNSIGNED_INTEGER;
+			}
+
+            TranslateOperand(psContext, &psInst->asOperands[2], ui32DataTypeFlag);
             bcatcstr(glsl, ");\n");
             break;
         }
