@@ -815,11 +815,14 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             {
                 bcatcstr(glsl, "_int");
             }
-            else
-            if(eType == SVT_UINT)
+            else if(eType == SVT_UINT)
             {
                 bcatcstr(glsl, "_uint");
             }
+			else if(eType == SVT_DOUBLE)
+			{
+				bcatcstr(glsl, "_double");
+			}
             else if(eType == SVT_VOID ||
                 (ui32TOFlag & TO_FLAG_DESTINATION))
             {

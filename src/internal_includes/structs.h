@@ -147,6 +147,8 @@ typedef struct Shader_TAG
 
     GLLang eTargetLanguage;
 
+	int fp64;
+
     //DWORDs in program code, including version and length tokens.
     uint32_t ui32ShaderLength;
 

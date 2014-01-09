@@ -927,6 +927,11 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 				}
 			break;
 			}
+		case OPCODE_DADD:
+		{
+			eNewType = SVT_DOUBLE;
+			break;
+		}
 		default:
 			{
 				eNewType = SVT_FLOAT;
@@ -1189,6 +1194,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			CallTernaryOp(psContext, "*", "+", psInst, 0, 1, 2, 3, ui32Flags);
             break;
         }
+		case OPCODE_DADD:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//DADD\n");
+#endif
+			CallBinaryOp(psContext, "+", psInst, 0, 1, 2, TO_FLAG_DOUBLE);
+            break;
+		}
         case OPCODE_IADD:
         {
             uint32_t ui32Flags = TO_FLAG_INTEGER;
@@ -3176,7 +3190,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_IMM_ATOMIC_IMIN:
         case OPCODE_IMM_ATOMIC_UMAX:
         case OPCODE_IMM_ATOMIC_UMIN:
-        case OPCODE_DADD:
         case OPCODE_DMAX:
         case OPCODE_DMIN:
         case OPCODE_DMUL:

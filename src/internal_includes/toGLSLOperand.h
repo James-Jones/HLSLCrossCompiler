@@ -9,6 +9,7 @@
 #define TO_FLAG_DECLARATION_NAME 0x4
 #define TO_FLAG_DESTINATION 0x8 //Operand is being written to by assignment.
 #define TO_FLAG_UNSIGNED_INTEGER 0x10
+#define TO_FLAG_DOUBLE 0x20
 void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag);
 
 int GetMaxComponentFromComponentMask(const Operand* psOperand);

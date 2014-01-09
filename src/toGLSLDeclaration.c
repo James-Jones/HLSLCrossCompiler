@@ -1481,6 +1481,10 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				{
 					bformata(glsl, "uvec4 Temp%d_uint;\n", i);
 				}
+				if(psShader->fp64)
+				{
+					bformata(glsl, "dvec4 Temp%d_double;\n", i);
+				}
             }
             break;
         }
@@ -1721,6 +1725,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             if(ui32Flags & GLOBAL_FLAG_ENABLE_DOUBLE_PRECISION_FLOAT_OPS)
             {
                 bcatcstr(glsl, "#extension GL_ARB_gpu_shader_fp64 : enable\n");
+				psShader->fp64 = 1;
             }
             break;
         }
