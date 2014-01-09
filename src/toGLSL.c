@@ -180,6 +180,15 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 		}
 	}
 
+	if(!HaveGatherNonConstOffset(psContext->psShader->eTargetLanguage))
+	{
+		if(psContext->psShader->aiOpcodeUsed[OPCODE_GATHER4_PO_C] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_GATHER4_PO])
+		{
+			bcatcstr(glsl,"#extension GL_ARB_gpu_shader5 : enable\n");
+		}
+	}
+
 	if(!HaveQueryLod(psContext->psShader->eTargetLanguage))
 	{
 		if(psContext->psShader->aiOpcodeUsed[OPCODE_LOD])

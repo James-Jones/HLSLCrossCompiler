@@ -134,6 +134,16 @@ static int HaveGather(const GLLang eLang)
 	return 0;
 }
 
+static int HaveGatherNonConstOffset(const GLLang eLang)
+{
+	if(eLang >= LANG_420)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+
 static int HaveQueryLod(const GLLang eLang)
 {
 	if(eLang >= LANG_400)
