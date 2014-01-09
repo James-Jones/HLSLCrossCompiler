@@ -130,6 +130,19 @@ void CallHLSLIntegerOpcodeFunc2(HLSLCrossCompilerContext* psContext, const char*
     TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_INTEGER);
     bcatcstr(glsl, ");\n");
 }
+void CallHLSLUnsignedIntegerOpcodeFunc2(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst)
+{
+    bstring glsl = *psContext->currentGLSLString;
+    AddIndentation(psContext);
+    bcatcstr(glsl, name);
+    bcatcstr(glsl, "(");
+    TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_UNSIGNED_INTEGER|TO_FLAG_DESTINATION);
+    bcatcstr(glsl, ", ");
+    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_UNSIGNED_INTEGER);
+    bcatcstr(glsl, ", ");
+    TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_UNSIGNED_INTEGER);
+    bcatcstr(glsl, ");\n");
+}
 
 void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0, int src1, uint32_t dataType)
@@ -293,6 +306,25 @@ void CallHelper2Int(HLSLCrossCompilerContext* psContext, const char* name, Instr
     TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_INTEGER);
     bcatcstr(glsl, "), int(");
     TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_INTEGER);
+    bcatcstr(glsl, ")))");
+    TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
+    bcatcstr(glsl, ";\n");
+}
+void CallHelper2UInt(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
+ int dest, int src0, int src1)
+{
+    bstring glsl = *psContext->currentGLSLString;
+    AddIndentation(psContext);
+
+	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_DESTINATION);
+
+	bcatcstr(glsl, " = ivec4(");
+
+    bcatcstr(glsl, name);
+    bcatcstr(glsl, "(int(");
+    TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_UNSIGNED_INTEGER);
+    bcatcstr(glsl, "), int(");
+    TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_UNSIGNED_INTEGER);
     bcatcstr(glsl, ")))");
     TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
     bcatcstr(glsl, ";\n");
@@ -781,7 +813,18 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		case OPCODE_ISHL:
 		case OPCODE_ISHR:
 			{
+				uint32_t k;
 				eNewType = SVT_INT;
+				//If the rhs evaluates to unsigned then that is the dest type picked.
+				for(k=1; k < psInst->ui32NumOperands; ++k)
+				{
+					if(GetOperandDataType(psContext, &psInst->asOperands[k]) == SVT_UINT)
+					{
+						eNewType = SVT_UINT;
+						break;
+					}
+				}
+				
 				break;
 			}
 		case OPCODE_UDIV:
@@ -1132,11 +1175,18 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_IMAD:
         {
+			uint32_t ui32Flags = TO_FLAG_INTEGER;
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//IMAD\n");
 #endif
-			CallTernaryOp(psContext, "*", "+", psInst, 0, 1, 2, 3, TO_FLAG_INTEGER);
+
+            if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
+            {
+                ui32Flags = TO_FLAG_UNSIGNED_INTEGER;
+            }
+
+			CallTernaryOp(psContext, "*", "+", psInst, 0, 1, 2, 3, ui32Flags);
             break;
         }
         case OPCODE_IADD:
@@ -1147,7 +1197,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//IADD\n");
 #endif
             //Is this a signed or unsigned add?
-            if(GetOperandDataType(psContext, &psInst->asOperands[1]) == SVT_UINT)
+            if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
             {
                 ui32Flags = TO_FLAG_UNSIGNED_INTEGER;
             }
@@ -1207,11 +1257,17 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_IMUL:
         {
+			uint32_t ui32Flags = TO_FLAG_INTEGER;
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//IMUL\n");
 #endif
-			CallBinaryOp(psContext, "*", psInst, 0, 1, 2, TO_FLAG_INTEGER);
+            if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
+            {
+                ui32Flags = TO_FLAG_UNSIGNED_INTEGER;
+            }
+
+			CallBinaryOp(psContext, "*", psInst, 0, 1, 2, ui32Flags);
             break;
         }
         case OPCODE_UDIV:
@@ -1222,7 +1278,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
 			//destQuotient, destRemainder, src0, src1
 			CallBinaryOp(psContext, "/", psInst, 0, 2, 3, TO_FLAG_UNSIGNED_INTEGER);
-			CallHelper2Int(psContext, "mod", psInst, 1, 2, 3);
+			CallHelper2UInt(psContext, "mod", psInst, 1, 2, 3);
             break;
         }
         case OPCODE_DIV:
@@ -1364,7 +1420,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//ULT\n");
 #endif
-            CallHLSLIntegerOpcodeFunc2(psContext, "HLSL_ult", psInst);
+            CallHLSLUnsignedIntegerOpcodeFunc2(psContext, "HLSL_ult", psInst);
             break;
         }
         case OPCODE_UGE:
@@ -1373,7 +1429,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//UGE\n");
 #endif
-            CallHLSLIntegerOpcodeFunc2(psContext, "HLSL_uge", psInst);
+            CallHLSLUnsignedIntegerOpcodeFunc2(psContext, "HLSL_uge", psInst);
             break;
         }
         case OPCODE_MOVC:
@@ -2433,20 +2489,35 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		}
 		case OPCODE_ISHL:
 		{
+			uint32_t ui32Flags = TO_FLAG_INTEGER;
+
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//ISHL\n");
 #endif
-			CallBinaryOp(psContext, "<<", psInst, 0, 1, 2, TO_FLAG_INTEGER);
+
+            if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
+            {
+                ui32Flags = TO_FLAG_UNSIGNED_INTEGER;
+            }
+
+			CallBinaryOp(psContext, "<<", psInst, 0, 1, 2, ui32Flags);
 			break;
 		}
 		case OPCODE_ISHR:
 		{
+			uint32_t ui32Flags = TO_FLAG_INTEGER;
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//ISHR\n");
 #endif
-			CallBinaryOp(psContext, ">>", psInst, 0, 1, 2, TO_FLAG_INTEGER);
+
+            if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
+            {
+                ui32Flags = TO_FLAG_UNSIGNED_INTEGER;
+            }
+
+			CallBinaryOp(psContext, ">>", psInst, 0, 1, 2, ui32Flags);
 			break;
 		}
 		case OPCODE_LD:

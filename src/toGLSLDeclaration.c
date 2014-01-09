@@ -502,7 +502,19 @@ void AddBuiltinInput(HLSLCrossCompilerContext* psContext, const Declaration* psD
 
     if(psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] == 0)
     {
-        bformata(glsl, "vec4 ");
+		SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, &psDecl->asOperands[0]);
+		switch(eType)
+		{
+			case SVT_INT:
+				bformata(glsl, "ivec4 ");
+				break;
+			case SVT_UINT:
+				bformata(glsl, "uvec4 ");
+				break;
+			default:
+				bformata(glsl, "vec4 ");
+				break;
+		}
         TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
         bformata(glsl, ";\n");
 

@@ -630,15 +630,19 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         psOperand->eType != OPERAND_TYPE_CONSTANT_BUFFER)
     {
 		const uint32_t swizCount = psOperand->iNumComponents;
-        if((ui32TOFlag & (TO_FLAG_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_INTEGER)
+		SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand);
+        if((ui32TOFlag & (TO_FLAG_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_INTEGER &&
+			eType != SVT_INT)
         {
 			if(swizCount == 1)
 				bformata(glsl, "int(");
 			else
 				bformata(glsl, "ivec%d(", swizCount);
+
             integerConstructor = 1;
         }
-        if((ui32TOFlag & (TO_FLAG_UNSIGNED_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_UNSIGNED_INTEGER)
+        if((ui32TOFlag & (TO_FLAG_UNSIGNED_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_UNSIGNED_INTEGER &&
+			eType != SVT_UINT)
         {
 			if(swizCount == 1)
 				bformata(glsl, "uint(");
@@ -1118,111 +1122,138 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 }
 SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
 {
-    if(psOperand->eType == OPERAND_TYPE_TEMP)
-    {
-        SHADER_VARIABLE_TYPE eCurrentType;
-		int i = 0;
+    switch(psOperand->eType)
+	{
+		case OPERAND_TYPE_TEMP:
+		{
+			SHADER_VARIABLE_TYPE eCurrentType;
+			int i = 0;
 
-		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
-		{
-			return psOperand->aeDataType[psOperand->aui32Swizzle[0]];
-		}
-		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
-		{
-			if(psOperand->ui32Swizzle == (NO_SWIZZLE))
+			if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
 			{
-				return psOperand->aeDataType[0];
+				return psOperand->aeDataType[psOperand->aui32Swizzle[0]];
 			}
-
-			return psOperand->aeDataType[psOperand->aui32Swizzle[0]];
-		}
-
-		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
-		{
-			uint32_t ui32CompMask = psOperand->ui32CompMask;
-			if(!psOperand->ui32CompMask)
+			if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
 			{
-				ui32CompMask = OPERAND_4_COMPONENT_MASK_ALL;
-			}
-			for(;i<4;++i)
-			{
-				if(ui32CompMask & (1<<i))
+				if(psOperand->ui32Swizzle == (NO_SWIZZLE))
 				{
-					eCurrentType = psOperand->aeDataType[i];
-					break;
+					return psOperand->aeDataType[0];
 				}
+
+				return psOperand->aeDataType[psOperand->aui32Swizzle[0]];
 			}
 
-#ifdef _DEBUG
-			//Check if all elements have the same basic type.
-			for(;i<4;++i)
+			if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
 			{
-				if(psOperand->ui32CompMask & (1<<i))
+				uint32_t ui32CompMask = psOperand->ui32CompMask;
+				if(!psOperand->ui32CompMask)
 				{
-					if(eCurrentType != psOperand->aeDataType[i])
+					ui32CompMask = OPERAND_4_COMPONENT_MASK_ALL;
+				}
+				for(;i<4;++i)
+				{
+					if(ui32CompMask & (1<<i))
 					{
-						ASSERT(0);
+						eCurrentType = psOperand->aeDataType[i];
+						break;
 					}
 				}
+
+	#ifdef _DEBUG
+				//Check if all elements have the same basic type.
+				for(;i<4;++i)
+				{
+					if(psOperand->ui32CompMask & (1<<i))
+					{
+						if(eCurrentType != psOperand->aeDataType[i])
+						{
+							ASSERT(0);
+						}
+					}
+				}
+	#endif
+				return eCurrentType;
 			}
-#endif
-			return eCurrentType;
+
+			ASSERT(0);
+    
+			break;
 		}
-
-		ASSERT(0);
-    }
-	else if(psOperand->eType == OPERAND_TYPE_OUTPUT)
-	{
-		const uint32_t ui32Register = psOperand->aui32ArraySizes[psOperand->iIndexDims-1];
-		InOutSignature* psOut;
-
-		if(GetOutputSignatureFromRegister(ui32Register, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psOut))
+		case OPERAND_TYPE_OUTPUT:
 		{
-			if( psOut->eComponentType == INOUT_COMPONENT_UINT32)
+			const uint32_t ui32Register = psOperand->aui32ArraySizes[psOperand->iIndexDims-1];
+			InOutSignature* psOut;
+
+			if(GetOutputSignatureFromRegister(ui32Register, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psOut))
 			{
-				return SVT_UINT;
+				if( psOut->eComponentType == INOUT_COMPONENT_UINT32)
+				{
+					return SVT_UINT;
+				}
+				else if( psOut->eComponentType == INOUT_COMPONENT_SINT32)
+				{
+					return SVT_INT;
+				}
 			}
-			else if( psOut->eComponentType == INOUT_COMPONENT_SINT32)
+			break;
+		}
+		case OPERAND_TYPE_INPUT:
+		{
+			const uint32_t ui32Register = psOperand->aui32ArraySizes[psOperand->iIndexDims-1];
+			InOutSignature* psIn;
+
+			//UINT in DX, INT in GL.
+			if(psOperand->eSpecialName == NAME_PRIMITIVE_ID)
 			{
 				return SVT_INT;
 			}
-		}
-	}
-	else if(psOperand->eType == OPERAND_TYPE_INPUT)
-	{
-		const uint32_t ui32Register = psOperand->aui32ArraySizes[psOperand->iIndexDims-1];
-		InOutSignature* psIn;
 
-		if(GetInputSignatureFromRegister(ui32Register, &psContext->psShader->sInfo, &psIn))
+			if(GetInputSignatureFromRegister(ui32Register, &psContext->psShader->sInfo, &psIn))
+			{
+				if( psIn->eComponentType == INOUT_COMPONENT_UINT32)
+				{
+					return SVT_UINT;
+				}
+				else if( psIn->eComponentType == INOUT_COMPONENT_SINT32)
+				{
+					return SVT_INT;
+				}
+			}
+			break;
+		}
+		case OPERAND_TYPE_CONSTANT_BUFFER:
 		{
-			if( psIn->eComponentType == INOUT_COMPONENT_UINT32)
+			ConstantBuffer* psCBuf = NULL;
+			ShaderVarType* psVarType = NULL;
+			int32_t index = -1;
+			int foundVar;
+			GetConstantBufferFromBindingPoint(psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
+			foundVar = GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index);
+			if(foundVar && index == -1 && psOperand->psSubOperand[1] == NULL)
 			{
-				return SVT_UINT;
+				return psVarType->Type;
 			}
-			else if( psIn->eComponentType == INOUT_COMPONENT_SINT32)
-			{
-				return SVT_INT;
-			}
+			break;
+		}
+		case OPERAND_TYPE_IMMEDIATE32:
+		{
+			return psOperand->iIntegerImmediate ? SVT_INT : SVT_FLOAT;
+		}
+
+		case OPERAND_TYPE_INPUT_THREAD_ID:
+		case OPERAND_TYPE_INPUT_THREAD_GROUP_ID:
+		case OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP:
+		case OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
+		{
+			return SVT_UINT;
+		}
+		default:
+		{
+			return SVT_FLOAT;
 		}
 	}
-	else if(psOperand->eType == OPERAND_TYPE_CONSTANT_BUFFER)
-	{
-        ConstantBuffer* psCBuf = NULL;
-        ShaderVarType* psVarType = NULL;
-        int32_t index = -1;
-		int foundVar;
-        GetConstantBufferFromBindingPoint(psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
-		foundVar = GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index);
-		if(foundVar && index == -1 && psOperand->psSubOperand[1] == NULL)
-		{
-			return psVarType->Type;
-		}
-	}
-	else if(psOperand->eType == OPERAND_TYPE_IMMEDIATE32)
-	{
-		return psOperand->iIntegerImmediate ? SVT_INT : SVT_FLOAT;
-	}
-    return SVT_FLOAT;
+
+	return SVT_FLOAT;
 }
 
 void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag)

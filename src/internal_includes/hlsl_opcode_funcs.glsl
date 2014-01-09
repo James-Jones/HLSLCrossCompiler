@@ -64,6 +64,15 @@ void HLSL_ult(out float dest, float a, float b) {
 	uint ib = uint(b);
     dest = (ia < ib) ? 1.0 : 0.0;
 }
+
+void HLSL_uge(out uvec4 dest, uvec4 a, uvec4 b) {
+    dest = uvec4(greaterThanEqual(a, b));
+}
+
+void HLSL_uge(out uint dest, uint a, uint b) {
+    dest = (a >= b) ? 1u : 0u;
+}
+
 #endif
 
 void HLSL_ilt(out float dest, float a, float b) {
