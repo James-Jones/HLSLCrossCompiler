@@ -1005,6 +1005,7 @@ void DeclareUBOConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui3
 void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t ui32BindingPoint,
 							ConstantBuffer* psCBuf, const Operand* psOperand,
 							const uint32_t ui32GloballyCoherentAccess,
+							const ResourceType eResourceType,
 							bstring glsl)
 {
 	bstring StructName;
@@ -1029,6 +1030,11 @@ void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t u
     {
         bcatcstr(glsl, "coherent ");
     }
+
+	if(eResourceType == RTYPE_STRUCTURED)
+	{
+		bcatcstr(glsl, "readonly ");
+	}
 
     bformata(glsl, "buffer Block%d {\n", psOperand->ui32RegisterNumber);
 
@@ -2035,6 +2041,16 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             {
                 bcatcstr(glsl, "coherent ");
             }
+
+			switch(psDecl->sUAV.Type)
+			{
+			case RETURN_TYPE_FLOAT:
+				bcatcstr(glsl, "layout(r32f) ");
+				break;
+			default:
+				ASSERT(0);
+			}
+
             switch(psDecl->value.eResourceDimension)
             {
                 case RESOURCE_DIMENSION_BUFFER:
@@ -2105,7 +2121,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			GetUAVBufferFromBindingPoint(ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
 
 			DeclareBufferVariable(psContext, ui32BindingPoint, psCBuf, &psDecl->asOperands[0], 
-				psDecl->sUAV.ui32GloballyCoherentAccess, glsl);
+				psDecl->sUAV.ui32GloballyCoherentAccess, RTYPE_UAV_RWSTRUCTURED, glsl);
 
             /*bcatcstr(glsl, "buffer someType { ");
                 bformata(glsl, "float data[%d]; ", psDecl->sUAV.ui32BufferSize/4);
@@ -2127,6 +2143,18 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 		}
         case OPCODE_DCL_RESOURCE_STRUCTURED:
         {
+			ResourceBinding* psRes = NULL;
+			ConstantBuffer* psCBuf = NULL;
+
+			GetResourceFromBindingPoint(RTYPE_STRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psRes);
+
+			ASSERT(psRes!=0);
+
+			GetUAVBufferFromBindingPoint(psRes->ui32BindPoint, &psContext->psShader->sInfo, &psCBuf);
+
+			DeclareBufferVariable(psContext, psRes->ui32BindPoint, psCBuf, &psDecl->asOperands[0], 
+				0, RTYPE_STRUCTURED, glsl);
+
             //bcatcstr(glsl, "uniform res_structured");
             //TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
             //bcatcstr(glsl, ";\n");

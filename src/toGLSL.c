@@ -143,25 +143,7 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 	{
 		if( psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_ALLOC] ||
 			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_CONSUME] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_CMP_STORE] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_AND] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_IADD] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_OR] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_XOR] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_IMAX] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_UMAX] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_IMIN] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_ATOMIC_UMIN] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_IADD] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_AND] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_OR] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_XOR] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_EXCH] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_CMP_EXCH] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_IMAX] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_IMIN] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_UMAX] ||
-			psContext->psShader->aiOpcodeUsed[OPCODE_IMM_ATOMIC_UMIN] )
+			psContext->psShader->aiOpcodeUsed[OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED])
 		{
 			bcatcstr(glsl,"#extension GL_ARB_shader_atomic_counters : enable\n");
 
@@ -196,6 +178,15 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 			bcatcstr(glsl,"#extension GL_ARB_texture_query_lod : enable\n");
 		}
 	}
+
+	if(!HaveImageLoadStore(psContext->psShader->eTargetLanguage))
+	{
+		if(psContext->psShader->aiOpcodeUsed[OPCODE_LD_UAV_TYPED])
+		{
+			bcatcstr(glsl,"#extension GL_ARB_shader_image_load_store : enable\n");
+		}
+	}
+	
 
     if((psContext->flags & HLSLCC_FLAG_ORIGIN_UPPER_LEFT)
         && (psContext->psShader->eTargetLanguage >= LANG_150))

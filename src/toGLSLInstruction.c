@@ -835,11 +835,32 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		case OPCODE_UMAX:
 		case OPCODE_UMIN:
 		case OPCODE_USHR:
-		case OPCODE_LD_UAV_TYPED:
 		case OPCODE_IMM_ATOMIC_ALLOC:
 		case OPCODE_IMM_ATOMIC_CONSUME:
 			{
 				eNewType = SVT_UINT;
+				break;
+			}
+
+		case OPCODE_LD_UAV_TYPED:
+			{
+				ResourceBinding* psRes = NULL;
+				GetResourceFromBindingPoint(RTYPE_UAV_RWTYPED, psInst->asOperands[2].ui32RegisterNumber, &psContext->psShader->sInfo, &psRes);
+				switch(psRes->ui32ReturnType)
+				{
+				case RETURN_TYPE_SINT:
+					eNewType = SVT_INT;
+					break;
+				case RETURN_TYPE_UINT:
+					eNewType = SVT_UINT;
+					break;
+				case RETURN_TYPE_FLOAT:
+					eNewType = SVT_FLOAT;
+					break;
+				default:
+					ASSERT(0);
+					break;
+				}
 				break;
 			}
 
@@ -881,7 +902,6 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		case OPCODE_UTOF:
 		case OPCODE_ITOF:
 		{
-			ASSERT(GetOperandDataType(psContext, &psInst->asOperands[1]) == SVT_UINT || GetOperandDataType(psContext, &psInst->asOperands[1]) == SVT_INT);
 			eNewType = SVT_FLOAT;
 			break;
 		}
@@ -1147,7 +1167,17 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			const SHADER_VARIABLE_TYPE eDestType = GetOperandDataType(psContext, &psInst->asOperands[0]);
 			const SHADER_VARIABLE_TYPE eSrcType = GetOperandDataType(psContext, &psInst->asOperands[1]);
 
-			ASSERT(eSrcType == SVT_INT || eSrcType == SVT_UINT);
+			if(eSrcType == SVT_FLOAT)
+			{
+				//With ld_uav_typed, the result is uint and then converted to the actual format.
+				//But we will set the dest of imageLoad as the actual format and igore the utof.
+				//Otherwise no suitable overload of imageLoad will be found.
+				//Example from tests\ps5\load_store:
+				//ld_uav_typed_indexable(texture3d)(float,float,float,float) r1.x, r0.xxxx, u5.xyzw
+				//utof r1.x, r1.x
+				bcatcstr(glsl, "//Warning. UTOF/ITOF on a src which is float. This is okay if ld_uav_typed last wrote to the src.\n");
+				break;
+			}
 
 #ifdef _DEBUG
 			AddIndentation(psContext);
@@ -2798,16 +2828,48 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//LD_UAV_TYPED\n");
 #endif
-
-            AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-            bcatcstr(glsl, " = imageLoad(");
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NAME_ONLY);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-            bcatcstr(glsl, ")");
-            TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
-            bcatcstr(glsl, ";\n");
+			switch(psInst->eResDim)
+			{
+			case RESOURCE_DIMENSION_TEXTURE1D:
+				AddIndentation(psContext);
+				TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
+				bcatcstr(glsl, " = imageLoad(");
+				TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NAME_ONLY);
+				bcatcstr(glsl, ", (");
+				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
+				bformata(glsl, ").x)");
+				TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+				bcatcstr(glsl, ";\n");
+				break;
+			case RESOURCE_DIMENSION_TEXTURECUBE:
+			case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+			case RESOURCE_DIMENSION_TEXTURE2D:
+			case RESOURCE_DIMENSION_TEXTURE2DMS:
+				AddIndentation(psContext);
+				TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
+				bcatcstr(glsl, " = imageLoad(");
+				TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NAME_ONLY);
+				bcatcstr(glsl, ", (");
+				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
+				bformata(glsl, ").xy)");
+				TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+				bcatcstr(glsl, ";\n");
+				break;
+			case RESOURCE_DIMENSION_TEXTURE3D:
+			case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+			case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
+			case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+				AddIndentation(psContext);
+				TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
+				bcatcstr(glsl, " = imageLoad(");
+				TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NAME_ONLY);
+				bcatcstr(glsl, ", (");
+				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
+				bformata(glsl, ").xyz)");
+				TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+				bcatcstr(glsl, ";\n");
+				break;
+			}
             break;
         }
         case OPCODE_STORE_UAV_TYPED:
