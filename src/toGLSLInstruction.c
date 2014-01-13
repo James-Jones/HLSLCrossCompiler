@@ -701,7 +701,7 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 			continue;
 
 		//Preserve the current type on sources.
-		for(k = psInst->ui32NumOperands-1; k > 0; --k)
+		for(k = psInst->ui32NumOperands-1; k >= (int)psInst->ui32FirstSrc; --k)
 		{
 			int32_t subOperand;
 			Operand* psOperand = &psInst->asOperands[k];
@@ -815,8 +815,9 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 			{
 				uint32_t k;
 				eNewType = SVT_INT;
+
 				//If the rhs evaluates to unsigned then that is the dest type picked.
-				for(k=1; k < psInst->ui32NumOperands; ++k)
+				for(k=psInst->ui32FirstSrc; k < psInst->ui32NumOperands; ++k)
 				{
 					if(GetOperandDataType(psContext, &psInst->asOperands[k]) == SVT_UINT)
 					{
@@ -952,6 +953,11 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 			eNewType = SVT_DOUBLE;
 			break;
 		}
+		case OPCODE_STORE_RAW:
+			{
+				eNewType = SVT_FLOAT;
+				break;
+			}
 		default:
 			{
 				eNewType = SVT_FLOAT;
@@ -961,7 +967,7 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 
 		//Process the destination last in order to handle instructions
 		//where the destination register is also used as a source.
-		for(k = 0; k < 1; ++k)
+		for(k = 0; k < (int)psInst->ui32FirstSrc; ++k)
 		{
 			Operand* psOperand = &psInst->asOperands[k];
 			if(psOperand->eType == OPERAND_TYPE_TEMP)
@@ -2971,14 +2977,28 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 				ASSERT(psInst->asOperands[0].eSelMode == OPERAND_4_COMPONENT_MASK_MODE);
 				if(psInst->asOperands[0].ui32CompMask & (1<<component))
 				{
+					SHADER_VARIABLE_TYPE eSrcDataType = GetOperandDataType(psContext, &psInst->asOperands[2]);
+
 					AddIndentation(psContext);
 					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NAME_ONLY);
 					bcatcstr(glsl, "[");
 					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
 					bcatcstr(glsl, "]");
-
+					
 					bcatcstr(glsl, " = ");
-					TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+					//Dest type is currently always a uint array.
+					switch(eSrcDataType)
+					{
+					case SVT_FLOAT:
+						bcatcstr(glsl, "floatBitsToUint(");
+						TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+						bcatcstr(glsl, ")");
+						break;
+					default:
+						TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+						break;
+					}
+
 					bcatcstr(glsl, ";\n");
 				}
 			}

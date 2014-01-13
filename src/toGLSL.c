@@ -181,7 +181,17 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 
 	if(!HaveImageLoadStore(psContext->psShader->eTargetLanguage))
 	{
-		if(psContext->psShader->aiOpcodeUsed[OPCODE_LD_UAV_TYPED])
+		if(psContext->psShader->aiOpcodeUsed[OPCODE_STORE_UAV_TYPED] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_STORE_RAW] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_STORE_STRUCTURED])
+		{
+			bcatcstr(glsl,"#extension GL_ARB_shader_image_load_store : enable\n");
+			bcatcstr(glsl,"#extension GL_ARB_shader_bit_encoding : enable\n");
+		}
+		else
+		if(psContext->psShader->aiOpcodeUsed[OPCODE_LD_UAV_TYPED] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_LD_RAW] ||
+			psContext->psShader->aiOpcodeUsed[OPCODE_LD_STRUCTURED])
 		{
 			bcatcstr(glsl,"#extension GL_ARB_shader_image_load_store : enable\n");
 		}

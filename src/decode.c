@@ -752,6 +752,8 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 
     psInst->bAddressOffset = 0;
 
+	psInst->ui32FirstSrc = 1;
+
     if(bExtended)
     {
         do {
@@ -812,16 +814,19 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_HS_JOIN_PHASE:
         {
             psInst->ui32NumOperands = 0;
+			psInst->ui32FirstSrc = 0;
             break;
         }
 		case OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT:
 		{
             psInst->ui32NumOperands = 0;
+			psInst->ui32FirstSrc = 0;
 			break;
 		}
         case OPCODE_SYNC:
         {
             psInst->ui32NumOperands = 0;
+			psInst->ui32FirstSrc = 0;
             psInst->ui32SyncFlags = DecodeSyncFlags(*pui32Token);
             break;
         }
@@ -835,6 +840,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_LABEL:
         {
             psInst->ui32NumOperands = 1;
+			psInst->ui32FirstSrc = 0;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
 
 			if(eOpcode == OPCODE_CASE)
@@ -847,6 +853,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_INTERFACE_CALL:
         {
             psInst->ui32NumOperands = 1;
+			psInst->ui32FirstSrc = 0;
             psInst->ui32FuncIndexWithinInterface = pui32Token[ui32OperandOffset];
             ui32OperandOffset++;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -986,6 +993,12 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_IMUL:
 		{
             psInst->ui32NumOperands = 4;
+
+			if(eOpcode == OPCODE_IMUL)
+			{
+				psInst->ui32FirstSrc = 2;
+			}
+
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);

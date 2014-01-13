@@ -59,6 +59,7 @@ typedef struct Instruction_TAG
 	COMPARISON_DX9 eDX9TestType;
     uint32_t ui32SyncFlags;
     uint32_t ui32NumOperands;
+	uint32_t ui32FirstSrc;
     Operand asOperands[6];
     uint32_t bSaturate;
     uint32_t ui32FuncIndexWithinInterface;
