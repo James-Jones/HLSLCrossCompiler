@@ -3039,16 +3039,17 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			found = GetShaderVarFromOffset(vec4Offset, aui32Swizzle, psCBuf, &psVarType, &index);
 			ASSERT(found);
 			
-			bformata(glsl, "UAV%d,", psInst->asOperands[0].ui32RegisterNumber);
+			bformata(glsl, "UAV%d[0]", psInst->asOperands[0].ui32RegisterNumber);
 			if(strcmp(psVarType->Name, "$Element") != 0)
 			{
-				bformata(glsl, ".%s,",psVarType->Name);
+				bformata(glsl, ".%s",psVarType->Name);
 			}
 
 			if(psVarType->Type == SVT_UINT)
 			{
 				ui32DataTypeFlag = TO_FLAG_UNSIGNED_INTEGER;
 			}
+			bcatcstr(glsl, ", ");
 
             TranslateOperand(psContext, &psInst->asOperands[2], ui32DataTypeFlag);
             bcatcstr(glsl, ");\n");
