@@ -1312,7 +1312,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//IMUL\n");
 #endif
-            if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
+            if(GetOperandDataType(psContext, &psInst->asOperands[1]) == SVT_UINT)
             {
                 ui32Flags = TO_FLAG_UNSIGNED_INTEGER;
             }
