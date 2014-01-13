@@ -30,6 +30,8 @@ RWTexture3D<float> texture3;
 RWTexture1DArray<float> texture1a;
 globallycoherent RWTexture2DArray<float> texture2a;
 
+globallycoherent RWTexture1D<uint4> textureStoreUint4;
+
 PS_OUTPUT main( PS_INPUT input )
 {
     PS_OUTPUT outPix;
@@ -41,6 +43,9 @@ PS_OUTPUT main( PS_INPUT input )
     float E = asfloat( texture1a[float2(input.index, input.index)] );
     float F = asfloat( texture2a[float3(input.index, input.index, input.index)] );
     float G = asfloat(bbuffer.Load(input.index));
+
+	texture1[input.index] = 0.2;
+	textureStoreUint4[input.index] = float4(1, 2, 3, 4);
     
     bufferOut.Store( input.index*3, asuint(A) );
     bufferOut.Store( input.index*3+1, asuint(B) );

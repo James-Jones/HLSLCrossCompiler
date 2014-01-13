@@ -3,6 +3,10 @@
 //
 //
 ///
+// Note: shader requires additional functionality:
+//       64 UAV slots
+//
+//
 // Buffer Definitions: 
 //
 // Resource bind info for sbuffer
@@ -49,6 +53,7 @@
 // texture3                              UAV   float          3d    5        1
 // texture1a                             UAV   float     1darray    6        1
 // texture2a                             UAV   float     2darray    7        1
+// textureStoreUint4                     UAV   uint4          1d    8        1
 //
 //
 //
@@ -76,28 +81,31 @@ dcl_uav_typed_texture2d (float,float,float,float) u4
 dcl_uav_typed_texture3d (float,float,float,float) u5
 dcl_uav_typed_texture1darray (float,float,float,float) u6
 dcl_uav_typed_texture2darray_glc (float,float,float,float) u7
+dcl_uav_typed_texture1d_glc (uint,uint,uint,uint) u8
 dcl_input_ps constant v0.x
 dcl_output o0.xyzw
 dcl_temps 2
-ld_structured_indexable(structured_buffer, stride=16)(mixed,mixed,mixed,mixed) r0.x, v0.x, l(0), t0.xxxx
-imul null, r0.y, v0.x, l(3)
-store_raw u2.x, r0.y, r0.x
 ld_uav_typed_indexable(texture1d)(float,float,float,float) r0.x, v0.xxxx, u3.xyzw
-imad r0.zw, v0.xxxx, l(0, 0, 3, 3), l(0, 0, 1, 2)
-store_raw u2.x, r0.z, r0.x
+store_uav_typed u3.xyzw, v0.xxxx, l(0.200000,0.200000,0.200000,0.200000)
+store_uav_typed u8.xyzw, v0.xxxx, l(1,2,3,4)
+ld_structured_indexable(structured_buffer, stride=16)(mixed,mixed,mixed,mixed) r0.y, v0.x, l(0), t0.xxxx
+imul null, r0.z, v0.x, l(3)
+store_raw u2.x, r0.z, r0.y
+imad r0.yw, v0.xxxx, l(0, 3, 0, 3), l(0, 1, 0, 2)
+store_raw u2.x, r0.y, r0.x
 itof r0.x, v0.x
 ftou r0.x, r0.x
 ld_uav_typed_indexable(texture2d)(float,float,float,float) r1.x, r0.xxxx, u4.xyzw
 store_raw u2.x, r0.w, r1.x
 ld_uav_typed_indexable(texture3d)(float,float,float,float) r1.x, r0.xxxx, u5.xyzw
 utof r1.x, r1.x
-store_structured u1.x, r0.y, l(0), r1.x
-ld_uav_typed_indexable(texture1darray)(float,float,float,float) r0.y, r0.xxxx, u6.yxzw
+store_structured u1.x, r0.z, l(0), r1.x
+ld_uav_typed_indexable(texture1darray)(float,float,float,float) r0.z, r0.xxxx, u6.yzxw
 ld_uav_typed_indexable(texture2darray)(float,float,float,float) r0.x, r0.xxxx, u7.xyzw
-utof r0.xy, r0.xyxx
-store_structured u1.x, r0.z, l(4), r0.y
+utof r0.xz, r0.xxzx
+store_structured u1.x, r0.y, l(4), r0.z
 store_structured u1.x, r0.w, l(8), r0.x
 ld_raw_indexable(raw_buffer)(mixed,mixed,mixed,mixed) r0.x, v0.x, t1.xxxx
 mov o0.xyzw, r0.xxxx
 ret 
-// Approximately 21 instruction slots used
+// Approximately 23 instruction slots used
