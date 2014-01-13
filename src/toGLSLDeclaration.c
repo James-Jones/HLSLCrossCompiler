@@ -1018,9 +1018,13 @@ void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t u
 	StructName = bfromcstr("");
 	
 	//TranslateOperand(psContext, psOperand, TO_FLAG_NAME_ONLY);
-	if(psOperand->eType == OPERAND_TYPE_RESOURCE && RTYPE_STRUCTURED)
+	if(psOperand->eType == OPERAND_TYPE_RESOURCE && eResourceType == RTYPE_STRUCTURED)
 	{
 		bformata(StructName, "StructuredRes%d", psOperand->ui32RegisterNumber);
+	}
+	else if(psOperand->eType == OPERAND_TYPE_RESOURCE && eResourceType == RTYPE_UAV_RWBYTEADDRESS)
+	{
+		bformata(StructName, "RawRes%d", psOperand->ui32RegisterNumber);
 	}
 	else
 	{
@@ -2172,9 +2176,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
         case OPCODE_DCL_RESOURCE_RAW:
         {
-            //bcatcstr(glsl, "uniform res_raw");
-            //TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
-            //bcatcstr(glsl, ";\n");
+			bformata(glsl, "buffer Block%d {\n\tuint RawRes%d[];\n};\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
             break;
         }
 		case OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED:
