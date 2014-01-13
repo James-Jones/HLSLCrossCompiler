@@ -451,7 +451,7 @@ int GetFirstOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* p
 			{
 				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_X)
 				{
-					return 0;;
+					return 0;
 				}
 				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Y)
 				{
@@ -631,6 +631,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
     {
 		const uint32_t swizCount = psOperand->iNumComponents;
 		SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand);
+
         if((ui32TOFlag & (TO_FLAG_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_INTEGER &&
 			eType != SVT_INT)
         {

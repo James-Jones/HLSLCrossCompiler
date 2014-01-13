@@ -318,6 +318,7 @@ static void ReadResources(const uint32_t* pui32Tokens,//in
                 psShaderInfo->aui32ConstBufferBindpointRemap[psResBindings[i].ui32BindPoint] = k++;
                 break;
             }
+			
             case RTYPE_UAV_RWBYTEADDRESS:
             case RTYPE_UAV_RWSTRUCTURED:
 			case RTYPE_UAV_RWTYPED:
@@ -327,7 +328,13 @@ static void ReadResources(const uint32_t* pui32Tokens,//in
             {
                 ASSERT(k < MAX_UAV);
                 psShaderInfo->aui32UAVBindpointRemap[psResBindings[i].ui32BindPoint] = k++;
+				break;
             }
+			case RTYPE_STRUCTURED:
+			{
+				psShaderInfo->aui32StructBindpointRemap[psResBindings[i].ui32BindPoint] = k++;
+				break;
+			}
             default:
             {
                 break;
@@ -467,6 +474,19 @@ void GetUAVBufferFromBindingPoint(const uint32_t ui32BindPoint, const ShaderInfo
     ASSERT(ui32BindPoint < MAX_UAV);
     
     index = psShaderInfo->aui32UAVBindpointRemap[ui32BindPoint]; 
+    
+    ASSERT(index < psShaderInfo->ui32NumConstantBuffers);
+    
+    *ppsConstBuf = psShaderInfo->psConstantBuffers + index;
+}
+
+void GetStructureFromBindingPoint(const uint32_t ui32BindPoint, const ShaderInfo* psShaderInfo, ConstantBuffer** ppsConstBuf)
+{
+    uint32_t index;
+    
+    ASSERT(ui32BindPoint < MAX_UAV);
+    
+    index = psShaderInfo->aui32StructBindpointRemap[ui32BindPoint]; 
     
     ASSERT(index < psShaderInfo->ui32NumConstantBuffers);
     

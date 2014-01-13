@@ -123,6 +123,7 @@ typedef enum ResourceType_TAG
     RTYPE_UAV_APPEND_STRUCTURED,//9
     RTYPE_UAV_CONSUME_STRUCTURED,//10
     RTYPE_UAV_RWSTRUCTURED_WITH_COUNTER,//11
+	RTYPE_COUNT,
 } ResourceType;
 
 typedef enum REFLECT_RESOURCE_DIMENSION
@@ -322,6 +323,7 @@ typedef struct ShaderInfo_TAG
 
     uint32_t aui32ConstBufferBindpointRemap[MAX_CBUFFERS];
     uint32_t aui32UAVBindpointRemap[MAX_UAV];
+	uint32_t aui32StructBindpointRemap[MAX_UAV];
 
     TESSELLATOR_PARTITIONING eTessPartitioning;
     TESSELLATOR_OUTPUT_PRIMITIVE eTessOutPrim;

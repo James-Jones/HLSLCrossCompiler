@@ -137,7 +137,6 @@ typedef struct Declaration_TAG
     uint32_t ui32TableLength;
 
 	uint32_t ui32IsShadowTex;
-
 } Declaration;
 
 static enum {MAX_TEMP_VEC4 = 512};

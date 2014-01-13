@@ -64,13 +64,13 @@ const uint32_t GetTypeElementCount(GLVARTYPE eType)
     }
 }
 
-void DeclareConstBufferShaderVariable(bstring glsl, const char* Name, const struct ShaderVarType_TAG* psType)
+void DeclareConstBufferShaderVariable(bstring glsl, const char* Name, const struct ShaderVarType_TAG* psType, int unsizedArray)
 	//const SHADER_VARIABLE_CLASS eClass, const SHADER_VARIABLE_TYPE eType,
     //const char* pszName)
 {
 	if(psType->Class == SVC_STRUCT)
 	{
-		bformata(glsl, "\t%s_Type %s;\n", Name, Name);
+		bformata(glsl, "\t%s_Type %s", Name, Name);
 	}
 	else if(psType->Class == SVC_MATRIX_COLUMNS || psType->Class == SVC_MATRIX_ROWS)
     {
@@ -91,7 +91,7 @@ void DeclareConstBufferShaderVariable(bstring glsl, const char* Name, const stru
 		{
 			bformata(glsl, " * %d", psType->Elements);
 		}
-		bformata(glsl, "];\n");
+		bformata(glsl, "]");
     }
     else
     if(psType->Class == SVC_VECTOR)
@@ -129,7 +129,6 @@ void DeclareConstBufferShaderVariable(bstring glsl, const char* Name, const stru
 		{
 			bformata(glsl, "[%d]", psType->Elements);
 		}
-		bformata(glsl, ";\n");
     }
     else
     if(psType->Class == SVC_SCALAR)
@@ -175,8 +174,10 @@ void DeclareConstBufferShaderVariable(bstring glsl, const char* Name, const stru
 		{
 			bformata(glsl, "[%d]", psType->Elements);
 		}
-		bformata(glsl, ";\n");
     }
+	if(unsizedArray)
+		bformata(glsl, "[]");
+	bformata(glsl, ";\n");
 }
 
 //In GLSL embedded structure definitions are not supported.
@@ -206,7 +207,7 @@ void PreDeclareStructType(bstring glsl, const char* Name, const struct ShaderVar
 		{
 			ASSERT(psType->Members != 0);
 
-			DeclareConstBufferShaderVariable(glsl, psType->Members[i].Name, &psType->Members[i]);
+			DeclareConstBufferShaderVariable(glsl, psType->Members[i].Name, &psType->Members[i], 0);
 		}
 
 		bformata(glsl, "};\n");
@@ -996,7 +997,7 @@ void DeclareUBOConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui3
     {
         DeclareConstBufferShaderVariable(glsl,
 			psCBuf->asVars[i].Name,
-            &psCBuf->asVars[i].sType);
+            &psCBuf->asVars[i].sType, 0);
     }
                 
     bcatcstr(glsl, "};\n");
@@ -1015,8 +1016,16 @@ void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t u
 	ASSERT(unnamed_struct);
 
 	StructName = bfromcstr("");
-
-	bformata(StructName, "UAV%d", psOperand->ui32RegisterNumber);
+	
+	//TranslateOperand(psContext, psOperand, TO_FLAG_NAME_ONLY);
+	if(psOperand->eType == OPERAND_TYPE_RESOURCE && RTYPE_STRUCTURED)
+	{
+		bformata(StructName, "StructuredRes%d", psOperand->ui32RegisterNumber);
+	}
+	else
+	{
+		bformata(StructName, "UAV%d", psOperand->ui32RegisterNumber);
+	}
 
     PreDeclareStructType(glsl,
 		bstr2cstr(StructName, '\0'),
@@ -1040,7 +1049,8 @@ void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t u
 
 	DeclareConstBufferShaderVariable(glsl,
 	bstr2cstr(StructName, '\0'),
-    &psCBuf->asVars[0].sType);
+    &psCBuf->asVars[0].sType,
+	1);
 
 	bcatcstr(glsl, "};\n");
 
@@ -1073,7 +1083,7 @@ void DeclareStructConstants(HLSLCrossCompilerContext* psContext, const uint32_t 
     {
         DeclareConstBufferShaderVariable(glsl,
 			psCBuf->asVars[i].Name,
-            &psCBuf->asVars[i].sType);
+            &psCBuf->asVars[i].sType, 0);
     }
                 
     bcatcstr(glsl, "} ");
@@ -2143,16 +2153,16 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 		}
         case OPCODE_DCL_RESOURCE_STRUCTURED:
         {
-			ResourceBinding* psRes = NULL;
+			//ResourceBinding* psRes = NULL;
 			ConstantBuffer* psCBuf = NULL;
 
-			GetResourceFromBindingPoint(RTYPE_STRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psRes);
+			//GetResourceFromBindingPoint(RTYPE_STRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psRes);
 
-			ASSERT(psRes!=0);
+			//ASSERT(psRes!=0);
 
-			GetUAVBufferFromBindingPoint(psRes->ui32BindPoint, &psContext->psShader->sInfo, &psCBuf);
+			GetUAVBufferFromBindingPoint(psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
 
-			DeclareBufferVariable(psContext, psRes->ui32BindPoint, psCBuf, &psDecl->asOperands[0], 
+			DeclareBufferVariable(psContext, psDecl->asOperands[0].ui32RegisterNumber, psCBuf, &psDecl->asOperands[0], 
 				0, RTYPE_STRUCTURED, glsl);
 
             //bcatcstr(glsl, "uniform res_structured");
