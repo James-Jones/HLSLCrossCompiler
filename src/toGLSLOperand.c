@@ -632,15 +632,25 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 		const uint32_t swizCount = psOperand->iNumComponents;
 		SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand);
 
-		if((ui32TOFlag & (TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER)) == (TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER) &&
-			(eType == SVT_INT||eType == SVT_UINT))
+		if( (ui32TOFlag & (TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER)) == (TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER))
 		{
+			//Can be either int or uint
+			if(eType != SVT_INT && eType != SVT_UINT)
+			{
+				if(swizCount == 1)
+					bformata(glsl, "int(");
+				else
+					bformata(glsl, "ivec%d(", swizCount);
+
+				integerConstructor = 1;
+			}
 		}
 		else
 		{
 			if((ui32TOFlag & (TO_FLAG_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_INTEGER &&
 				eType != SVT_INT)
 			{
+				//Convert to int
 				if(swizCount == 1)
 					bformata(glsl, "int(");
 				else
@@ -651,6 +661,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 			if((ui32TOFlag & (TO_FLAG_UNSIGNED_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_UNSIGNED_INTEGER &&
 				eType != SVT_UINT)
 			{
+				//Convert to uint
 				if(swizCount == 1)
 					bformata(glsl, "uint(");
 				else

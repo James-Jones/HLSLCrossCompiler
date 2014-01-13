@@ -1311,7 +1311,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
                 ui32Flags = TO_FLAG_UNSIGNED_INTEGER;
             }
 
-			CallBinaryOp(psContext, "*", psInst, 0, 1, 2, ui32Flags);
+			ASSERT(psInst->asOperands[0].eType == OPERAND_TYPE_NULL);
+
+			CallBinaryOp(psContext, "*", psInst, 1, 2, 3, ui32Flags);
             break;
         }
         case OPCODE_UDIV:
@@ -2903,6 +2905,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 					bformata(glsl, ";\n");
 				}
 			}
+			break;
 		}
         case OPCODE_LD_UAV_TYPED:
         {
@@ -2954,12 +2957,41 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			}
             break;
         }
+		case OPCODE_STORE_RAW:
+		{
+			int component;
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//STORE_RAW\n");
+#endif
+			
+			for(component=0; component < 4; component++)
+			{
+				const char* swizzleString [] = { ".x", ".y", ".z", ".w" };
+				ASSERT(psInst->asOperands[0].eSelMode == OPERAND_4_COMPONENT_MASK_MODE);
+				if(psInst->asOperands[0].ui32CompMask & (1<<component))
+				{
+					AddIndentation(psContext);
+					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NAME_ONLY);
+					bcatcstr(glsl, "[");
+					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
+					bcatcstr(glsl, "]");
+
+					bcatcstr(glsl, " = ");
+					TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+					bcatcstr(glsl, ";\n");
+				}
+			}
+
+			break;
+		}
+
         case OPCODE_STORE_UAV_TYPED:
         {
             break;
         }
         case OPCODE_LD_RAW:
-        case OPCODE_STORE_RAW:
+        
         
         case OPCODE_STORE_STRUCTURED:
         {

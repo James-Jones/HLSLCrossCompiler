@@ -669,7 +669,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 			psDecl->sUAV.bCounter = 0;
 			psDecl->sUAV.ui32BufferSize = 0;
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
-
+			
             if(GetResourceFromBindingPoint(RTYPE_UAV_RWSTRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding))
             {
                 GetUAVBufferFromBindingPoint(psBinding->ui32BindPoint, &psShader->sInfo, &psBuffer);
@@ -932,7 +932,6 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_ISHL:
 		case OPCODE_ISHR:
 		case OPCODE_LD:
-		case OPCODE_IMUL:
 		case OPCODE_ILT:
         case OPCODE_INE:
         case OPCODE_UGE:
@@ -984,6 +983,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_IMM_ATOMIC_UMIN:
         case OPCODE_DMOVC:
         case OPCODE_DFMA:
+		case OPCODE_IMUL:
 		{
             psInst->ui32NumOperands = 4;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
