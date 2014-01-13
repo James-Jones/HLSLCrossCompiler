@@ -632,25 +632,32 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 		const uint32_t swizCount = psOperand->iNumComponents;
 		SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand);
 
-        if((ui32TOFlag & (TO_FLAG_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_INTEGER &&
-			eType != SVT_INT)
-        {
-			if(swizCount == 1)
-				bformata(glsl, "int(");
-			else
-				bformata(glsl, "ivec%d(", swizCount);
+		if((ui32TOFlag & (TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER)) == (TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER) &&
+			(eType == SVT_INT||eType == SVT_UINT))
+		{
+		}
+		else
+		{
+			if((ui32TOFlag & (TO_FLAG_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_INTEGER &&
+				eType != SVT_INT)
+			{
+				if(swizCount == 1)
+					bformata(glsl, "int(");
+				else
+					bformata(glsl, "ivec%d(", swizCount);
 
-            integerConstructor = 1;
-        }
-        if((ui32TOFlag & (TO_FLAG_UNSIGNED_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_UNSIGNED_INTEGER &&
-			eType != SVT_UINT)
-        {
-			if(swizCount == 1)
-				bformata(glsl, "uint(");
-			else
-				bformata(glsl, "uvec%d(", swizCount);
-            integerConstructor = 1;
-        }
+				integerConstructor = 1;
+			}
+			if((ui32TOFlag & (TO_FLAG_UNSIGNED_INTEGER|TO_FLAG_DESTINATION))==TO_FLAG_UNSIGNED_INTEGER &&
+				eType != SVT_UINT)
+			{
+				if(swizCount == 1)
+					bformata(glsl, "uint(");
+				else
+					bformata(glsl, "uvec%d(", swizCount);
+				integerConstructor = 1;
+			}
+		}
     }
 
     switch(psOperand->eType)
@@ -958,9 +965,19 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 				//Dx9 only?
 				if(psOperand->psSubOperand[0] != NULL)
 				{
-					bcatcstr(glsl, "[int("); //Indexes must be integral.
-					TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
-					bcatcstr(glsl, ")]");
+					SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand->psSubOperand[0]);
+					if(eType != SVT_INT && eType != SVT_UINT)
+					{
+						bcatcstr(glsl, "[int("); //Indexes must be integral.
+						TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
+						bcatcstr(glsl, ")]");
+					}
+					else
+					{
+						bcatcstr(glsl, "["); //Indexes must be integral.
+						TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
+						bcatcstr(glsl, "]");
+					}
 
 					ASSERT(index == 0 || index == -1);
 				}
@@ -970,9 +987,19 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 					//Array of matrices is treated as array of vec4s
 					if(index != -1)
 					{
-						bcatcstr(glsl, "[int("); //Indexes must be integral.
-						TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
-						bformata(glsl, ") + %d]", index);
+						SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand->psSubOperand[1]);
+						if(eType != SVT_INT && eType != SVT_UINT)
+						{
+							bcatcstr(glsl, "[int(");
+							TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
+							bformata(glsl, ") + %d]", index);
+						}
+						else
+						{
+							bcatcstr(glsl, "[");
+							TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
+							bformata(glsl, " + %d]", index);
+						}
 					}
 				}
 				else if(index != -1)
@@ -981,9 +1008,19 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                 }
 				else if(psOperand->psSubOperand[1] != NULL)
 				{
-					bcatcstr(glsl, "[int("); //Indexes must be integral.
-					TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
-					bcatcstr(glsl, ")]");
+					SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand->psSubOperand[1]);
+					if(eType != SVT_INT && eType != SVT_UINT)
+					{
+						bcatcstr(glsl, "[");
+						TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
+						bcatcstr(glsl, "]");
+					}
+					else
+					{
+						bcatcstr(glsl, "[int(");
+						TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
+						bcatcstr(glsl, ")]");
+					}
 				}
 
 				if(psVarType->Class == SVC_SCALAR)

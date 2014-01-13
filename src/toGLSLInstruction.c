@@ -2886,7 +2886,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 						TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_NAME_ONLY);
 						bformata(glsl, "[");
 					}
-					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
+					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
 
 					bformata(glsl, "]");
 					if(strcmp(psVarType->Name, "$Element") != 0)
