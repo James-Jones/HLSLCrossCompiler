@@ -3005,18 +3005,102 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
 			break;
 		}
+        case OPCODE_STORE_STRUCTURED:
+        {
+			ConstantBuffer* psCBuf = NULL;
+            ShaderVarType* psVarType = NULL;
+            int32_t index = -1;
+			uint32_t aui32Swizzle[4] = {OPERAND_4_COMPONENT_X};
+			uint32_t ui32DataTypeFlag = TO_FLAG_INTEGER;
+			int found;
+			int vec4Offset;
+			int component;
+			int destComponent = 0;
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//STORE_STRUCTURED\n");
+#endif
+
+			GetStructureFromBindingPoint(psInst->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+
+			for(component=0; component < 4; component++)
+			{
+				const char* swizzleString [] = { ".x", ".y", ".z", ".w" };
+				ASSERT(psInst->asOperands[0].eSelMode == OPERAND_4_COMPONENT_MASK_MODE);
+				if(psInst->asOperands[0].ui32CompMask & (1<<component))
+				{
+					int byteOffset = ((int*)psInst->asOperands[2].afImmediates)[0];
+					AddIndentation(psContext);
+
+					//TODO: multi-component stores and vector writes need testing.
+
+					//aui32Swizzle[0] = psInst->asOperands[0].aui32Swizzle[component];
+
+					switch(byteOffset % 16)
+					{
+					case 0:
+						aui32Swizzle[0] = 0;
+						break;
+					case 4:
+						aui32Swizzle[0] = 1;
+						break;
+					case 8:
+						aui32Swizzle[0] = 2;
+						break;
+					case 12:
+						aui32Swizzle[0] = 3;
+						break;
+					}
+
+					vec4Offset = 0;
+					found = GetShaderVarFromOffset(vec4Offset, aui32Swizzle, psCBuf, &psVarType, &index);
+					ASSERT(found);
+
+					//TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
+					//if(GetNumSwizzleElements(&psInst->asOperands[0]) > 1)
+						//bformata(glsl, swizzleString[destComponent++]);
+
+					if(psInst->asOperands[0].eType == OPERAND_TYPE_RESOURCE)
+					{
+						bformata(glsl, "StructuredRes%d", psInst->asOperands[0].ui32RegisterNumber);
+					}
+					else
+					{
+						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION|TO_FLAG_NAME_ONLY);
+					}
+					bformata(glsl, "[");
+					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
+
+					bformata(glsl, "]");
+					if(strcmp(psVarType->Name, "$Element") != 0)
+					{
+						bformata(glsl, ".%s", psVarType->Name);
+					}
+					bformata(glsl, " = ");
+
+					TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_DESTINATION);
+
+					//Double takes an extra slot.
+					if(psVarType->Type == SVT_DOUBLE)
+					{
+						component++;
+					}
+
+					bformata(glsl, ";\n");
+				}
+			}
+            break;
+        }
 
         case OPCODE_STORE_UAV_TYPED:
         {
             break;
         }
         case OPCODE_LD_RAW:
+		{
+			break;
+		}
         
-        
-        case OPCODE_STORE_STRUCTURED:
-        {
-            break;
-        }
         case OPCODE_ATOMIC_CMP_STORE:
         {
 #ifdef _DEBUG
@@ -3032,7 +3116,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, ", ");
             TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_NONE);
             bcatcstr(glsl, ");\n");
-            break;
             break;
         }
         case OPCODE_ATOMIC_AND:
