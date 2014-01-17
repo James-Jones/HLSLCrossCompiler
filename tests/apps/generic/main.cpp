@@ -76,10 +76,13 @@ public:
 
 		gChangesEveryFrame.Time = gTime;
 
-		mEffect.SetVec4(std::string("cbChangesEveryFrame"), ChangesEveryFrameVec4Count, (float*)&gChangesEveryFrame);
+		mEffect.SetVec4(std::string("cbChangesEveryFrameVS.World"), 4, gChangesEveryFrame.World);
+		mEffect.SetVec4(std::string("cbChangesEveryFrameVS.View"), 4, gChangesEveryFrame.View);
+		mEffect.SetVec4(std::string("cbChangesEveryFrameVS.Projection"), 4, gChangesEveryFrame.Projection);
+		mEffect.SetFloat(std::string("cbChangesEveryFrameVS.Time"), 1, &gChangesEveryFrame.Time);
 
 		SetFloatArray(vLightDirs, &gConstant.vLightDir[0]);
-		mEffect.SetVec4(std::string("cbConstant"), ConstantVec4Count, (float*)&gConstant);
+		mEffect.SetVec4(std::string("cbConstantPS.vLightDir"), 1, &gConstant.vLightDir[0]);
 
         mEffect.SetTexture(std::string("g_txDiffuse"), 0);
 	}
