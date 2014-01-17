@@ -540,16 +540,41 @@ void AddBuiltinInput(HLSLCrossCompilerContext* psContext, const Declaration* psD
     psContext->currentGLSLString = &psContext->glsl;
 }
 
+int OutputNeedsDeclaring(HLSLCrossCompilerContext* psContext, const Operand* psOperand, const int count)
+{
+	Shader* psShader = psContext->psShader;
+	const uint32_t declared = psContext->currentPhase + 1;
+	if(psShader->aiOutputDeclared[psOperand->ui32RegisterNumber] != declared)
+	{
+		int offset;
+
+		for(offset = 0; offset < count; offset++)
+		{
+			psShader->aiOutputDeclared[psOperand->ui32RegisterNumber+offset] = declared;
+		}
+		return 1;
+	}
+
+	if(psShader->eShaderType == PIXEL_SHADER)
+	{
+		if(psOperand->eType == OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL ||
+		   psOperand->eType == OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 void AddBuiltinOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDecl, const GLVARTYPE type, int arrayElements, const char* builtinName)
 {
     bstring glsl = *psContext->currentGLSLString;
     Shader* psShader = psContext->psShader;
 
-    const uint32_t declared = psContext->currentPhase + 1;
-
     psContext->havePostShaderCode[psContext->currentPhase] = 1;
 
-    if(psShader->aiOutputDeclared[psDecl->asOperands[0].ui32RegisterNumber] != declared)
+    if(OutputNeedsDeclaring(psContext, &psDecl->asOperands[0], arrayElements ? arrayElements : 1))
     {
         InOutSignature* psSignature = NULL;
 
@@ -587,8 +612,6 @@ void AddBuiltinOutput(HLSLCrossCompilerContext* psContext, const Declaration* ps
                 bformata(glsl, "[%d]", elem);
                 TranslateOperandSwizzle(psContext, &psDecl->asOperands[0]);
                 bformata(glsl, ");\n");
-
-                psShader->aiOutputDeclared[psDecl->asOperands[0].ui32RegisterNumber+elem] = declared;
             }
         }
         else
@@ -679,8 +702,6 @@ void AddBuiltinOutput(HLSLCrossCompilerContext* psContext, const Declaration* ps
 					bformata(glsl, ");\n");
 				}
             }
-
-            psShader->aiOutputDeclared[psDecl->asOperands[0].ui32RegisterNumber] = declared;
         }
         psContext->indent--;
         psContext->currentGLSLString = &psContext->glsl;
@@ -692,9 +713,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
     bstring glsl = *psContext->currentGLSLString;
     Shader* psShader = psContext->psShader;
 
-    const uint32_t declared = psContext->currentPhase + 1;
-
-    if(psShader->aiOutputDeclared[psDecl->asOperands[0].ui32RegisterNumber] != declared)
+    if(OutputNeedsDeclaring(psContext, &psDecl->asOperands[0], 1))
     {
         const Operand* psOperand = &psDecl->asOperands[0];
         const char* Precision = "";
@@ -771,6 +790,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 					case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
 					{
 						bcatcstr(glsl, "#ifdef GL_ARB_conservative_depth\n");
+						bcatcstr(glsl, "#extension GL_ARB_conservative_depth : enable\n");
 						bcatcstr(glsl, "layout (depth_greater) out float gl_FragDepth;\n");
 						bcatcstr(glsl, "#endif\n");
 						break;
@@ -778,6 +798,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 					case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
 					{
 						bcatcstr(glsl, "#ifdef GL_ARB_conservative_depth\n");
+						bcatcstr(glsl, "#extension GL_ARB_conservative_depth : enable\n");
 						bcatcstr(glsl, "layout (depth_less) out float gl_FragDepth;\n");
 						bcatcstr(glsl, "#endif\n");
 						break;
@@ -890,8 +911,6 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 				break;
 			}
 		}
-
-        psShader->aiOutputDeclared[psDecl->asOperands[0].ui32RegisterNumber] = declared;
     }
 	else
 	{
