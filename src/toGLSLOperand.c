@@ -908,7 +908,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             ConstantBuffer* psCBuf = NULL;
             ShaderVarType* psVarType = NULL;
             int32_t index = -1;
-            GetConstantBufferFromBindingPoint(psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
+            GetConstantBufferFromBindingPoint(RGROUP_CBUFFER, psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
 
             switch(psContext->psShader->eShaderType)
             {
@@ -1279,7 +1279,7 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
 			ShaderVarType* psVarType = NULL;
 			int32_t index = -1;
 			int foundVar;
-			GetConstantBufferFromBindingPoint(psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
+			GetConstantBufferFromBindingPoint(RGROUP_CBUFFER, psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
 			foundVar = GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index);
 			if(foundVar && index == -1 && psOperand->psSubOperand[1] == NULL)
 			{
@@ -1378,7 +1378,7 @@ void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32Registe
     ResourceBinding* psBinding = 0;
 	int found;
 
-    found = GetResourceFromBindingPoint(RTYPE_TEXTURE, ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
+    found = GetResourceFromBindingPoint(RGROUP_TEXTURE, ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
 
     if(bZCompare)
     {

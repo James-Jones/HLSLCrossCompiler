@@ -680,6 +680,218 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
     bcatcstr(glsl, ";\n");
 }
 
+static ShaderVarType* LookupStructuredVar(HLSLCrossCompilerContext* psContext,
+								   Operand* psResource,
+								   Operand* psByteOffset)
+{
+	ConstantBuffer* psCBuf = NULL;
+	ShaderVarType* psVarType = NULL;
+	uint32_t aui32Swizzle[4] = {OPERAND_4_COMPONENT_X};
+	int byteOffset = ((int*)psByteOffset->afImmediates)[0];
+	int vec4Offset = 0;
+	int32_t index = -1;
+	int found;
+	//TODO: multi-component stores and vector writes need testing.
+
+	//aui32Swizzle[0] = psInst->asOperands[0].aui32Swizzle[component];
+
+	switch(byteOffset % 16)
+	{
+	case 0:
+		aui32Swizzle[0] = 0;
+		break;
+	case 4:
+		aui32Swizzle[0] = 1;
+		break;
+	case 8:
+		aui32Swizzle[0] = 2;
+		break;
+	case 12:
+		aui32Swizzle[0] = 3;
+		break;
+	}
+
+	GetConstantBufferFromBindingPoint(RGROUP_UAV, psResource->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+	
+	found = GetShaderVarFromOffset(vec4Offset, aui32Swizzle, psCBuf, &psVarType, &index);
+	ASSERT(found);
+
+	return psVarType;
+}
+
+
+static void TranslateShaderStorageStore(HLSLCrossCompilerContext* psContext, Instruction* psInst)
+{
+    bstring glsl = *psContext->currentGLSLString;
+    ShaderVarType* psVarType = NULL;
+	uint32_t ui32DataTypeFlag = TO_FLAG_INTEGER;
+	int component;
+	int destComponent = 0;
+
+	Operand* psDest = 0;
+	Operand* psDestAddr = 0;
+	Operand* psDestByteOff = 0;
+	Operand* psSrc = 0;
+	int structured = 0;
+
+	switch(psInst->eOpcode)
+	{
+	case OPCODE_STORE_STRUCTURED:
+		psDest = &psInst->asOperands[0];
+		psDestAddr = &psInst->asOperands[1];
+		psDestByteOff = &psInst->asOperands[2];
+		psSrc = &psInst->asOperands[3];
+		structured = 1;
+		psVarType = LookupStructuredVar(psContext, psDest, psDestByteOff);
+		break;
+	case OPCODE_STORE_RAW:
+		psDest = &psInst->asOperands[0];
+		psDestByteOff = &psInst->asOperands[1];
+		psSrc = &psInst->asOperands[2];
+		break;
+	}
+
+	for(component=0; component < 4; component++)
+	{
+		const char* swizzleString [] = { ".x", ".y", ".z", ".w" };
+		ASSERT(psInst->asOperands[0].eSelMode == OPERAND_4_COMPONENT_MASK_MODE);
+		if(psInst->asOperands[0].ui32CompMask & (1<<component))
+		{
+			SHADER_VARIABLE_TYPE eSrcDataType = GetOperandDataType(psContext, psSrc);
+
+			AddIndentation(psContext);
+
+			if(structured && psDest->eType == OPERAND_TYPE_RESOURCE)
+			{
+				bformata(glsl, "StructuredRes%d", psDest->ui32RegisterNumber);
+			}
+			else
+			{
+				TranslateOperand(psContext, psDest, TO_FLAG_DESTINATION|TO_FLAG_NAME_ONLY);
+			}
+			bformata(glsl, "[");
+			TranslateOperand(psContext, psDestAddr ? psDestAddr : psDestByteOff, TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
+			bformata(glsl, "]");
+
+			if(structured && strcmp(psVarType->Name, "$Element") != 0)
+			{
+				bformata(glsl, ".%s", psVarType->Name);
+			}
+
+			bformata(glsl, " = ");
+
+			if(structured)
+			{
+				TranslateOperand(psContext, psSrc, TO_FLAG_NONE);
+			}
+			else
+			{
+				//Dest type is currently always a uint array.
+				switch(eSrcDataType)
+				{
+				case SVT_FLOAT:
+					bcatcstr(glsl, "floatBitsToUint(");
+					TranslateOperand(psContext, psSrc, TO_FLAG_NONE);
+					bcatcstr(glsl, ")");
+					break;
+				default:
+					TranslateOperand(psContext, psSrc, TO_FLAG_NONE);
+					break;
+				}
+			}
+
+			//Double takes an extra slot.
+			if(structured && psVarType->Type == SVT_DOUBLE)
+			{
+				component++;
+			}
+
+			bformata(glsl, ";\n");
+		}
+	}
+}
+static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Instruction* psInst)
+{
+    bstring glsl = *psContext->currentGLSLString;
+    ShaderVarType* psVarType = NULL;
+	uint32_t aui32Swizzle[4] = {OPERAND_4_COMPONENT_X};
+	uint32_t ui32DataTypeFlag = TO_FLAG_INTEGER;
+	int component;
+	int destComponent = 0;
+
+	Operand* psDest = 0;
+	Operand* psSrcAddr = 0;
+	Operand* psSrcByteOff = 0;
+	Operand* psSrc = 0;
+	int structured = 0;
+
+	switch(psInst->eOpcode)
+	{
+	case OPCODE_LD_STRUCTURED:
+		psDest = &psInst->asOperands[0];
+		psSrcAddr = &psInst->asOperands[1];
+		psSrcByteOff = &psInst->asOperands[2];
+		psSrc = &psInst->asOperands[3];
+		structured = 1;
+		ASSERT(((int*)psSrcByteOff->afImmediates)[0] == 0); //TODO: byte-offset. Fail assert if there is one.
+		psVarType = LookupStructuredVar(psContext, psSrc, psSrcByteOff);
+		break;
+	case OPCODE_LD_RAW:
+		psDest = &psInst->asOperands[0];
+		psSrcByteOff = &psInst->asOperands[1];
+		psSrc = &psInst->asOperands[2];
+		break;
+	}
+
+	//(int)GetNumSwizzleElements(&psInst->asOperands[0])
+	for(component=0; component < 4; component++)
+	{
+		const char* swizzleString [] = { ".x", ".y", ".z", ".w" };
+		ASSERT(psDest->eSelMode == OPERAND_4_COMPONENT_MASK_MODE);
+		if(psDest->ui32CompMask & (1<<component))
+		{
+			AddIndentation(psContext);
+
+			aui32Swizzle[0] = psSrc->aui32Swizzle[component];
+
+			TranslateOperand(psContext, psDest, TO_FLAG_DESTINATION);
+			if(GetNumSwizzleElements(psDest) > 1)
+				bformata(glsl, swizzleString[destComponent++]);
+
+			if(psSrc->eType == OPERAND_TYPE_RESOURCE)
+			{
+				if(structured)
+					bformata(glsl, " = StructuredRes%d[", psSrc->ui32RegisterNumber);
+				else
+					bformata(glsl, " = RawRes%d[", psSrc->ui32RegisterNumber);
+			}
+			else
+			{
+				bformata(glsl, " = ");
+				TranslateOperand(psContext, psSrc, TO_FLAG_NAME_ONLY);
+				bformata(glsl, "[");
+			}
+			TranslateOperand(psContext, psSrcAddr ? psSrcAddr : psSrcByteOff, TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
+
+			bformata(glsl, "]");
+			if(structured)
+			{
+				if(strcmp(psVarType->Name, "$Element") != 0)
+				{
+					bformata(glsl, ".%s", psVarType->Name);
+				}
+
+				//Double takes an extra slot.
+				if(psVarType->Type == SVT_DOUBLE)
+				{
+					component++;
+				}
+			}
+
+			bformata(glsl, ";\n");
+		}
+	}
+}
 
 void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, const int32_t i32InstCount)
 {
@@ -846,7 +1058,7 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		case OPCODE_LD_UAV_TYPED:
 			{
 				ResourceBinding* psRes = NULL;
-				GetResourceFromBindingPoint(RTYPE_UAV_RWTYPED, psInst->asOperands[2].ui32RegisterNumber, &psContext->psShader->sInfo, &psRes);
+				GetResourceFromBindingPoint(RGROUP_UAV, psInst->asOperands[2].ui32RegisterNumber, &psContext->psShader->sInfo, &psRes);
 				switch(psRes->ui32ReturnType)
 				{
 				case RETURN_TYPE_SINT:
@@ -2597,12 +2809,11 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
                 bcatcstr(glsl, "//LD_MS\n");
 #endif
 
-            GetResourceFromBindingPoint(RTYPE_TEXTURE, psInst->asOperands[2].ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
+            GetResourceFromBindingPoint(RGROUP_TEXTURE, psInst->asOperands[2].ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
 
 			switch(psBinding->eDimension)
 			{
 				case REFLECT_RESOURCE_DIMENSION_TEXTURE1D:
-				case REFLECT_RESOURCE_DIMENSION_TEXTURE1DARRAY:
 				{
 					//texelFetch(samplerBuffer, int coord, level)
 					AddIndentation(psContext);
@@ -2634,6 +2845,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 					break;
 				}
 				case REFLECT_RESOURCE_DIMENSION_TEXTURE2D:
+				case REFLECT_RESOURCE_DIMENSION_TEXTURE1DARRAY:
 				{
 					//texelFetch(samplerBuffer, ivec2 coord, level)
 					AddIndentation(psContext);
@@ -2844,73 +3056,11 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
 		case OPCODE_LD_STRUCTURED:
 		{
-			ConstantBuffer* psCBuf = NULL;
-            ShaderVarType* psVarType = NULL;
-            int32_t index = -1;
-			uint32_t aui32Swizzle[4] = {OPERAND_4_COMPONENT_X};
-			uint32_t ui32DataTypeFlag = TO_FLAG_INTEGER;
-			int found;
-			int vec4Offset;
-			int component;
-			int destComponent = 0;
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//LD_STRUCTURED\n");
 #endif
-
-			GetStructureFromBindingPoint(psInst->asOperands[3].ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
-		
-			
-			//(int)GetNumSwizzleElements(&psInst->asOperands[0])
-			for(component=0; component < 4; component++)
-			{
-				const char* swizzleString [] = { ".x", ".y", ".z", ".w" };
-				ASSERT(psInst->asOperands[0].eSelMode == OPERAND_4_COMPONENT_MASK_MODE);
-				if(psInst->asOperands[0].ui32CompMask & (1<<component))
-				{
-
-					AddIndentation(psContext);
-
-					//TODO: byte-offset. Fail assert if there is one.
-					ASSERT(((int*)psInst->asOperands[2].afImmediates)[0] == 0);
-
-					aui32Swizzle[0] = psInst->asOperands[3].aui32Swizzle[component];
-
-					vec4Offset = 0;
-					found = GetShaderVarFromOffset(vec4Offset, aui32Swizzle, psCBuf, &psVarType, &index);
-					ASSERT(found);
-
-					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-					if(GetNumSwizzleElements(&psInst->asOperands[0]) > 1)
-						bformata(glsl, swizzleString[destComponent++]);
-
-					if(psInst->asOperands[3].eType == OPERAND_TYPE_RESOURCE)
-					{
-						bformata(glsl, " = StructuredRes%d[", psInst->asOperands[3].ui32RegisterNumber);
-					}
-					else
-					{
-						bformata(glsl, " = ");
-						TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_NAME_ONLY);
-						bformata(glsl, "[");
-					}
-					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
-
-					bformata(glsl, "]");
-					if(strcmp(psVarType->Name, "$Element") != 0)
-					{
-						bformata(glsl, ".%s", psVarType->Name);
-					}
-
-					//Double takes an extra slot.
-					if(psVarType->Type == SVT_DOUBLE)
-					{
-						component++;
-					}
-
-					bformata(glsl, ";\n");
-				}
-			}
+			TranslateShaderStorageLoad(psContext, psInst);
 			break;
 		}
         case OPCODE_LD_UAV_TYPED:
@@ -2965,173 +3115,78 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
 		case OPCODE_STORE_RAW:
 		{
-			int component;
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//STORE_RAW\n");
 #endif
-			
-			for(component=0; component < 4; component++)
-			{
-				const char* swizzleString [] = { ".x", ".y", ".z", ".w" };
-				ASSERT(psInst->asOperands[0].eSelMode == OPERAND_4_COMPONENT_MASK_MODE);
-				if(psInst->asOperands[0].ui32CompMask & (1<<component))
-				{
-					SHADER_VARIABLE_TYPE eSrcDataType = GetOperandDataType(psContext, &psInst->asOperands[2]);
-
-					AddIndentation(psContext);
-					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NAME_ONLY);
-					bcatcstr(glsl, "[");
-					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
-					bcatcstr(glsl, "]");
-					
-					bcatcstr(glsl, " = ");
-					//Dest type is currently always a uint array.
-					switch(eSrcDataType)
-					{
-					case SVT_FLOAT:
-						bcatcstr(glsl, "floatBitsToUint(");
-						TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-						bcatcstr(glsl, ")");
-						break;
-					default:
-						TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-						break;
-					}
-
-					bcatcstr(glsl, ";\n");
-				}
-			}
-
+			TranslateShaderStorageStore(psContext, psInst);
 			break;
 		}
         case OPCODE_STORE_STRUCTURED:
         {
-			ConstantBuffer* psCBuf = NULL;
-            ShaderVarType* psVarType = NULL;
-            int32_t index = -1;
-			uint32_t aui32Swizzle[4] = {OPERAND_4_COMPONENT_X};
-			uint32_t ui32DataTypeFlag = TO_FLAG_INTEGER;
-			int found;
-			int vec4Offset;
-			int component;
-			int destComponent = 0;
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//STORE_STRUCTURED\n");
 #endif
-
-			GetStructureFromBindingPoint(psInst->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
-
-			for(component=0; component < 4; component++)
-			{
-				const char* swizzleString [] = { ".x", ".y", ".z", ".w" };
-				ASSERT(psInst->asOperands[0].eSelMode == OPERAND_4_COMPONENT_MASK_MODE);
-				if(psInst->asOperands[0].ui32CompMask & (1<<component))
-				{
-					int byteOffset = ((int*)psInst->asOperands[2].afImmediates)[0];
-					AddIndentation(psContext);
-
-					//TODO: multi-component stores and vector writes need testing.
-
-					//aui32Swizzle[0] = psInst->asOperands[0].aui32Swizzle[component];
-
-					switch(byteOffset % 16)
-					{
-					case 0:
-						aui32Swizzle[0] = 0;
-						break;
-					case 4:
-						aui32Swizzle[0] = 1;
-						break;
-					case 8:
-						aui32Swizzle[0] = 2;
-						break;
-					case 12:
-						aui32Swizzle[0] = 3;
-						break;
-					}
-
-					vec4Offset = 0;
-					found = GetShaderVarFromOffset(vec4Offset, aui32Swizzle, psCBuf, &psVarType, &index);
-					ASSERT(found);
-
-					//TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-					//if(GetNumSwizzleElements(&psInst->asOperands[0]) > 1)
-						//bformata(glsl, swizzleString[destComponent++]);
-
-					if(psInst->asOperands[0].eType == OPERAND_TYPE_RESOURCE)
-					{
-						bformata(glsl, "StructuredRes%d", psInst->asOperands[0].ui32RegisterNumber);
-					}
-					else
-					{
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION|TO_FLAG_NAME_ONLY);
-					}
-					bformata(glsl, "[");
-					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
-
-					bformata(glsl, "]");
-					if(strcmp(psVarType->Name, "$Element") != 0)
-					{
-						bformata(glsl, ".%s", psVarType->Name);
-					}
-					bformata(glsl, " = ");
-
-					TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_DESTINATION);
-
-					//Double takes an extra slot.
-					if(psVarType->Type == SVT_DOUBLE)
-					{
-						component++;
-					}
-
-					bformata(glsl, ";\n");
-				}
-			}
+			TranslateShaderStorageStore(psContext, psInst);
             break;
         }
 
         case OPCODE_STORE_UAV_TYPED:
         {
-            break;
+			ResourceBinding* psRes;
+			int foundResource;
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//STORE_UAV_TYPED\n");
+#endif
+			AddIndentation(psContext);
+
+			foundResource = GetResourceFromBindingPoint(RGROUP_UAV,
+				psInst->asOperands[0].ui32RegisterNumber,
+				&psContext->psShader->sInfo,
+				&psRes);
+
+			ASSERT(foundResource);
+
+			bcatcstr(glsl, "imageStore(");
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NAME_ONLY);
+			bcatcstr(glsl, ", ");
+			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NAME_ONLY);
+			switch(psRes->eDimension)
+			{
+			case REFLECT_RESOURCE_DIMENSION_TEXTURE1D:
+				bcatcstr(glsl, ".x, ");
+				break;
+			case REFLECT_RESOURCE_DIMENSION_TEXTURE2D:
+			case REFLECT_RESOURCE_DIMENSION_TEXTURE1DARRAY:
+			case REFLECT_RESOURCE_DIMENSION_TEXTURE2DMS:
+				bcatcstr(glsl, ".xy, ");
+				break;
+			case REFLECT_RESOURCE_DIMENSION_TEXTURE2DARRAY:
+			case REFLECT_RESOURCE_DIMENSION_TEXTURE3D:
+			case REFLECT_RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
+			case REFLECT_RESOURCE_DIMENSION_TEXTURECUBE:
+				bcatcstr(glsl, ".xyz, ");
+				break;
+			case REFLECT_RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+				bcatcstr(glsl, ".xyzw, ");
+				break;
+			};
+
+			TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+			bformata(glsl, ");\n");
+
+			break;
         }
         case OPCODE_LD_RAW:
 		{
-			int component;
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//LD_RAW\n");
 #endif
 			
-			for(component=0; component < 4; component++)
-			{
-				const char* swizzleString [] = { ".x", ".y", ".z", ".w" };
-				ASSERT(psInst->asOperands[0].eSelMode == OPERAND_4_COMPONENT_MASK_MODE);
-				if(psInst->asOperands[0].ui32CompMask & (1<<component))
-				{
-					AddIndentation(psContext);
-
-					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-
-					bcatcstr(glsl, " = ");
-
-					if(psInst->asOperands[2].eType == OPERAND_TYPE_RESOURCE)
-					{
-						bformata(glsl, "RawRes%d", psInst->asOperands[2].ui32RegisterNumber);
-					}
-					else
-					{
-						TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NAME_ONLY);
-					}
-
-					bcatcstr(glsl, "[");
-					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
-					bcatcstr(glsl, "]");
-
-					bcatcstr(glsl, ";\n");
-				}
-			}
+			TranslateShaderStorageLoad(psContext, psInst);
 			break;
 		}
         
@@ -3204,7 +3259,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			}
 			vec4Offset = byteOffset / 16;
 
-			GetUAVBufferFromBindingPoint(psInst->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+			GetConstantBufferFromBindingPoint(RGROUP_UAV, psInst->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
 			found = GetShaderVarFromOffset(vec4Offset, aui32Swizzle, psCBuf, &psVarType, &index);
 			ASSERT(found);
 			

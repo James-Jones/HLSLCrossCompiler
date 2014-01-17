@@ -1534,7 +1534,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             const char* StageName = "VS";
 
             ConstantBuffer* psCBuf = NULL;
-            GetConstantBufferFromBindingPoint(ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
+            GetConstantBufferFromBindingPoint(RGROUP_CBUFFER, ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
 
             switch(psContext->psShader->eShaderType)
             {
@@ -2059,7 +2059,19 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			switch(psDecl->sUAV.Type)
 			{
 			case RETURN_TYPE_FLOAT:
-				bcatcstr(glsl, "layout(r32f) ");
+				bcatcstr(glsl, "layout(rgba32f) ");
+				break;
+			case RETURN_TYPE_UNORM:
+				bcatcstr(glsl, "layout(rgba8) ");
+				break;
+			case RETURN_TYPE_SNORM:
+				bcatcstr(glsl, "layout(rgba8_snorm) ");
+				break;
+			case RETURN_TYPE_UINT:
+				bcatcstr(glsl, "layout(rgba32ui) ");
+				break;
+			case RETURN_TYPE_SINT:
+				bcatcstr(glsl, "layout(rgba32i) ");
 				break;
 			default:
 				ASSERT(0);
@@ -2132,17 +2144,10 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				bformata(glsl, "layout (binding = 1) uniform atomic_uint UAV%d_counter;\n", psDecl->asOperands[0].ui32RegisterNumber);
 			}
 
-			GetUAVBufferFromBindingPoint(ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
+			GetConstantBufferFromBindingPoint(RGROUP_UAV, ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
 
 			DeclareBufferVariable(psContext, ui32BindingPoint, psCBuf, &psDecl->asOperands[0], 
 				psDecl->sUAV.ui32GloballyCoherentAccess, RTYPE_UAV_RWSTRUCTURED, glsl);
-
-            /*bcatcstr(glsl, "buffer someType { ");
-                bformata(glsl, "float data[%d]; ", psDecl->sUAV.ui32BufferSize/4);
-            bcatcstr(glsl, "} ");
-            TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
-            bcatcstr(glsl, ";\n");*/
-
             break;
         }
         case OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW:
@@ -2157,21 +2162,12 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 		}
         case OPCODE_DCL_RESOURCE_STRUCTURED:
         {
-			//ResourceBinding* psRes = NULL;
 			ConstantBuffer* psCBuf = NULL;
 
-			//GetResourceFromBindingPoint(RTYPE_STRUCTURED, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psRes);
-
-			//ASSERT(psRes!=0);
-
-			GetUAVBufferFromBindingPoint(psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+			GetConstantBufferFromBindingPoint(RGROUP_TEXTURE, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
 
 			DeclareBufferVariable(psContext, psDecl->asOperands[0].ui32RegisterNumber, psCBuf, &psDecl->asOperands[0], 
 				0, RTYPE_STRUCTURED, glsl);
-
-            //bcatcstr(glsl, "uniform res_structured");
-            //TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
-            //bcatcstr(glsl, ";\n");
             break;
         }
         case OPCODE_DCL_RESOURCE_RAW:

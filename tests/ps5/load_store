@@ -45,7 +45,7 @@ PS_OUTPUT main( PS_INPUT input )
     float G = asfloat(bbuffer.Load(input.index));
 
 	texture1[input.index] = 0.2;
-	textureStoreUint4[input.index] = float4(1, 2, 3, 4);
+	textureStoreUint4[input.index] = uint4(1, 2, 3, 4);
     
     bufferOut.Store( input.index*3, asuint(A) );
     bufferOut.Store( input.index*3+1, asuint(B) );
