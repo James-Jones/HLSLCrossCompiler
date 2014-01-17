@@ -782,7 +782,16 @@ static void TranslateShaderStorageStore(HLSLCrossCompilerContext* psContext, Ins
 
 			if(structured)
 			{
-				TranslateOperand(psContext, psSrc, TO_FLAG_NONE);
+				uint32_t flags = TO_FLAG_NONE;
+				if(psVarType->Type == SVT_INT)
+				{
+					flags |= TO_FLAG_INTEGER;
+				}
+				else if(psVarType->Type == SVT_UINT)
+				{
+					flags |= TO_FLAG_UNSIGNED_INTEGER;
+				}
+				TranslateOperand(psContext, psSrc, flags);
 			}
 			else
 			{
