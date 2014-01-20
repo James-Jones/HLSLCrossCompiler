@@ -3160,26 +3160,32 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
 			bcatcstr(glsl, "imageStore(");
 			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NAME_ONLY);
-			bcatcstr(glsl, ", ");
-			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NAME_ONLY);
 			switch(psRes->eDimension)
 			{
 			case REFLECT_RESOURCE_DIMENSION_TEXTURE1D:
-				bcatcstr(glsl, ".x, ");
+				bcatcstr(glsl, ", int(");
+				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NAME_ONLY);
+				bcatcstr(glsl, "), ");
 				break;
 			case REFLECT_RESOURCE_DIMENSION_TEXTURE2D:
 			case REFLECT_RESOURCE_DIMENSION_TEXTURE1DARRAY:
 			case REFLECT_RESOURCE_DIMENSION_TEXTURE2DMS:
-				bcatcstr(glsl, ".xy, ");
+				bcatcstr(glsl, ", ivec2(");
+				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NAME_ONLY);
+				bcatcstr(glsl, ".xy), ");
 				break;
 			case REFLECT_RESOURCE_DIMENSION_TEXTURE2DARRAY:
 			case REFLECT_RESOURCE_DIMENSION_TEXTURE3D:
 			case REFLECT_RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
 			case REFLECT_RESOURCE_DIMENSION_TEXTURECUBE:
-				bcatcstr(glsl, ".xyz, ");
+				bcatcstr(glsl, ", ivec3(");
+				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NAME_ONLY);
+				bcatcstr(glsl, ".xyz), ");
 				break;
 			case REFLECT_RESOURCE_DIMENSION_TEXTURECUBEARRAY:
-				bcatcstr(glsl, ".xyzw, ");
+				bcatcstr(glsl, ", ivec4(");
+				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NAME_ONLY);
+				bcatcstr(glsl, ".xyzw) ");
 				break;
 			};
 
