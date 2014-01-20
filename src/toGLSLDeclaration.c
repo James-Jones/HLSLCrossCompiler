@@ -2075,25 +2075,37 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 bcatcstr(glsl, "coherent ");
             }
 
-			switch(psDecl->sUAV.Type)
+			if(psShader->aiOpcodeUsed[OPCODE_LD_UAV_TYPED] == 0)
 			{
-			case RETURN_TYPE_FLOAT:
-				bcatcstr(glsl, "layout(rgba32f) ");
-				break;
-			case RETURN_TYPE_UNORM:
-				bcatcstr(glsl, "layout(rgba8) ");
-				break;
-			case RETURN_TYPE_SNORM:
-				bcatcstr(glsl, "layout(rgba8_snorm) ");
-				break;
-			case RETURN_TYPE_UINT:
-				bcatcstr(glsl, "layout(rgba32ui) ");
-				break;
-			case RETURN_TYPE_SINT:
-				bcatcstr(glsl, "layout(rgba32i) ");
-				break;
-			default:
-				ASSERT(0);
+				bcatcstr(glsl, "writeonly ");
+			}
+			else
+			{
+				if(psShader->aiOpcodeUsed[OPCODE_STORE_UAV_TYPED] == 0)
+				{
+					bcatcstr(glsl, "readonly ");
+				}
+
+				switch(psDecl->sUAV.Type)
+				{
+				case RETURN_TYPE_FLOAT:
+					bcatcstr(glsl, "layout(rgba32f) ");
+					break;
+				case RETURN_TYPE_UNORM:
+					bcatcstr(glsl, "layout(rgba8) ");
+					break;
+				case RETURN_TYPE_SNORM:
+					bcatcstr(glsl, "layout(rgba8_snorm) ");
+					break;
+				case RETURN_TYPE_UINT:
+					bcatcstr(glsl, "layout(rgba32ui) ");
+					break;
+				case RETURN_TYPE_SINT:
+					bcatcstr(glsl, "layout(rgba32i) ");
+					break;
+				default:
+					ASSERT(0);
+				}
 			}
 
             switch(psDecl->value.eResourceDimension)
