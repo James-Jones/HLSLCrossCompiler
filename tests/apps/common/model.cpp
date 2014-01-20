@@ -165,6 +165,11 @@ static const GLenum srcTypes[] = {
 	0,
 };
 
+void Material::BindForLoadStore(GLenum access)
+{
+	glBindImageTexture(0, mTexID, 0, GL_FALSE, 0, access, mTexFormat);
+}
+
 void Material::SetDiffuseTexture(const char* path)
 {
     Image img;
@@ -179,6 +184,7 @@ void Material::SetDiffuseTexture(const char* path)
     GLenum srcFormat = srcFormats[getChannelCount(format)];
     GLenum srcType = srcTypes[format];
     GLint internalFormat = internalFormats[format];
+	mTexFormat = internalFormat;
 
 	// Upload it all
 	uint8_t *src;
@@ -210,7 +216,6 @@ void Material::SetDiffuseTexture(const char* path)
 		}
 		mipMapLevel++;
 	}
-
 }
 void Material::Apply()
 {

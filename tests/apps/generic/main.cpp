@@ -11,6 +11,58 @@
 #include <model.h>
 #include <itransform.h>
 
+typedef struct
+{
+    char* vertexFile;
+	char* fragmentFile;
+	char* computeFile;
+	char* postprocessFile;
+} Options;
+
+void InitOptions(Options* psOptions)
+{
+    psOptions->vertexFile = 0;
+	psOptions->fragmentFile = 0;
+    psOptions->computeFile = 0;
+    psOptions->postprocessFile = 0;
+}
+int GetOptions(int argc, char** argv, Options* psOptions)
+{
+	int i;
+    int fullShaderChain = -1;
+    int hashOut = 0;
+
+	InitOptions(psOptions);
+
+	for(i=1; i<argc; i++)
+	{
+		char *option;
+
+		option = strstr(argv[i],"-vertex=");
+		if(option != NULL) 
+        {
+			psOptions->vertexFile = option + strlen("-vertex=");
+		}
+		option = strstr(argv[i],"-fragment=");
+		if(option != NULL) 
+        {
+			psOptions->fragmentFile = option + strlen("-fragment=");
+		}
+		option = strstr(argv[i],"-compute=");
+		if(option != NULL) 
+        {
+			psOptions->computeFile = option + strlen("-compute=");
+		}
+		option = strstr(argv[i],"-postprocess=");
+		if(option != NULL) 
+        {
+			psOptions->postprocessFile = option + strlen("-postprocess=");
+		}
+	}
+
+	return 1;
+}
+
 struct PostProcessVertex
 {
     float Pos[3];
@@ -50,7 +102,7 @@ int WindowHeight = 480;
 class Demo : public ITransform
 {
 public:
-	void Init(const char* vertexCode, const char* pixelCode, const char* postProcessPixelCode);
+	void Init(const Options* options);
 	void Display(float t);
 	void ResizeDisplay(int w, int h) {
 	   glViewport (0, 0, (GLsizei) w, (GLsizei) h);
@@ -112,11 +164,21 @@ private:
     GLuint mPostFXIndexBuffer;
     GLuint mPostFXVertexBuffer;
     GLuint mPostFXVAO;
+
+	bool mComputeEnabled;
+	ShaderEffect mCompute;
 };
 
 Demo gDemo;
 
 void Demo::Display(float t) {
+
+	if(mComputeEnabled)
+	{
+		mCompute.Enable();
+		mCompute.SetFloat(std::string("GlobalsCS.Time"), 1, &gChangesEveryFrame.Time);
+		glDispatchCompute(32, 32, 1);
+	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, mFramebuffer);
 
@@ -213,7 +275,7 @@ void keyboard(unsigned char key, int x, int y)
    }
 }
 
-void Demo::Init(const char* vertexCode, const char* pixelCode, const char* postProcessPixelCode) {
+void Demo::Init(const Options* options) {
 
 	glGenTextures(1, &mColTex);
 	glBindTexture(GL_TEXTURE_2D, mColTex);
@@ -237,8 +299,8 @@ void Demo::Init(const char* vertexCode, const char* pixelCode, const char* postP
     glClearColor(0.0f, 0.125f, 0.3f, 1.0f);
 
     mEffect.Create();
-    mEffect.FromByteFile(std::string(pixelCode));
-    mEffect.FromByteFile(std::string(vertexCode));
+    mEffect.FromByteFile(std::string(options->fragmentFile));
+    mEffect.FromByteFile(std::string(options->vertexFile));
     mEffect.Link();
 
     gWorld = Matrix4::identity();
@@ -257,12 +319,12 @@ void Demo::Init(const char* vertexCode, const char* pixelCode, const char* postP
 
     mPostFXEnabled = false;
 
-    if(postProcessPixelCode)
+    if(options->postprocessFile)
     {
         mPostFXEnabled = true;
 
         mPostProcessEffect.Create();
-        mPostProcessEffect.FromByteFile(std::string(postProcessPixelCode));
+        mPostProcessEffect.FromByteFile(std::string(options->postprocessFile));
         mPostProcessEffect.FromByteFile(std::string("shaders/generic/templatePostFXVS.o"));
         mPostProcessEffect.Link();
 
@@ -294,16 +356,33 @@ void Demo::Init(const char* vertexCode, const char* pixelCode, const char* postP
         glBufferData(GL_ARRAY_BUFFER, sizeof(PostProcessVertex) * 4,
             vertices, GL_STATIC_DRAW);
     }
+
+	mComputeEnabled = false;
+	if(options->computeFile)
+	{
+        mComputeEnabled = true;
+
+        mCompute.Create();
+		mCompute.SetLanguage(LANG_430);
+        mCompute.FromByteFile(std::string(options->computeFile));
+        mCompute.Link();
+		gModel.GetMaterial().BindForLoadStore(GL_WRITE_ONLY);
+	}
 }
 
 void Init(int argc, char** argv)
 {
-    printf("arguments: vertex-shader-byte-code fragment-shader-byte-code [post-process-shader]\n");
-    if(argc != 3 && argc != 4 )
-    {
-        printf("Invalid args.\n");
-        return;
-    }
+	Options options;
+
+	printf("arguments: -vertex=Path -fragment=Path [-postposcess=Path -compute=Path]\n");
+	printf("compute modifies texture used by fragment shader\n");
+	GetOptions(argc, argv, &options);
+
+	if(options.vertexFile == 0 || options.fragmentFile == 0)
+	{
+		printf("Missing vertex and/or fragment shader\n");
+		exit(0);
+	}
 
     glutInit(&argc, argv);
     glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
@@ -327,7 +406,7 @@ void Init(int argc, char** argv)
     SetupOpenGLDebugCallback();
 #endif
 
-	gDemo.Init(argv[1], argv[2], argc==4 ? argv[3] : NULL);
+	gDemo.Init(&options);
 }
 
 int main(int argc, char** argv)

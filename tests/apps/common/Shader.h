@@ -75,6 +75,9 @@ public:
     uint_t DS() const {
         return mDomain;
     }
+	uint_t CS() const {
+		return mCompute;
+	}
     uint_t Language() const {
         return mRequestedLang;
     }
@@ -92,6 +95,7 @@ private:
     GLLang mHSLang;
     GLLang mDSLang;
     GLLang mPSLang;
+	GLLang mCSLang;
 
     uint_t mCompileFlags;
     uint_t mProgram;
@@ -100,6 +104,7 @@ private:
 	uint_t mGeometry;
     uint_t mHull;
     uint_t mDomain;
+	uint_t mCompute;
 
     uint_t mClipDistanceMaskVS;
     uint_t mClipDistanceMaskGS;

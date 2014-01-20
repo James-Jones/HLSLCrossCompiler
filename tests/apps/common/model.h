@@ -17,9 +17,11 @@ public:
     }
     void SetDiffuseTexture(const char* path);
     void Apply();
+	void BindForLoadStore(GLenum access);
 
 protected:
     unsigned int mTexID;
+	GLenum mTexFormat;
 };
 
 class Model
@@ -27,6 +29,7 @@ class Model
 public:
 	bool Import3DFromFile( const std::string& pFile);
 	void Draw(ITransform& World);
+	Material& GetMaterial(){return mMaterial;}
 	
 protected:
 	void RecursiveDraw(ITransform& World, const  aiNode* nd);

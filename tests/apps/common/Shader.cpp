@@ -10,6 +10,7 @@ ShaderEffect::ShaderEffect() : mCompileFlags(0), mRequestedLang(LANG_DEFAULT),
     mGeometry(InvalidShaderHandle),
     mHull(InvalidShaderHandle),
     mDomain(InvalidShaderHandle),
+	mCompute(InvalidShaderHandle),
     mClipDistanceMaskVS(0),
     mClipDistanceMaskGS(0),
     mProgram(0)
@@ -42,6 +43,10 @@ ShaderEffect::~ShaderEffect()
     {
         glDeleteShader(mHull);
     }
+	if(mCompute != InvalidShaderHandle)
+	{
+		glDeleteShader(mCompute);
+	}
 }
 
 static int HaveLimitedInOutLocationQualifier(const GLLang eLang)
@@ -154,6 +159,13 @@ void ShaderEffect::FromGLSLFile(uint_t eShaderType, std::string& path)
             mDSLang = LANG_DEFAULT;
             break;
         }
+        case GL_COMPUTE_SHADER:
+        {
+            mCompute = glCreateShader(GL_COMPUTE_SHADER);
+            shader = mCompute;
+            mCSLang = LANG_DEFAULT;
+            break;
+        }
         default:
         {
             break;
@@ -257,6 +269,13 @@ void ShaderEffect::FromByteFile(std::string& path)
 
             break;
         }
+        case GL_COMPUTE_SHADER:
+        {
+            mCompute = glCreateShader(GL_COMPUTE_SHADER);
+            shader = mCompute;
+            mCSLang = result.GLSLLanguage;
+            break;
+        }
         default:
         {
             break;
@@ -330,6 +349,14 @@ void ShaderEffect::SetSubroutineUniforms(uint_t shaderType, SubroutineLink* link
 
 void ShaderEffect::ApplyGLState()
 {
+	if(mCompute != InvalidShaderHandle)
+	{
+		//Compute state
+		return;
+	}
+
+	//Graphics state
+
     if(mClipDistanceMaskGS)
     {
         int plane;
