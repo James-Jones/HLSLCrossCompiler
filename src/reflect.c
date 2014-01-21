@@ -6,6 +6,26 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+static void FormatVariableName(char* Name)
+{
+    /* MSDN http://msdn.microsoft.com/en-us/library/windows/desktop/bb944006(v=vs.85).aspx
+       The uniform function parameters appear in the
+       constant table prepended with a dollar sign ($),
+       unlike the global variables. The dollar sign is
+       required to avoid name collisions between local
+       uniform inputs and global variables of the same name.*/
+
+    /* Leave $Element and $Globals as-is.
+       Otherwise remove $ character ($ is not a valid character for GLSL variable names). */
+    if(Name[0] == '$')
+    {
+        if(strcmp(Name, "$Element") !=0 && strcmp(Name, "$Globals") != 0)
+        {
+            Name[0] = '_';
+        }
+    }
+}
+
 static void ReadStringFromTokenStream(const uint32_t* tokens, char* str)
 {
     char* charTokens = (char*) tokens;
@@ -125,6 +145,7 @@ static const uint32_t* ReadResourceBinding(const uint32_t* pui32FirstResourceTok
     uint32_t ui32NameOffset = *pui32Tokens++;
 
     ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstResourceToken+ui32NameOffset), psBinding->Name);
+    FormatVariableName(psBinding->Name);
 
     psBinding->eType = *pui32Tokens++;
     psBinding->ui32ReturnType = *pui32Tokens++;
@@ -202,6 +223,7 @@ static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
     const uint32_t* pui32VarToken = (const uint32_t*)((const char*)pui32FirstConstBufToken+ui32VarOffset);
 
     ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstConstBufToken+ui32NameOffset), psBuffer->Name);
+    FormatVariableName(psBuffer->Name);
 
     psBuffer->ui32NumVars = ui32VarCount;
 
@@ -217,6 +239,7 @@ static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
         ui32NameOffset = *pui32VarToken++;
 
         ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstConstBufToken+ui32NameOffset), psVar->Name);
+        FormatVariableName(psVar->Name);
 
         psVar->ui32StartOffset = *pui32VarToken++;
         psVar->ui32Size = *pui32VarToken++;
@@ -891,6 +914,7 @@ void LoadD3D9ConstantTable(const char* data,
 		if(cinfos[constNum].registerSet != RS_SAMPLER)
 		{
 			strcpy(var->Name, data + cinfos[constNum].name);
+            FormatVariableName(var->Name);
 			var->ui32Size = cinfos[constNum].registerCount * 16;
 			var->ui32StartOffset = cinfos[constNum].registerIndex * 16;
 			var->haveDefaultValue = 0;
@@ -974,6 +998,7 @@ void LoadD3D9ConstantTable(const char* data,
 			ResourceBinding* res = &psInfo->psResourceBindings[ui32ResourceIndex];
 
 			strcpy(res->Name, data + cinfos[constNum].name);
+            FormatVariableName(res->Name);
 
 			res->ui32BindPoint = cinfos[constNum].registerIndex;
 			res->ui32BindCount = cinfos[constNum].registerCount;
