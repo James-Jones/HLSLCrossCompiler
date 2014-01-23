@@ -1720,7 +1720,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 				//ld_uav_typed_indexable(texture3d)(float,float,float,float) r1.x, r0.xxxx, u5.xyzw
 				//utof r1.x, r1.x
 				bcatcstr(glsl, "//Warning. UTOF/ITOF on a src which is float. This is okay if ld_uav_typed last wrote to the src.\n");
-				break;
 			}
 
 #ifdef _DEBUG
