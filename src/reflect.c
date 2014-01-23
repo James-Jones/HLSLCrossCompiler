@@ -15,11 +15,13 @@ static void FormatVariableName(char* Name)
        required to avoid name collisions between local
        uniform inputs and global variables of the same name.*/
 
-    /* Leave $Element and $Globals as-is.
+    /* Leave $ThisPointer, $Element and $Globals as-is.
        Otherwise remove $ character ($ is not a valid character for GLSL variable names). */
     if(Name[0] == '$')
     {
-        if(strcmp(Name, "$Element") !=0 && strcmp(Name, "$Globals") != 0)
+        if(strcmp(Name, "$Element") !=0 &&
+			strcmp(Name, "$Globals") != 0 &&
+			strcmp(Name, "$ThisPointer") != 0)
         {
             Name[0] = '_';
         }
