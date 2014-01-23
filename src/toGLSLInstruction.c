@@ -905,14 +905,8 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 void TranslateAtomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psInst)
 {
 	bstring glsl = *psContext->currentGLSLString;
-	ConstantBuffer* psCBuf = NULL;
     ShaderVarType* psVarType = NULL;
-    int32_t index = -1;
-	uint32_t aui32Swizzle[4] = {OPERAND_4_COMPONENT_X};
 	uint32_t ui32DataTypeFlag = TO_FLAG_INTEGER;
-	int found;
-	int byteOffset;
-	int vec4Offset;
 	const char* func = "";
 	Operand* dest = 0;
 	Operand* previousValue = 0;
@@ -1168,27 +1162,7 @@ void TranslateAtomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
     AddIndentation(psContext);
 
-	byteOffset = ((int*)destAddr->afImmediates)[1];
-	switch(byteOffset % 16)
-	{
-	case 0:
-		aui32Swizzle[0] = OPERAND_4_COMPONENT_X;
-		break;
-	case 4:
-		aui32Swizzle[0] = OPERAND_4_COMPONENT_Y;
-		break;
-	case 8:
-		aui32Swizzle[0] = OPERAND_4_COMPONENT_Z;
-		break;
-	case 12:
-		aui32Swizzle[0] = OPERAND_4_COMPONENT_W;
-		break;
-	}
-	vec4Offset = byteOffset / 16;
-
-	GetConstantBufferFromBindingPoint(RGROUP_UAV, dest->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
-	found = GetShaderVarFromOffset(vec4Offset, aui32Swizzle, psCBuf, &psVarType, &index);
-	ASSERT(found);
+	psVarType = LookupStructuredVar(psContext, dest, destAddr);
 
 	if(previousValue)
 	{
@@ -1364,6 +1338,24 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 					}
 				}
 				
+				break;
+			}
+		case OPCODE_IMM_ATOMIC_AND:
+		case OPCODE_IMM_ATOMIC_IADD:
+        case OPCODE_IMM_ATOMIC_IMAX:
+        case OPCODE_IMM_ATOMIC_IMIN:
+        case OPCODE_IMM_ATOMIC_UMAX:
+        case OPCODE_IMM_ATOMIC_UMIN:
+        case OPCODE_IMM_ATOMIC_OR:
+        case OPCODE_IMM_ATOMIC_XOR:
+        case OPCODE_IMM_ATOMIC_EXCH:
+        case OPCODE_IMM_ATOMIC_CMP_EXCH:
+			{
+				Operand* dest = &psInst->asOperands[1];
+				Operand* destAddr = &psInst->asOperands[2];
+				uint32_t aui32Swizzle[4] = {OPERAND_4_COMPONENT_X};
+				ShaderVarType* type = LookupStructuredVar(psContext, dest, destAddr);
+				eNewType = type->Type;
 				break;
 			}
 		case OPCODE_UDIV:
