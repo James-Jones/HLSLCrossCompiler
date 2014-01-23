@@ -3237,6 +3237,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, ");\n");
             break;
         }
+		case OPCODE_IMM_ATOMIC_IADD:
         case OPCODE_ATOMIC_IADD:
         {
 			ConstantBuffer* psCBuf = NULL;
@@ -3247,16 +3248,37 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			int found;
 			int byteOffset;
 			int vec4Offset;
+
+			Operand* dest;
+			Operand* previousValue;
+			Operand* destAddr;
+			Operand* src;
+
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//ATOMIC_IADD\n");
 #endif
             AddIndentation(psContext);
-            bcatcstr(glsl, "atomicAdd(");
+            
+
+			if(psInst->eOpcode == OPCODE_IMM_ATOMIC_IADD)
+			{
+				previousValue = &psInst->asOperands[0];
+				dest = &psInst->asOperands[1];
+				destAddr = &psInst->asOperands[2];
+				src = &psInst->asOperands[3];
+			}
+			else
+			{
+				previousValue = 0;
+				dest = &psInst->asOperands[0];
+				destAddr = &psInst->asOperands[1];
+				src = &psInst->asOperands[2];
+			}
 
 			//Src0 is the UAV.
 			//Src1 is the address with that UAV to write to.
-			byteOffset = ((int*)psInst->asOperands[1].afImmediates)[1];
+			byteOffset = ((int*)destAddr->afImmediates)[1];
 			switch(byteOffset % 16)
 			{
 			case 0:
@@ -3274,11 +3296,18 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			}
 			vec4Offset = byteOffset / 16;
 
-			GetConstantBufferFromBindingPoint(RGROUP_UAV, psInst->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+			GetConstantBufferFromBindingPoint(RGROUP_UAV, dest->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
 			found = GetShaderVarFromOffset(vec4Offset, aui32Swizzle, psCBuf, &psVarType, &index);
 			ASSERT(found);
+
+			if(previousValue)
+			{
+				TranslateOperand(psContext, previousValue, TO_FLAG_NONE);
+				bcatcstr(glsl, " = ");
+			}
 			
-			bformata(glsl, "UAV%d[0]", psInst->asOperands[0].ui32RegisterNumber);
+			bcatcstr(glsl, "atomicAdd(");
+			bformata(glsl, "UAV%d[0]", dest->ui32RegisterNumber);
 			if(strcmp(psVarType->Name, "$Element") != 0)
 			{
 				bformata(glsl, ".%s",psVarType->Name);
@@ -3290,7 +3319,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			}
 			bcatcstr(glsl, ", ");
 
-            TranslateOperand(psContext, &psInst->asOperands[2], ui32DataTypeFlag);
+            TranslateOperand(psContext, src, ui32DataTypeFlag);
             bcatcstr(glsl, ");\n");
             break;
         }
@@ -3569,7 +3598,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		}
 
         case OPCODE_SWAPC:
-        case OPCODE_IMM_ATOMIC_IADD:
         case OPCODE_IMM_ATOMIC_AND:
         case OPCODE_IMM_ATOMIC_OR:
         case OPCODE_IMM_ATOMIC_XOR:
