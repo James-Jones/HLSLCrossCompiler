@@ -29,16 +29,23 @@ struct PS_OUTPUT
 PS_OUTPUT main( PS_INPUT input )
 {
     PS_OUTPUT outPix;
+	uint originalValue = 0;
+
     float4 A = TextureA.Sample(TextureSampler, input.TexC.xy);
     float4 B = TextureB.Sample(TextureSampler, input.TexC.xy);
 	
 	if(any(A - B))
 	{
 		InterlockedAdd(BufferOut[0].pixDiff, 1);
-		InterlockedAdd(BufferOut[0].pixDiff2, 3);
+		InterlockedAdd(BufferOut[0].pixDiff2, 3, originalValue);
+	}
+	else
+	{
+		InterlockedAnd(BufferOut[0].pixDiff, 1);
+		InterlockedAnd(BufferOut[0].pixDiff2, 3, originalValue);
 	}
 	
-	outPix.Colour0 = float4(1, 1, 1, 1);
+	outPix.Colour0 = float4(1, 1, 1, originalValue);
 	
 	return outPix;
 }

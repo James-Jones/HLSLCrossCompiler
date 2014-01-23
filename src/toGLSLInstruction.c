@@ -902,6 +902,128 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 	}
 }
 
+void TranslateAomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psInst)
+{
+	bstring glsl = *psContext->currentGLSLString;
+	ConstantBuffer* psCBuf = NULL;
+    ShaderVarType* psVarType = NULL;
+    int32_t index = -1;
+	uint32_t aui32Swizzle[4] = {OPERAND_4_COMPONENT_X};
+	uint32_t ui32DataTypeFlag = TO_FLAG_INTEGER;
+	int found;
+	int byteOffset;
+	int vec4Offset;
+	const char* func = "";
+	Operand* dest;
+	Operand* previousValue;
+	Operand* destAddr;
+	Operand* src;
+
+	switch(psInst->eOpcode)
+	{
+		case OPCODE_IMM_ATOMIC_IADD:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//IMM_ATOMIC_IADD\n");
+#endif     
+			func = "atomicAdd";
+			previousValue = &psInst->asOperands[0];
+			dest = &psInst->asOperands[1];
+			destAddr = &psInst->asOperands[2];
+			src = &psInst->asOperands[3];
+			break;
+		}
+		case OPCODE_ATOMIC_IADD:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//ATOMIC_IADD\n");
+#endif  
+			func = "atomicAdd";
+			previousValue = 0;
+			dest = &psInst->asOperands[0];
+			destAddr = &psInst->asOperands[1];
+			src = &psInst->asOperands[2];
+			break;
+		}
+		case OPCODE_IMM_ATOMIC_AND:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//IMM_ATOMIC_AND\n");
+#endif     
+			func = "atomicAnd";
+			previousValue = &psInst->asOperands[0];
+			dest = &psInst->asOperands[1];
+			destAddr = &psInst->asOperands[2];
+			src = &psInst->asOperands[3];
+			break;
+		}
+		case OPCODE_ATOMIC_AND:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//ATOMIC_AND\n");
+#endif  
+			func = "atomicAnd";
+			previousValue = 0;
+			dest = &psInst->asOperands[0];
+			destAddr = &psInst->asOperands[1];
+			src = &psInst->asOperands[2];
+			break;
+		}
+	}
+
+    AddIndentation(psContext);
+
+	//Src0 is the UAV.
+	//Src1 is the address with that UAV to write to.
+	byteOffset = ((int*)destAddr->afImmediates)[1];
+	switch(byteOffset % 16)
+	{
+	case 0:
+		aui32Swizzle[0] = OPERAND_4_COMPONENT_X;
+		break;
+	case 4:
+		aui32Swizzle[0] = OPERAND_4_COMPONENT_Y;
+		break;
+	case 8:
+		aui32Swizzle[0] = OPERAND_4_COMPONENT_Z;
+		break;
+	case 12:
+		aui32Swizzle[0] = OPERAND_4_COMPONENT_W;
+		break;
+	}
+	vec4Offset = byteOffset / 16;
+
+	GetConstantBufferFromBindingPoint(RGROUP_UAV, dest->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+	found = GetShaderVarFromOffset(vec4Offset, aui32Swizzle, psCBuf, &psVarType, &index);
+	ASSERT(found);
+
+	if(previousValue)
+	{
+		TranslateOperand(psContext, previousValue, TO_FLAG_DESTINATION);
+		bcatcstr(glsl, " = ");
+	}
+			
+	bcatcstr(glsl, func);
+	bformata(glsl, "(UAV%d[0]", dest->ui32RegisterNumber);
+	if(strcmp(psVarType->Name, "$Element") != 0)
+	{
+		bformata(glsl, ".%s",psVarType->Name);
+	}
+
+	if(psVarType->Type == SVT_UINT)
+	{
+		ui32DataTypeFlag = TO_FLAG_UNSIGNED_INTEGER;
+	}
+	bcatcstr(glsl, ", ");
+
+    TranslateOperand(psContext, src, ui32DataTypeFlag);
+    bcatcstr(glsl, ");\n");
+}
+
 void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, const int32_t i32InstCount)
 {
 	int32_t i;
@@ -3222,105 +3344,12 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, ");\n");
             break;
         }
+		case OPCODE_IMM_ATOMIC_AND:
         case OPCODE_ATOMIC_AND:
-        {
-#ifdef _DEBUG
-            AddIndentation(psContext);
-            bcatcstr(glsl, "//ATOMIC_AND\n");
-#endif
-            AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-            bcatcstr(glsl, " = atomicAnd(");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-            bcatcstr(glsl, ");\n");
-            break;
-        }
 		case OPCODE_IMM_ATOMIC_IADD:
         case OPCODE_ATOMIC_IADD:
         {
-			ConstantBuffer* psCBuf = NULL;
-            ShaderVarType* psVarType = NULL;
-            int32_t index = -1;
-			uint32_t aui32Swizzle[4] = {OPERAND_4_COMPONENT_X};
-			uint32_t ui32DataTypeFlag = TO_FLAG_INTEGER;
-			int found;
-			int byteOffset;
-			int vec4Offset;
-
-			Operand* dest;
-			Operand* previousValue;
-			Operand* destAddr;
-			Operand* src;
-
-#ifdef _DEBUG
-            AddIndentation(psContext);
-            bcatcstr(glsl, "//ATOMIC_IADD\n");
-#endif
-            AddIndentation(psContext);
-            
-
-			if(psInst->eOpcode == OPCODE_IMM_ATOMIC_IADD)
-			{
-				previousValue = &psInst->asOperands[0];
-				dest = &psInst->asOperands[1];
-				destAddr = &psInst->asOperands[2];
-				src = &psInst->asOperands[3];
-			}
-			else
-			{
-				previousValue = 0;
-				dest = &psInst->asOperands[0];
-				destAddr = &psInst->asOperands[1];
-				src = &psInst->asOperands[2];
-			}
-
-			//Src0 is the UAV.
-			//Src1 is the address with that UAV to write to.
-			byteOffset = ((int*)destAddr->afImmediates)[1];
-			switch(byteOffset % 16)
-			{
-			case 0:
-				aui32Swizzle[0] = OPERAND_4_COMPONENT_X;
-				break;
-			case 4:
-				aui32Swizzle[0] = OPERAND_4_COMPONENT_Y;
-				break;
-			case 8:
-				aui32Swizzle[0] = OPERAND_4_COMPONENT_Z;
-				break;
-			case 12:
-				aui32Swizzle[0] = OPERAND_4_COMPONENT_W;
-				break;
-			}
-			vec4Offset = byteOffset / 16;
-
-			GetConstantBufferFromBindingPoint(RGROUP_UAV, dest->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
-			found = GetShaderVarFromOffset(vec4Offset, aui32Swizzle, psCBuf, &psVarType, &index);
-			ASSERT(found);
-
-			if(previousValue)
-			{
-				TranslateOperand(psContext, previousValue, TO_FLAG_NONE);
-				bcatcstr(glsl, " = ");
-			}
-			
-			bcatcstr(glsl, "atomicAdd(");
-			bformata(glsl, "UAV%d[0]", dest->ui32RegisterNumber);
-			if(strcmp(psVarType->Name, "$Element") != 0)
-			{
-				bformata(glsl, ".%s",psVarType->Name);
-			}
-
-			if(psVarType->Type == SVT_UINT)
-			{
-				ui32DataTypeFlag = TO_FLAG_UNSIGNED_INTEGER;
-			}
-			bcatcstr(glsl, ", ");
-
-            TranslateOperand(psContext, src, ui32DataTypeFlag);
-            bcatcstr(glsl, ");\n");
+			TranslateAomicMemOp(psContext, psInst);
             break;
         }
         case OPCODE_ATOMIC_OR:
@@ -3598,7 +3627,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		}
 
         case OPCODE_SWAPC:
-        case OPCODE_IMM_ATOMIC_AND:
         case OPCODE_IMM_ATOMIC_OR:
         case OPCODE_IMM_ATOMIC_XOR:
         case OPCODE_IMM_ATOMIC_EXCH:

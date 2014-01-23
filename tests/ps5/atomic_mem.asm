@@ -59,8 +59,12 @@ dp4 r0.x, r0.xyzw, r0.xyzw
 ne r0.x, r0.x, l(0.000000)
 if_nz r0.x
   atomic_iadd u1, l(0, 0, 0, 0), l(1)
-  atomic_iadd u1, l(0, 4, 0, 0), l(3)
+  imm_atomic_iadd r0.x, u1, l(0, 4, 0, 0), l(3)
+else 
+  atomic_and u1, l(0, 0, 0, 0), l(1)
+  imm_atomic_and r0.x, u1, l(0, 4, 0, 0), l(3)
 endif 
-mov o0.xyzw, l(1.000000,1.000000,1.000000,1.000000)
+utof o0.w, r0.x
+mov o0.xyz, l(1.000000,1.000000,1.000000,0)
 ret 
-// Approximately 11 instruction slots used
+// Approximately 15 instruction slots used
