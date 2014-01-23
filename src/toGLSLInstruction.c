@@ -902,7 +902,7 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 	}
 }
 
-void TranslateAomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psInst)
+void TranslateAtomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psInst)
 {
 	bstring glsl = *psContext->currentGLSLString;
 	ConstantBuffer* psCBuf = NULL;
@@ -914,10 +914,11 @@ void TranslateAomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIns
 	int byteOffset;
 	int vec4Offset;
 	const char* func = "";
-	Operand* dest;
-	Operand* previousValue;
-	Operand* destAddr;
-	Operand* src;
+	Operand* dest = 0;
+	Operand* previousValue = 0;
+	Operand* destAddr = 0;
+	Operand* src = 0;
+	Operand* compare = 0;
 
 	switch(psInst->eOpcode)
 	{
@@ -941,7 +942,6 @@ void TranslateAomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIns
 			bcatcstr(glsl, "//ATOMIC_IADD\n");
 #endif  
 			func = "atomicAdd";
-			previousValue = 0;
 			dest = &psInst->asOperands[0];
 			destAddr = &psInst->asOperands[1];
 			src = &psInst->asOperands[2];
@@ -967,7 +967,198 @@ void TranslateAomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIns
 			bcatcstr(glsl, "//ATOMIC_AND\n");
 #endif  
 			func = "atomicAnd";
+			dest = &psInst->asOperands[0];
+			destAddr = &psInst->asOperands[1];
+			src = &psInst->asOperands[2];
+			break;
+		}
+		case OPCODE_IMM_ATOMIC_OR:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//IMM_ATOMIC_OR\n");
+#endif     
+			func = "atomicOr";
+			previousValue = &psInst->asOperands[0];
+			dest = &psInst->asOperands[1];
+			destAddr = &psInst->asOperands[2];
+			src = &psInst->asOperands[3];
+			break;
+		}
+		case OPCODE_ATOMIC_OR:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//ATOMIC_OR\n");
+#endif  
+			func = "atomicOr";
+			dest = &psInst->asOperands[0];
+			destAddr = &psInst->asOperands[1];
+			src = &psInst->asOperands[2];
+			break;
+		}
+		case OPCODE_IMM_ATOMIC_XOR:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//IMM_ATOMIC_XOR\n");
+#endif     
+			func = "atomicXor";
+			previousValue = &psInst->asOperands[0];
+			dest = &psInst->asOperands[1];
+			destAddr = &psInst->asOperands[2];
+			src = &psInst->asOperands[3];
+			break;
+		}
+		case OPCODE_ATOMIC_XOR:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//ATOMIC_XOR\n");
+#endif  
+			func = "atomicXor";
+			dest = &psInst->asOperands[0];
+			destAddr = &psInst->asOperands[1];
+			src = &psInst->asOperands[2];
+			break;
+		}
+
+		case OPCODE_IMM_ATOMIC_EXCH:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//IMM_ATOMIC_EXCH\n");
+#endif     
+			func = "atomicExchange";
+			previousValue = &psInst->asOperands[0];
+			dest = &psInst->asOperands[1];
+			destAddr = &psInst->asOperands[2];
+			src = &psInst->asOperands[3];
+			break;
+		}
+		case OPCODE_IMM_ATOMIC_CMP_EXCH:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//IMM_ATOMIC_CMP_EXC\n");
+#endif     
+			func = "atomicCompSwap";
+			previousValue = &psInst->asOperands[0];
+			dest = &psInst->asOperands[1];
+			destAddr = &psInst->asOperands[2];
+			compare = &psInst->asOperands[3];
+			src = &psInst->asOperands[4];
+			break;
+		}
+		case OPCODE_ATOMIC_CMP_STORE:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//ATOMIC_CMP_STORE\n");
+#endif     
+			func = "atomicCompSwap";
 			previousValue = 0;
+			dest = &psInst->asOperands[0];
+			destAddr = &psInst->asOperands[1];
+			compare = &psInst->asOperands[2];
+			src = &psInst->asOperands[3];
+			break;
+		}
+		case OPCODE_IMM_ATOMIC_UMIN:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//IMM_ATOMIC_UMIN\n");
+#endif     
+			func = "atomicMin";
+			previousValue = &psInst->asOperands[0];
+			dest = &psInst->asOperands[1];
+			destAddr = &psInst->asOperands[2];
+			src = &psInst->asOperands[3];
+			break;
+		}
+		case OPCODE_ATOMIC_UMIN:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//ATOMIC_UMIN\n");
+#endif  
+			func = "atomicMin";
+			dest = &psInst->asOperands[0];
+			destAddr = &psInst->asOperands[1];
+			src = &psInst->asOperands[2];
+			break;
+		}
+		case OPCODE_IMM_ATOMIC_IMIN:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//IMM_ATOMIC_IMIN\n");
+#endif     
+			func = "atomicMin";
+			previousValue = &psInst->asOperands[0];
+			dest = &psInst->asOperands[1];
+			destAddr = &psInst->asOperands[2];
+			src = &psInst->asOperands[3];
+			break;
+		}
+		case OPCODE_ATOMIC_IMIN:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//ATOMIC_IMIN\n");
+#endif  
+			func = "atomicMin";
+			dest = &psInst->asOperands[0];
+			destAddr = &psInst->asOperands[1];
+			src = &psInst->asOperands[2];
+			break;
+		}
+		case OPCODE_IMM_ATOMIC_UMAX:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//IMM_ATOMIC_UMAX\n");
+#endif     
+			func = "atomicMax";
+			previousValue = &psInst->asOperands[0];
+			dest = &psInst->asOperands[1];
+			destAddr = &psInst->asOperands[2];
+			src = &psInst->asOperands[3];
+			break;
+		}
+		case OPCODE_ATOMIC_UMAX:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//ATOMIC_UMAX\n");
+#endif  
+			func = "atomicMax";
+			dest = &psInst->asOperands[0];
+			destAddr = &psInst->asOperands[1];
+			src = &psInst->asOperands[2];
+			break;
+		}
+		case OPCODE_IMM_ATOMIC_IMAX:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//IMM_ATOMIC_IMAX\n");
+#endif     
+			func = "atomicMax";
+			previousValue = &psInst->asOperands[0];
+			dest = &psInst->asOperands[1];
+			destAddr = &psInst->asOperands[2];
+			src = &psInst->asOperands[3];
+			break;
+		}
+		case OPCODE_ATOMIC_IMAX:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//ATOMIC_IMAX\n");
+#endif  
+			func = "atomicMax";
 			dest = &psInst->asOperands[0];
 			destAddr = &psInst->asOperands[1];
 			src = &psInst->asOperands[2];
@@ -977,8 +1168,6 @@ void TranslateAomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIns
 
     AddIndentation(psContext);
 
-	//Src0 is the UAV.
-	//Src1 is the address with that UAV to write to.
 	byteOffset = ((int*)destAddr->afImmediates)[1];
 	switch(byteOffset % 16)
 	{
@@ -1019,6 +1208,12 @@ void TranslateAomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIns
 		ui32DataTypeFlag = TO_FLAG_UNSIGNED_INTEGER;
 	}
 	bcatcstr(glsl, ", ");
+
+	if(compare)
+	{
+		TranslateOperand(psContext, compare, ui32DataTypeFlag);
+		bcatcstr(glsl, ", ");
+	}
 
     TranslateOperand(psContext, src, ui32DataTypeFlag);
     bcatcstr(glsl, ");\n");
@@ -3328,96 +3523,24 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		}
         
         case OPCODE_ATOMIC_CMP_STORE:
-        {
-#ifdef _DEBUG
-            AddIndentation(psContext);
-            bcatcstr(glsl, "//ATOMIC_CMP_STORE\n");
-#endif
-            AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-            bcatcstr(glsl, " = atomicCompSwap(");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_NONE);
-            bcatcstr(glsl, ");\n");
-            break;
-        }
 		case OPCODE_IMM_ATOMIC_AND:
         case OPCODE_ATOMIC_AND:
 		case OPCODE_IMM_ATOMIC_IADD:
         case OPCODE_ATOMIC_IADD:
-        {
-			TranslateAomicMemOp(psContext, psInst);
-            break;
-        }
         case OPCODE_ATOMIC_OR:
-        {
-#ifdef _DEBUG
-            AddIndentation(psContext);
-            bcatcstr(glsl, "//ATOMIC_OR");
-#endif
-            AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-            bcatcstr(glsl, " = atomicOr(");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-            bcatcstr(glsl, ");\n");
-            break;
-        }
         case OPCODE_ATOMIC_XOR:
-        {
-#ifdef _DEBUG
-            AddIndentation(psContext);
-            bcatcstr(glsl, "//ATOMIC_XOR\n");
-#endif
-            AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-            bcatcstr(glsl, " = atomicXor(");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-            bcatcstr(glsl, ");\n");
-            break;
-        }
-        case OPCODE_ATOMIC_IMAX:
-        case OPCODE_ATOMIC_UMAX:
-        {
-#ifdef _DEBUG
-            AddIndentation(psContext);
-            if(psInst->eOpcode == OPCODE_ATOMIC_IMAX)
-                bcatcstr(glsl, "//OPCODE_ATOMIC_IMAX\n");
-            else
-                bcatcstr(glsl, "//OPCODE_ATOMIC_UMAX\n");
-#endif
-            AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-            bcatcstr(glsl, " = atomicMax(");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-            bcatcstr(glsl, ");\n");
-            break;
-        }
         case OPCODE_ATOMIC_IMIN:
         case OPCODE_ATOMIC_UMIN:
+        case OPCODE_IMM_ATOMIC_IMAX:
+        case OPCODE_IMM_ATOMIC_IMIN:
+        case OPCODE_IMM_ATOMIC_UMAX:
+        case OPCODE_IMM_ATOMIC_UMIN:
+        case OPCODE_IMM_ATOMIC_OR:
+        case OPCODE_IMM_ATOMIC_XOR:
+        case OPCODE_IMM_ATOMIC_EXCH:
+        case OPCODE_IMM_ATOMIC_CMP_EXCH:
         {
-#ifdef _DEBUG
-            AddIndentation(psContext);
-            if(psInst->eOpcode == OPCODE_ATOMIC_IMIN)
-                bcatcstr(glsl, "//OPCODE_ATOMIC_IMIN\n");
-            else
-                bcatcstr(glsl, "//OPCODE_ATOMIC_UMIN\n");
-#endif
-            AddIndentation(psContext);
-            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-            bcatcstr(glsl, " = atomicMin(");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-            bcatcstr(glsl, ");\n");
+			TranslateAtomicMemOp(psContext, psInst);
             break;
         }
         case OPCODE_UBFE:
@@ -3627,14 +3750,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		}
 
         case OPCODE_SWAPC:
-        case OPCODE_IMM_ATOMIC_OR:
-        case OPCODE_IMM_ATOMIC_XOR:
-        case OPCODE_IMM_ATOMIC_EXCH:
-        case OPCODE_IMM_ATOMIC_CMP_EXCH:
-        case OPCODE_IMM_ATOMIC_IMAX:
-        case OPCODE_IMM_ATOMIC_IMIN:
-        case OPCODE_IMM_ATOMIC_UMAX:
-        case OPCODE_IMM_ATOMIC_UMIN:
         case OPCODE_DMAX:
         case OPCODE_DMIN:
         case OPCODE_DMUL:

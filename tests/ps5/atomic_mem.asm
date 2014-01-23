@@ -51,7 +51,7 @@ dcl_resource_texture2d (float,float,float,float) t1
 dcl_uav_structured u1, 8
 dcl_input_ps linear v0.xy
 dcl_output o0.xyzw
-dcl_temps 2
+dcl_temps 4
 sample_indexable(texture2d)(float,float,float,float) r0.xyzw, v0.xyxx, t0.xyzw, s0
 sample_indexable(texture2d)(float,float,float,float) r1.xyzw, v0.xyxx, t1.xyzw, s0
 add r0.xyzw, r0.xyzw, -r1.xyzw
@@ -61,10 +61,16 @@ if_nz r0.x
   atomic_iadd u1, l(0, 0, 0, 0), l(1)
   imm_atomic_iadd r0.x, u1, l(0, 4, 0, 0), l(3)
 else 
-  atomic_and u1, l(0, 0, 0, 0), l(1)
   imm_atomic_and r0.x, u1, l(0, 4, 0, 0), l(3)
 endif 
-utof o0.w, r0.x
-mov o0.xyz, l(1.000000,1.000000,1.000000,0)
+imm_atomic_umin r1.x, u1, l(0, 0, 0, 0), l(6)
+imm_atomic_umax r2.x, u1, l(0, 4, 0, 0), l(6)
+atomic_cmp_store u1, l(0, 4, 0, 0), l(2), r1.x
+imm_atomic_xor r3.x, u1, l(0, 0, 0, 0), l(15)
+atomic_or u1, l(0, 4, 0, 0), r3.x
+utof o0.y, r0.x
+utof o0.z, r1.x
+utof o0.w, r2.x
+mov o0.x, l(1.000000)
 ret 
-// Approximately 15 instruction slots used
+// Approximately 21 instruction slots used

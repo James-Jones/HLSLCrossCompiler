@@ -44,8 +44,20 @@ PS_OUTPUT main( PS_INPUT input )
 		InterlockedAnd(BufferOut[0].pixDiff, 1);
 		InterlockedAnd(BufferOut[0].pixDiff2, 3, originalValue);
 	}
+
+	uint atomicMin;
+	InterlockedMin(BufferOut[0].pixDiff, 6, atomicMin);
+	uint atomicMax;
+	InterlockedMax(BufferOut[0].pixDiff2, 6, atomicMax);
+
+	uint unused;
+	InterlockedCompareExchange(BufferOut[0].pixDiff2, 2, atomicMin, unused);
+
+	uint ored;
+	InterlockedXor(BufferOut[0].pixDiff, 0xF, ored);
+	InterlockedOr(BufferOut[0].pixDiff2, ored);
 	
-	outPix.Colour0 = float4(1, 1, 1, originalValue);
+	outPix.Colour0 = float4(1, originalValue, atomicMin, atomicMax);
 	
 	return outPix;
 }
