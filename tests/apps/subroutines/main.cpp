@@ -192,7 +192,7 @@ void Init(int argc, char** argv)
 
     glewInit();
 
-    glutInitContextVersion (3, 2);
+    glutInitContextVersion (4, 0);
 #ifdef _DEBUG
     glutInitContextFlags (GLUT_DEBUG);
 #endif
