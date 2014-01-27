@@ -65,7 +65,23 @@ void display(void)
     SetFloatArray(gView, gGlobals.View);
     SetFloatArray(gProjection, gGlobals.Projection);
 
-    mTessEffect.SetVec4(std::string("Globals"), GlobalsVec4Count, (float*)&gGlobals);
+	mTessEffect.SetVec4(std::string("GlobalsVS.World"), 4, gGlobals.World);
+	mTessEffect.SetVec4(std::string("GlobalsVS.View"), 4, gGlobals.View);
+	mTessEffect.SetVec4(std::string("GlobalsVS.Projection"), 4, gGlobals.Projection);
+	mTessEffect.SetFloat(std::string("GlobalsVS.InnerFactor"), 1, &gGlobals.InnerFactor);
+	mTessEffect.SetFloat(std::string("GlobalsVS.OuterFactor"), 1, &gGlobals.OuterFactor);
+
+	mTessEffect.SetVec4(std::string("GlobalsHS.World"), 4, gGlobals.World);
+	mTessEffect.SetVec4(std::string("GlobalsHS.View"), 4, gGlobals.View);
+	mTessEffect.SetVec4(std::string("GlobalsHS.Projection"), 4, gGlobals.Projection);
+	mTessEffect.SetFloat(std::string("GlobalsHS.InnerFactor"), 1, &gGlobals.InnerFactor);
+	mTessEffect.SetFloat(std::string("GlobalsHS.OuterFactor"), 1, &gGlobals.OuterFactor);
+
+	mTessEffect.SetVec4(std::string("GlobalsDS.World"), 4, gGlobals.World);
+	mTessEffect.SetVec4(std::string("GlobalsDS.View"), 4, gGlobals.View);
+	mTessEffect.SetVec4(std::string("GlobalsDS.Projection"), 4, gGlobals.Projection);
+	mTessEffect.SetFloat(std::string("GlobalsDS.InnerFactor"), 1, &gGlobals.InnerFactor);
+	mTessEffect.SetFloat(std::string("GlobalsDS.OuterFactor"), 1, &gGlobals.OuterFactor);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gIndexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, gVertexBuffer);
