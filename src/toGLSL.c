@@ -4,7 +4,6 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "bstrlib.h"
-#include "internal_includes/hlsl_opcode_funcs_glsl.h"
 #include "internal_includes/toGLSLInstruction.h"
 #include "internal_includes/toGLSLOperand.h"
 #include "internal_includes/toGLSLDeclaration.h"
@@ -268,17 +267,6 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
     }
 }
 
-void AddOpcodeFuncs(HLSLCrossCompilerContext* psContext)
-{
-    bstring glsl = *psContext->currentGLSLString;
-
-    bcatcstr(glsl, "\n");
-
-    bcatcstr(glsl, psz_hlsl_opcode_funcs_glsl);
-
-    bcatcstr(glsl, "\n");
-}
-
 GLLang ChooseLanguage(Shader* psShader)
 {
     // Depends on the HLSL shader model extracted from bytecode.
@@ -421,8 +409,6 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
         {
             TranslateDeclaration(psContext, psShader->psHSDecl+i);
         }
-
-        AddOpcodeFuncs(psContext);
 
         //control
         psContext->currentPhase = HS_CTRL_POINT_PHASE;
@@ -638,8 +624,6 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
     {
         TranslateDeclaration(psContext, psShader->psDecl+i);
     }
-
-    AddOpcodeFuncs(psContext);
 
     bcatcstr(glsl, "void main()\n{\n");
 

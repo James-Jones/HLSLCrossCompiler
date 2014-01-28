@@ -52,7 +52,6 @@ source_group("CBString Files" FILES ${CBSTRING_CFILES} ${CBSTRING_HFILES})
 ADD_LIBRARY( libHLSLcc 
 ../src/internal_includes/debug.h
 ../src/internal_includes/decode.h
-../src/internal_includes/hlsl_opcode_funcs_glsl.h
 ../src/internal_includes/languages.h
 ../include/pstdint.h
 ../src/internal_includes/reflect.h

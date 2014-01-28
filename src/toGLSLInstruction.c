@@ -15,7 +15,8 @@ typedef enum
     CMP_NE,
 } ComparisonType;
 
-static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psInst, ComparisonType eType)
+static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psInst, ComparisonType eType,
+						   uint32_t typeFlag)
 {
     bstring glsl = *psContext->currentGLSLString;
     const uint32_t destElemCount = GetNumSwizzleElements(&psInst->asOperands[0]);
@@ -34,16 +35,26 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
             "greaterThanEqual",
             "notEqual",
         };
+		char* constructor = "vec";
+
+		if(typeFlag & TO_FLAG_INTEGER)
+		{
+			constructor = "ivec";
+		}
+		else if(typeFlag & TO_FLAG_UNSIGNED_INTEGER)
+		{
+			constructor = "uvec";
+		}
 
         //Component-wise compare
         AddIndentation(psContext);
         TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-        bformata(glsl, " = vec%d(%s(vec4(", minElemCount, glslOpcode[eType]);
-        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+        bformata(glsl, " = %s%d(%s(%s4(", constructor, minElemCount, glslOpcode[eType], constructor);
+        TranslateOperand(psContext, &psInst->asOperands[1], typeFlag);
         bcatcstr(glsl, ")");
         AddSwizzleUsingElementCount(psContext, minElemCount);
-        bcatcstr(glsl, ", vec4(");
-        TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+        bformata(glsl, ", %s4(", constructor);
+        TranslateOperand(psContext, &psInst->asOperands[2], typeFlag);
         bcatcstr(glsl, ")");
         AddSwizzleUsingElementCount(psContext, minElemCount);
         bcatcstr(glsl, "));\n");
@@ -61,87 +72,17 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
         AddIndentation(psContext);
         TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
         bcatcstr(glsl, " = ((");
-        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+        TranslateOperand(psContext, &psInst->asOperands[1], typeFlag);
         bcatcstr(glsl, ")");
         if(s0ElemCount > minElemCount)
             AddSwizzleUsingElementCount(psContext, minElemCount);
         bformata(glsl, "%s (", glslOpcode[eType]);
-        TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+        TranslateOperand(psContext, &psInst->asOperands[2], typeFlag);
         bcatcstr(glsl, ")");
         if(s1ElemCount > minElemCount)
             AddSwizzleUsingElementCount(psContext, minElemCount);
         bcatcstr(glsl, ") ? 1 : 0;\n");
     }
-}
-
-void CallHLSLOpcodeFunc1(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst)
-{
-    bstring glsl = *psContext->currentGLSLString;
-
-    AddIndentation(psContext);
-    bcatcstr(glsl, name);
-    bcatcstr(glsl, "(");
-    TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-    bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-    bcatcstr(glsl, ");\n");
-}
-
-void CallHLSLOpcodeFunc2(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst)
-{
-    bstring glsl = *psContext->currentGLSLString;
-    AddIndentation(psContext);
-    bcatcstr(glsl, name);
-    bcatcstr(glsl, "(");
-    TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-    bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-    bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-    bcatcstr(glsl, ");\n");
-}
-
-void CallHLSLOpcodeFunc3(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst)
-{
-    bstring glsl = *psContext->currentGLSLString;
-    AddIndentation(psContext);
-    bcatcstr(glsl, name);
-    bcatcstr(glsl, "(");
-    TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-    bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-    bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-    bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_NONE);
-    bcatcstr(glsl, ");\n");
-}
-
-void CallHLSLIntegerOpcodeFunc2(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst)
-{
-    bstring glsl = *psContext->currentGLSLString;
-    AddIndentation(psContext);
-    bcatcstr(glsl, name);
-    bcatcstr(glsl, "(");
-    TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_INTEGER|TO_FLAG_DESTINATION);
-    bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
-    bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_INTEGER);
-    bcatcstr(glsl, ");\n");
-}
-void CallHLSLUnsignedIntegerOpcodeFunc2(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst)
-{
-    bstring glsl = *psContext->currentGLSLString;
-    AddIndentation(psContext);
-    bcatcstr(glsl, name);
-    bcatcstr(glsl, "(");
-    TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_UNSIGNED_INTEGER|TO_FLAG_DESTINATION);
-    bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_UNSIGNED_INTEGER);
-    bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_UNSIGNED_INTEGER);
-    bcatcstr(glsl, ");\n");
 }
 
 void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
@@ -1353,7 +1294,6 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 			{
 				Operand* dest = &psInst->asOperands[1];
 				Operand* destAddr = &psInst->asOperands[2];
-				uint32_t aui32Swizzle[4] = {OPERAND_4_COMPONENT_X};
 				ShaderVarType* type = LookupStructuredVar(psContext, dest, destAddr);
 				eNewType = type->Type;
 				break;
@@ -1809,7 +1749,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//AND\n");
 #endif
-			CallHLSLOpcodeFunc2(psContext, "HLSL_and", psInst);
+			CallBinaryOp(psContext, "&", psInst, 0, 1, 2, TO_FLAG_INTEGER);
             break;
         }
         case OPCODE_GE:
@@ -1822,7 +1762,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//GE\n");
 #endif
-            AddComparision(psContext, psInst, CMP_GE);
+            AddComparision(psContext, psInst, CMP_GE, TO_FLAG_NONE);
             break;
         }
         case OPCODE_MUL:
@@ -1946,7 +1886,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//INE\n");
 #endif
-            AddComparision(psContext, psInst, CMP_NE);
+            AddComparision(psContext, psInst, CMP_NE, TO_FLAG_NONE);
             break;
         }
         case OPCODE_NE:
@@ -1956,7 +1896,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//NE\n");
 #endif
-            AddComparision(psContext, psInst, CMP_NE);
+            AddComparision(psContext, psInst, CMP_NE, TO_FLAG_NONE);
             break;
         }
         case OPCODE_IGE:
@@ -1965,7 +1905,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//IGE\n");
 #endif
-            CallHLSLIntegerOpcodeFunc2(psContext, "HLSL_ige", psInst);
+			AddComparision(psContext, psInst, CMP_GE, TO_FLAG_INTEGER);
             break;
         }
         case OPCODE_ILT:
@@ -1974,7 +1914,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//ILT\n");
 #endif
-            CallHLSLIntegerOpcodeFunc2(psContext, "HLSL_ilt", psInst);
+			AddComparision(psContext, psInst, CMP_LT, TO_FLAG_INTEGER);
             break;
         }
         case OPCODE_LT:
@@ -1983,7 +1923,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//LT\n");
 #endif
-            AddComparision(psContext, psInst, CMP_LT);
+            AddComparision(psContext, psInst, CMP_LT, TO_FLAG_NONE);
             break;
         }
         case OPCODE_IEQ:
@@ -1992,7 +1932,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//IEQ\n");
 #endif
-            CallHLSLIntegerOpcodeFunc2(psContext, "HLSL_ieq", psInst);
+			AddComparision(psContext, psInst, CMP_EQ, TO_FLAG_INTEGER);
             break;
         }
         case OPCODE_ULT:
@@ -2001,7 +1941,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//ULT\n");
 #endif
-            CallHLSLUnsignedIntegerOpcodeFunc2(psContext, "HLSL_ult", psInst);
+			AddComparision(psContext, psInst, CMP_LT, TO_FLAG_UNSIGNED_INTEGER);
             break;
         }
         case OPCODE_UGE:
@@ -2010,7 +1950,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//UGE\n");
 #endif
-            CallHLSLUnsignedIntegerOpcodeFunc2(psContext, "HLSL_uge", psInst);
+			AddComparision(psContext, psInst, CMP_GE, TO_FLAG_UNSIGNED_INTEGER);
             break;
         }
         case OPCODE_MOVC:
@@ -3068,7 +3008,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//EQ\n");
 #endif
-            AddComparision(psContext, psInst, CMP_EQ);
+            AddComparision(psContext, psInst, CMP_EQ, TO_FLAG_NONE);
 			break;
 		}
 		case OPCODE_USHR:
