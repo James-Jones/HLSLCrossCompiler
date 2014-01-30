@@ -496,6 +496,7 @@ static void CreateD3D10Instruction(
 		}
 
         ui32Offset++;
+		psInst->ui32FirstSrc = 1;
     }
 
     for(ui32Src=0; ui32Src < ui32SrcCount; ++ui32Src)

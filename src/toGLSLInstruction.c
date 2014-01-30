@@ -25,6 +25,8 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
 
     uint32_t minElemCount = destElemCount < s0ElemCount ? destElemCount : s0ElemCount;
 
+	SHADER_VARIABLE_TYPE eDestType = GetOperandDataType(psContext, &psInst->asOperands[0]);
+
     minElemCount = s1ElemCount < minElemCount ? s1ElemCount : minElemCount;
 
     if(destElemCount > 1)
@@ -49,7 +51,14 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
         //Component-wise compare
         AddIndentation(psContext);
         TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-        bformata(glsl, " = %s%d(%s(%s4(", constructor, minElemCount, glslOpcode[eType], constructor);
+		if(eDestType == SVT_UINT)
+		{
+			bformata(glsl, " = uvec%d(%s(%s4(", minElemCount, glslOpcode[eType], constructor);
+		}
+		else
+		{
+			bformata(glsl, " = ivec%d(%s(%s4(", minElemCount, glslOpcode[eType], constructor);
+		}
         TranslateOperand(psContext, &psInst->asOperands[1], typeFlag);
         bcatcstr(glsl, ")");
         AddSwizzleUsingElementCount(psContext, minElemCount);
@@ -81,7 +90,14 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
         bcatcstr(glsl, ")");
         if(s1ElemCount > minElemCount)
             AddSwizzleUsingElementCount(psContext, minElemCount);
-        bcatcstr(glsl, ") ? 1 : 0;\n");
+		if(eDestType == SVT_UINT)
+		{
+			bcatcstr(glsl, ") ? 1u : 0u;\n");
+		}
+		else
+		{
+			bcatcstr(glsl, ") ? 1 : 0;\n");
+		}
     }
 }
 
@@ -1254,14 +1270,10 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		switch(psInst->eOpcode)
 		{
 		case OPCODE_IADD:
-		case OPCODE_IEQ:
-		case OPCODE_IGE:
-		case OPCODE_ILT:
 		case OPCODE_IMAD:
 		case OPCODE_IMAX:
 		case OPCODE_IMIN:
 		case OPCODE_IMUL:
-		case OPCODE_INE:
 		case OPCODE_INEG:
 		case OPCODE_ISHL:
 		case OPCODE_ISHR:
@@ -1298,6 +1310,15 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 				eNewType = type->Type;
 				break;
 			}
+
+		case OPCODE_IEQ:
+		case OPCODE_IGE:
+		case OPCODE_ILT:
+		case OPCODE_INE:
+		case OPCODE_EQ:
+		case OPCODE_GE:
+		case OPCODE_LT:
+		case OPCODE_NE:
 		case OPCODE_UDIV:
 		case OPCODE_ULT:
 		case OPCODE_UGE:
@@ -1433,6 +1454,12 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 				eNewType = SVT_FLOAT;
 				break;
 			}
+		}
+
+		if(eNewType == SVT_UINT && HaveUVec(psContext->psShader->eTargetLanguage)==0)
+		{
+			//Fallback to signed int if unsigned int is not supported.
+			eNewType = SVT_INT;
 		}
 
 		//Process the destination last in order to handle instructions
@@ -1891,7 +1918,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_NE:
         {
-            //Scalar version. Use any() for vector with scalar 1
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//NE\n");
