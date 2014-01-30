@@ -291,11 +291,31 @@ void CallHelper1(HLSLCrossCompilerContext* psContext, const char* name, Instruct
  int dest, int src0)
 {
     bstring glsl = *psContext->currentGLSLString;
+	SHADER_VARIABLE_TYPE eDestDataType = GetOperandDataType(psContext, &psInst->asOperands[dest]);
+
     AddIndentation(psContext);
 
 	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_DESTINATION);
 
-	bcatcstr(glsl, " = vec4(");
+	switch(eDestDataType)
+	{
+		case SVT_INT:
+		{
+			bcatcstr(glsl, " = ivec4(");
+			break;
+		}
+		case SVT_UINT:
+		{
+			bcatcstr(glsl, " = uvec4(");
+			break;
+		}
+		case SVT_FLOAT:
+		default:
+		{
+			bcatcstr(glsl, " = vec4(");
+			break;
+		}
+	}
 
     bcatcstr(glsl, name);
     bcatcstr(glsl, "(");

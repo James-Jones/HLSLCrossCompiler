@@ -1299,6 +1299,10 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
 		{
 			return SVT_UINT;
 		}
+		case OPERAND_TYPE_SPECIAL_ADDRESS:
+		{
+			return SVT_INT;
+		}
 		default:
 		{
 			return SVT_FLOAT;

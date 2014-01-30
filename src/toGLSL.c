@@ -77,7 +77,7 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 		if(psContext->psShader->eShaderType == VERTEX_SHADER)
 		{
 			uint32_t texCoord;
-			bcatcstr(glsl, "vec4 Address;\n");
+			bcatcstr(glsl, "ivec4 Address;\n");
 
 			if(InOutSupported(psContext->psShader->eTargetLanguage))
 			{
