@@ -211,11 +211,6 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 	psOperand->iIndexDims = DecodeOperandIndexDimension(*pui32Tokens);
     psOperand->eType = DecodeOperandType(*pui32Tokens);
 
-    if(psOperand->eType == OPERAND_TYPE_INDEXABLE_TEMP)
-    {
-        eNumComponents = 0;
-    }
-
     psOperand->ui32RegisterNumber = 0;
 
     eNumComponents = DecodeOperandNumComponents(*pui32Tokens);
