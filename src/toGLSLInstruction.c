@@ -2025,7 +2025,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 */
 
 			/* Single-component conditional variable (src0) */
-			if(s1ElemCount==1 || IsSwizzleReplacated(&psInst->asOperands[1]))
+			if(s0ElemCount==1 || IsSwizzleReplacated(&psInst->asOperands[1]))
 			{
                 AddIndentation(psContext);
                 bcatcstr(glsl, "if(vec4(");
