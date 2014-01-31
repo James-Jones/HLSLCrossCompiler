@@ -2031,6 +2031,23 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             bformata(glsl, "const int HullPhase%dInstanceCount = %d;\n", forkPhaseNum, instanceCount);
             break;
         }
+        case OPCODE_DCL_INDEXABLE_TEMP:
+		{
+            const uint32_t ui32RegIndex = psDecl->sIdxTemp.ui32RegIndex;
+            const uint32_t ui32RegCount = psDecl->sIdxTemp.ui32RegCount;
+			const uint32_t ui32RegComponentSize = psDecl->sIdxTemp.ui32RegComponentSize;
+            bformata(glsl, "vec%d TempArray%d[%d];\n", ui32RegComponentSize, ui32RegIndex, ui32RegCount);
+			bformata(glsl, "ivec%d TempArray%d_int[%d];\n", ui32RegComponentSize, ui32RegIndex, ui32RegCount);
+			if(HaveUVec(psShader->eTargetLanguage))
+			{
+				bformata(glsl, "uvec%d TempArray%d_uint[%d];\n", ui32RegComponentSize, ui32RegIndex, ui32RegCount);
+			}
+			if(psShader->fp64)
+			{
+				bformata(glsl, "dvec%d TempArray%d_double[%d];\n", ui32RegComponentSize, ui32RegIndex, ui32RegCount);
+			}
+			break;
+		}
         case OPCODE_DCL_INDEX_RANGE:
         {
             break;

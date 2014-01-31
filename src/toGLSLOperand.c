@@ -1160,6 +1160,20 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 			bcatcstr(glsl, "gl_PrimitiveID");
 			break;
 		}
+        case OPERAND_TYPE_INDEXABLE_TEMP:
+        {
+            bformata(glsl, "TempArray%d", psOperand->ui32RegisterNumber);
+            bformata(glsl, "[%d", psOperand->aui32ArraySizes[1]);
+            
+            if(psOperand->psSubOperand[1])
+            {
+                bcatcstr(glsl, "+");
+                TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
+                
+            }
+            bcatcstr(glsl, "]");
+            break;
+        }
         default:
         {
             ASSERT(0);

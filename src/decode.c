@@ -211,6 +211,11 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 	psOperand->iIndexDims = DecodeOperandIndexDimension(*pui32Tokens);
     psOperand->eType = DecodeOperandType(*pui32Tokens);
 
+    if(psOperand->eType == OPERAND_TYPE_INDEXABLE_TEMP)
+    {
+        eNumComponents = 0;
+    }
+
     psOperand->ui32RegisterNumber = 0;
 
     eNumComponents = DecodeOperandNumComponents(*pui32Tokens);
@@ -505,6 +510,9 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_INDEXABLE_TEMP:
         {
+			psDecl->sIdxTemp.ui32RegIndex = *(pui32Token+ui32OperandOffset);
+			psDecl->sIdxTemp.ui32RegCount = *(pui32Token+ui32OperandOffset+1);
+			psDecl->sIdxTemp.ui32RegComponentSize = *(pui32Token+ui32OperandOffset+2);
             break;
         }
         case OPCODE_DCL_GLOBAL_FLAGS:

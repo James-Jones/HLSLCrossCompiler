@@ -129,11 +129,18 @@ typedef struct Declaration_TAG
 		RESOURCE_RETURN_TYPE Type;
     } sUAV;
 
-    struct TGSM
+    struct TGSM_TAG
     {
         uint32_t ui32Stride;
         uint32_t ui32Count;
     } sTGSM;
+
+	struct IndexableTemp_TAG
+	{
+		uint32_t ui32RegIndex;
+		uint32_t ui32RegCount;
+		uint32_t ui32RegComponentSize;
+	} sIdxTemp;
 
     uint32_t ui32TableLength;
 
