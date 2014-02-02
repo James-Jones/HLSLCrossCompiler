@@ -1189,6 +1189,53 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		if(psInst->ui32NumOperands == 0)
 			continue;
 
+        //Preserve the current type on dest array index
+        if(psInst->asOperands[0].eType == OPERAND_TYPE_INDEXABLE_TEMP)
+        {
+            Operand* psSubOperand = psInst->asOperands[0].psSubOperand[1];
+			if(psSubOperand != 0)
+            {
+				const uint32_t ui32RegIndex = psSubOperand->ui32RegisterNumber*4;
+                ASSERT(psSubOperand->eType == OPERAND_TYPE_TEMP);
+
+				if(psSubOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+				{
+					psSubOperand->aeDataType[psSubOperand->aui32Swizzle[0]] = aeTempVecType[ui32RegIndex+psSubOperand->aui32Swizzle[0]];
+				}
+				else if(psSubOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+				{
+					if(psSubOperand->ui32Swizzle == (NO_SWIZZLE))
+					{
+						psSubOperand->aeDataType[0] = aeTempVecType[ui32RegIndex];
+						psSubOperand->aeDataType[1] = aeTempVecType[ui32RegIndex];
+						psSubOperand->aeDataType[2] = aeTempVecType[ui32RegIndex];
+						psSubOperand->aeDataType[3] = aeTempVecType[ui32RegIndex];
+					}
+					else
+					{
+						psSubOperand->aeDataType[psSubOperand->aui32Swizzle[0]] = aeTempVecType[ui32RegIndex+psSubOperand->aui32Swizzle[0]];
+					}
+				}
+				else if(psSubOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+				{
+					int c = 0;
+					uint32_t ui32CompMask = psSubOperand->ui32CompMask;
+					if(!psSubOperand->ui32CompMask)
+					{
+						ui32CompMask = OPERAND_4_COMPONENT_MASK_ALL;
+					}
+
+					for(;c<4;++c)
+					{
+						if(ui32CompMask & (1<<c))
+						{
+							psSubOperand->aeDataType[c] = aeTempVecType[ui32RegIndex+c];
+						}
+					}
+				}
+            }
+        }
+
 		//Preserve the current type on sources.
 		for(k = psInst->ui32NumOperands-1; k >= (int)psInst->ui32FirstSrc; --k)
 		{
@@ -1196,7 +1243,7 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 			Operand* psOperand = &psInst->asOperands[k];
 
 			if(psOperand->eType == OPERAND_TYPE_TEMP)
-			{
+            {
 				const uint32_t ui32RegIndex = psOperand->ui32RegisterNumber*4;
 
 				if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
@@ -1289,6 +1336,13 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 
 		switch(psInst->eOpcode)
 		{
+        case OPCODE_AND:
+        case OPCODE_OR:
+        case OPCODE_XOR:
+            {
+                eNewType = SVT_INT;
+                break;
+            }
 		case OPCODE_IADD:
 		case OPCODE_IMAD:
 		case OPCODE_IMAX:
