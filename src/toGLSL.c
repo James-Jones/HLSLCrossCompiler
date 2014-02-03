@@ -125,6 +125,8 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 		}
     }
 
+	bcatcstr(glsl, "#extension GL_ARB_shader_bit_encoding : enable\n");
+
 	if(!HaveCompute(psContext->psShader->eTargetLanguage))
 	{
 		if(psContext->psShader->eShaderType == COMPUTE_SHADER)
@@ -375,6 +377,16 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
         language = ChooseLanguage(psShader);
         *planguage = language;
     }
+
+	//Full unsigned int support required.
+	if(HaveUVec(language) == 0)
+	{
+		if(language == LANG_ES_100)
+			language = LANG_ES_300;
+		else if(language == LANG_120)
+			language = LANG_130;
+		ASSERT(HaveUVec(language) == 1);
+	}
 
     glsl = bfromcstralloc (1024, GetVersionString(language));
 

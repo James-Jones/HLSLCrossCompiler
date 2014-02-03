@@ -1,0 +1,22 @@
+
+struct VS_OUTPUT
+{
+    float4 Position   : SV_Position;
+	int4 IntPosition   : IntPos;
+};
+
+int AConstantInt;
+
+VS_OUTPUT main( in float4 vPosition : POSITION, in int coord: TEXCOORD,
+in int coord2 : TEXCOORD1 )
+{
+    VS_OUTPUT Output;
+
+    Output.Position.xyzw = float4(0, 0, 0, 0);
+
+	if(vPosition.x > vPosition.y)
+		 Output.Position.x = vPosition.z;
+    
+    return Output;
+}
+

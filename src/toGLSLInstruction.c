@@ -6,6 +6,7 @@
 #include "internal_includes/debug.h"
 
 extern void AddIndentation(HLSLCrossCompilerContext* psContext);
+static int IsIntegerOpcode(OPCODE_TYPE eOpcode);
 
 typedef enum
 {
@@ -23,9 +24,9 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
     const uint32_t s0ElemCount = GetNumSwizzleElements(&psInst->asOperands[1]);
     const uint32_t s1ElemCount = GetNumSwizzleElements(&psInst->asOperands[2]);
 
-    uint32_t minElemCount = destElemCount < s0ElemCount ? destElemCount : s0ElemCount;
-
 	SHADER_VARIABLE_TYPE eDestType = GetOperandDataType(psContext, &psInst->asOperands[0]);
+
+    uint32_t minElemCount = destElemCount < s0ElemCount ? destElemCount : s0ElemCount;
 
     minElemCount = s1ElemCount < minElemCount ? s1ElemCount : minElemCount;
 
@@ -66,7 +67,14 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
         TranslateOperand(psContext, &psInst->asOperands[2], typeFlag);
         bcatcstr(glsl, ")");
         AddSwizzleUsingElementCount(psContext, minElemCount);
-        bcatcstr(glsl, "));\n");
+		if(eDestType == SVT_UINT)
+		{
+			bcatcstr(glsl, ")) * 0xFFFFFFFFu;\n");
+		}
+		else
+		{
+			bcatcstr(glsl, ")) * 0xFFFF;\n");
+		}
     }
     else
     {
@@ -81,10 +89,12 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
         AddIndentation(psContext);
         TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
         bcatcstr(glsl, " = ((");
+
         TranslateOperand(psContext, &psInst->asOperands[1], typeFlag);
         bcatcstr(glsl, ")");
         if(s0ElemCount > minElemCount)
             AddSwizzleUsingElementCount(psContext, minElemCount);
+
         bformata(glsl, "%s (", glslOpcode[eType]);
         TranslateOperand(psContext, &psInst->asOperands[2], typeFlag);
         bcatcstr(glsl, ")");
@@ -92,11 +102,11 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
             AddSwizzleUsingElementCount(psContext, minElemCount);
 		if(eDestType == SVT_UINT)
 		{
-			bcatcstr(glsl, ") ? 1u : 0u;\n");
+			bcatcstr(glsl, ") ? 0xFFFFFFFFu : 0u;\n");
 		}
 		else
 		{
-			bcatcstr(glsl, ") ? 1 : 0;\n");
+			bcatcstr(glsl, ") ? 0xFFFF : 0;\n");
 		}
     }
 }
@@ -115,8 +125,11 @@ void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruc
 	{
 		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_DESTINATION|dataType);
 		bcatcstr(glsl, " = ");
+
 		TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE|dataType);
+
 		bformata(glsl, " %s ", name);
+
 		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE|dataType);
 		bcatcstr(glsl, ";\n");
 	}
@@ -137,8 +150,103 @@ void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruc
 			bcatcstr(glsl, " = vec4(");
 		}
 		TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE|dataType);
+
 		bformata(glsl, " %s ", name);
+
 		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE|dataType);
+		bcatcstr(glsl, ")");
+		//Limit src swizzles based on dest swizzle
+		//e.g. given hlsl asm: add r0.xy, v0.xyxx, l(0.100000, 0.000000, 0.000000, 0.000000)
+		//the two sources must become vec2
+		//Temp0.xy = Input0.xyxx + vec4(0.100000, 0.000000, 0.000000, 0.000000);
+		//becomes
+		//Temp0.xy = vec4(Input0.xyxx + vec4(0.100000, 0.000000, 0.000000, 0.000000)).xy;
+		
+        TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
+		bcatcstr(glsl, ";\n");
+	}
+}
+
+void CallBitwiseOp(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
+ int dest, int src0, int src1, uint32_t dataType)
+{
+    bstring glsl = *psContext->currentGLSLString;
+	const uint32_t src1SwizCount = GetNumSwizzleElements(&psInst->asOperands[src1]);
+	const uint32_t src0SwizCount = GetNumSwizzleElements(&psInst->asOperands[src0]);
+	const uint32_t dstSwizCount = GetNumSwizzleElements(&psInst->asOperands[dest]);
+
+	const SHADER_VARIABLE_TYPE eDestType = GetOperandDataType(psContext, &psInst->asOperands[0]);
+	const SHADER_VARIABLE_TYPE eSrcAType = GetOperandDataType(psContext, &psInst->asOperands[1]);
+	const SHADER_VARIABLE_TYPE eSrcBType = GetOperandDataType(psContext, &psInst->asOperands[2]);
+
+	const int AfloatBitsToInt = eSrcAType == SVT_FLOAT;
+	const int AUintBitsToInt = eSrcAType == SVT_UINT;
+	const int BfloatBitsToInt = eSrcBType == SVT_FLOAT;
+	const int BUintBitsToInt = eSrcBType == SVT_UINT;
+
+	const int AintToUint = eSrcAType == SVT_INT && eDestType == SVT_UINT;
+	const int BintToUint = eSrcBType == SVT_INT && eDestType == SVT_UINT;
+
+    AddIndentation(psContext);
+
+	if(src1SwizCount == src0SwizCount == dstSwizCount)
+	{
+		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_DESTINATION|dataType);
+		bcatcstr(glsl, " = ");
+
+		if(AfloatBitsToInt)
+			bcatcstr(glsl, "floatBitsToInt(");
+		else if(AUintBitsToInt)
+			bcatcstr(glsl, "int(");
+		else if(AintToUint)
+			bcatcstr(glsl, "uint(");
+
+		TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE);
+		if(AfloatBitsToInt||AUintBitsToInt||AintToUint)
+			bcatcstr(glsl, ")");
+
+		bformata(glsl, " %s ", name);
+
+		if(BfloatBitsToInt)
+			bcatcstr(glsl, "floatBitsToInt(");
+		else if(BUintBitsToInt)
+			bcatcstr(glsl, "int(");
+		else if(BintToUint)
+			bcatcstr(glsl, "uint(");
+
+		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE);
+		if(BfloatBitsToInt||BUintBitsToInt||BintToUint)
+			bcatcstr(glsl, ")");
+		bcatcstr(glsl, ";\n");
+	}
+	else
+	{
+        //Upconvert the inputs to uvec4 then apply the dest swizzle.
+		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_DESTINATION|dataType);
+
+		bcatcstr(glsl, " = (");
+
+		if(AfloatBitsToInt)
+			bcatcstr(glsl, "floatBitsToInt(");
+		else if(AUintBitsToInt)
+			bcatcstr(glsl, "ivec4(");
+		else if(AintToUint)
+			bcatcstr(glsl, "uvec4(");
+		TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE);
+		if(AfloatBitsToInt||AUintBitsToInt||AintToUint)
+			bcatcstr(glsl, ")");
+
+		bformata(glsl, " %s ", name);
+
+		if(BfloatBitsToInt)
+			bcatcstr(glsl, "floatBitsToInt(");
+		else if(BUintBitsToInt)
+			bcatcstr(glsl, "ivec4(");
+		else if(BintToUint)
+			bcatcstr(glsl, "uvec4(");
+		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE);
+		if(BfloatBitsToInt||BUintBitsToInt||BintToUint)
+			bcatcstr(glsl, ")");
 		bcatcstr(glsl, ")");
 		//Limit src swizzles based on dest swizzle
 		//e.g. given hlsl asm: add r0.xy, v0.xyxx, l(0.100000, 0.000000, 0.000000, 0.000000)
@@ -1339,18 +1447,18 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
         case OPCODE_AND:
         case OPCODE_OR:
         case OPCODE_XOR:
-            {
-                eNewType = SVT_INT;
-                break;
-            }
+		case OPCODE_ISHL:
+		case OPCODE_ISHR:
+			{
+				eNewType = SVT_INT;
+				break;
+			}
 		case OPCODE_IADD:
 		case OPCODE_IMAD:
 		case OPCODE_IMAX:
 		case OPCODE_IMIN:
 		case OPCODE_IMUL:
 		case OPCODE_INEG:
-		case OPCODE_ISHL:
-		case OPCODE_ISHR:
 			{
 				uint32_t k;
 				eNewType = SVT_INT;
@@ -1364,7 +1472,6 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 						break;
 					}
 				}
-				
 				break;
 			}
 		case OPCODE_IMM_ATOMIC_AND:
@@ -1583,6 +1690,19 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 							psOperand->aeDataType[c] = eNewType;
 						}
 					}
+				}
+			}
+		}
+
+		//Set immediates
+		if(IsIntegerOpcode(psInst->eOpcode))
+		{
+			for(; k < (int)psInst->ui32NumOperands; ++k)
+			{
+				Operand* psOperand = &psInst->asOperands[k];
+				if(psOperand->eType == OPERAND_TYPE_IMMEDIATE32)
+				{
+					psOperand->iIntegerImmediate = 1;
 				}
 			}
 		}
@@ -1841,7 +1961,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//OR\n");
 #endif
-			CallBinaryOp(psContext, "|", psInst, 0, 1, 2, TO_FLAG_INTEGER);
+			CallBitwiseOp(psContext, "|", psInst, 0, 1, 2, TO_FLAG_INTEGER);
             break;
         }
         case OPCODE_AND:
@@ -1850,7 +1970,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//AND\n");
 #endif
-			CallBinaryOp(psContext, "&", psInst, 0, 1, 2, TO_FLAG_INTEGER);
+			CallBitwiseOp(psContext, "&", psInst, 0, 1, 2, TO_FLAG_INTEGER);
             break;
         }
         case OPCODE_GE:
@@ -3117,7 +3237,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//USHR\n");
 #endif
-			CallBinaryOp(psContext, ">>", psInst, 0, 1, 2, TO_FLAG_UNSIGNED_INTEGER);
+			CallBitwiseOp(psContext, ">>", psInst, 0, 1, 2, TO_FLAG_UNSIGNED_INTEGER);
 			break;
 		}
 		case OPCODE_ISHL:
@@ -3134,7 +3254,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
                 ui32Flags = TO_FLAG_UNSIGNED_INTEGER;
             }
 
-			CallBinaryOp(psContext, "<<", psInst, 0, 1, 2, ui32Flags);
+			CallBitwiseOp(psContext, "<<", psInst, 0, 1, 2, 0);
 			break;
 		}
 		case OPCODE_ISHR:
@@ -3150,7 +3270,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
                 ui32Flags = TO_FLAG_UNSIGNED_INTEGER;
             }
 
-			CallBinaryOp(psContext, ">>", psInst, 0, 1, 2, ui32Flags);
+			CallBitwiseOp(psContext, ">>", psInst, 0, 1, 2, ui32Flags);
 			break;
 		}
 		case OPCODE_LD:
@@ -3835,6 +3955,7 @@ static int IsIntegerOpcode(OPCODE_TYPE eOpcode)
         case OPCODE_ISHL:
         case OPCODE_ISHR:
         case OPCODE_ITOF:
+		case OPCODE_USHR:
         {
             return 1;
         }
