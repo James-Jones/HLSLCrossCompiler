@@ -1162,7 +1162,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 		}
         case OPERAND_TYPE_INDEXABLE_TEMP:
         {
-            bformata(glsl, "TempArray%d", psOperand->ui32RegisterNumber);
+            bformata(glsl, "TempArray%d", psOperand->aui32ArraySizes[0]);
             bformata(glsl, "[%d", psOperand->aui32ArraySizes[1]);
             
             if(psOperand->psSubOperand[1])
