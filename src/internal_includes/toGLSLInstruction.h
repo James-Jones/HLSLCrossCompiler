@@ -9,4 +9,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 //is flaged as having an integer encoding.
 void MarkIntegerImmediates(HLSLCrossCompilerContext* psContext);
 
+void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, const int32_t i32InstCount);
+
 #endif
