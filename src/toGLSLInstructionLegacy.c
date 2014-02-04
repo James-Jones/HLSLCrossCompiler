@@ -1646,6 +1646,15 @@ void TranslateInstructionLegacy(HLSLCrossCompilerContext* psContext, Instruction
 			CallHelper3(psContext, "mix", psInst, 0, 2, 3, 1);
 			break;
 		}
+		case OPCODE_FRC:
+		{
+#ifdef _DEBUG
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//FRC\n");
+#endif
+			CallHelper1(psContext, "fract", psInst, 0, 1);
+			break;
+		}
 		case OPCODE_DP2ADD:
 		{
 #ifdef _DEBUG
