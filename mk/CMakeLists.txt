@@ -59,6 +59,7 @@ ADD_LIBRARY( libHLSLcc
 ../include/hlslcc.h
 ../src/internal_includes/toGLSLDeclaration.h
 ../src/internal_includes/toGLSLInstruction.h
+../src/internal_includes/toGLSLInstructionLegacy.h
 ../src/internal_includes/toGLSLOperand.h
 ../src/internal_includes/tokens.h
 ../src/internal_includes/tokensDX9.h
@@ -69,6 +70,7 @@ ${CBSTRING_HFILES}
 ../src/reflect.c
 ../src/toGLSL.c
 ../src/toGLSLInstruction.c
+../src/toGLSLInstructionLegacy.c
 ../src/toGLSLOperand.c
 ../src/toGLSLDeclaration.c
 ${CBSTRING_CFILES}

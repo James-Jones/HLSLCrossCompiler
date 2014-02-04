@@ -111,6 +111,7 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
     }
 }
 
+static
 void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0, int src1, uint32_t dataType)
 {
@@ -167,6 +168,7 @@ void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruc
 	}
 }
 
+static
 void CallBitwiseOp(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0, int src1, uint32_t dataType)
 {
@@ -260,6 +262,7 @@ void CallBitwiseOp(HLSLCrossCompilerContext* psContext, const char* name, Instru
 	}
 }
 
+static
 void CallTernaryOp(HLSLCrossCompilerContext* psContext, const char* op1, const char* op2, Instruction* psInst, 
  int dest, int src0, int src1, int src2, uint32_t dataType)
 {
@@ -314,6 +317,7 @@ void CallTernaryOp(HLSLCrossCompilerContext* psContext, const char* op1, const c
 	}
 }
 
+static
 void CallHelper3(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0, int src1, int src2)
 {
@@ -336,6 +340,7 @@ void CallHelper3(HLSLCrossCompilerContext* psContext, const char* name, Instruct
     bcatcstr(glsl, ";\n");
 }
 
+static
 void CallHelper2(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0, int src1)
 {
@@ -356,6 +361,7 @@ void CallHelper2(HLSLCrossCompilerContext* psContext, const char* name, Instruct
     bcatcstr(glsl, ";\n");
 }
 
+static
 void CallHelper2Int(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0, int src1)
 {
@@ -375,6 +381,8 @@ void CallHelper2Int(HLSLCrossCompilerContext* psContext, const char* name, Instr
     TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
     bcatcstr(glsl, ";\n");
 }
+
+static
 void CallHelper2UInt(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0, int src1)
 {
@@ -395,6 +403,7 @@ void CallHelper2UInt(HLSLCrossCompilerContext* psContext, const char* name, Inst
     bcatcstr(glsl, ";\n");
 }
 
+static
 void CallHelper1(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
  int dest, int src0)
 {
