@@ -189,13 +189,23 @@ void CallBitwiseOp(HLSLCrossCompilerContext* psContext, const char* name, Instru
 	const int AintToUint = eSrcAType == SVT_INT && eDestType == SVT_UINT;
 	const int BintToUint = eSrcBType == SVT_INT && eDestType == SVT_UINT;
 
-    AddIndentation(psContext);
+	const int DintBitsToFloat = eDestType == SVT_FLOAT;
 
+	if(psInst->id ==92)
+	{
+		psInst->asOperands[dest];
+	}
+
+    AddIndentation(psContext);
+	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_DESTINATION);
+	bcatcstr(glsl, " = ");
+
+	if(DintBitsToFloat)
+	{
+		bcatcstr(glsl, "intBitsToFloat(");
+	}
 	if(src1SwizCount == src0SwizCount == dstSwizCount)
 	{
-		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_DESTINATION|dataType);
-		bcatcstr(glsl, " = ");
-
 		if(AfloatBitsToInt)
 			bcatcstr(glsl, "floatBitsToInt(");
 		else if(AUintBitsToInt)
@@ -218,15 +228,17 @@ void CallBitwiseOp(HLSLCrossCompilerContext* psContext, const char* name, Instru
 
 		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE);
 		if(BfloatBitsToInt||BUintBitsToInt||BintToUint)
+			bcatcstr(glsl, ")");
+
+		if(DintBitsToFloat)
 			bcatcstr(glsl, ")");
 		bcatcstr(glsl, ";\n");
 	}
 	else
 	{
         //Upconvert the inputs to uvec4 then apply the dest swizzle.
-		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_DESTINATION|dataType);
 
-		bcatcstr(glsl, " = (");
+		bcatcstr(glsl, "(");
 
 		if(AfloatBitsToInt)
 			bcatcstr(glsl, "floatBitsToInt(");
@@ -249,6 +261,7 @@ void CallBitwiseOp(HLSLCrossCompilerContext* psContext, const char* name, Instru
 		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE);
 		if(BfloatBitsToInt||BUintBitsToInt||BintToUint)
 			bcatcstr(glsl, ")");
+
 		bcatcstr(glsl, ")");
 		//Limit src swizzles based on dest swizzle
 		//e.g. given hlsl asm: add r0.xy, v0.xyxx, l(0.100000, 0.000000, 0.000000, 0.000000)
@@ -257,6 +270,8 @@ void CallBitwiseOp(HLSLCrossCompilerContext* psContext, const char* name, Instru
 		//becomes
 		//Temp0.xy = vec4(Input0.xyxx + vec4(0.100000, 0.000000, 0.000000, 0.000000)).xy;
 		
+		if(DintBitsToFloat)
+			bcatcstr(glsl, ")");
         TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
 		bcatcstr(glsl, ";\n");
 	}
@@ -1459,7 +1474,31 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		case OPCODE_ISHL:
 		case OPCODE_ISHR:
 			{
+				uint32_t k;
 				eNewType = SVT_INT;
+
+				//If the rhs containts float then the result is float
+				//float = int & float where the int is usally the result of a comparision
+				//and thus either returns the float or returns 0.
+				for(k=psInst->ui32FirstSrc; k < psInst->ui32NumOperands; ++k)
+				{
+					if(GetOperandDataType(psContext, &psInst->asOperands[k]) == SVT_FLOAT)
+					{
+						eNewType = SVT_FLOAT;
+						break;
+					}
+				}
+
+				//If still int, check for UINT
+				/*if(eNewType == SVT_INT)
+				for(k=psInst->ui32FirstSrc; k < psInst->ui32NumOperands; ++k)
+				{
+					if(GetOperandDataType(psContext, &psInst->asOperands[k]) == SVT_UINT)
+					{
+						eNewType = SVT_UINT;
+						break;
+					}
+				}*/
 				break;
 			}
 		case OPCODE_IADD:
