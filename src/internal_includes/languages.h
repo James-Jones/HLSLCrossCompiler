@@ -3,6 +3,40 @@
 
 #include "hlslcc.h"
 
+/*
+Supported target languages for pre-SM4:
+  GLSL ES 100
+  GLSL 120
+  GLSL 130
+  GLSL 140
+  GLSL 150
+
+Supported target languages for SM4+:
+  GLSL ES 300
+  GLSL 330
+  GLSL 400
+  GLSL 410
+  GLSL 420
+  GLSL 430
+  GLSL 440
+*/
+static int ValidateLanguageChoice(const GLLang eLang,
+							int majorVer,
+							int minorVer)
+{
+	if(eLang == LANG_ES_300 ||
+		eLang >= LANG_330)
+	{
+		return 1;
+	}
+	else if(majorVer > 3)
+	{
+		return 0;
+	}
+
+	return 1;
+}
+
 static int InOutSupported(const GLLang eLang)
 {
 	if(eLang == LANG_ES_100 || eLang == LANG_120)

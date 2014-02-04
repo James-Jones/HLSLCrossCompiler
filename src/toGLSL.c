@@ -126,13 +126,6 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 		}
     }
 
-	if(psContext->psShader->ui32MajorVersion > 3)
-	{
-		//Needed to handle bitwise-on-float-bits. Bitwise opcodes not available
-		//prior to sm4.
-		bcatcstr(glsl, "#extension GL_ARB_shader_bit_encoding : enable\n");
-	}
-
 	if(!HaveCompute(psContext->psShader->eTargetLanguage))
 	{
 		if(psContext->psShader->eShaderType == COMPUTE_SHADER)
@@ -384,15 +377,9 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
         *planguage = language;
     }
 
-	//Full unsigned int support required.
-	if(HaveUVec(language) == 0)
-	{
-		if(language == LANG_ES_100)
-			language = LANG_ES_300;
-		else if(language == LANG_120)
-			language = LANG_130;
-		ASSERT(HaveUVec(language) == 1);
-	}
+	ASSERT(ValidateLanguageChoice(language,
+		psShader->ui32MajorVersion,
+		psShader->ui32MinorVersion));
 
     glsl = bfromcstralloc (1024, GetVersionString(language));
 

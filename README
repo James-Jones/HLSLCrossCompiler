@@ -15,13 +15,15 @@ Work is underway to support the DX9 bytecode formats:
   ps_2_0 ps_2_a ps_2_b ps_3_0
   vs_1_1 vs_2_0 vs_2_a vs_3_0
   
-Supported target languages:
+Supported target languages for pre-SM4:
   GLSL ES 100
-  GLSL ES 300
   GLSL 120
   GLSL 130
   GLSL 140
   GLSL 150
+
+Supported target languages for SM4+:
+  GLSL ES 300
   GLSL 330
   GLSL 400
   GLSL 410
