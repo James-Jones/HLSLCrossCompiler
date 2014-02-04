@@ -191,11 +191,6 @@ void CallBitwiseOp(HLSLCrossCompilerContext* psContext, const char* name, Instru
 
 	const int DintBitsToFloat = eDestType == SVT_FLOAT;
 
-	if(psInst->id ==92)
-	{
-		psInst->asOperands[dest];
-	}
-
     AddIndentation(psContext);
 	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_DESTINATION);
 	bcatcstr(glsl, " = ");
