@@ -6,7 +6,7 @@
 #include "internal_includes/debug.h"
 
 extern void AddIndentation(HLSLCrossCompilerContext* psContext);
-static int IsIntegerOpcode(OPCODE_TYPE eOpcode);
+static int IsIntegerImmediateOpcode(OPCODE_TYPE eOpcode);
 
 typedef enum
 {
@@ -1375,7 +1375,7 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 			Operand* psOperand = &psInst->asOperands[k];
 
 			if(psOperand->eType == OPERAND_TYPE_TEMP)
-            {
+			{
 				const uint32_t ui32RegIndex = psOperand->ui32RegisterNumber*4;
 
 				if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
@@ -1463,8 +1463,16 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 					}
 				}
 			}
-		}
 
+			//Set immediates
+			if(IsIntegerImmediateOpcode(psInst->eOpcode))
+			{
+				if(psOperand->eType == OPERAND_TYPE_IMMEDIATE32)
+				{
+					psOperand->iIntegerImmediate = 1;
+				}
+			}
+		}
 
 		switch(psInst->eOpcode)
 		{
@@ -1741,20 +1749,6 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 				}
 			}
 		}
-
-		//Set immediates
-		if(IsIntegerOpcode(psInst->eOpcode))
-		{
-			for(; k < (int)psInst->ui32NumOperands; ++k)
-			{
-				Operand* psOperand = &psInst->asOperands[k];
-				if(psOperand->eType == OPERAND_TYPE_IMMEDIATE32)
-				{
-					psOperand->iIntegerImmediate = 1;
-				}
-			}
-		}
-
 	}
 }
 
@@ -3985,7 +3979,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
     }
 }
 
-static int IsIntegerOpcode(OPCODE_TYPE eOpcode)
+static int IsIntegerImmediateOpcode(OPCODE_TYPE eOpcode)
 {
     switch(eOpcode)
     {
@@ -4004,6 +3998,9 @@ static int IsIntegerOpcode(OPCODE_TYPE eOpcode)
         case OPCODE_ISHR:
         case OPCODE_ITOF:
 		case OPCODE_USHR:
+		case OPCODE_AND:
+		case OPCODE_OR:
+		case OPCODE_XOR:
         {
             return 1;
         }
@@ -4054,7 +4051,7 @@ void MarkIntegerImmediates(HLSLCrossCompilerContext* psContext)
                 }
                 if(InstructionUsesRegister(&psInst[k], &psInst[i].asOperands[0]))
                 {
-                    if(IsIntegerOpcode(psInst[k].eOpcode))
+                    if(IsIntegerImmediateOpcode(psInst[k].eOpcode))
                     {
                         psInst[i].asOperands[1].iIntegerImmediate = 1;
                     }
