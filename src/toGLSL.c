@@ -5,6 +5,7 @@
 #include "stdio.h"
 #include "bstrlib.h"
 #include "internal_includes/toGLSLInstruction.h"
+#include "internal_includes/toGLSLInstructionLegacy.h"
 #include "internal_includes/toGLSLOperand.h"
 #include "internal_includes/toGLSLDeclaration.h"
 #include "internal_includes/languages.h"
@@ -125,7 +126,12 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 		}
     }
 
-	bcatcstr(glsl, "#extension GL_ARB_shader_bit_encoding : enable\n");
+	if(psContext->psShader->ui32MajorVersion > 3)
+	{
+		//Needed to handle bitwise-on-float-bits. Bitwise opcodes not available
+		//prior to sm4.
+		bcatcstr(glsl, "#extension GL_ARB_shader_bit_encoding : enable\n");
+	}
 
 	if(!HaveCompute(psContext->psShader->eTargetLanguage))
 	{
@@ -436,8 +442,6 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 
         if(psShader->ui32HSControlPointInstrCount)
         {
-			SetDataTypes(psContext, psShader->psHSControlPointPhaseInstr, psShader->ui32HSControlPointInstrCount);
-
             bcatcstr(glsl, "void control_point_phase()\n{\n");
             psContext->indent++;
 
@@ -465,8 +469,6 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 
             bformata(glsl, "void fork_phase%d()\n{\n", forkIndex);
             psContext->indent++;
-
-			SetDataTypes(psContext, psShader->apsHSForkPhaseInstr[forkIndex], psShader->aui32HSForkInstrCount[forkIndex]-1);
 
                 if(haveInstancedForkPhase)
                 {
@@ -521,8 +523,6 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 
         if(psShader->ui32HSJoinInstrCount)
         {
-			SetDataTypes(psContext, psShader->psHSJoinPhaseInstr, psShader->ui32HSJoinInstrCount);
-
             bcatcstr(glsl, "void join_phase()\n{\n");
             psContext->indent++;
 
@@ -653,12 +653,22 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 
     MarkIntegerImmediates(psContext);
 
-	SetDataTypes(psContext, psShader->psInst, ui32InstCount);
+	if(psShader->ui32MajorVersion < 4)
+	{
+		SetDataTypesLegacy(psContext, psShader->psInst, ui32InstCount);
 
-    for(i=0; i < ui32InstCount; ++i)
-    {
-        TranslateInstruction(psContext, psShader->psInst+i);
-    }
+		for(i=0; i < ui32InstCount; ++i)
+		{
+			TranslateInstructionLegacy(psContext, psShader->psInst+i);
+		}
+	}
+	else
+	{
+		for(i=0; i < ui32InstCount; ++i)
+		{
+			TranslateInstruction(psContext, psShader->psInst+i);
+		}
+	}
 
     psContext->indent--;
 
