@@ -341,17 +341,24 @@ void CallTernaryOp(HLSLCrossCompilerContext* psContext, const char* op1, const c
 	uint32_t src0SwizCount = GetNumSwizzleElements(&psInst->asOperands[src0]);
 	uint32_t dstSwizCount = GetNumSwizzleElements(&psInst->asOperands[dest]);
 
+	uint32_t ui32Flags = dataType;
+
+	if((dataType & (TO_FLAG_UNSIGNED_INTEGER|TO_FLAG_INTEGER)) == 0)
+	{
+		ui32Flags |= TO_AUTO_BITCAST_TO_FLOAT;
+	}
+
     AddIndentation(psContext);
 
 	if(src1SwizCount == src0SwizCount == src2SwizCount == dstSwizCount)
 	{
 		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_DESTINATION|dataType);
 		bcatcstr(glsl, " = ");
-		TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE|dataType);
+		TranslateOperand(psContext, &psInst->asOperands[src0], ui32Flags);
 		bformata(glsl, " %s ", op1);
-		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE|dataType);
+		TranslateOperand(psContext, &psInst->asOperands[src1], ui32Flags);
 		bformata(glsl, " %s ", op2);
-		TranslateOperand(psContext, &psInst->asOperands[src2], TO_FLAG_NONE|dataType);
+		TranslateOperand(psContext, &psInst->asOperands[src2], ui32Flags);
 		bcatcstr(glsl, ";\n");
 	}
 	else
@@ -359,11 +366,11 @@ void CallTernaryOp(HLSLCrossCompilerContext* psContext, const char* op1, const c
 		TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_DESTINATION|dataType);
 
 		bformata(glsl, " = %s4(", GetConstructorForTypeFlag(dataType, 4));
-		TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE|dataType);
+		TranslateOperand(psContext, &psInst->asOperands[src0], ui32Flags);
 		bformata(glsl, " %s ", op1);
-		TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE|dataType);
+		TranslateOperand(psContext, &psInst->asOperands[src1], ui32Flags);
 		bformata(glsl, " %s ", op2);
-		TranslateOperand(psContext, &psInst->asOperands[src2], TO_FLAG_NONE|dataType);
+		TranslateOperand(psContext, &psInst->asOperands[src2], ui32Flags);
 		bcatcstr(glsl, ")");
 		//Limit src swizzles based on dest swizzle
 		//e.g. given hlsl asm: add r0.xy, v0.xyxx, l(0.100000, 0.000000, 0.000000, 0.000000)
@@ -391,9 +398,9 @@ void CallHelper3(HLSLCrossCompilerContext* psContext, const char* name, Instruct
     bcatcstr(glsl, "(");
     TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_DESTINATION);
     bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE);
+    TranslateOperand(psContext, &psInst->asOperands[src1], TO_AUTO_BITCAST_TO_FLOAT);
     bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[src2], TO_FLAG_NONE);
+    TranslateOperand(psContext, &psInst->asOperands[src2], TO_AUTO_BITCAST_TO_FLOAT);
     bcatcstr(glsl, "))");
     TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
     bcatcstr(glsl, ";\n");
@@ -412,9 +419,9 @@ void CallHelper2(HLSLCrossCompilerContext* psContext, const char* name, Instruct
 
     bcatcstr(glsl, name);
     bcatcstr(glsl, "(");
-    TranslateOperand(psContext, &psInst->asOperands[src0], TO_FLAG_NONE);
+    TranslateOperand(psContext, &psInst->asOperands[src0], TO_AUTO_BITCAST_TO_FLOAT);
     bcatcstr(glsl, ", ");
-    TranslateOperand(psContext, &psInst->asOperands[src1], TO_FLAG_NONE);
+    TranslateOperand(psContext, &psInst->asOperands[src1], TO_AUTO_BITCAST_TO_FLOAT);
     bcatcstr(glsl, "))");
     TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
     bcatcstr(glsl, ";\n");
@@ -661,10 +668,10 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
                 }
 			    TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 			    bcatcstr(glsl, ",");
-			    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+			    TranslateOperand(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT);
 			    bcatcstr(glsl, ",");
 			    //.z = reference.
-			    TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
+			    TranslateOperand(psContext, &psInst->asOperands[4], TO_AUTO_BITCAST_TO_FLOAT);
 
                 if(ui32Flags & TEXSMP_FLAG_FIRSTLOD)
                 {
@@ -711,10 +718,10 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         }
 		TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 		bformata(glsl, ", %s(", coordType);
-		TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+		TranslateOperand(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT);
 		bcatcstr(glsl, ",");
 		//.z = reference.
-		TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
+		TranslateOperand(psContext, &psInst->asOperands[4], TO_AUTO_BITCAST_TO_FLOAT);
 		bcatcstr(glsl, ")");
 
         if(ui32Flags & TEXSMP_FLAG_FIRSTLOD)
@@ -741,14 +748,14 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         {
             bformata(glsl, " = (%s%s(", funcName, offset);
         }
-        TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);//resource
+        TranslateOperand(psContext, &psInst->asOperands[2], TO_AUTO_BITCAST_TO_FLOAT);//resource
         bcatcstr(glsl, ", ");
-        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);//texcoord
+        TranslateOperand(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT);//texcoord
 
         if(ui32Flags & (TEXSMP_FLAG_LOD))
         {
             bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
+            TranslateOperand(psContext, &psInst->asOperands[4], TO_AUTO_BITCAST_TO_FLOAT);
         }
         else
         if(ui32Flags & TEXSMP_FLAG_FIRSTLOD)
@@ -759,11 +766,11 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         if(ui32Flags & TEXSMP_FLAGS_GRAD)
         {
             bcatcstr(glsl, ", vec4(");
-            TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);//dx
+            TranslateOperand(psContext, &psInst->asOperands[4], TO_AUTO_BITCAST_TO_FLOAT);//dx
             bcatcstr(glsl, ")");
             bcatcstr(glsl, gradSwizzle);
             bcatcstr(glsl, ", vec4(");
-            TranslateOperand(psContext, &psInst->asOperands[5], TO_FLAG_NONE);//dy
+            TranslateOperand(psContext, &psInst->asOperands[5], TO_AUTO_BITCAST_TO_FLOAT);//dy
             bcatcstr(glsl, ")");
             bcatcstr(glsl, gradSwizzle);
         }
@@ -795,7 +802,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         if(ui32Flags & (TEXSMP_FLAG_BIAS))
         {
             bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
+            TranslateOperand(psContext, &psInst->asOperands[4], TO_AUTO_BITCAST_TO_FLOAT);
         }
 
         bcatcstr(glsl, ")");
@@ -2157,9 +2164,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
             bcatcstr(glsl, " = vec4(dot((");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT);
             bcatcstr(glsl, ").xy, (");
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+            TranslateOperand(psContext, &psInst->asOperands[2], TO_AUTO_BITCAST_TO_FLOAT);
             bcatcstr(glsl, ").xy))");
             TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ";\n");
@@ -2174,9 +2181,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
             bcatcstr(glsl, " = vec4(dot((");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT);
             bcatcstr(glsl, ").xyz, (");
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+            TranslateOperand(psContext, &psInst->asOperands[2], TO_AUTO_BITCAST_TO_FLOAT);
             bcatcstr(glsl, ").xyz))");
             TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ";\n");
