@@ -248,16 +248,10 @@ void CallBitwiseOp(HLSLCrossCompilerContext* psContext, const char* name, Instru
 	const int AintToUint = eSrcAType == SVT_INT && eDestType == SVT_UINT;
 	const int BintToUint = eSrcBType == SVT_INT && eDestType == SVT_UINT;
 
-	const int DintBitsToFloat = eDestType == SVT_FLOAT;
-
     AddIndentation(psContext);
 	TranslateOperand(psContext, &psInst->asOperands[dest], TO_FLAG_DESTINATION);
 	bcatcstr(glsl, " = ");
 
-	if(DintBitsToFloat)
-	{
-		bcatcstr(glsl, "intBitsToFloat(");
-	}
 	if(src1SwizCount == src0SwizCount == dstSwizCount)
 	{
 		if(AfloatBitsToInt)
@@ -284,8 +278,6 @@ void CallBitwiseOp(HLSLCrossCompilerContext* psContext, const char* name, Instru
 		if(BfloatBitsToInt||BUintBitsToInt||BintToUint)
 			bcatcstr(glsl, ")");
 
-		if(DintBitsToFloat)
-			bcatcstr(glsl, ")");
 		bcatcstr(glsl, ";\n");
 	}
 	else
@@ -324,8 +316,6 @@ void CallBitwiseOp(HLSLCrossCompilerContext* psContext, const char* name, Instru
 		//becomes
 		//Temp0.xy = vec4(Input0.xyxx + vec4(0.100000, 0.000000, 0.000000, 0.000000)).xy;
 		
-		if(DintBitsToFloat)
-			bcatcstr(glsl, ")");
         TranslateOperandSwizzle(psContext, &psInst->asOperands[dest]);
 		bcatcstr(glsl, ";\n");
 	}
@@ -1511,31 +1501,7 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		case OPCODE_ISHL:
 		case OPCODE_ISHR:
 			{
-				uint32_t k;
 				eNewType = SVT_INT;
-
-				//If the rhs containts float then the result is float
-				//float = int & float where the int is usally the result of a comparision
-				//and thus either returns the float or returns 0.
-				for(k=psInst->ui32FirstSrc; k < psInst->ui32NumOperands; ++k)
-				{
-					if(GetOperandDataType(psContext, &psInst->asOperands[k]) == SVT_FLOAT)
-					{
-						eNewType = SVT_FLOAT;
-						break;
-					}
-				}
-
-				//If still int, check for UINT
-				/*if(eNewType == SVT_INT)
-				for(k=psInst->ui32FirstSrc; k < psInst->ui32NumOperands; ++k)
-				{
-					if(GetOperandDataType(psContext, &psInst->asOperands[k]) == SVT_UINT)
-					{
-						eNewType = SVT_UINT;
-						break;
-					}
-				}*/
 				break;
 			}
 		case OPCODE_IADD:
