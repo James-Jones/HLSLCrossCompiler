@@ -1322,6 +1322,7 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
         case OPCODE_AND:
         case OPCODE_OR:
         case OPCODE_XOR:
+        case OPCODE_NOT:
             {
                 eNewType = SVT_INT;
                 break;
@@ -3777,7 +3778,16 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, ");\n");
             break;
         }
+        case OPCODE_XOR:
+        {
+            #ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//XOR\n");
+            #endif
 
+            CallBinaryOp(psContext, "^", psInst, 0, 1, 2, TO_FLAG_INTEGER);
+            break;
+        }
         case OPCODE_SWAPC:
         case OPCODE_DMAX:
         case OPCODE_DMIN:

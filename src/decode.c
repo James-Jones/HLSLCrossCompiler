@@ -933,6 +933,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_DP4:
         case OPCODE_NE:
         case OPCODE_OR:
+        case OPCODE_XOR:
         case OPCODE_LT:
         case OPCODE_IEQ:
         case OPCODE_IADD:
