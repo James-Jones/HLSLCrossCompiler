@@ -3780,6 +3780,21 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             break;
 		}
 
+        case OPCODE_NOT:
+        {
+            #ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//INOT\n");
+            #endif
+            AddIndentation(psContext);
+            TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
+
+            bcatcstr(glsl, " = ~(");
+            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
+            bcatcstr(glsl, ");\n");
+            break;
+        }
+
         case OPCODE_SWAPC:
         case OPCODE_DMAX:
         case OPCODE_DMIN:
