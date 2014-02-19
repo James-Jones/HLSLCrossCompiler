@@ -650,6 +650,7 @@ static ShaderVarType* LookupStructuredVar(HLSLCrossCompilerContext* psContext,
 	int byteOffset = ((int*)psByteOffset->afImmediates)[0];
 	int vec4Offset = 0;
 	int32_t index = -1;
+	int32_t rebase = -1;
 	int found;
 	//TODO: multi-component stores and vector writes need testing.
 
@@ -673,7 +674,7 @@ static ShaderVarType* LookupStructuredVar(HLSLCrossCompilerContext* psContext,
 
 	GetConstantBufferFromBindingPoint(RGROUP_UAV, psResource->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
 	
-	found = GetShaderVarFromOffset(vec4Offset, aui32Swizzle, psCBuf, &psVarType, &index);
+	found = GetShaderVarFromOffset(vec4Offset, aui32Swizzle, psCBuf, &psVarType, &index, &rebase);
 	ASSERT(found);
 
 	return psVarType;
@@ -1432,7 +1433,7 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 			{
 				eNewType = GetOperandDataType(psContext, &psInst->asOperands[2]);
 				//Check assumption that both the values which MOVC might pick have the same basic data type.
-				ASSERT(GetOperandDataType(psContext, &psInst->asOperands[2]) == GetOperandDataType(psContext, &psInst->asOperands[3]));
+				//ASSERT(GetOperandDataType(psContext, &psInst->asOperands[2]) == GetOperandDataType(psContext, &psInst->asOperands[3]));
 			}
 			break;
 		}

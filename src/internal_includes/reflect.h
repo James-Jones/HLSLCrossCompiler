@@ -16,7 +16,12 @@ int GetOutputSignatureFromRegister(const uint32_t ui32Register, const uint32_t u
 
 int GetOutputSignatureFromSystemValue(SPECIAL_NAME eSystemValueType, uint32_t ui32SemanticIndex, ShaderInfo* psShaderInfo, InOutSignature** ppsOut);
 
-int GetShaderVarFromOffset(const uint32_t ui32Vec4Offset, const uint32_t* pui32Swizzle, ConstantBuffer* psCBuf, ShaderVarType** ppsShaderVar, int32_t* pi32Index);
+int GetShaderVarFromOffset(const uint32_t ui32Vec4Offset,
+						   const uint32_t* pui32Swizzle,
+						   ConstantBuffer* psCBuf,
+						   ShaderVarType** ppsShaderVar,
+						   int32_t* pi32Index,
+						   int32_t* pi32Rebase);
 
 typedef struct
 {

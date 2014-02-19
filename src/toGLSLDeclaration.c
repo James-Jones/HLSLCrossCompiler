@@ -100,22 +100,22 @@ void DeclareConstBufferShaderVariable(bstring glsl, const char* Name, const stru
         {
             case SVT_FLOAT:
             {
-                bformata(glsl, "\tvec4 %s", Name);
+				bformata(glsl, "\tvec%d %s", psType->Columns, Name);
                 break;
             }
             case SVT_UINT:
             {
-                bformata(glsl, "\tuvec4 %s", Name);
+                bformata(glsl, "\tuvec%d %s", psType->Columns, Name);
                 break;
             }
             case SVT_INT:
             {
-                bformata(glsl, "\tivec4 %s", Name);
+                bformata(glsl, "\tivec%d %s", psType->Columns, Name);
                 break;
             }
             case SVT_DOUBLE:
             {
-                bformata(glsl, "\tdvec4 %s", Name);
+                bformata(glsl, "\tdvec%d %s", psType->Columns, Name);
                 break;
             }
 			default:

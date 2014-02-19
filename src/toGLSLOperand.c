@@ -968,8 +968,9 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             if((ui32TOFlag & TO_FLAG_DECLARATION_NAME) != TO_FLAG_DECLARATION_NAME)
             {
                 //Work out the variable name. Don't apply swizzle to that variable yet.
+				int32_t rebase = 0;
 
-                GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index);
+                GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index, &rebase);
 
 				bformata(glsl, "%s", psVarType->FullName);
 
@@ -1031,6 +1032,37 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 						bcatcstr(glsl, "[int(");
 						TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
 						bcatcstr(glsl, ")]");
+					}
+				}
+
+				if(psVarType->Class == SVC_VECTOR)
+				{
+					switch(rebase)
+					{
+						case 4:
+						{
+							if(psVarType->Columns == 2)
+							{
+								//.x(GLSL) is .y(HLSL). .y(GLSL) is .z(HLSL)
+								bcatcstr(glsl, ".xxyx");
+							}
+							break;
+						}
+						case 0:
+						default:
+						{
+							//No rebase, but extend to vec4.
+							if(psVarType->Columns == 2)
+							{
+								bcatcstr(glsl, ".xyxx");
+							}
+							else if(psVarType->Columns == 3)
+							{
+								bcatcstr(glsl, ".xyzx");
+							}
+							break;
+						}
+
 					}
 				}
 
@@ -1292,9 +1324,10 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
 			ConstantBuffer* psCBuf = NULL;
 			ShaderVarType* psVarType = NULL;
 			int32_t index = -1;
+			int32_t rebase = -1;
 			int foundVar;
 			GetConstantBufferFromBindingPoint(RGROUP_CBUFFER, psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
-			foundVar = GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index);
+			foundVar = GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index, &rebase);
 			if(foundVar && index == -1 && psOperand->psSubOperand[1] == NULL)
 			{
 				return psVarType->Type;
