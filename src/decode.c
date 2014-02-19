@@ -912,6 +912,10 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_RCP:
 		case OPCODE_DERIV_RTX:
 		case OPCODE_DERIV_RTY:
+		case OPCODE_DERIV_RTX_COARSE:
+		case OPCODE_DERIV_RTX_FINE:
+		case OPCODE_DERIV_RTY_COARSE:
+		case OPCODE_DERIV_RTY_FINE:
         case OPCODE_NOT:
         {
             psInst->ui32NumOperands = 2;

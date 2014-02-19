@@ -3670,6 +3670,8 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			bcatcstr(glsl, ";\n");
 			break;
 		}
+		case OPCODE_DERIV_RTX_COARSE:
+		case OPCODE_DERIV_RTX_FINE:
 		case OPCODE_DERIV_RTX:
 		{
 #ifdef _DEBUG
@@ -3679,6 +3681,8 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			CallHelper1(psContext, "dFdx", psInst, 0, 1);
 			break;
 		}
+		case OPCODE_DERIV_RTY_COARSE:
+		case OPCODE_DERIV_RTY_FINE:
 		case OPCODE_DERIV_RTY:
 		{
 #ifdef _DEBUG

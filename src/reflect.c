@@ -649,7 +649,7 @@ static int IsOffsetInType(ShaderVarType* psType,
 			//cb0[0].x = angle
 			//cb0[0].yzyy = angle2.xyxx
 
-			//So rebase the register so .y maps to .x
+			//Rebase angle2 so that .y maps to .x, .z maps to .y
 
 			pi32Rebase[0] = thisOffset % 16;
 		}
