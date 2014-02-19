@@ -574,7 +574,7 @@ static int IsOffsetInType(ShaderVarType* psType, uint32_t parentOffset, uint32_t
 		thisSize *= psType->Elements;
 	}
 
-    if(psType->Class == SVC_SCALAR)
+    //if(psType->Class == SVC_SCALAR)
     {
         //Swizzle can point to another variable. In the example below
 		//cbUIUpdates.g_uMaxFaces would be cb1[2].z. The scalars are combined

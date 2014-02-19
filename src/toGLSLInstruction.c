@@ -1904,20 +1904,12 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
             if(psInst->asOperands[0].eType != OPERAND_TYPE_NULL)
             {
-                AddIndentation(psContext);
-                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);//Dest sin
-                bcatcstr(glsl, " = sin(");
-                TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);//angle
-                bcatcstr(glsl, ");\n");
+				CallHelper1(psContext, "sin", psInst, 0, 2);
             }
 
             if(psInst->asOperands[1].eType != OPERAND_TYPE_NULL)
             {
-                AddIndentation(psContext);
-                TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);//Dest cos
-                bcatcstr(glsl, " = cos(");
-                TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);//angle
-                bcatcstr(glsl, ");\n");
+				CallHelper1(psContext, "cos", psInst, 1, 2);
             }
             break;
         }
