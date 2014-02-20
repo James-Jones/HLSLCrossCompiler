@@ -1046,6 +1046,20 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 								//.x(GLSL) is .y(HLSL). .y(GLSL) is .z(HLSL)
 								bcatcstr(glsl, ".xxyx");
 							}
+							else if(psVarType->Columns == 3)
+							{
+								//.x(GLSL) is .y(HLSL). .y(GLSL) is .z(HLSL) .z(GLSL) is .w(HLSL)
+								bcatcstr(glsl, ".xxyz");
+							}
+							break;
+						}
+						case 8:
+						{
+							if(psVarType->Columns == 2)
+							{
+								//.x(GLSL) is .z(HLSL). .y(GLSL) is .w(HLSL)
+								bcatcstr(glsl, ".xxxy");
+							}
 							break;
 						}
 						case 0:
