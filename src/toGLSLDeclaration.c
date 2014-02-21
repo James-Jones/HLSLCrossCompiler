@@ -1409,6 +1409,18 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 
             break;
         }
+		case OPCODE_DCL_INPUT_PS_SIV:
+		{
+			switch(psDecl->asOperands[0].eSpecialName)
+			{
+				case NAME_POSITION:
+				{
+					AddBuiltinInput(psContext, psDecl, "gl_FragCoord.xy");
+					break;
+				}
+			}
+			break;
+		}
 		case OPCODE_DCL_INPUT_SIV:
 		{
             if(psShader->eShaderType == PIXEL_SHADER && psContext->psDependencies)

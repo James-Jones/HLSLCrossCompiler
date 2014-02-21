@@ -476,11 +476,14 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
             DecodeNameToken(pui32Token + 3, &psDecl->asOperands[0]);
             break;
         }
-        case OPCODE_DCL_INPUT_PS_SIV:
-        {
-            psDecl->value.eInterpolation = DecodeInterpolationMode(*pui32Token);
-            break;
-        }
+		case OPCODE_DCL_INPUT_PS_SIV:
+		{
+			psDecl->ui32NumOperands = 1;
+			psDecl->value.eInterpolation = DecodeInterpolationMode(*pui32Token);
+			DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
+			DecodeNameToken(pui32Token + 3, &psDecl->asOperands[0]);
+			break;
+		}
         case OPCODE_DCL_OUTPUT:
         {
             psDecl->ui32NumOperands = 1;
