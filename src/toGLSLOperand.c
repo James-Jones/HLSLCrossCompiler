@@ -695,7 +695,6 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 				}
             }
             else
-            if(psOperand->iNumComponents == 4)
             {
                 if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
                 {
@@ -726,6 +725,10 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                         psOperand->afImmediates[1],
                         psOperand->afImmediates[2],
                         psOperand->afImmediates[3]);
+                }
+                if(psOperand->iNumComponents != 4)
+                {
+                    AddSwizzleUsingElementCount(psContext, psOperand->iNumComponents);
                 }
             }
             break;

@@ -338,6 +338,10 @@ static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand*
             psTexCoordOperand->aui32Swizzle[1] = 0xFFFFFFFF;
             psTexCoordOperand->aui32Swizzle[2] = 0xFFFFFFFF;
             psTexCoordOperand->aui32Swizzle[3] = 0xFFFFFFFF;
+            if(psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE32)
+            {
+                psTexCoordOperand->iNumComponents = 1;
+            }
             break;
         }
         case RESOURCE_DIMENSION_TEXTURE2D:
@@ -346,6 +350,10 @@ static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand*
             //Vec2 texcoord. Mask out the other components.
             psTexCoordOperand->aui32Swizzle[2] = 0xFFFFFFFF;
             psTexCoordOperand->aui32Swizzle[3] = 0xFFFFFFFF;
+            if(psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE32)
+            {
+                psTexCoordOperand->iNumComponents = 2;
+            }
             break;
         }
         case RESOURCE_DIMENSION_TEXTURECUBE:
@@ -354,6 +362,10 @@ static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand*
         {
             //Vec3 texcoord. Mask out the other component.
             psTexCoordOperand->aui32Swizzle[3] = 0xFFFFFFFF;
+            if(psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE32)
+            {
+                psTexCoordOperand->iNumComponents = 3;
+            }
             break;
         }
         case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
