@@ -1,4 +1,3 @@
-//sampler2D Texture0 : register(s0) : register(t0);
 Texture2D Texture0;
 SamplerState TextureSampler
 {
@@ -8,6 +7,5 @@ SamplerState TextureSampler
 };
 float4 main(void) : SV_Target
 {
-    //Color = tex2D( Texture0, float2(0.5f, 0.5f) ).rrrr;
     return Texture0.Sample(TextureSampler, float2(0.5f, 0.5f) ).rrrr;
 }
