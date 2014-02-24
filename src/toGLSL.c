@@ -9,6 +9,7 @@
 #include "internal_includes/toGLSLDeclaration.h"
 #include "internal_includes/languages.h"
 #include "internal_includes/debug.h"
+#include "internal_includes/controlFlowGraph.h"
 
 #ifndef GL_VERTEX_SHADER_ARB
 #define GL_VERTEX_SHADER_ARB              0x8B31
@@ -642,6 +643,13 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
     MarkIntegerImmediates(psContext);
 
 	SetDataTypes(psContext, psShader->psInst, ui32InstCount);
+
+	{
+		ControlFlowGraph graph;
+		CFGBuildGraph(&graph, psShader->psInst, ui32InstCount);
+		CFGVisualiseGraph(&graph);
+		CFGFreeGraph(&graph);
+	}
 
     for(i=0; i < ui32InstCount; ++i)
     {
