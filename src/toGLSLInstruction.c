@@ -684,7 +684,19 @@ static ShaderVarType* LookupStructuredVar(HLSLCrossCompilerContext* psContext,
 		break;
 	}
 
-	GetConstantBufferFromBindingPoint(RGROUP_UAV, psResource->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+	switch(psResource->eType)
+	{
+		case OPERAND_TYPE_RESOURCE:
+			GetConstantBufferFromBindingPoint(RGROUP_TEXTURE, psResource->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+			break;
+		case OPERAND_TYPE_UNORDERED_ACCESS_VIEW:
+		case OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY:
+			GetConstantBufferFromBindingPoint(RGROUP_UAV, psResource->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+			break;
+		default:
+			ASSERT(0);
+			break;
+	}
 	
 	found = GetShaderVarFromOffset(vec4Offset, aui32Swizzle, psCBuf, &psVarType, &index, &rebase);
 	ASSERT(found);

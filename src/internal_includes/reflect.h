@@ -5,7 +5,7 @@
 
 ResourceGroup ResourceTypeToResourceGroup(ResourceType);
 
-int GetResourceFromBindingPoint(const ResourceGroup eGroup, const uint32_t ui32BindPoint, ShaderInfo* psShaderInfo, ResourceBinding** ppsOutBinding);
+int GetResourceFromBindingPoint(const ResourceGroup eGroup, const uint32_t ui32BindPoint, const ShaderInfo* psShaderInfo, ResourceBinding** ppsOutBinding);
 
 void GetConstantBufferFromBindingPoint(const ResourceGroup eGroup, const uint32_t ui32BindPoint, const ShaderInfo* psShaderInfo, ConstantBuffer** ppsConstBuf);
 
