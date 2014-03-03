@@ -535,7 +535,20 @@ void AddBuiltinInput(HLSLCrossCompilerContext* psContext, const Declaration* psD
     psContext->indent++;
     AddIndentation(psContext);
     TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
-    bformata(psContext->earlyMain, " = %s;\n", builtinName);
+
+    bformata(psContext->earlyMain, " = %s", builtinName);
+
+	switch(psDecl->asOperands[0].eSpecialName)
+	{
+		case NAME_POSITION:
+			TranslateOperandSwizzle(psContext, &psDecl->asOperands[0]);
+			break;
+		default:
+			//Scalar built-in. Don't apply swizzle.
+			break;
+	}
+	bcatcstr(psContext->earlyMain, ";\n");
+
     psContext->indent--;
     psContext->currentGLSLString = &psContext->glsl;
 }
@@ -1415,7 +1428,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			{
 				case NAME_POSITION:
 				{
-					AddBuiltinInput(psContext, psDecl, "gl_FragCoord.xy");
+					AddBuiltinInput(psContext, psDecl, "gl_FragCoord");
 					break;
 				}
 			}
