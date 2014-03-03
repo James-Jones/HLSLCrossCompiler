@@ -575,7 +575,7 @@ void AddBuiltinInput(HLSLCrossCompilerContext* psContext, const Declaration* psD
 int OutputNeedsDeclaring(HLSLCrossCompilerContext* psContext, const Operand* psOperand, const int count)
 {
 	Shader* psShader = psContext->psShader;
-	const uint32_t declared = ((psContext->currentPhase + 1) << 16) | psShader->ui32CurrentVertexOutputStream;
+	const uint32_t declared = ((psContext->currentPhase + 1) << 3) | psShader->ui32CurrentVertexOutputStream;
 	if(psShader->aiOutputDeclared[psOperand->ui32RegisterNumber] != declared)
 	{
 		int offset;
