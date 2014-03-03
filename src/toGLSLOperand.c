@@ -741,13 +741,16 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                     psOperand->adImmediates[0]);
             }
             else
-            if(psOperand->iNumComponents == 4)
             {
                 bformata(glsl, "dvec4(%f, %f, %f, %f)",
                     psOperand->adImmediates[0],
                     psOperand->adImmediates[1],
                     psOperand->adImmediates[2],
                     psOperand->adImmediates[3]);
+                if(psOperand->iNumComponents != 4)
+                {
+                    AddSwizzleUsingElementCount(psContext, psOperand->iNumComponents);
+                }
             }
             break;
         }

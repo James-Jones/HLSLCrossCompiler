@@ -325,11 +325,16 @@ void CallHelper1(HLSLCrossCompilerContext* psContext, const char* name, Instruct
     bcatcstr(glsl, ";\n");
 }
 
-
-//Make sure the texture coordinate swizzle is appropriate for the texture type.
+//Makes sure the texture coordinate swizzle is appropriate for the texture type.
 //i.e. vecX for X-dimension texture.
-static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand* psTexCoordOperand)
+//Currently supports floating point coord only, so not used for texelFetch.
+static void TranslateTexCoord(HLSLCrossCompilerContext* psContext,
+                                      const RESOURCE_DIMENSION eResDim,
+                                      Operand* psTexCoordOperand)
 {
+    int constructor = 0;
+    bstring glsl = *psContext->currentGLSLString;
+
     switch(eResDim)
     {
         case RESOURCE_DIMENSION_TEXTURE1D:
@@ -338,7 +343,8 @@ static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand*
             psTexCoordOperand->aui32Swizzle[1] = 0xFFFFFFFF;
             psTexCoordOperand->aui32Swizzle[2] = 0xFFFFFFFF;
             psTexCoordOperand->aui32Swizzle[3] = 0xFFFFFFFF;
-            if(psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE32)
+            if(psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE32 ||
+                psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE64)
             {
                 psTexCoordOperand->iNumComponents = 1;
             }
@@ -350,9 +356,15 @@ static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand*
             //Vec2 texcoord. Mask out the other components.
             psTexCoordOperand->aui32Swizzle[2] = 0xFFFFFFFF;
             psTexCoordOperand->aui32Swizzle[3] = 0xFFFFFFFF;
-            if(psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE32)
+            if(psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE32 ||
+                psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE64)
             {
                 psTexCoordOperand->iNumComponents = 2;
+            }
+            if(psTexCoordOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+            {
+                constructor = 1;
+                bcatcstr(glsl, "vec2(");
             }
             break;
         }
@@ -362,14 +374,25 @@ static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand*
         {
             //Vec3 texcoord. Mask out the other component.
             psTexCoordOperand->aui32Swizzle[3] = 0xFFFFFFFF;
-            if(psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE32)
+            if(psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE32 ||
+                psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE64)
             {
                 psTexCoordOperand->iNumComponents = 3;
+            }
+            if(psTexCoordOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+            {
+                constructor = 1;
+                bcatcstr(glsl, "vec3(");
             }
             break;
         }
         case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
         {
+            if(psTexCoordOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+            {
+                constructor = 1;
+                bcatcstr(glsl, "vec4(");
+            }
             break;
         }
         default:
@@ -377,6 +400,13 @@ static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand*
             ASSERT(0);
             break;
         }
+    }
+
+    TranslateOperand(psContext, psTexCoordOperand, TO_FLAG_NONE);
+
+    if(constructor)
+    {
+        bcatcstr(glsl, ")");
     }
 }
 
@@ -403,8 +433,6 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
     const int iHaveOverloadedTexFuncs = HaveOverloadedTextureFuncs(psContext->psShader->eTargetLanguage);
 
     ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
-
-    MaskOutTexCoordComponents(eResDim, &psInst->asOperands[1]);
 
     if(psInst->bAddressOffset)
     {
@@ -498,7 +526,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
                 }
 			    TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 			    bcatcstr(glsl, ",");
-			    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+                TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 			    bcatcstr(glsl, ",");
 			    //.z = reference.
 			    TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
@@ -548,7 +576,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         }
 		TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 		bformata(glsl, ", %s(", coordType);
-		TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+		TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 		bcatcstr(glsl, ",");
 		//.z = reference.
 		TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
@@ -580,7 +608,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         }
         TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);//resource
         bcatcstr(glsl, ", ");
-        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);//texcoord
+        TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 
         if(ui32Flags & (TEXSMP_FLAG_LOD))
         {
@@ -3328,9 +3356,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
             //LOD computes the following vector (ClampedLOD, NonClampedLOD, 0, 0)
 
-            MaskOutTexCoordComponents(psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber],
-                &psInst->asOperands[1]);
-
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
 
@@ -3348,7 +3373,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
             TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
             bcatcstr(glsl, ",");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+            TranslateTexCoord(psContext,
+                psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber],
+                &psInst->asOperands[1]);
             bcatcstr(glsl, ")");
 
             //The swizzle on srcResource allows the returned values to be swizzled arbitrarily before they are written to the destination.
