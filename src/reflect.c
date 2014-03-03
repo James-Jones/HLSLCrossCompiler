@@ -540,7 +540,11 @@ int GetInputSignatureFromRegister(const uint32_t ui32Register, ShaderInfo* psSha
     return 0;
 }
 
-int GetOutputSignatureFromRegister(const uint32_t ui32Register, const uint32_t ui32CompMask, ShaderInfo* psShaderInfo, InOutSignature** ppsOut)
+int GetOutputSignatureFromRegister(const uint32_t ui32Register,
+								   const uint32_t ui32CompMask,
+								   const uint32_t ui32Stream,
+								   ShaderInfo* psShaderInfo,
+								   InOutSignature** ppsOut)
 {
     uint32_t i;
     const uint32_t ui32NumVars = psShaderInfo->ui32NumOutputSignatures;
@@ -549,7 +553,8 @@ int GetOutputSignatureFromRegister(const uint32_t ui32Register, const uint32_t u
     {
         InOutSignature* psOutputSignatures = psShaderInfo->psOutputSignatures;
         if(ui32Register == psOutputSignatures[i].ui32Register &&
-			(ui32CompMask & psOutputSignatures[i].ui32Mask))
+			(ui32CompMask & psOutputSignatures[i].ui32Mask) &&
+			ui32Stream == psOutputSignatures[i].ui32Stream)
 	    {
 		    *ppsOut = psOutputSignatures+i;
 		    return 1;

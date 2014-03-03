@@ -231,6 +231,8 @@ typedef struct Shader_TAG
 
 	int aiOpcodeUsed[NUM_OPCODES];
 
+	uint32_t ui32CurrentVertexOutputStream;
+
 } Shader;
 
 static const uint32_t MAIN_PHASE = 0;

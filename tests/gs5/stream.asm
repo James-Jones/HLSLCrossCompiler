@@ -17,7 +17,7 @@
 // Name                 Index   Mask Register SysValue  Format   Used
 // -------------------- ----- ------ -------- -------- ------- ------
 // m0:OUT_POSITION          0   xyz         0     NONE   float   xyz 
-// m1:OUT_POSITION          0   xyz         0     NONE   float   xyz 
+// m1:OUT_POSITION          0   xyz         0     NONE     int   xyz 
 //
 gs_5_0
 dcl_globalFlags refactoringAllowed
@@ -36,7 +36,8 @@ mul r0.xyz, v[0][0].xyzx, v[0][1].xyzx
 mov o0.xyz, r0.xyzx
 emit_stream m0
 mul r0.xyz, v[1][0].xyzx, v[1][1].xyzx
+ftoi r0.xyz, r0.xyzx
 mov o0.xyz, r0.xyzx
 emit_stream m1
 ret 
-// Approximately 7 instruction slots used
+// Approximately 8 instruction slots used

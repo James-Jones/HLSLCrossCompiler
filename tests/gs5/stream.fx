@@ -10,7 +10,7 @@ struct OutVertex1
 
 struct OutVertex2
 {
-    float3 pos          : OUT_POSITION;
+    int3 pos          : OUT_POSITION;
 };
 
 [maxvertexcount(18)]
@@ -20,7 +20,7 @@ void main(
     inout PointStream<OutVertex2> myStream2 )
 {
 	OutVertex1 myVert1;
-	OutVertex1 myVert2;
+	OutVertex2 myVert2;
     myVert1.pos = verts[0].pos * verts[0].scale;
     myVert2.pos = verts[1].pos * verts[1].scale;
     myStream1.Append( myVert1 );
