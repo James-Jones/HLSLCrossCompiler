@@ -2327,6 +2327,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_GATHER4:
         {
             //dest, coords, tex, sampler
+			const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber];
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//GATHER4\n");
@@ -2338,11 +2339,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
             TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
             bcatcstr(glsl, ", ");
-            //Texture coord cannot be vec4
-            //Determining if it is a vec3 for vec2 yet to be done.
-            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+			TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
             bcatcstr(glsl, ")");
             // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
             // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
@@ -2357,6 +2354,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_GATHER4_PO_C:
         {
             //dest, coords, offset, tex, sampler, srcReferenceValue
+			const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[3].ui32RegisterNumber];
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//GATHER4_PO_C\n");
@@ -2369,11 +2367,8 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             TextureName(psContext, psInst->asOperands[3].ui32RegisterNumber, 1);
 
             bcatcstr(glsl, ", ");
-            //Texture coord cannot be vec4
-            //Determining if it is a vec3 for vec2 yet to be done.
-            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+
+			TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 
             bcatcstr(glsl, ", ");
             TranslateOperand(psContext, &psInst->asOperands[5], TO_FLAG_NONE);
