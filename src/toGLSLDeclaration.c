@@ -2256,6 +2256,10 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				psDecl->sTGSM.ui32Stride * psDecl->sTGSM.ui32Count / 4);
 			break;
 		}
+		case OPCODE_DCL_STREAM:
+		{
+			break;
+		}
         default:
         {
             ASSERT(0);

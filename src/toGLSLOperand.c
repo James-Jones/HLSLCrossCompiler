@@ -1226,6 +1226,11 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             bcatcstr(glsl, "]");
             break;
         }
+		case OPERAND_TYPE_STREAM:
+		{
+			bformata(glsl, "//Stream%d", psOperand->ui32RegisterNumber);
+			break;
+		}
         default:
         {
             ASSERT(0);
