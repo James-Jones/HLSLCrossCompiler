@@ -1231,6 +1231,11 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 			bformata(glsl, "%d", psOperand->ui32RegisterNumber);
 			break;
 		}
+		case OPERAND_TYPE_INPUT_GS_INSTANCE_ID:
+		{
+			bcatcstr(glsl, "gl_InvocationID");
+			break;
+		}
         default:
         {
             ASSERT(0);

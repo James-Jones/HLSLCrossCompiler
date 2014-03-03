@@ -2316,6 +2316,11 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			
 			break;
 		}
+		case OPCODE_DCL_GS_INSTANCE_COUNT:
+		{			
+			bformata(glsl, "layout(invocations = %d) in;\n", psDecl->value.ui32GSInstanceCount);
+			break;
+		}
         default:
         {
             ASSERT(0);

@@ -112,6 +112,7 @@ typedef struct Declaration_TAG
         uint32_t aui32HullPhaseInstanceInfo[2];
         float fMaxTessFactor;
         uint32_t ui32IndexRange;
+		uint32_t ui32GSInstanceCount;
 
         struct Interface_TAG
         {
