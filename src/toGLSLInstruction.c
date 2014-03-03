@@ -423,7 +423,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
 
     const char* funcName = "texture";
     const char* offset = "";
-    const char* coordType = "";
+    const char* depthCmpCoordType = "";
     const char* gradSwizzle = "";
 
     uint32_t ui32NumOffsets = 0;
@@ -443,7 +443,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
     {
         case RESOURCE_DIMENSION_TEXTURE1D:
         {
-            coordType = "vec2";
+            depthCmpCoordType = "vec2";
             gradSwizzle = ".x";
             ui32NumOffsets = 1;
             if(!iHaveOverloadedTexFuncs)
@@ -458,7 +458,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         }
         case RESOURCE_DIMENSION_TEXTURE2D:
         {
-            coordType = "vec3";
+            depthCmpCoordType = "vec3";
             gradSwizzle = ".xy";
             ui32NumOffsets = 2;
             if(!iHaveOverloadedTexFuncs)
@@ -473,7 +473,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         }
         case RESOURCE_DIMENSION_TEXTURECUBE:
         {
-            coordType = "vec3";
+            depthCmpCoordType = "vec3";
             gradSwizzle = ".xyz";
             ui32NumOffsets = 3;
             if(!iHaveOverloadedTexFuncs)
@@ -484,7 +484,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         }
         case RESOURCE_DIMENSION_TEXTURE3D:
         {
-            coordType = "vec4";
+            depthCmpCoordType = "vec4";
             gradSwizzle = ".xyz";
             ui32NumOffsets = 3;
             if(!iHaveOverloadedTexFuncs)
@@ -495,14 +495,14 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         }
         case RESOURCE_DIMENSION_TEXTURE1DARRAY:
         {
-            coordType = "vec3";
+            depthCmpCoordType = "vec3";
             gradSwizzle = ".x";
             ui32NumOffsets = 1;
             break;
         }
         case RESOURCE_DIMENSION_TEXTURE2DARRAY:
         {
-            coordType = "vec4";
+            depthCmpCoordType = "vec4";
             gradSwizzle = ".xy";
             ui32NumOffsets = 2;
             break;
@@ -575,7 +575,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
             bformata(glsl, " =(vec4(%s%s(", funcName, offset);
         }
 		TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
-		bformata(glsl, ", %s(", coordType);
+		bformata(glsl, ", %s(", depthCmpCoordType);
 		TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 		bcatcstr(glsl, ",");
 		//.z = reference.
