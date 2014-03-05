@@ -1,5 +1,5 @@
 
-// Compile with /Gfa (avoid flow control constructs) to use continuec instrucions.
+// Compile with /Gfa (avoid flow control constructs) to use continuec instructions.
 
 struct VS_INPUT
 {
