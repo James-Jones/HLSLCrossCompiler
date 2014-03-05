@@ -1206,6 +1206,124 @@ void TranslateAtomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIn
     bcatcstr(glsl, ");\n");
 }
 
+static void TranslateIfBreakCContinueC(HLSLCrossCompilerContext* psContext,
+									   Instruction* psInst,
+									   bstring glsl)
+{
+	if(psContext->psShader->ui32MajorVersion < 4)
+	{
+		bcatcstr(glsl, "if(");
+
+		TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+		switch(psInst->eDX9TestType)
+		{
+			case D3DSPC_GT:
+			{
+				bcatcstr(glsl, " > ");
+				break;
+			}
+			case D3DSPC_EQ:
+			{
+				bcatcstr(glsl, " == ");
+				break;
+			}
+			case D3DSPC_GE:
+			{
+				bcatcstr(glsl, " >= ");
+				break;
+			}
+			case D3DSPC_LT:
+			{
+				bcatcstr(glsl, " < ");
+				break;
+			}
+			case D3DSPC_NE:
+			{
+				bcatcstr(glsl, " != ");
+				break;
+			}
+			case D3DSPC_LE:
+			{
+				bcatcstr(glsl, " <= ");
+				break;
+			}
+			default:
+			{
+				break;
+			}
+		}
+
+		TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+
+		if(psInst->eOpcode == OPCODE_BREAKC)
+		{
+			bcatcstr(glsl, "){ break; }\n");
+		}
+		else if(psInst->eOpcode == OPCODE_IF)
+		{
+			bcatcstr(glsl, "){\n");
+		}
+	}
+	else
+	{
+		if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
+		{
+			bcatcstr(glsl, "if((");
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+
+			if(psInst->eOpcode == OPCODE_BREAKC)
+			{
+				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
+					bcatcstr(glsl, ")==0u){break;}\n");
+				else
+					bcatcstr(glsl, ")==0){break;}\n");
+			}
+			else if(psInst->eOpcode == OPCODE_CONTINUEC)
+			{
+				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
+					bcatcstr(glsl, ")==0u){continue;}\n");
+				else
+					bcatcstr(glsl, ")==0){continue;}\n");
+			}
+			else if(psInst->eOpcode == OPCODE_IF)
+			{
+				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
+					bcatcstr(glsl, ")==0u){\n");
+				else
+					bcatcstr(glsl, ")==0){\n");
+			}
+		}
+		else
+		{
+			ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
+			bcatcstr(glsl, "if((");
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+
+			if(psInst->eOpcode == OPCODE_BREAKC)
+			{
+				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
+					bcatcstr(glsl, ")!=0u){break;}\n");
+				else
+					bcatcstr(glsl, ")!=0){break;}\n");
+			}
+			else if(psInst->eOpcode == OPCODE_CONTINUEC)
+			{
+				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
+					bcatcstr(glsl, ")!=0u){continue;}\n");
+				else
+					bcatcstr(glsl, ")!=0){continue;}\n");
+			}
+			else if(psInst->eOpcode == OPCODE_IF)
+			{
+				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
+					bcatcstr(glsl, ")!=0u){\n");
+				else
+					bcatcstr(glsl, ")!=0){\n");
+			}
+		}
+	}
+}
+
 void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, const int32_t i32InstCount)
 {
 	int32_t i;
@@ -2844,92 +2962,18 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
             AddIndentation(psContext);
 
-			if(psContext->psShader->ui32MajorVersion < 4)
-			{
-				switch(psInst->eDX9TestType)
-				{
-					case D3DSPC_GT:
-					{
-						bcatcstr(glsl, "if(");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, " > ");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, "){ break; }\n");
-						break;
-					}
-					case D3DSPC_EQ:
-					{
-						bcatcstr(glsl, "if(");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, " == ");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, "){ break; }\n");
-						break;
-					}
-					case D3DSPC_GE:
-					{
-						bcatcstr(glsl, "if(");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, " >= ");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, "){ break; }\n");
-						break;
-					}
-					case D3DSPC_LT:
-					{
-						bcatcstr(glsl, "if(");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, " < ");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, "){ break; }\n");
-						break;
-					}
-					case D3DSPC_NE:
-					{
-						bcatcstr(glsl, "if(");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, " != ");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, "){ break; }\n");
-						break;
-					}
-					case D3DSPC_LE:
-					{
-						bcatcstr(glsl, "if(");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, " <= ");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, "){ break; }\n");
-						break;
-					}
-					default:
-					{
-						break;
-					}
-				}
-			}
-			else
-			{
-				if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
-				{
-					bcatcstr(glsl, "if((");
-					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-					if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
-						bcatcstr(glsl, ")==0u){break;}\n");
-					else
-						bcatcstr(glsl, ")==0){break;}\n");
-				}
-				else
-				{
-					ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
-					bcatcstr(glsl, "if((");
-					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-					if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
-						bcatcstr(glsl, ")!=0u){break;}\n");
-					else
-						bcatcstr(glsl, ")!=0){break;}\n");
-				}
-			}
+			TranslateIfBreakCContinueC(psContext, psInst, glsl);
+            break;
+        }
+        case OPCODE_CONTINUEC:
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//CONTINUEC\n");
+#endif
+            AddIndentation(psContext);
+
+			TranslateIfBreakCContinueC(psContext, psInst, glsl);
             break;
         }
         case OPCODE_IF:
@@ -2940,93 +2984,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
             AddIndentation(psContext);
 
-			if(psContext->psShader->ui32MajorVersion < 4)
-			{
-				switch(psInst->eDX9TestType)
-				{
-					case D3DSPC_LT:
-					{
-						bcatcstr(glsl, "if((");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, ") < (");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, ")){\n");
-						break;
-					}
-					case D3DSPC_NE:
-					{
-						bcatcstr(glsl, "if((");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, ") != (");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, ")){\n");
-						break;
-					}
-					case D3DSPC_LE:
-					{
-						bcatcstr(glsl, "if((");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, ") <= (");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, ")){\n");
-						break;
-					}
-					case D3DSPC_GE:
-					{
-						bcatcstr(glsl, "if((");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, ") >= (");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, ")){\n");
-						break;
-					}
-					case D3DSPC_GT:
-					{
-						bcatcstr(glsl, "if((");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, ") > (");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, ")){\n");
-						break;
-					}
-					case D3DSPC_EQ:
-					{
-						bcatcstr(glsl, "if((");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, ") == (");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, ")){\n");
-						break;
-					}
-					default:
-					{
-						ASSERT(0);
-						break;
-					}
-				}
-			}
-			else
-			{
-				if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
-				{
-					bcatcstr(glsl, "if((");
-					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-					if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
-						bcatcstr(glsl, ")==0u){\n");
-					else
-						bcatcstr(glsl, ")==0){\n");
-				}
-				else
-				{
-					ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
-					bcatcstr(glsl, "if((");
-					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-					if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
-						bcatcstr(glsl, ")!=0u){\n");
-					else
-						bcatcstr(glsl, ")!=0){\n");
-				}
-			}
+			TranslateIfBreakCContinueC(psContext, psInst, glsl);
             ++psContext->indent;
             break;
         }
