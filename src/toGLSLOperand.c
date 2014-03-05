@@ -1236,6 +1236,19 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 			bcatcstr(glsl, "gl_InvocationID");
 			break;
 		}
+		case OPERAND_TYPE_THIS_POINTER:
+		{
+			/*
+				The "this" register is a register that provides up to 4 pieces of information:
+				X: Which CB holds the instance data
+				Y: Base element offset of the instance data within the instance CB
+				Z: Base sampler index
+				W: Base Texture index
+
+				Can be different for each function call
+			*/
+			break;
+		}
         default:
         {
             ASSERT(0);
