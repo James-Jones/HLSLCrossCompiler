@@ -1206,10 +1206,24 @@ void TranslateAtomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIn
     bcatcstr(glsl, ");\n");
 }
 
-static void TranslateIfBreakCContinueC(HLSLCrossCompilerContext* psContext,
+static void TranslateConditional(HLSLCrossCompilerContext* psContext,
 									   Instruction* psInst,
 									   bstring glsl)
 {
+	const char* statement = "";
+	if(psInst->eOpcode == OPCODE_BREAKC)
+	{
+		statement = "break";
+	}
+	else if(psInst->eOpcode == OPCODE_CONTINUEC)
+	{
+		statement = "continue";
+	}
+	else if(psInst->eOpcode == OPCODE_RETC)
+	{
+		statement = "return";
+	}
+
 	if(psContext->psShader->ui32MajorVersion < 4)
 	{
 		bcatcstr(glsl, "if(");
@@ -1255,11 +1269,11 @@ static void TranslateIfBreakCContinueC(HLSLCrossCompilerContext* psContext,
 
 		TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
 
-		if(psInst->eOpcode == OPCODE_BREAKC)
+		if(psInst->eOpcode != OPCODE_IF)
 		{
-			bcatcstr(glsl, "){ break; }\n");
+			bformata(glsl, "){ %s; }\n", statement);
 		}
-		else if(psInst->eOpcode == OPCODE_IF)
+		else
 		{
 			bcatcstr(glsl, "){\n");
 		}
@@ -1271,21 +1285,14 @@ static void TranslateIfBreakCContinueC(HLSLCrossCompilerContext* psContext,
 			bcatcstr(glsl, "if((");
 			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
 
-			if(psInst->eOpcode == OPCODE_BREAKC)
+			if(psInst->eOpcode != OPCODE_IF)
 			{
 				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
-					bcatcstr(glsl, ")==0u){break;}\n");
+					bformata(glsl, ")==0u){%s;}\n", statement);
 				else
-					bcatcstr(glsl, ")==0){break;}\n");
+					bformata(glsl, ")==0){%s;}\n", statement);
 			}
-			else if(psInst->eOpcode == OPCODE_CONTINUEC)
-			{
-				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
-					bcatcstr(glsl, ")==0u){continue;}\n");
-				else
-					bcatcstr(glsl, ")==0){continue;}\n");
-			}
-			else if(psInst->eOpcode == OPCODE_IF)
+			else
 			{
 				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
 					bcatcstr(glsl, ")==0u){\n");
@@ -1299,21 +1306,14 @@ static void TranslateIfBreakCContinueC(HLSLCrossCompilerContext* psContext,
 			bcatcstr(glsl, "if((");
 			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
 
-			if(psInst->eOpcode == OPCODE_BREAKC)
+			if(psInst->eOpcode != OPCODE_IF)
 			{
 				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
-					bcatcstr(glsl, ")!=0u){break;}\n");
+					bformata(glsl, ")!=0u){%s;}\n", statement);
 				else
-					bcatcstr(glsl, ")!=0){break;}\n");
+					bformata(glsl, ")!=0){%s;}\n", statement);
 			}
-			else if(psInst->eOpcode == OPCODE_CONTINUEC)
-			{
-				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
-					bcatcstr(glsl, ")!=0u){continue;}\n");
-				else
-					bcatcstr(glsl, ")!=0){continue;}\n");
-			}
-			else if(psInst->eOpcode == OPCODE_IF)
+			else
 			{
 				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
 					bcatcstr(glsl, ")!=0u){\n");
@@ -2962,7 +2962,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
             AddIndentation(psContext);
 
-			TranslateIfBreakCContinueC(psContext, psInst, glsl);
+			TranslateConditional(psContext, psInst, glsl);
             break;
         }
         case OPCODE_CONTINUEC:
@@ -2973,7 +2973,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
             AddIndentation(psContext);
 
-			TranslateIfBreakCContinueC(psContext, psInst, glsl);
+			TranslateConditional(psContext, psInst, glsl);
             break;
         }
         case OPCODE_IF:
@@ -2984,10 +2984,21 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
             AddIndentation(psContext);
 
-			TranslateIfBreakCContinueC(psContext, psInst, glsl);
+			TranslateConditional(psContext, psInst, glsl);
             ++psContext->indent;
             break;
         }
+		case OPCODE_RETC:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//RETC\n");
+#endif
+            AddIndentation(psContext);
+
+			TranslateConditional(psContext, psInst, glsl);
+            break;
+		}
         case OPCODE_ELSE:
         {
             --psContext->indent;
