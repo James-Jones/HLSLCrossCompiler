@@ -325,11 +325,16 @@ void CallHelper1(HLSLCrossCompilerContext* psContext, const char* name, Instruct
     bcatcstr(glsl, ";\n");
 }
 
-
-//Make sure the texture coordinate swizzle is appropriate for the texture type.
+//Makes sure the texture coordinate swizzle is appropriate for the texture type.
 //i.e. vecX for X-dimension texture.
-static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand* psTexCoordOperand)
+//Currently supports floating point coord only, so not used for texelFetch.
+static void TranslateTexCoord(HLSLCrossCompilerContext* psContext,
+                                      const RESOURCE_DIMENSION eResDim,
+                                      Operand* psTexCoordOperand)
 {
+    int constructor = 0;
+    bstring glsl = *psContext->currentGLSLString;
+
     switch(eResDim)
     {
         case RESOURCE_DIMENSION_TEXTURE1D:
@@ -338,6 +343,11 @@ static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand*
             psTexCoordOperand->aui32Swizzle[1] = 0xFFFFFFFF;
             psTexCoordOperand->aui32Swizzle[2] = 0xFFFFFFFF;
             psTexCoordOperand->aui32Swizzle[3] = 0xFFFFFFFF;
+            if(psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE32 ||
+                psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE64)
+            {
+                psTexCoordOperand->iNumComponents = 1;
+            }
             break;
         }
         case RESOURCE_DIMENSION_TEXTURE2D:
@@ -346,6 +356,16 @@ static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand*
             //Vec2 texcoord. Mask out the other components.
             psTexCoordOperand->aui32Swizzle[2] = 0xFFFFFFFF;
             psTexCoordOperand->aui32Swizzle[3] = 0xFFFFFFFF;
+            if(psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE32 ||
+                psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE64)
+            {
+                psTexCoordOperand->iNumComponents = 2;
+            }
+            if(psTexCoordOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+            {
+                constructor = 1;
+                bcatcstr(glsl, "vec2(");
+            }
             break;
         }
         case RESOURCE_DIMENSION_TEXTURECUBE:
@@ -354,10 +374,25 @@ static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand*
         {
             //Vec3 texcoord. Mask out the other component.
             psTexCoordOperand->aui32Swizzle[3] = 0xFFFFFFFF;
+            if(psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE32 ||
+                psTexCoordOperand->eType == OPERAND_TYPE_IMMEDIATE64)
+            {
+                psTexCoordOperand->iNumComponents = 3;
+            }
+            if(psTexCoordOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+            {
+                constructor = 1;
+                bcatcstr(glsl, "vec3(");
+            }
             break;
         }
         case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
         {
+            if(psTexCoordOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+            {
+                constructor = 1;
+                bcatcstr(glsl, "vec4(");
+            }
             break;
         }
         default:
@@ -365,6 +400,13 @@ static void MaskOutTexCoordComponents(const RESOURCE_DIMENSION eResDim, Operand*
             ASSERT(0);
             break;
         }
+    }
+
+    TranslateOperand(psContext, psTexCoordOperand, TO_FLAG_NONE);
+
+    if(constructor)
+    {
+        bcatcstr(glsl, ")");
     }
 }
 
@@ -381,7 +423,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
 
     const char* funcName = "texture";
     const char* offset = "";
-    const char* coordType = "";
+    const char* depthCmpCoordType = "";
     const char* gradSwizzle = "";
 
     uint32_t ui32NumOffsets = 0;
@@ -392,8 +434,6 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
 
     ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
 
-    MaskOutTexCoordComponents(eResDim, &psInst->asOperands[1]);
-
     if(psInst->bAddressOffset)
     {
         offset = "Offset";
@@ -403,7 +443,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
     {
         case RESOURCE_DIMENSION_TEXTURE1D:
         {
-            coordType = "vec2";
+            depthCmpCoordType = "vec2";
             gradSwizzle = ".x";
             ui32NumOffsets = 1;
             if(!iHaveOverloadedTexFuncs)
@@ -418,7 +458,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         }
         case RESOURCE_DIMENSION_TEXTURE2D:
         {
-            coordType = "vec3";
+            depthCmpCoordType = "vec3";
             gradSwizzle = ".xy";
             ui32NumOffsets = 2;
             if(!iHaveOverloadedTexFuncs)
@@ -433,7 +473,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         }
         case RESOURCE_DIMENSION_TEXTURECUBE:
         {
-            coordType = "vec3";
+            depthCmpCoordType = "vec3";
             gradSwizzle = ".xyz";
             ui32NumOffsets = 3;
             if(!iHaveOverloadedTexFuncs)
@@ -444,7 +484,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         }
         case RESOURCE_DIMENSION_TEXTURE3D:
         {
-            coordType = "vec4";
+            depthCmpCoordType = "vec4";
             gradSwizzle = ".xyz";
             ui32NumOffsets = 3;
             if(!iHaveOverloadedTexFuncs)
@@ -455,14 +495,14 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         }
         case RESOURCE_DIMENSION_TEXTURE1DARRAY:
         {
-            coordType = "vec3";
+            depthCmpCoordType = "vec3";
             gradSwizzle = ".x";
             ui32NumOffsets = 1;
             break;
         }
         case RESOURCE_DIMENSION_TEXTURE2DARRAY:
         {
-            coordType = "vec4";
+            depthCmpCoordType = "vec4";
             gradSwizzle = ".xy";
             ui32NumOffsets = 2;
             break;
@@ -486,7 +526,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
                 }
 			    TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
 			    bcatcstr(glsl, ",");
-			    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+                TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 			    bcatcstr(glsl, ",");
 			    //.z = reference.
 			    TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
@@ -535,8 +575,8 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
             bformata(glsl, " =(vec4(%s%s(", funcName, offset);
         }
 		TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
-		bformata(glsl, ", %s(", coordType);
-		TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+		bformata(glsl, ", %s(", depthCmpCoordType);
+		TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 		bcatcstr(glsl, ",");
 		//.z = reference.
 		TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
@@ -568,7 +608,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         }
         TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);//resource
         bcatcstr(glsl, ", ");
-        TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);//texcoord
+        TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 
         if(ui32Flags & (TEXSMP_FLAG_LOD))
         {
@@ -672,7 +712,19 @@ static ShaderVarType* LookupStructuredVar(HLSLCrossCompilerContext* psContext,
 		break;
 	}
 
-	GetConstantBufferFromBindingPoint(RGROUP_UAV, psResource->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+	switch(psResource->eType)
+	{
+		case OPERAND_TYPE_RESOURCE:
+			GetConstantBufferFromBindingPoint(RGROUP_TEXTURE, psResource->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+			break;
+		case OPERAND_TYPE_UNORDERED_ACCESS_VIEW:
+		case OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY:
+			GetConstantBufferFromBindingPoint(RGROUP_UAV, psResource->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+			break;
+		default:
+			ASSERT(0);
+			break;
+	}
 	
 	found = GetShaderVarFromOffset(vec4Offset, aui32Swizzle, psCBuf, &psVarType, &index, &rebase);
 	ASSERT(found);
@@ -1152,6 +1204,124 @@ void TranslateAtomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
     TranslateOperand(psContext, src, ui32DataTypeFlag);
     bcatcstr(glsl, ");\n");
+}
+
+static void TranslateConditional(HLSLCrossCompilerContext* psContext,
+									   Instruction* psInst,
+									   bstring glsl)
+{
+	const char* statement = "";
+	if(psInst->eOpcode == OPCODE_BREAKC)
+	{
+		statement = "break";
+	}
+	else if(psInst->eOpcode == OPCODE_CONTINUEC)
+	{
+		statement = "continue";
+	}
+	else if(psInst->eOpcode == OPCODE_RETC)
+	{
+		statement = "return";
+	}
+
+	if(psContext->psShader->ui32MajorVersion < 4)
+	{
+		bcatcstr(glsl, "if(");
+
+		TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+		switch(psInst->eDX9TestType)
+		{
+			case D3DSPC_GT:
+			{
+				bcatcstr(glsl, " > ");
+				break;
+			}
+			case D3DSPC_EQ:
+			{
+				bcatcstr(glsl, " == ");
+				break;
+			}
+			case D3DSPC_GE:
+			{
+				bcatcstr(glsl, " >= ");
+				break;
+			}
+			case D3DSPC_LT:
+			{
+				bcatcstr(glsl, " < ");
+				break;
+			}
+			case D3DSPC_NE:
+			{
+				bcatcstr(glsl, " != ");
+				break;
+			}
+			case D3DSPC_LE:
+			{
+				bcatcstr(glsl, " <= ");
+				break;
+			}
+			default:
+			{
+				break;
+			}
+		}
+
+		TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+
+		if(psInst->eOpcode != OPCODE_IF)
+		{
+			bformata(glsl, "){ %s; }\n", statement);
+		}
+		else
+		{
+			bcatcstr(glsl, "){\n");
+		}
+	}
+	else
+	{
+		if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
+		{
+			bcatcstr(glsl, "if((");
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+
+			if(psInst->eOpcode != OPCODE_IF)
+			{
+				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
+					bformata(glsl, ")==0u){%s;}\n", statement);
+				else
+					bformata(glsl, ")==0){%s;}\n", statement);
+			}
+			else
+			{
+				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
+					bcatcstr(glsl, ")==0u){\n");
+				else
+					bcatcstr(glsl, ")==0){\n");
+			}
+		}
+		else
+		{
+			ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
+			bcatcstr(glsl, "if((");
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+
+			if(psInst->eOpcode != OPCODE_IF)
+			{
+				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
+					bformata(glsl, ")!=0u){%s;}\n", statement);
+				else
+					bformata(glsl, ")!=0){%s;}\n", statement);
+			}
+			else
+			{
+				if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
+					bcatcstr(glsl, ")!=0u){\n");
+				else
+					bcatcstr(glsl, ")!=0){\n");
+			}
+		}
+	}
 }
 
 void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, const int32_t i32InstCount)
@@ -2275,6 +2445,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_GATHER4:
         {
             //dest, coords, tex, sampler
+			const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber];
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//GATHER4\n");
@@ -2286,11 +2457,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
             TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
             bcatcstr(glsl, ", ");
-            //Texture coord cannot be vec4
-            //Determining if it is a vec3 for vec2 yet to be done.
-            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+			TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
             bcatcstr(glsl, ")");
             // iWriteMaskEnabled is forced off during DecodeOperand because swizzle on sampler uniforms
             // does not make sense. But need to re-enable to correctly swizzle this particular instruction.
@@ -2305,6 +2472,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_GATHER4_PO_C:
         {
             //dest, coords, offset, tex, sampler, srcReferenceValue
+			const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[3].ui32RegisterNumber];
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//GATHER4_PO_C\n");
@@ -2317,11 +2485,8 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             TextureName(psContext, psInst->asOperands[3].ui32RegisterNumber, 1);
 
             bcatcstr(glsl, ", ");
-            //Texture coord cannot be vec4
-            //Determining if it is a vec3 for vec2 yet to be done.
-            psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-            psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+
+			TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 
             bcatcstr(glsl, ", ");
             TranslateOperand(psContext, &psInst->asOperands[5], TO_FLAG_NONE);
@@ -2797,92 +2962,18 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
             AddIndentation(psContext);
 
-			if(psContext->psShader->ui32MajorVersion < 4)
-			{
-				switch(psInst->eDX9TestType)
-				{
-					case D3DSPC_GT:
-					{
-						bcatcstr(glsl, "if(");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, " > ");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, "){ break; }\n");
-						break;
-					}
-					case D3DSPC_EQ:
-					{
-						bcatcstr(glsl, "if(");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, " == ");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, "){ break; }\n");
-						break;
-					}
-					case D3DSPC_GE:
-					{
-						bcatcstr(glsl, "if(");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, " >= ");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, "){ break; }\n");
-						break;
-					}
-					case D3DSPC_LT:
-					{
-						bcatcstr(glsl, "if(");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, " < ");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, "){ break; }\n");
-						break;
-					}
-					case D3DSPC_NE:
-					{
-						bcatcstr(glsl, "if(");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, " != ");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, "){ break; }\n");
-						break;
-					}
-					case D3DSPC_LE:
-					{
-						bcatcstr(glsl, "if(");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, " <= ");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, "){ break; }\n");
-						break;
-					}
-					default:
-					{
-						break;
-					}
-				}
-			}
-			else
-			{
-				if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
-				{
-					bcatcstr(glsl, "if((");
-					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-					if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
-						bcatcstr(glsl, ")==0u){break;}\n");
-					else
-						bcatcstr(glsl, ")==0){break;}\n");
-				}
-				else
-				{
-					ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
-					bcatcstr(glsl, "if((");
-					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-					if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
-						bcatcstr(glsl, ")!=0u){break;}\n");
-					else
-						bcatcstr(glsl, ")!=0){break;}\n");
-				}
-			}
+			TranslateConditional(psContext, psInst, glsl);
+            break;
+        }
+        case OPCODE_CONTINUEC:
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//CONTINUEC\n");
+#endif
+            AddIndentation(psContext);
+
+			TranslateConditional(psContext, psInst, glsl);
             break;
         }
         case OPCODE_IF:
@@ -2893,96 +2984,21 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
             AddIndentation(psContext);
 
-			if(psContext->psShader->ui32MajorVersion < 4)
-			{
-				switch(psInst->eDX9TestType)
-				{
-					case D3DSPC_LT:
-					{
-						bcatcstr(glsl, "if((");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, ") < (");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, ")){\n");
-						break;
-					}
-					case D3DSPC_NE:
-					{
-						bcatcstr(glsl, "if((");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, ") != (");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, ")){\n");
-						break;
-					}
-					case D3DSPC_LE:
-					{
-						bcatcstr(glsl, "if((");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, ") <= (");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, ")){\n");
-						break;
-					}
-					case D3DSPC_GE:
-					{
-						bcatcstr(glsl, "if((");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, ") >= (");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, ")){\n");
-						break;
-					}
-					case D3DSPC_GT:
-					{
-						bcatcstr(glsl, "if((");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, ") > (");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, ")){\n");
-						break;
-					}
-					case D3DSPC_EQ:
-					{
-						bcatcstr(glsl, "if((");
-						TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-						bcatcstr(glsl, ") == (");
-						TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-						bcatcstr(glsl, ")){\n");
-						break;
-					}
-					default:
-					{
-						ASSERT(0);
-						break;
-					}
-				}
-			}
-			else
-			{
-				if(psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
-				{
-					bcatcstr(glsl, "if((");
-					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-					if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
-						bcatcstr(glsl, ")==0u){\n");
-					else
-						bcatcstr(glsl, ")==0){\n");
-				}
-				else
-				{
-					ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
-					bcatcstr(glsl, "if((");
-					TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-					if(GetOperandDataType(psContext, &psInst->asOperands[0]) == SVT_UINT)
-						bcatcstr(glsl, ")!=0u){\n");
-					else
-						bcatcstr(glsl, ")!=0){\n");
-				}
-			}
+			TranslateConditional(psContext, psInst, glsl);
             ++psContext->indent;
             break;
         }
+		case OPCODE_RETC:
+		{
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//RETC\n");
+#endif
+            AddIndentation(psContext);
+
+			TranslateConditional(psContext, psInst, glsl);
+            break;
+		}
         case OPCODE_ELSE:
         {
             --psContext->indent;
@@ -3304,9 +3320,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
             //LOD computes the following vector (ClampedLOD, NonClampedLOD, 0, 0)
 
-            MaskOutTexCoordComponents(psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber],
-                &psInst->asOperands[1]);
-
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
 
@@ -3324,7 +3337,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
             TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
             bcatcstr(glsl, ",");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+            TranslateTexCoord(psContext,
+                psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber],
+                &psInst->asOperands[1]);
             bcatcstr(glsl, ")");
 
             //The swizzle on srcResource allows the returned values to be swizzled arbitrarily before they are written to the destination.

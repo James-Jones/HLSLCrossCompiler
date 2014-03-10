@@ -17,6 +17,7 @@ static enum {FOURCC_OSGN = FOURCC('O', 'S', 'G', 'N')}; //Output signature
 
 static enum {FOURCC_ISG1 = FOURCC('I', 'S', 'G', '1')}; //Input signature with Stream and MinPrecision
 static enum {FOURCC_OSG1 = FOURCC('O', 'S', 'G', '1')}; //Output signature with Stream and MinPrecision
+static enum {FOURCC_OSG5 = FOURCC('O', 'S', 'G', '5')}; //Output signature with Stream
 
 typedef struct DXBCContainerHeaderTAG
 {
@@ -255,6 +256,13 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
                 psOperand->aui32Swizzle[2] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 2);
                 psOperand->aui32Swizzle[3] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 3);
             }
+			else
+			{
+				psOperand->aui32Swizzle[0] = OPERAND_4_COMPONENT_X;
+				psOperand->aui32Swizzle[1] = OPERAND_4_COMPONENT_Y;
+				psOperand->aui32Swizzle[2] = OPERAND_4_COMPONENT_Z;
+				psOperand->aui32Swizzle[3] = OPERAND_4_COMPONENT_W;
+			}
         }
         else
         if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
@@ -732,6 +740,18 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
             psDecl->sTGSM.ui32Count = pui32Token[ui32OperandOffset++];
             break;
         }
+		case OPCODE_DCL_STREAM:
+		{
+			psDecl->ui32NumOperands = 1;
+			DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
+			break;
+		}
+		case OPCODE_DCL_GS_INSTANCE_COUNT:
+		{
+			psDecl->ui32NumOperands = 0;
+			psDecl->value.ui32GSInstanceCount = pui32Token[1];
+			break;
+		}
         default:
         {
             //Reached end of declarations
@@ -1519,6 +1539,7 @@ Shader* DecodeDXBC(uint32_t* data)
     refChunks.pui32Resources = NULL;
 	refChunks.pui32Inputs11 = NULL;
 	refChunks.pui32Outputs11 = NULL;
+	refChunks.pui32OutputsWithStreams = NULL;
 
 	chunkOffsets = (uint32_t*)(header + 1);
 
@@ -1562,6 +1583,11 @@ Shader* DecodeDXBC(uint32_t* data)
                 refChunks.pui32Outputs11 = (uint32_t*)(chunk + 1);
                 break;
             }
+			case FOURCC_OSG5:
+			{
+                refChunks.pui32OutputsWithStreams = (uint32_t*)(chunk + 1);
+				break;
+			}
             case FOURCC_SHDR:
             case FOURCC_SHEX:
             {

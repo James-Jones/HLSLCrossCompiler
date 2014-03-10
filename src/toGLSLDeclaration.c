@@ -259,20 +259,39 @@ const char* GetDeclaredInputName(const HLSLCrossCompilerContext* psContext, cons
 	return cstr;
 }
 
-const char* GetDeclaredOutputName(const HLSLCrossCompilerContext* psContext, const SHADER_TYPE eShaderType, const Operand* psOperand)
+const char* GetDeclaredOutputName(const HLSLCrossCompilerContext* psContext,
+								  const SHADER_TYPE eShaderType,
+								  const Operand* psOperand,
+								  int* piStream)
 {
 	bstring outputName;
 	char* cstr;
 	InOutSignature* psOut;
 
-	if((psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES) &&
-		GetOutputSignatureFromRegister(psOperand->ui32RegisterNumber, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psOut))
+	int foundOutput = GetOutputSignatureFromRegister(psOperand->ui32RegisterNumber,
+		psOperand->ui32CompMask,
+		psContext->psShader->ui32CurrentVertexOutputStream,
+		&psContext->psShader->sInfo,
+		&psOut);
+
+	ASSERT(foundOutput);
+
+	if(psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES)
 	{
 		outputName = bformat("%s%d", psOut->SemanticName, psOut->ui32SemanticIndex);
 	}
 	else if(eShaderType == GEOMETRY_SHADER)
 	{
-		outputName = bformat("VtxGeoOutput%d", psOperand->ui32RegisterNumber);
+		if(psOut->ui32Stream != 0)
+		{
+			outputName = bformat("VtxGeoOutput%d_S%d", psOperand->ui32RegisterNumber, psOut->ui32Stream);
+			piStream[0] = psOut->ui32Stream;
+		}
+		else
+		{
+			outputName = bformat("VtxGeoOutput%d", psOperand->ui32RegisterNumber);
+		}
+
 	}
 	else if(eShaderType == DOMAIN_SHADER)
 	{
@@ -535,7 +554,20 @@ void AddBuiltinInput(HLSLCrossCompilerContext* psContext, const Declaration* psD
     psContext->indent++;
     AddIndentation(psContext);
     TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
-    bformata(psContext->earlyMain, " = %s;\n", builtinName);
+
+    bformata(psContext->earlyMain, " = %s", builtinName);
+
+	switch(psDecl->asOperands[0].eSpecialName)
+	{
+		case NAME_POSITION:
+			TranslateOperandSwizzle(psContext, &psDecl->asOperands[0]);
+			break;
+		default:
+			//Scalar built-in. Don't apply swizzle.
+			break;
+	}
+	bcatcstr(psContext->earlyMain, ";\n");
+
     psContext->indent--;
     psContext->currentGLSLString = &psContext->glsl;
 }
@@ -543,7 +575,7 @@ void AddBuiltinInput(HLSLCrossCompilerContext* psContext, const Declaration* psD
 int OutputNeedsDeclaring(HLSLCrossCompilerContext* psContext, const Operand* psOperand, const int count)
 {
 	Shader* psShader = psContext->psShader;
-	const uint32_t declared = psContext->currentPhase + 1;
+	const uint32_t declared = ((psContext->currentPhase + 1) << 3) | psShader->ui32CurrentVertexOutputStream;
 	if(psShader->aiOutputDeclared[psOperand->ui32RegisterNumber] != declared)
 	{
 		int offset;
@@ -578,7 +610,10 @@ void AddBuiltinOutput(HLSLCrossCompilerContext* psContext, const Declaration* ps
     {
         InOutSignature* psSignature = NULL;
 
-        GetOutputSignatureFromRegister(psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32CompMask, &psShader->sInfo, &psSignature);
+        GetOutputSignatureFromRegister(psDecl->asOperands[0].ui32RegisterNumber,
+			psDecl->asOperands[0].ui32CompMask,
+			0,
+			&psShader->sInfo, &psSignature);
 
         bcatcstr(glsl, "#undef ");
         TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
@@ -721,7 +756,11 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 
         InOutSignature* psSignature = NULL;
 
-        GetOutputSignatureFromRegister(psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32CompMask, &psShader->sInfo, &psSignature);
+        GetOutputSignatureFromRegister(psDecl->asOperands[0].ui32RegisterNumber,
+			psDecl->asOperands[0].ui32CompMask,
+			psShader->ui32CurrentVertexOutputStream,
+			&psShader->sInfo,
+			&psSignature);
 
         switch(psSignature->eComponentType)
         {
@@ -811,7 +850,8 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 						}
 						else
 						{
-							const char* OutputName = GetDeclaredOutputName(psContext, PIXEL_SHADER, psOperand);
+							int stream = 0;
+							const char* OutputName = GetDeclaredOutputName(psContext, PIXEL_SHADER, psOperand, &stream);
 
                             if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage) || HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage))
                             {
@@ -834,7 +874,14 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
                             }
 
 							bformata(glsl, "out %s %s4 %s;\n", Precision, type, OutputName);
-							bformata(glsl, "#define Output%d %s\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName);
+							if(stream)
+							{
+								bformata(glsl, "#define Output%d_S%d %s\n", psDecl->asOperands[0].ui32RegisterNumber, stream, OutputName);
+							}
+							else
+							{
+								bformata(glsl, "#define Output%d %s\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName);
+							}
 						}
 						break;
 					}
@@ -845,7 +892,8 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 			{
 				int iNumComponents = 4;//GetMaxComponentFromComponentMask(&psDecl->asOperands[0]);
                 const char* Interpolation = "";
-				const char* OutputName = GetDeclaredOutputName(psContext, VERTEX_SHADER, psOperand);
+				int stream = 0;
+				const char* OutputName = GetDeclaredOutputName(psContext, VERTEX_SHADER, psOperand, &stream);
 
                 if(psContext->psDependencies)
                 {
@@ -874,7 +922,8 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 			}
 			case GEOMETRY_SHADER:
 			{
-				const char* OutputName = GetDeclaredOutputName(psContext, GEOMETRY_SHADER, psOperand);
+				int stream = 0;
+				const char* OutputName = GetDeclaredOutputName(psContext, GEOMETRY_SHADER, psOperand, &stream);
 
                 if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
                 {
@@ -882,12 +931,20 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
                 }
 
 				bformata(glsl, "out %s4 %s;\n", type, OutputName);
-				bformata(glsl, "#define Output%d %s\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName);
+				if(stream)
+				{
+					bformata(glsl, "#define Output%d_S%d %s\n", psDecl->asOperands[0].ui32RegisterNumber, stream, OutputName);
+				}
+				else
+				{
+					bformata(glsl, "#define Output%d %s\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName);
+				}
 				break;
 			}
 			case HULL_SHADER:
 			{
-				const char* OutputName = GetDeclaredOutputName(psContext, HULL_SHADER, psOperand);
+				int stream = 0;
+				const char* OutputName = GetDeclaredOutputName(psContext, HULL_SHADER, psOperand, &stream);
 
                 ASSERT(psDecl->asOperands[0].ui32RegisterNumber!=0);//Reg 0 should be gl_out[gl_InvocationID].gl_Position.
 
@@ -901,7 +958,8 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 			}
 			case DOMAIN_SHADER:
 			{
-				const char* OutputName = GetDeclaredOutputName(psContext, DOMAIN_SHADER, psOperand);
+				int stream = 0;
+				const char* OutputName = GetDeclaredOutputName(psContext, DOMAIN_SHADER, psOperand, &stream);
                 if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
                 {
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
@@ -943,9 +1001,14 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 			const Operand* psOperand = &psDecl->asOperands[0];
 			InOutSignature* psSignature = NULL;
 			const char* type = "vec";
-			const char* OutputName = GetDeclaredOutputName(psContext, psShader->eShaderType, psOperand);
+			int stream = 0;
+			const char* OutputName = GetDeclaredOutputName(psContext, psShader->eShaderType, psOperand, &stream);
 
-			GetOutputSignatureFromRegister(psOperand->ui32RegisterNumber, psOperand->ui32CompMask, &psShader->sInfo, &psSignature);
+			GetOutputSignatureFromRegister(psOperand->ui32RegisterNumber,
+				psOperand->ui32CompMask,
+				0,
+				&psShader->sInfo,
+				&psSignature);
 
 			if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
 			{
@@ -1415,7 +1478,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			{
 				case NAME_POSITION:
 				{
-					AddBuiltinInput(psContext, psDecl, "gl_FragCoord.xy");
+					AddBuiltinInput(psContext, psDecl, "gl_FragCoord");
 					break;
 				}
 			}
@@ -2241,6 +2304,21 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
             bformata(glsl, "[%d];\n",
 				psDecl->sTGSM.ui32Stride * psDecl->sTGSM.ui32Count / 4);
+			break;
+		}
+		case OPCODE_DCL_STREAM:
+		{
+			ASSERT(psDecl->asOperands[0].eType == OPERAND_TYPE_STREAM);
+
+			psShader->ui32CurrentVertexOutputStream = psDecl->asOperands[0].ui32RegisterNumber;
+			
+			bformata(glsl, "layout(stream = %d) out;\n", psShader->ui32CurrentVertexOutputStream);
+			
+			break;
+		}
+		case OPCODE_DCL_GS_INSTANCE_COUNT:
+		{			
+			bformata(glsl, "layout(invocations = %d) in;\n", psDecl->value.ui32GSInstanceCount);
 			break;
 		}
         default:

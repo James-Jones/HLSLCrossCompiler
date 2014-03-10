@@ -695,7 +695,6 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 				}
             }
             else
-            if(psOperand->iNumComponents == 4)
             {
                 if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
                 {
@@ -727,6 +726,10 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                         psOperand->afImmediates[2],
                         psOperand->afImmediates[3]);
                 }
+                if(psOperand->iNumComponents != 4)
+                {
+                    AddSwizzleUsingElementCount(psContext, psOperand->iNumComponents);
+                }
             }
             break;
         }
@@ -738,13 +741,16 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                     psOperand->adImmediates[0]);
             }
             else
-            if(psOperand->iNumComponents == 4)
             {
                 bformata(glsl, "dvec4(%f, %f, %f, %f)",
                     psOperand->adImmediates[0],
                     psOperand->adImmediates[1],
                     psOperand->adImmediates[2],
                     psOperand->adImmediates[3]);
+                if(psOperand->iNumComponents != 4)
+                {
+                    AddSwizzleUsingElementCount(psContext, psOperand->iNumComponents);
+                }
             }
             break;
         }
@@ -1220,6 +1226,29 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             bcatcstr(glsl, "]");
             break;
         }
+		case OPERAND_TYPE_STREAM:
+		{
+			bformata(glsl, "%d", psOperand->ui32RegisterNumber);
+			break;
+		}
+		case OPERAND_TYPE_INPUT_GS_INSTANCE_ID:
+		{
+			bcatcstr(glsl, "gl_InvocationID");
+			break;
+		}
+		case OPERAND_TYPE_THIS_POINTER:
+		{
+			/*
+				The "this" register is a register that provides up to 4 pieces of information:
+				X: Which CB holds the instance data
+				Y: Base element offset of the instance data within the instance CB
+				Z: Base sampler index
+				W: Base Texture index
+
+				Can be different for each function call
+			*/
+			break;
+		}
         default:
         {
             ASSERT(0);
@@ -1296,7 +1325,7 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
 			const uint32_t ui32Register = psOperand->aui32ArraySizes[psOperand->iIndexDims-1];
 			InOutSignature* psOut;
 
-			if(GetOutputSignatureFromRegister(ui32Register, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psOut))
+			if(GetOutputSignatureFromRegister(ui32Register, psOperand->ui32CompMask, 0, &psContext->psShader->sInfo, &psOut))
 			{
 				if( psOut->eComponentType == INOUT_COMPONENT_UINT32)
 				{

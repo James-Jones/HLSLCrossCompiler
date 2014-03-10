@@ -99,7 +99,8 @@ static void ReadInputSignatures(const uint32_t* pui32Tokens,
 
 static void ReadOutputSignatures(const uint32_t* pui32Tokens,
                         ShaderInfo* psShaderInfo,
-						const int extended)
+						const int minPrec,
+						const int streams)
 {
     uint32_t i;
 
@@ -121,7 +122,7 @@ static void ReadOutputSignatures(const uint32_t* pui32Tokens,
 		psCurrentSignature->ui32Stream = 0;
 		psCurrentSignature->eMinPrec = D3D_MIN_PRECISION_DEFAULT;
 
-		if(extended)
+		if(streams)
 			psCurrentSignature->ui32Stream = *pui32Tokens++;
 
 		ui32SemanticNameOffset = *pui32Tokens++;
@@ -135,7 +136,7 @@ static void ReadOutputSignatures(const uint32_t* pui32Tokens,
         //Shows which components are NEVER written.
         psCurrentSignature->ui32ReadWriteMask = (ui32ComponentMasks & 0x7F00) >> 8;
 
-		if(extended)
+		if(minPrec)
 			psCurrentSignature->eMinPrec = *pui32Tokens++;
 
         ReadStringFromTokenStream((const uint32_t*)((const char*)pui32FirstSignatureToken+ui32SemanticNameOffset), psCurrentSignature->SemanticName);
@@ -313,7 +314,6 @@ static void ReadResources(const uint32_t* pui32Tokens,//in
     const uint32_t* pui32ResourceBindings;
     const uint32_t* pui32FirstToken = pui32Tokens;
     uint32_t i;
-	uint32_t aui32NextConstBufferIndex[RGROUP_COUNT];
 
     const uint32_t ui32NumConstantBuffers = *pui32Tokens++;
     const uint32_t ui32ConstantBufferOffset = *pui32Tokens++;
@@ -331,19 +331,10 @@ static void ReadResources(const uint32_t* pui32Tokens,//in
     psShaderInfo->ui32NumResourceBindings = ui32NumResourceBindings;
     psShaderInfo->psResourceBindings = psResBindings;
 
-	for(i=0; i<RGROUP_COUNT; i++)
-	{
-		aui32NextConstBufferIndex[i] = 0;
-	}
     for(i=0; i < ui32NumResourceBindings; ++i)
     {
-		ResourceGroup eRGroup;
         pui32ResourceBindings = ReadResourceBinding(pui32FirstToken, pui32ResourceBindings, psResBindings+i);
-
-		eRGroup = ResourceTypeToResourceGroup(psResBindings[i].eType);
-
 		ASSERT(psResBindings[i].ui32BindPoint < MAX_RESOURCE_BINDINGS);
-		psShaderInfo->aui32ResourceMap[eRGroup][psResBindings[i].ui32BindPoint] = aui32NextConstBufferIndex[eRGroup]++;
 	}
 
     //Constant buffers
@@ -358,6 +349,28 @@ static void ReadResources(const uint32_t* pui32Tokens,//in
     {
         pui32ConstantBuffers = ReadConstantBuffer(psShaderInfo, pui32FirstToken, pui32ConstantBuffers, psConstantBuffers+i);
     }
+
+
+	//Map resource bindings to constant buffers
+	if(psShaderInfo->ui32NumConstantBuffers)
+	{
+		for(i=0; i < ui32NumResourceBindings; ++i)
+		{
+			ResourceGroup eRGroup;
+			uint32_t cbufIndex = 0;
+
+			eRGroup = ResourceTypeToResourceGroup(psResBindings[i].eType);
+
+			//Find the constant buffer whose name matches the resource at the given resource binding point
+			for(cbufIndex=0; cbufIndex < psShaderInfo->ui32NumConstantBuffers; cbufIndex++)
+			{
+				if(strcmp(psConstantBuffers[cbufIndex].Name, psResBindings[i].Name) == 0)
+				{
+					psShaderInfo->aui32ResourceMap[eRGroup][psResBindings[i].ui32BindPoint] = cbufIndex;
+				}
+			}
+		}
+	}
 }
 
 static const uint16_t* ReadClassType(const uint32_t* pui32FirstInterfaceToken, const uint16_t* pui16Tokens, ClassType* psClassType)
@@ -460,19 +473,18 @@ static void ReadInterfaces(const uint32_t* pui32Tokens,
 
 void GetConstantBufferFromBindingPoint(const ResourceGroup eGroup, const uint32_t ui32BindPoint, const ShaderInfo* psShaderInfo, ConstantBuffer** ppsConstBuf)
 {
-    uint32_t index;
-    
-    ASSERT(ui32BindPoint < MAX_RESOURCE_BINDINGS);
-	ASSERT(eGroup < RGROUP_COUNT);
-    
-    index = psShaderInfo->aui32ResourceMap[eGroup][ui32BindPoint]; 
-    
-	ASSERT(index < psShaderInfo->ui32NumConstantBuffers);
-    
-    *ppsConstBuf = psShaderInfo->psConstantBuffers + index;
+	if(psShaderInfo->ui32MajorVersion > 3)
+	{
+		*ppsConstBuf = psShaderInfo->psConstantBuffers + psShaderInfo->aui32ResourceMap[eGroup][ui32BindPoint];
+	}
+	else
+	{
+		ASSERT(psShaderInfo->ui32NumConstantBuffers == 1);
+		*ppsConstBuf = psShaderInfo->psConstantBuffers;
+	}
 }
 
-int GetResourceFromBindingPoint(const ResourceType eGroup, uint32_t const ui32BindPoint, ShaderInfo* psShaderInfo, ResourceBinding** ppsOutBinding)
+int GetResourceFromBindingPoint(const ResourceGroup eGroup, uint32_t const ui32BindPoint, const ShaderInfo* psShaderInfo, ResourceBinding** ppsOutBinding)
 {
     uint32_t i;
     const uint32_t ui32NumBindings = psShaderInfo->ui32NumResourceBindings;
@@ -528,7 +540,11 @@ int GetInputSignatureFromRegister(const uint32_t ui32Register, ShaderInfo* psSha
     return 0;
 }
 
-int GetOutputSignatureFromRegister(const uint32_t ui32Register, const uint32_t ui32CompMask, ShaderInfo* psShaderInfo, InOutSignature** ppsOut)
+int GetOutputSignatureFromRegister(const uint32_t ui32Register,
+								   const uint32_t ui32CompMask,
+								   const uint32_t ui32Stream,
+								   ShaderInfo* psShaderInfo,
+								   InOutSignature** ppsOut)
 {
     uint32_t i;
     const uint32_t ui32NumVars = psShaderInfo->ui32NumOutputSignatures;
@@ -537,7 +553,8 @@ int GetOutputSignatureFromRegister(const uint32_t ui32Register, const uint32_t u
     {
         InOutSignature* psOutputSignatures = psShaderInfo->psOutputSignatures;
         if(ui32Register == psOutputSignatures[i].ui32Register &&
-			(ui32CompMask & psOutputSignatures[i].ui32Mask))
+			(ui32CompMask & psOutputSignatures[i].ui32Mask) &&
+			ui32Stream == psOutputSignatures[i].ui32Stream)
 	    {
 		    *ppsOut = psOutputSignatures+i;
 		    return 1;
@@ -747,6 +764,7 @@ void LoadShaderInfo(const uint32_t ui32MajorVersion,
     const uint32_t* pui32Interfaces = psChunks->pui32Interfaces;
     const uint32_t* pui32Outputs = psChunks->pui32Outputs;
 	const uint32_t* pui32Outputs11 = psChunks->pui32Outputs11;
+	const uint32_t* pui32OutputsWithStreams = psChunks->pui32OutputsWithStreams;
 
     psInfo->eTessOutPrim = TESSELLATOR_OUTPUT_UNDEFINED;
     psInfo->eTessPartitioning = TESSELLATOR_PARTITIONING_UNDEFINED;
@@ -764,9 +782,11 @@ void LoadShaderInfo(const uint32_t ui32MajorVersion,
     if(pui32Interfaces)
         ReadInterfaces(pui32Interfaces, psInfo);
     if(pui32Outputs)
-        ReadOutputSignatures(pui32Outputs, psInfo, 0);
+        ReadOutputSignatures(pui32Outputs, psInfo, 0, 0);
     if(pui32Outputs11)
-        ReadOutputSignatures(pui32Outputs11, psInfo, 1);
+        ReadOutputSignatures(pui32Outputs11, psInfo, 1, 1);
+	if(pui32OutputsWithStreams)
+		ReadOutputSignatures(pui32OutputsWithStreams, psInfo, 0, 1);
 
     {
         uint32_t i;
