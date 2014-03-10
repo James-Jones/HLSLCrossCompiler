@@ -1586,20 +1586,21 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             uint32_t i = 0; 
             const uint32_t ui32NumTemps = psDecl->value.ui32NumTemps;
 
-            for(i=0; i < ui32NumTemps; ++i)
-            {
-                bformata(glsl, "vec4 Temp%d;\n", i);
+			if(ui32NumTemps > 0)
+			{
+				bformata(glsl, "vec4 Temp[%d];\n", ui32NumTemps);
 
-                bformata(glsl, "ivec4 Temp%d_int;\n", i);
+				bformata(glsl, "ivec4 Temp_int[%d];\n", ui32NumTemps);
 				if(HaveUVec(psShader->eTargetLanguage))
 				{
-					bformata(glsl, "uvec4 Temp%d_uint;\n", i);
+					bformata(glsl, "uvec4 Temp_uint[%d];\n", ui32NumTemps);
 				}
 				if(psShader->fp64)
 				{
-					bformata(glsl, "dvec4 Temp%d_double;\n", i);
+					bformata(glsl, "dvec4 Temp_double[%d];\n", ui32NumTemps);
 				}
-            }
+			}
+
             break;
         }
         case OPCODE_SPECIAL_DCL_IMMCONST:

@@ -834,7 +834,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         case OPERAND_TYPE_TEMP:
         {
 			SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand);
-            bformata(glsl, "Temp%d", psOperand->ui32RegisterNumber);
+            bcatcstr(glsl, "Temp");
 
             if(eType == SVT_INT)
             {
@@ -861,6 +861,9 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                     bcatcstr(glsl, "_uint");
                 }
             }
+
+			bformata(glsl, "[%d]", psOperand->ui32RegisterNumber);
+
             break;
         }
 		case OPERAND_TYPE_SPECIAL_IMMCONSTINT:
