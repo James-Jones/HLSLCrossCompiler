@@ -175,6 +175,14 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 		}
 	}
 
+	if(!HaveQueryLevels(psContext->psShader->eTargetLanguage))
+	{
+		if(psContext->psShader->aiOpcodeUsed[OPCODE_RESINFO])
+		{
+			bcatcstr(glsl,"#extension GL_ARB_texture_query_levels : enable\n");
+		}
+	}
+
 	if(!HaveImageLoadStore(psContext->psShader->eTargetLanguage))
 	{
 		if(psContext->psShader->aiOpcodeUsed[OPCODE_STORE_UAV_TYPED] ||
