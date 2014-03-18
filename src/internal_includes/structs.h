@@ -257,6 +257,7 @@ typedef struct HLSLCrossCompilerContext_TAG
     unsigned int flags;
     Shader* psShader;
     GLSLCrossDependencyData* psDependencies;
+	struct ControlFlowGraph_TAG* psCFG;
 } HLSLCrossCompilerContext;
 
 #endif

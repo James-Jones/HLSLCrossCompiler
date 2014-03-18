@@ -1,3 +1,6 @@
+#ifndef CTRL_FLOW_GRAPH_H
+#define CTRL_FLOW_GRAPH_H
+
 #include "internal_includes/toGLSLInstruction.h"
 #include "internal_includes/toGLSLOperand.h"
 #include "internal_includes/languages.h"
@@ -50,3 +53,5 @@ typedef struct ControlFlowGraph_TAG
 void CFGBuildGraph(ControlFlowGraph* cfg, Instruction* insts, const int instCount);
 void CFGFreeGraph(ControlFlowGraph* cfg);
 void CFGVisualiseGraph(ControlFlowGraph* cfg);
+
+#endif

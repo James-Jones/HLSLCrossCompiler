@@ -644,12 +644,11 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
 
 	SetDataTypes(psContext, psShader->psInst, ui32InstCount);
 
-	{
-		ControlFlowGraph graph;
-		CFGBuildGraph(&graph, psShader->psInst, ui32InstCount);
-		CFGVisualiseGraph(&graph);
-		CFGFreeGraph(&graph);
-	}
+	CFGBuildGraph(psContext->psCFG, psShader->psInst, ui32InstCount);
+
+#ifdef _DEBUG
+	CFGVisualiseGraph(psContext->psCFG);
+#endif
 
     for(i=0; i < ui32InstCount; ++i)
     {
@@ -709,6 +708,7 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
         sContext.psShader = psShader;
         sContext.flags = flags;
         sContext.psDependencies = dependencies;
+		sContext.psCFG = malloc(sizeof(ControlFlowGraph));
 
         for(i=0; i<NUM_PHASES;++i)
         {
@@ -780,6 +780,9 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
         result->reflection = psShader->sInfo;
 
         free(psShader);
+
+		CFGFreeGraph(sContext.psCFG);
+		free(sContext.psCFG);
 
 		success = 1;
     }
