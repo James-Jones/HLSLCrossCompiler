@@ -52,6 +52,7 @@ static int AddCodeBlock(ControlFlowGraph* cfg, Instruction* psInstructions, cons
 			case OPCODE_ELSE:
 			case OPCODE_ENDSWITCH:
 			case OPCODE_ENDIF:
+			case OPCODE_CONTINUEC:
 			case OPCODE_CONTINUE:
 			case OPCODE_SWITCH:
 			case OPCODE_CASE:
@@ -230,6 +231,13 @@ void linkCONTINUEandBREAKandENDLOOP(CodeBlock* loopBlock)
 					CFGAddSuccssorEdge(block, loopBlock->linkedListNext);
 				}
 				break;
+			case OPCODE_CONTINUEC:
+				if(depth == 0)
+				{
+					CFGAddSuccssorEdge(block, loopBlock->linkedListNext);
+					CFGAddSuccssorEdge(block, nextBlock);
+				}
+				break;
 			case OPCODE_ENDLOOP://Block ends with endloop
 				if(depth == 0)
 				{
@@ -255,6 +263,7 @@ static void LinkCodeBlocks(ControlFlowGraph* cfg)
 
 		switch(block->apsInsts[block->numInsts-1]->eOpcode)
 		{
+			case OPCODE_CONTINUEC:
 			case OPCODE_CONTINUE:
 			case OPCODE_SWITCH:
 			case OPCODE_CASE:
@@ -347,6 +356,8 @@ const char* GetOpcodeString(OPCODE_TYPE eOpcode)
 			return "ENDSWITCH";
 		case OPCODE_CONTINUE:
 			return "CONTINUE";
+		case OPCODE_CONTINUEC:
+			return "CONTINUEC";
 		case OPCODE_SWITCH:
 			return "SWITCH";
 		case OPCODE_CASE:
