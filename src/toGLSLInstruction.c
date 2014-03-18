@@ -3341,7 +3341,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
 					TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 					bcatcstr(glsl, ", ivec2((");
-					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
 					bcatcstr(glsl, ").xy), ");
                     TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_INTEGER);
                     bcatcstr(glsl, ")");
@@ -3361,7 +3361,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
 					TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 					bcatcstr(glsl, ", ivec3((");
-					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+					TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
 					bcatcstr(glsl, ").xyz), ");
                     TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_INTEGER);
                     bcatcstr(glsl, ")");
