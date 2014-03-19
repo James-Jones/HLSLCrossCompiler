@@ -55,9 +55,13 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
 		{
 			bformata(glsl, " = uvec%d(%s(%s4(", minElemCount, glslOpcode[eType], constructor);
 		}
-		else
+		else if(eDestType == SVT_INT)
 		{
 			bformata(glsl, " = ivec%d(%s(%s4(", minElemCount, glslOpcode[eType], constructor);
+		}
+		else if(eDestType == SVT_UINT)
+		{
+			bformata(glsl, " = vec%d(%s(%s4(", minElemCount, glslOpcode[eType], constructor);
 		}
         TranslateOperand(psContext, &psInst->asOperands[1], typeFlag);
         bcatcstr(glsl, ")");
@@ -66,7 +70,22 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
         TranslateOperand(psContext, &psInst->asOperands[2], typeFlag);
         bcatcstr(glsl, ")");
         AddSwizzleUsingElementCount(psContext, minElemCount);
-        bcatcstr(glsl, "));\n");
+		if(psContext->psShader->ui32MajorVersion < 4)
+		{
+			//Result is 1.0f or 0.0f
+			bcatcstr(glsl, "));\n");
+		}
+		else
+		{
+			if(eDestType == SVT_UINT)
+ 			{
+ 				bcatcstr(glsl, ")) * 0xFFFFFFFFu;\n");
+ 			}
+ 			else
+ 			{
+ 				bcatcstr(glsl, ")) * 0xFFFFFFFF;\n");
+ 			}
+		}
     }
     else
     {
@@ -90,13 +109,20 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
         bcatcstr(glsl, ")");
         if(s1ElemCount > minElemCount)
             AddSwizzleUsingElementCount(psContext, minElemCount);
-		if(eDestType == SVT_UINT)
+		if(psContext->psShader->ui32MajorVersion < 4)
 		{
-			bcatcstr(glsl, ") ? 1u : 0u;\n");
+			bcatcstr(glsl, ") ? 1.0f : 1.0f;\n");
 		}
 		else
 		{
-			bcatcstr(glsl, ") ? 1 : 0;\n");
+			if(eDestType == SVT_UINT)
+			{
+				bcatcstr(glsl, ") ? 0xFFFFFFFFu : 0u;\n");
+			}
+			else
+			{
+				bcatcstr(glsl, ") ? 0xFFFFFFFF : 0;\n");
+			}
 		}
     }
 }
@@ -1663,7 +1689,17 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		case OPCODE_IMM_ATOMIC_ALLOC:
 		case OPCODE_IMM_ATOMIC_CONSUME:
 			{
-				eNewType = SVT_UINT;
+				if(psContext->psShader->ui32MajorVersion < 4)
+				{
+					//SLT and SGE are translated to LT and GE respectively.
+					//But SLT and SGE have a floating point 1.0f or 0.0f result
+					//instead of setting all bits on or all bits off.
+					eNewType = SVT_FLOAT;
+				}
+				else
+				{
+					eNewType = SVT_UINT;
+				}
 				break;
 			}
 
