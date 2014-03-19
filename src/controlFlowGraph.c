@@ -12,7 +12,7 @@ int CFGAddAsPredecessor(CodeBlock* predecessor, CodeBlock* block, int index)
 	return block->numPreds - 1;
 }
 
-void CFGAddSuccssorEdge(CodeBlock* from, CodeBlock* to)
+void CFGAddSuccessorEdge(CodeBlock* from, CodeBlock* to)
 {
 	int index = from->numSuccs++;
 	CodeBlockEdge* edge = &from->succs[index];
@@ -102,7 +102,7 @@ void linkELSEandENDIF(CodeBlock* ifBlock)
 
 	int depth = 0;
 
-	CFGAddSuccssorEdge(ifBlock, block);
+	CFGAddSuccessorEdge(ifBlock, block);
 
 	while(block)
 	{
@@ -130,16 +130,16 @@ void linkELSEandENDIF(CodeBlock* ifBlock)
 					if(elseBlock)
 					{
 						//end-of-if-block to endif
-						CFGAddSuccssorEdge(elseBlock->linkedListPrev, endifBlock);
+						CFGAddSuccessorEdge(elseBlock->linkedListPrev, endifBlock);
 
-						CFGAddSuccssorEdge(ifBlock, elseBlock);
+						CFGAddSuccessorEdge(ifBlock, elseBlock);
 
 						//After if, before else, goto endif.
-						CFGAddSuccssorEdge(elseBlock, endifBlock);
+						CFGAddSuccessorEdge(elseBlock, endifBlock);
 					}
 					else
 					{
-						CFGAddSuccssorEdge(ifBlock, endifBlock);
+						CFGAddSuccessorEdge(ifBlock, endifBlock);
 					}
 					return;
 				}
@@ -160,7 +160,7 @@ void linkCONTINUEandBREAKandENDLOOP(CodeBlock* loopBlock)
 
 	int depth = 0;
 
-	CFGAddSuccssorEdge(loopBlock, loopBlock->linkedListNext);
+	CFGAddSuccessorEdge(loopBlock, loopBlock->linkedListNext);
 
 	//Find the corresponding endloop
 	while(block)
@@ -215,27 +215,27 @@ void linkCONTINUEandBREAKandENDLOOP(CodeBlock* loopBlock)
 			case OPCODE_BREAK://Block ends with break;
 				if(depth == 0)
 				{
-					CFGAddSuccssorEdge(block, endloopBlock);
+					CFGAddSuccessorEdge(block, endloopBlock);
 				}
 				break;
 			case OPCODE_BREAKC:
 				if(depth == 0)
 				{
-					CFGAddSuccssorEdge(block, endloopBlock);
-					CFGAddSuccssorEdge(block, nextBlock);
+					CFGAddSuccessorEdge(block, endloopBlock);
+					CFGAddSuccessorEdge(block, nextBlock);
 				}
 				break;
 			case OPCODE_CONTINUE://Block ends with continue;
 				if(depth == 0)
 				{
-					CFGAddSuccssorEdge(block, loopBlock->linkedListNext);
+					CFGAddSuccessorEdge(block, loopBlock->linkedListNext);
 				}
 				break;
 			case OPCODE_CONTINUEC:
 				if(depth == 0)
 				{
-					CFGAddSuccssorEdge(block, loopBlock->linkedListNext);
-					CFGAddSuccssorEdge(block, nextBlock);
+					CFGAddSuccessorEdge(block, loopBlock->linkedListNext);
+					CFGAddSuccessorEdge(block, nextBlock);
 				}
 				break;
 			case OPCODE_ENDLOOP://Block ends with endloop
@@ -278,7 +278,7 @@ static void LinkCodeBlocks(ControlFlowGraph* cfg)
 			case OPCODE_ENDSWITCH:
 			case OPCODE_INTERFACE_CALL:
 			{
-				CFGAddSuccssorEdge(block, nextBlock);
+				CFGAddSuccessorEdge(block, nextBlock);
 				break;
 			}
 			case OPCODE_LOOP:
