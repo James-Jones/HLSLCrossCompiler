@@ -1113,13 +1113,6 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         }
         case OPCODE_EVAL_SAMPLE_INDEX:
         case OPCODE_EVAL_SNAPPED:
-        {
-            psInst->ui32NumOperands = 3;
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
-            break;
-        }
         case OPCODE_STORE_UAV_TYPED:
         case OPCODE_LD_UAV_TYPED:
         case OPCODE_LD_RAW:
@@ -1139,6 +1132,17 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
+            break;
+        }
+		case OPCODE_RESINFO:
+        {
+            psInst->ui32NumOperands = 3;
+
+			psInst->eResInfoReturnType = DecodeResInfoReturnType(pui32Token[0]);
+
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
             break;
         }
         case OPCODE_MSAD:

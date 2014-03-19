@@ -63,6 +63,7 @@ typedef struct Instruction_TAG
     Operand asOperands[6];
     uint32_t bSaturate;
     uint32_t ui32FuncIndexWithinInterface;
+	RESINFO_RETURN_TYPE eResInfoReturnType;
 
     int bAddressOffset;
     int iUAddrOffset;
