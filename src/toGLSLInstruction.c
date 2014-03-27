@@ -2573,6 +2573,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			CallHelper2(psContext, "max", psInst, 0, 1, 2);
             break;
         }
+		case OPCODE_IMIN:
+        {
+#ifdef _DEBUG
+            AddIndentation(psContext);
+            bcatcstr(glsl, "//IMIN\n");
+#endif
+			CallHelper2Int(psContext, "min", psInst, 0, 1, 2);
+            break;
+        }
 		case OPCODE_MIN:
         {
 #ifdef _DEBUG

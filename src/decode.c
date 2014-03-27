@@ -953,6 +953,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 				psInst->ui32FirstSrc = 2;
 				//Intentional fall-through
 			}
+        case OPCODE_IMIN:
 		case OPCODE_MIN:
 		case OPCODE_IMAX:
 		case OPCODE_MAX:
