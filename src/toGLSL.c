@@ -804,7 +804,7 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
 {
     FILE* shaderFile;
     int length;
-    int readLength;
+    size_t readLength;
     char* shader;
 	int success = 0;
 

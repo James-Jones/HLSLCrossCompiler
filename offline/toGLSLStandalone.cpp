@@ -384,9 +384,9 @@ int GetOptions(int argc, char** argv, Options* psOptions)
 			psOptions->outputShaderFile = option + strlen("-hashout=");
 
             char* dir;
-            int length;
+            int64_t length;
 
-            uint64_t hash = hash64((const uint8_t*)psOptions->outputShaderFile, strlen(psOptions->outputShaderFile), 0);
+            uint64_t hash = hash64((const uint8_t*)psOptions->outputShaderFile, (uint32_t)strlen(psOptions->outputShaderFile), 0);
 
             uint32_t high = (uint32_t)( hash >> 32 );
             uint32_t low = (uint32_t)( hash & 0x00000000FFFFFFFF );
@@ -522,7 +522,7 @@ int GetOptions(int argc, char** argv, Options* psOptions)
             files[shaderIndex][writeIndex] = '\0';
 
 
-            uint64_t hash = hash64((const uint8_t*)fullList, strlen(fullList), 0);
+            uint64_t hash = hash64((const uint8_t*)fullList, (uint32_t)strlen(fullList), 0);
 
             uint32_t high = (uint32_t)( hash >> 32 );
             uint32_t low = (uint32_t)( hash & 0x00000000FFFFFFFF );
