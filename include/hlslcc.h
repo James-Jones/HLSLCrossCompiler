@@ -410,6 +410,10 @@ static const unsigned int HLSLCC_FLAG_DUAL_SOURCE_BLENDING = 0x40;
 //If set, shader inputs and outputs are declared with their semantic name.
 static const unsigned int HLSLCC_FLAG_INOUT_SEMANTIC_NAMES = 0x80;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
                                                      unsigned int flags,
                                                      GLLang language,
@@ -423,6 +427,10 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
                                                     GLSLShader* result);
 
 HLSLCC_API void HLSLCC_APIENTRY FreeGLSLShader(GLSLShader*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

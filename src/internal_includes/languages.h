@@ -73,12 +73,12 @@ static int HaveInOutLocationQualifier(const GLLang eLang)
 //layout(location = X) uniform uniform_name;
 static int HaveUniformBindingsAndLocations(const GLLang eLang)
 {
-#if defined(WORK_IN_PROGRESS)
+//#if defined(WORK_IN_PROGRESS)
     if(eLang >= LANG_430)
     {
         return 1;
     }
-#endif
+//#endif
     return 0;
 }
 

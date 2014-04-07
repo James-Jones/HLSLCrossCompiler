@@ -777,7 +777,8 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
 		FreeSubOperands(psShader->psInst, psShader->ui32InstCount);
         free(psShader->psInst);
         
-        result->reflection = psShader->sInfo;
+		memcpy(&result->reflection,&psShader->sInfo,sizeof(psShader->sInfo));
+        
 
         free(psShader);
 

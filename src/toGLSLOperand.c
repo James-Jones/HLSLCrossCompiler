@@ -959,29 +959,44 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 
 			if((psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)!=HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
 			{
-				//$Globals.
-				if(psCBuf->Name[0] == '$')
+				if(psCBuf)
 				{
-					bformata(glsl, "Globals%s", StageName);
+					//$Globals.
+					if(psCBuf->Name[0] == '$')
+					{
+						bformata(glsl, "Globals%s", StageName);
+					}
+					else
+					{
+						bformata(glsl, "%s%s", psCBuf->Name, StageName);
+					}
+					if((ui32TOFlag & TO_FLAG_DECLARATION_NAME) != TO_FLAG_DECLARATION_NAME)
+					{
+						bcatcstr(glsl, ".");
+					}
 				}
 				else
 				{
-					bformata(glsl, "%s%s", psCBuf->Name, StageName);
+					//bformata(glsl, "cb%d", psOperand->aui32ArraySizes[0]);
 				}
-				if((ui32TOFlag & TO_FLAG_DECLARATION_NAME) != TO_FLAG_DECLARATION_NAME)
-				{
-					bcatcstr(glsl, ".");
-				}
-			}
+		}
 
             if((ui32TOFlag & TO_FLAG_DECLARATION_NAME) != TO_FLAG_DECLARATION_NAME)
             {
                 //Work out the variable name. Don't apply swizzle to that variable yet.
 				int32_t rebase = 0;
 
-                GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index, &rebase);
+				if(psCBuf)
+				{
+					GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index, &rebase);
 
-				bformata(glsl, "%s", psVarType->FullName);
+					bformata(glsl, "%s", psVarType->FullName);
+				}
+				else // We don't have a semantic for this variable, so try the raw dump appoach.
+				{
+					bformata(glsl, "cb%d[%d]", psOperand->aui32ArraySizes[0],psOperand->aui32ArraySizes[1]);
+					__nop();
+				}
 
 				//Dx9 only?
 				if(psOperand->psSubOperand[0] != NULL)
@@ -1044,7 +1059,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 					}
 				}
 
-				if(psVarType->Class == SVC_VECTOR)
+				if(psVarType && psVarType->Class == SVC_VECTOR)
 				{
 					switch(rebase)
 					{
@@ -1089,7 +1104,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 					}
 				}
 
-				if(psVarType->Class == SVC_SCALAR)
+				if(psVarType && psVarType->Class == SVC_SCALAR)
 				{
 					*pui32IgnoreSwizzle = 1;
 				}
@@ -1373,10 +1388,18 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
 			int32_t rebase = -1;
 			int foundVar;
 			GetConstantBufferFromBindingPoint(RGROUP_CBUFFER, psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
-			foundVar = GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index, &rebase);
-			if(foundVar && index == -1 && psOperand->psSubOperand[1] == NULL)
+			if(psCBuf)
 			{
-				return psVarType->Type;
+				foundVar = GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index, &rebase);
+				if(foundVar && index == -1 && psOperand->psSubOperand[1] == NULL)
+				{
+					return psVarType->Type;
+				}
+			}
+			else
+			{
+				// Todo: this isn't correct yet.
+				return SVT_FLOAT;
 			}
 			break;
 		}

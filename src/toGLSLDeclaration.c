@@ -1631,6 +1631,16 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             ConstantBuffer* psCBuf = NULL;
             GetConstantBufferFromBindingPoint(RGROUP_CBUFFER, ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
 
+			// We don't have a original resource name, maybe generate one???
+			if(!psCBuf)
+			{
+				if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
+					bformata(glsl, "layout(location = %d) ",ui32BindingPoint);
+					
+				bformata(glsl, "uniform vec4 cb%d[%d];\n", ui32BindingPoint,psOperand->aui32ArraySizes[1]);
+				break;
+			}
+
             switch(psContext->psShader->eShaderType)
             {
                 case PIXEL_SHADER:
