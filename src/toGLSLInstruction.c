@@ -2489,8 +2489,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
 				AddMOVCBinaryOp(psContext,&psInst->asOperands[0],&psInst->asOperands[2],&psInst->asOperands[4],&psInst->asOperands[3]);
 				AddMOVCBinaryOp(psContext,&psInst->asOperands[1],&psInst->asOperands[2],&psInst->asOperands[3],&psInst->asOperands[4]);
-
-				__nop();
 				break;
 			}
 
