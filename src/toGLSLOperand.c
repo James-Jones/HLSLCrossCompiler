@@ -995,7 +995,6 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 				else // We don't have a semantic for this variable, so try the raw dump appoach.
 				{
 					bformata(glsl, "cb%d[%d]", psOperand->aui32ArraySizes[0],psOperand->aui32ArraySizes[1]);
-					__nop();
 				}
 
 				//Dx9 only?
