@@ -49,7 +49,7 @@ file(GLOB CBSTRING_CFILES ../src/cbstring/*.c)
 file(GLOB CBSTRING_HFILES ../src/cbstring/*.h)
 source_group("CBString Files" FILES ${CBSTRING_CFILES} ${CBSTRING_HFILES})
 
-ADD_LIBRARY( libHLSLcc 
+SET(libHLSLcc_SOURCES  
 ../src/internal_includes/debug.h
 ../src/internal_includes/decode.h
 ../src/internal_includes/languages.h
@@ -74,13 +74,17 @@ ${CBSTRING_HFILES}
 ${CBSTRING_CFILES}
 )
 
+ADD_LIBRARY( libHLSLcc ${libHLSLcc_SOURCES} )
+
+
+
 INCLUDE_DIRECTORIES( ../offline/cjson/ )
 
 file(GLOB CJSON_CFILES ../offline/cjson/*.c)
 file(GLOB CJSON_HFILES ../offline/cjson/*.h)
 source_group("cJSON Files" FILES ${CJSON_CFILES} ${CJSON_HFILES})
 
-ADD_EXECUTABLE( HLSLcc
+SET(HLSLcc_SOURCES  
 ../offline/toGLSLStandalone.cpp
 ../offline/timer.h
 ../offline/timer.cpp
@@ -90,6 +94,18 @@ ADD_EXECUTABLE( HLSLcc
 ${CJSON_CFILES}
 ${CJSON_HFILES}
 )
+
+ADD_EXECUTABLE( HLSLcc ${HLSLcc_SOURCES} )
+
+# Compile 32-bit binaries for linux
+IF(CMAKE_HOST_UNIX)
+
+ADD_LIBRARY( libHLSLcc-i386 ${libHLSLcc_SOURCES} )
+ADD_EXECUTABLE( HLSLcc-i386 ${HLSLcc_SOURCES} )
+TARGET_LINK_LIBRARIES( HLSLcc-i386 libHLSLcc-i386)
+SET_TARGET_PROPERTIES(libHLSLcc-i386 PROPERTIES COMPILE_FLAGS -m32 LINK_FLAGS -m32 )
+SET_TARGET_PROPERTIES(HLSLcc-i386 PROPERTIES COMPILE_FLAGS -m32 LINK_FLAGS -m32 )
+ENDIF()
 
 TARGET_LINK_LIBRARIES( HLSLcc libHLSLcc)
 
