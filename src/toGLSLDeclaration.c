@@ -463,7 +463,7 @@ static void DeclareInput(
                 }
                 else
                 {
-                    if(psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber])
+                    if(psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber] > 0)
                     {
 						bformata(glsl, "%s %s %s %s%d %s", Interpolation, StorageQualifier, Precision, vecType, iNumComponents, InputName);
                         bformata(glsl, "[%d];\n", psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber]);
@@ -1710,7 +1710,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
                 case RESOURCE_DIMENSION_TEXTURE1D:
                 {
-					if(psDecl->ui32IsShadowTex)
+					if(1)//psDecl->ui32IsShadowTex)
                     {
                         //Create shadow and non-shadow sampler.
                         //HLSL does not have separate types for depth compare, just different functions.
@@ -1725,7 +1725,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
                 case RESOURCE_DIMENSION_TEXTURE2D:
                 {
-					if(psDecl->ui32IsShadowTex)
+					if(1)//psDecl->ui32IsShadowTex)
                     {
                         //Create shadow and non-shadow sampler.
                         //HLSL does not have separate types for depth compare, just different functions.
@@ -1733,9 +1733,8 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                         TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 1);
                         bcatcstr(glsl, ";\n");
                     }
-
 					bcatcstr(glsl, "uniform sampler2D ");
-                    TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
+					TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DMS:
@@ -1752,7 +1751,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBE:
                 {
-					if(psDecl->ui32IsShadowTex)
+					if(1)//psDecl->ui32IsShadowTex)
                     {
                         //Create shadow and non-shadow sampler.
                         //HLSL does not have separate types for depth compare, just different functions.
@@ -1767,7 +1766,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
                 case RESOURCE_DIMENSION_TEXTURE1DARRAY:
                 {
-					if(psDecl->ui32IsShadowTex)
+					if(1)//psDecl->ui32IsShadowTex)
                     {
                         //Create shadow and non-shadow sampler.
                         //HLSL does not have separate types for depth compare, just different functions.
@@ -1782,7 +1781,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DARRAY:
                 {
-					if(psDecl->ui32IsShadowTex)
+					if(1)//psDecl->ui32IsShadowTex)
                     {
                         //Create shadow and non-shadow sampler.
                         //HLSL does not have separate types for depth compare, just different functions.
@@ -1803,7 +1802,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
                 {
-					if(psDecl->ui32IsShadowTex)
+					if(1)//psDecl->ui32IsShadowTex)
                     {
                         //Create shadow and non-shadow sampler.
                         //HLSL does not have separate types for depth compare, just different functions.
