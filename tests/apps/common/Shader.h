@@ -55,6 +55,7 @@ public:
     void SetTexture(const char* name, int imageUnit);
     void SetTexture(std::string& name, int imageUnit);
     void SetVec4(std::string& name, int count, float* v);
+	void SetVec3(std::string& name, int count, float* v);
 	void SetFloat(std::string& name, int count, float* v);
     void SetUniformBlock(std::string& name, uint_t bufIndex);
     void SetUniformBlock(std::string& name, uint_t bufIndex, uint_t ubo);

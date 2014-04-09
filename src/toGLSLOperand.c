@@ -698,7 +698,6 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 				}
             }
             else
-            if(psOperand->iNumComponents == 4)
             {
                 if(ui32TOFlag & TO_FLAG_UNSIGNED_INTEGER)
                 {
@@ -730,6 +729,10 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                         psOperand->afImmediates[2],
                         psOperand->afImmediates[3]);
                 }
+                if(psOperand->iNumComponents != 4)
+                {
+                    AddSwizzleUsingElementCount(psContext, psOperand->iNumComponents);
+                }
             }
             break;
         }
@@ -741,13 +744,16 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                     psOperand->adImmediates[0]);
             }
             else
-            if(psOperand->iNumComponents == 4)
             {
                 bformata(glsl, "dvec4(%f, %f, %f, %f)",
                     psOperand->adImmediates[0],
                     psOperand->adImmediates[1],
                     psOperand->adImmediates[2],
                     psOperand->adImmediates[3]);
+                if(psOperand->iNumComponents != 4)
+                {
+                    AddSwizzleUsingElementCount(psContext, psOperand->iNumComponents);
+                }
             }
             break;
         }
@@ -830,7 +836,8 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         }
         case OPERAND_TYPE_TEMP:
         {
-            bformata(glsl, "Temp%d", psOperand->ui32RegisterNumber);
+			SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand);
+            bcatcstr(glsl, "Temp");
 
             if(eType == SVT_INT)
             {
@@ -857,6 +864,9 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                     bcatcstr(glsl, "_uint");
                 }
             }
+
+			bformata(glsl, "[%d]", psOperand->ui32RegisterNumber);
+
             break;
         }
 		case OPERAND_TYPE_SPECIAL_IMMCONSTINT:
@@ -970,8 +980,9 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             if((ui32TOFlag & TO_FLAG_DECLARATION_NAME) != TO_FLAG_DECLARATION_NAME)
             {
                 //Work out the variable name. Don't apply swizzle to that variable yet.
+				int32_t rebase = 0;
 
-                GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index);
+                GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index, &rebase);
 
 				bformata(glsl, "%s", psVarType->FullName);
 
@@ -1033,6 +1044,51 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 						bcatcstr(glsl, "[int(");
 						TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
 						bcatcstr(glsl, ")]");
+					}
+				}
+
+				if(psVarType->Class == SVC_VECTOR)
+				{
+					switch(rebase)
+					{
+						case 4:
+						{
+							if(psVarType->Columns == 2)
+							{
+								//.x(GLSL) is .y(HLSL). .y(GLSL) is .z(HLSL)
+								bcatcstr(glsl, ".xxyx");
+							}
+							else if(psVarType->Columns == 3)
+							{
+								//.x(GLSL) is .y(HLSL). .y(GLSL) is .z(HLSL) .z(GLSL) is .w(HLSL)
+								bcatcstr(glsl, ".xxyz");
+							}
+							break;
+						}
+						case 8:
+						{
+							if(psVarType->Columns == 2)
+							{
+								//.x(GLSL) is .z(HLSL). .y(GLSL) is .w(HLSL)
+								bcatcstr(glsl, ".xxxy");
+							}
+							break;
+						}
+						case 0:
+						default:
+						{
+							//No rebase, but extend to vec4.
+							if(psVarType->Columns == 2)
+							{
+								bcatcstr(glsl, ".xyxx");
+							}
+							else if(psVarType->Columns == 3)
+							{
+								bcatcstr(glsl, ".xyzx");
+							}
+							break;
+						}
+
 					}
 				}
 
@@ -1176,6 +1232,29 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
             bcatcstr(glsl, "]");
             break;
         }
+		case OPERAND_TYPE_STREAM:
+		{
+			bformata(glsl, "%d", psOperand->ui32RegisterNumber);
+			break;
+		}
+		case OPERAND_TYPE_INPUT_GS_INSTANCE_ID:
+		{
+			bcatcstr(glsl, "gl_InvocationID");
+			break;
+		}
+		case OPERAND_TYPE_THIS_POINTER:
+		{
+			/*
+				The "this" register is a register that provides up to 4 pieces of information:
+				X: Which CB holds the instance data
+				Y: Base element offset of the instance data within the instance CB
+				Z: Base sampler index
+				W: Base Texture index
+
+				Can be different for each function call
+			*/
+			break;
+		}
         default:
         {
             ASSERT(0);
@@ -1255,7 +1334,7 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
 			const uint32_t ui32Register = psOperand->aui32ArraySizes[psOperand->iIndexDims-1];
 			InOutSignature* psOut;
 
-			if(GetOutputSignatureFromRegister(ui32Register, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psOut))
+			if(GetOutputSignatureFromRegister(ui32Register, psOperand->ui32CompMask, 0, &psContext->psShader->sInfo, &psOut))
 			{
 				if( psOut->eComponentType == INOUT_COMPONENT_UINT32)
 				{
@@ -1297,9 +1376,10 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
 			ConstantBuffer* psCBuf = NULL;
 			ShaderVarType* psVarType = NULL;
 			int32_t index = -1;
+			int32_t rebase = -1;
 			int foundVar;
 			GetConstantBufferFromBindingPoint(RGROUP_CBUFFER, psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
-			foundVar = GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index);
+			foundVar = GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index, &rebase);
 			if(foundVar && index == -1 && psOperand->psSubOperand[1] == NULL)
 			{
 				return psVarType->Type;

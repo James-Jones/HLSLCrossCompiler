@@ -63,6 +63,7 @@ typedef struct Instruction_TAG
     Operand asOperands[6];
     uint32_t bSaturate;
     uint32_t ui32FuncIndexWithinInterface;
+	RESINFO_RETURN_TYPE eResInfoReturnType;
 
     int bAddressOffset;
     int iUAddrOffset;
@@ -112,6 +113,7 @@ typedef struct Declaration_TAG
         uint32_t aui32HullPhaseInstanceInfo[2];
         float fMaxTessFactor;
         uint32_t ui32IndexRange;
+		uint32_t ui32GSInstanceCount;
 
         struct Interface_TAG
         {
@@ -230,6 +232,8 @@ typedef struct Shader_TAG
     int abInputReferencedByInstruction[MAX_SHADER_VEC4_INPUT];
 
 	int aiOpcodeUsed[NUM_OPCODES];
+
+	uint32_t ui32CurrentVertexOutputStream;
 
 } Shader;
 

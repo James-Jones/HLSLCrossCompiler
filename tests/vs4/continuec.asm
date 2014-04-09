@@ -8,8 +8,9 @@
 // cbuffer $Globals
 // {
 //
-//   float angle;                       // Offset:    0 Size:     4
-//   float2 angle2;                     // Offset:    4 Size:     8
+//   int p0;                            // Offset:    0 Size:     4 [unused]
+//   int p1;                            // Offset:    4 Size:     4
+//   int p2;                            // Offset:    8 Size:     4
 //
 // }
 //
@@ -26,7 +27,7 @@
 //
 // Name                 Index   Mask Register SysValue  Format   Used
 // -------------------- ----- ------ -------- -------- ------- ------
-// POSITION                 0   xyzw        0     NONE   float    yz 
+// POSITION                 0   xyzw        0     NONE   float   xyzw
 //
 //
 // Output signature:
@@ -34,24 +35,27 @@
 // Name                 Index   Mask Register SysValue  Format   Used
 // -------------------- ----- ------ -------- -------- ------- ------
 // SV_Position              0   xyzw        0      POS   float   xyzw
-// SIN                      2   xy          1     NONE   float   xy  
-// COS                      2     zw        1     NONE   float     zw
 //
 vs_5_0
 dcl_globalFlags refactoringAllowed
 dcl_constantbuffer cb0[1], immediateIndexed
-dcl_input v0.yz
+dcl_input v0.xyzw
 dcl_output_siv o0.xyzw, position
-dcl_output o1.xy
-dcl_output o1.zw
-dcl_temps 2
-add r0.x, cb0[0].x, cb0[0].x
-sincos o0.x, null, r0.x
-mov o0.y, v0.y
-sincos r0.x, r1.x, cb0[0].x
-add o0.z, r1.x, v0.z
-mov o0.w, r0.x
-sincos o1.xy, null, cb0[0].yzyy
-sincos null, o1.zw, cb0[0].yyyz
+dcl_temps 3
+mov r1.xy, cb0[0].yzyy
+mov r0.xyzw, v0.xyzw
+loop 
+  lt r1.z, l(100.000000), r0.x
+  breakc_nz r1.z
+  continuec_z r1.x
+  add r2.xyzw, r0.xyzw, r0.xyzw
+  ine r1.z, r1.y, l(0)
+  movc r1.w, r1.y, r1.y, l(0)
+  mov r0.xyzw, r2.xyzw
+  mov r1.y, r1.w
+  continuec_nz r1.z
+  mov r0.xyzw, r2.xyzw
+endloop 
+mov o0.xyzw, r0.xyzw
 ret 
-// Approximately 9 instruction slots used
+// Approximately 16 instruction slots used

@@ -444,6 +444,11 @@ void ShaderEffect::SetVec4(std::string& name, int count, float* v) {
     glUniform4fv(loc, count, v);
 }
 
+void ShaderEffect::SetVec3(std::string& name, int count, float* v) {
+    int loc = glGetUniformLocation(mProgram, name.c_str());
+    glUniform3fv(loc, count, v);
+}
+
 void ShaderEffect::SetFloat(std::string& name, int count, float* v) {
     int loc = glGetUniformLocation(mProgram, name.c_str());
     glUniform1fv(loc, count, v);

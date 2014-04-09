@@ -17,6 +17,7 @@ static enum {FOURCC_OSGN = FOURCC('O', 'S', 'G', 'N')}; //Output signature
 
 static enum {FOURCC_ISG1 = FOURCC('I', 'S', 'G', '1')}; //Input signature with Stream and MinPrecision
 static enum {FOURCC_OSG1 = FOURCC('O', 'S', 'G', '1')}; //Output signature with Stream and MinPrecision
+static enum {FOURCC_OSG5 = FOURCC('O', 'S', 'G', '5')}; //Output signature with Stream
 
 typedef struct DXBCContainerHeaderTAG
 {
@@ -255,6 +256,13 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
                 psOperand->aui32Swizzle[2] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 2);
                 psOperand->aui32Swizzle[3] = DecodeOperand4CompSwizzleSource(*pui32Tokens, 3);
             }
+			else
+			{
+				psOperand->aui32Swizzle[0] = OPERAND_4_COMPONENT_X;
+				psOperand->aui32Swizzle[1] = OPERAND_4_COMPONENT_Y;
+				psOperand->aui32Swizzle[2] = OPERAND_4_COMPONENT_Z;
+				psOperand->aui32Swizzle[3] = OPERAND_4_COMPONENT_W;
+			}
         }
         else
         if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
@@ -476,11 +484,14 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
             DecodeNameToken(pui32Token + 3, &psDecl->asOperands[0]);
             break;
         }
-        case OPCODE_DCL_INPUT_PS_SIV:
-        {
-            psDecl->value.eInterpolation = DecodeInterpolationMode(*pui32Token);
-            break;
-        }
+		case OPCODE_DCL_INPUT_PS_SIV:
+		{
+			psDecl->ui32NumOperands = 1;
+			psDecl->value.eInterpolation = DecodeInterpolationMode(*pui32Token);
+			DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
+			DecodeNameToken(pui32Token + 3, &psDecl->asOperands[0]);
+			break;
+		}
         case OPCODE_DCL_OUTPUT:
         {
             psDecl->ui32NumOperands = 1;
@@ -729,6 +740,18 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
             psDecl->sTGSM.ui32Count = pui32Token[ui32OperandOffset++];
             break;
         }
+		case OPCODE_DCL_STREAM:
+		{
+			psDecl->ui32NumOperands = 1;
+			DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
+			break;
+		}
+		case OPCODE_DCL_GS_INSTANCE_COUNT:
+		{
+			psDecl->ui32NumOperands = 0;
+			psDecl->value.ui32GSInstanceCount = pui32Token[1];
+			break;
+		}
         default:
         {
             //Reached end of declarations
@@ -912,6 +935,11 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_RCP:
 		case OPCODE_DERIV_RTX:
 		case OPCODE_DERIV_RTY:
+		case OPCODE_DERIV_RTX_COARSE:
+		case OPCODE_DERIV_RTX_FINE:
+		case OPCODE_DERIV_RTY_COARSE:
+		case OPCODE_DERIV_RTY_FINE:
+        case OPCODE_NOT:
         {
             psInst->ui32NumOperands = 2;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
@@ -921,6 +949,11 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 
         //Instructions with three operands go here
         case OPCODE_SINCOS:
+			{
+				psInst->ui32FirstSrc = 2;
+				//Intentional fall-through
+			}
+        case OPCODE_IMIN:
 		case OPCODE_MIN:
 		case OPCODE_IMAX:
 		case OPCODE_MAX:
@@ -932,6 +965,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_DP4:
         case OPCODE_NE:
         case OPCODE_OR:
+        case OPCODE_XOR:
         case OPCODE_LT:
         case OPCODE_IEQ:
         case OPCODE_IADD:
@@ -1080,13 +1114,6 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         }
         case OPCODE_EVAL_SAMPLE_INDEX:
         case OPCODE_EVAL_SNAPPED:
-        {
-            psInst->ui32NumOperands = 3;
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
-            break;
-        }
         case OPCODE_STORE_UAV_TYPED:
         case OPCODE_LD_UAV_TYPED:
         case OPCODE_LD_RAW:
@@ -1106,6 +1133,17 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
+            break;
+        }
+		case OPCODE_RESINFO:
+        {
+            psInst->ui32NumOperands = 3;
+
+			psInst->eResInfoReturnType = DecodeResInfoReturnType(pui32Token[0]);
+
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
+            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[2]);
             break;
         }
         case OPCODE_MSAD:
@@ -1506,6 +1544,7 @@ Shader* DecodeDXBC(uint32_t* data)
     refChunks.pui32Resources = NULL;
 	refChunks.pui32Inputs11 = NULL;
 	refChunks.pui32Outputs11 = NULL;
+	refChunks.pui32OutputsWithStreams = NULL;
 
 	chunkOffsets = (uint32_t*)(header + 1);
 
@@ -1549,6 +1588,11 @@ Shader* DecodeDXBC(uint32_t* data)
                 refChunks.pui32Outputs11 = (uint32_t*)(chunk + 1);
                 break;
             }
+			case FOURCC_OSG5:
+			{
+                refChunks.pui32OutputsWithStreams = (uint32_t*)(chunk + 1);
+				break;
+			}
             case FOURCC_SHDR:
             case FOURCC_SHEX:
             {

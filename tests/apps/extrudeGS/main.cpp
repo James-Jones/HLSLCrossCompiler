@@ -24,8 +24,6 @@ struct cbConstant
 	float padding;
 };
 
-const size_t ConstantVec4Count = sizeof(cbConstant)/sizeof(float)/4;
-
 struct cbChangesEveryFrame
 {
 	float World[16];
@@ -85,7 +83,7 @@ public:
 		mExtrudeEffect.SetFloat(std::string("cbChangesEveryFrameGS.Time"), 1, &gChangesEveryFrame.Time);
 
 		SetFloatArray(vLightDirs, &gConstant.vLightDir[0]);
-		mExtrudeEffect.SetVec4(std::string("cbConstantPS.vLightDir"), 1, &gConstant.vLightDir[0]);
+		mExtrudeEffect.SetVec3(std::string("cbConstantPS.vLightDir"), 1, &gConstant.vLightDir[0]);
 
 		gUserChanges.Explode = gExplode;
 		mExtrudeEffect.SetFloat(std::string("cbUserChangesGS.Explode"), 1, (float*)&gUserChanges.Explode);

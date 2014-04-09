@@ -187,6 +187,16 @@ static int HaveQueryLod(const GLLang eLang)
 	return 0;
 }
 
+static int HaveQueryLevels(const GLLang eLang)
+{
+	if(eLang >= LANG_430)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+
 static int HaveAtomicCounter(const GLLang eLang)
 {
 	if(eLang >= LANG_420)
