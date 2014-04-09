@@ -2083,8 +2083,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 				bcatcstr(glsl, "//FTOU\n");
 #endif
 				ui32DstFlags |= TO_FLAG_UNSIGNED_INTEGER;
-
-				ASSERT(GetOperandDataType(psContext, &psInst->asOperands[1]) == SVT_FLOAT);
 			}
 			else if(psInst->eOpcode == OPCODE_FTOI)
 			{
@@ -2093,8 +2091,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 				bcatcstr(glsl, "//FTOI\n");
 #endif
 				ui32DstFlags |= TO_FLAG_INTEGER;
-
-				ASSERT(GetOperandDataType(psContext, &psInst->asOperands[1]) == SVT_FLOAT);
 			}
 			else
 			{
@@ -2119,7 +2115,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 				if(srcCount == 4)
 					bcatcstr(glsl, " = uivec4(");
 
-				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+				TranslateOperand(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT);
 				if(srcCount != dstCount)
 				{
 					bcatcstr(glsl, ")");
@@ -2145,7 +2141,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 				if(srcCount == 4)
 					bcatcstr(glsl, " = ivec4(");
 
-				TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+				TranslateOperand(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT);
 
 				if(srcCount != dstCount)
 				{
