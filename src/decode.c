@@ -1096,7 +1096,6 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             psInst->eBooleanTestType = DecodeInstrTestBool(*pui32Token);
             psInst->ui32NumOperands = 1;
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
             break;
         }
 		case OPCODE_CUSTOMDATA:
