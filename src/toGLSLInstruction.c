@@ -2957,9 +2957,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_BFI:
         {
-			uint32_t numelements_width = GetMaxComponentFromComponentMask(&psInst->asOperands[1]);
-			uint32_t numelements_offset = GetMaxComponentFromComponentMask(&psInst->asOperands[2]);
-			uint32_t numelements_dest = GetMaxComponentFromComponentMask(&psInst->asOperands[0]);
+			uint32_t numelements_width = GetNumSwizzleElements(&psInst->asOperands[1]);
+			uint32_t numelements_offset = GetNumSwizzleElements(&psInst->asOperands[2]);
+			uint32_t numelements_dest = GetNumSwizzleElements(&psInst->asOperands[0]);
 			uint32_t numoverall_elements = min(min(numelements_width,numelements_offset),numelements_dest);
 			uint32_t i,j;
 #ifdef _DEBUG
