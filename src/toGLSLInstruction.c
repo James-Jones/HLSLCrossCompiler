@@ -5,6 +5,10 @@
 #include "stdio.h"
 #include "internal_includes/debug.h"
 
+#ifndef min
+#define min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
+
 extern void AddIndentation(HLSLCrossCompilerContext* psContext);
 
 typedef enum
@@ -1757,7 +1761,7 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
         case OPCODE_XOR:
         case OPCODE_NOT:
             {
-                eNewType = SVT_INT;
+                eNewType = SVT_UINT;
                 break;
             }
 		case OPCODE_IADD:
@@ -2953,21 +2957,39 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_BFI:
         {
+			uint32_t numelements_width = GetMaxComponentFromComponentMask(&psInst->asOperands[1]);
+			uint32_t numelements_offset = GetMaxComponentFromComponentMask(&psInst->asOperands[2]);
+			uint32_t numelements_dest = GetMaxComponentFromComponentMask(&psInst->asOperands[0]);
+			uint32_t numoverall_elements = min(min(numelements_width,numelements_offset),numelements_dest);
+			uint32_t i,j;
 #ifdef _DEBUG
             AddIndentation(psContext);
-            bcatcstr(glsl, "//BFI\n");
+			bcatcstr(glsl, "//BFI\n");
 #endif
+
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_INTEGER|TO_FLAG_DESTINATION);
-            bcatcstr(glsl, " = bitfieldInsert(");
-            TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_INTEGER);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_INTEGER);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_INTEGER);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
-            bcatcstr(glsl, ");\n");
+            bformata(glsl, " = ivec%d(",numoverall_elements);
+			for(i = 0; i < numoverall_elements; ++i)
+			{
+				bcatcstr(glsl,"bitfieldInsert(");
+
+				for(j = 4; j >= 1; --j)
+				{
+					static const char* bfi_elementidx[] = { "x","y","z","w" };
+					bcatcstr(glsl, " (");
+					TranslateOperand(psContext, &psInst->asOperands[j], TO_FLAG_INTEGER);
+					bformata(glsl, " ).%s",bfi_elementidx[i]);
+					if(j != 1)
+						bcatcstr(glsl, ",");
+				}
+				
+				bcatcstr(glsl, ") ");
+				if(i + 1 != numoverall_elements)
+					bcatcstr(glsl, ", ");
+			}
+            
+			bcatcstr(glsl, ");\n");
             break;
         }
         case OPCODE_CUT:
