@@ -1088,15 +1088,21 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         }
         case OPCODE_IF:
         case OPCODE_BREAKC:
-        case OPCODE_CALLC:
         case OPCODE_CONTINUEC:
         case OPCODE_RETC:
         case OPCODE_DISCARD:
         {
             psInst->eBooleanTestType = DecodeInstrTestBool(*pui32Token);
-            psInst->ui32NumOperands = 2;
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
-            ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
+			psInst->ui32NumOperands = 1;
+			ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+            break;
+        }
+		case OPCODE_CALLC:
+        {
+            psInst->eBooleanTestType = DecodeInstrTestBool(*pui32Token);
+			psInst->ui32NumOperands = 2;
+			ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[0]);
+			ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[1]);
             break;
         }
 		case OPCODE_CUSTOMDATA:
