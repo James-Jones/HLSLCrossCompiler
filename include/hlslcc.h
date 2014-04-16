@@ -414,7 +414,10 @@ static const unsigned int HLSLCC_FLAG_INOUT_SEMANTIC_NAMES = 0x80;
 extern "C" {
 #endif
 
-HLSLCC_API void HLSLCC_APIENTRY HLSLcc_SetMemoryFunctions(void* (*malloc_override)(size_t),void (*free_override)(void *),void* (*realloc_override)(void*,size_t));
+HLSLCC_API void HLSLCC_APIENTRY HLSLcc_SetMemoryFunctions(	void* (*malloc_override)(size_t),
+															void* (*calloc_override)(size_t,size_t),
+															void (*free_override)(void *),
+															void* (*realloc_override)(void*,size_t));
 
 HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
                                                      unsigned int flags,

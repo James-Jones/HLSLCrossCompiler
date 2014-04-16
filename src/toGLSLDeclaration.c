@@ -371,6 +371,10 @@ static void DeclareInput(
     Shader* psShader = psContext->psShader;
     bstring glsl = *psContext->currentGLSLString;
 
+	// This falls within the specified index ranges. The default is 0 if no input range is specified
+	if(psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber] == -1)
+		return;
+
     if(psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] == 0)
     {
         const char* vecType = "vec";

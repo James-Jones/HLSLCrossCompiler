@@ -521,7 +521,7 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
     Declaration* psDecl;
     uint32_t decl, inst;
     uint32_t bDeclareConstantTable = 0;
-    Shader* psShader = calloc(1, sizeof(Shader));
+    Shader* psShader = hlslcc_calloc(1, sizeof(Shader));
 
     memset(aui32ImmediateConst, 0, 256);
 

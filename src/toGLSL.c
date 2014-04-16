@@ -31,9 +31,10 @@
 #endif
 
 
-HLSLCC_API void HLSLCC_APIENTRY HLSLcc_SetMemoryFunctions(void* (*malloc_override)(size_t),void (*free_override)(void *),void* (*realloc_override)(void*,size_t))
+HLSLCC_API void HLSLCC_APIENTRY HLSLcc_SetMemoryFunctions(void* (*malloc_override)(size_t),void* (*calloc_override)(size_t,size_t),void (*free_override)(void *),void* (*realloc_override)(void*,size_t))
 {
-	hlslcc_malloc = malloc_override;	
+	hlslcc_malloc = malloc_override;
+	hlslcc_calloc = calloc_override;
 	hlslcc_free = free_override;	
 	hlslcc_realloc = realloc_override;
 }

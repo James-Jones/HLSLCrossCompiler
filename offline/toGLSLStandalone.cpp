@@ -571,6 +571,10 @@ void *malloc_hook(size_t size)
 {
 	return malloc(size);
 }
+void *calloc_hook(size_t num,size_t size)
+{
+	return calloc(num,size);
+}
 void *realloc_hook(void *p,size_t size)
 {
 	return realloc(p,size);
@@ -589,7 +593,7 @@ int Run(const char* srcPath, const char* destPath, GLLang language, int flags, c
     double crossCompileTime = 0;
     double glslCompileTime = 0;
 
-	HLSLcc_SetMemoryFunctions(malloc_hook,free_hook,realloc_hook);
+	HLSLcc_SetMemoryFunctions(malloc_hook,calloc_hook,free_hook,realloc_hook);
 
     InitTimer(&timer);
 

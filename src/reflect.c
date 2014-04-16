@@ -524,7 +524,7 @@ int GetInterfaceVarFromOffset(uint32_t ui32Offset, ShaderInfo* psShaderInfo, Sha
     return 0;
 }
 
-int GetInputSignatureFromRegister(const uint32_t ui32Register, ShaderInfo* psShaderInfo, InOutSignature** ppsOut)
+int GetInputSignatureFromRegister(const uint32_t ui32Register, const ShaderInfo* psShaderInfo, InOutSignature** ppsOut)
 {
     uint32_t i;
     const uint32_t ui32NumVars = psShaderInfo->ui32NumInputSignatures;

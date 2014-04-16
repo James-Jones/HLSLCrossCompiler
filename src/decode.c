@@ -1611,7 +1611,7 @@ Shader* DecodeDXBC(uint32_t* data)
         uint32_t ui32MajorVersion;
         uint32_t ui32MinorVersion;
 
-        psShader = calloc(1, sizeof(Shader));
+        psShader = hlslcc_calloc(1, sizeof(Shader));
 
         ui32MajorVersion = DecodeProgramMajorVersion(*shaderChunk);
         ui32MinorVersion = DecodeProgramMinorVersion(*shaderChunk);
