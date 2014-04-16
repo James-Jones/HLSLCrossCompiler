@@ -2962,6 +2962,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			uint32_t numelements_dest = GetNumSwizzleElements(&psInst->asOperands[0]);
 			uint32_t numoverall_elements = min(min(numelements_width,numelements_offset),numelements_dest);
 			uint32_t i,j;
+			static const char* bfi_elementidx[] = { "x","y","z","w" };
 #ifdef _DEBUG
             AddIndentation(psContext);
 			bcatcstr(glsl, "//BFI\n");
@@ -2976,10 +2977,13 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
 				for(j = 4; j >= 1; --j)
 				{
-					static const char* bfi_elementidx[] = { "x","y","z","w" };
-					bcatcstr(glsl, " (");
+					uint32_t opSwizzleCount = GetNumSwizzleElements(&psInst->asOperands[j]);
+
+					if(opSwizzleCount != 1)
+						bcatcstr(glsl, " (");
 					TranslateOperand(psContext, &psInst->asOperands[j], TO_FLAG_INTEGER);
-					bformata(glsl, " ).%s",bfi_elementidx[i]);
+					if(opSwizzleCount != 1)
+						bformata(glsl, " ).%s",bfi_elementidx[i]);
 					if(j != 1)
 						bcatcstr(glsl, ",");
 				}
@@ -2989,7 +2993,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 					bcatcstr(glsl, ", ");
 			}
             
-			bcatcstr(glsl, ");\n");
+			bcatcstr(glsl, ").");
+			for(i = 0; i < numoverall_elements; ++i)
+				bformata(glsl, "%s",bfi_elementidx[i]);
+			bcatcstr(glsl, ";\n");
             break;
         }
         case OPCODE_CUT:
