@@ -2,6 +2,7 @@
 #include "internal_includes/reflect.h"
 #include "internal_includes/debug.h"
 #include "internal_includes/decode.h"
+#include "internal_includes/hlslcc_malloc.h"
 #include "bstrlib.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -63,7 +64,7 @@ static void ReadInputSignatures(const uint32_t* pui32Tokens,
     const uint32_t ui32ElementCount = *pui32Tokens++;
     const uint32_t ui32Key = *pui32Tokens++;
 
-    psSignatures = malloc(sizeof(InOutSignature) * ui32ElementCount);
+    psSignatures = hlslcc_malloc(sizeof(InOutSignature) * ui32ElementCount);
     psShaderInfo->psInputSignatures = psSignatures;
     psShaderInfo->ui32NumInputSignatures = ui32ElementCount;
 
@@ -109,7 +110,7 @@ static void ReadOutputSignatures(const uint32_t* pui32Tokens,
     const uint32_t ui32ElementCount = *pui32Tokens++;
     const uint32_t ui32Key = *pui32Tokens++;
 
-    psSignatures = malloc(sizeof(InOutSignature) * ui32ElementCount);
+    psSignatures = hlslcc_malloc(sizeof(InOutSignature) * ui32ElementCount);
     psShaderInfo->psOutputSignatures = psSignatures;
     psShaderInfo->ui32NumOutputSignatures = ui32ElementCount;
 
@@ -192,7 +193,7 @@ static void ReadShaderVariableType(const uint32_t ui32MajorVersion,
 
 	if(ui32MemberCount)
 	{
-		varType->Members = (ShaderVarType*)malloc(sizeof(ShaderVarType)*ui32MemberCount);
+		varType->Members = (ShaderVarType*)hlslcc_malloc(sizeof(ShaderVarType)*ui32MemberCount);
 
 		ui32MemberOffset = pui32tokens[3];
 	
@@ -283,7 +284,7 @@ static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
 
 			psVar->haveDefaultValue = 1;
 
-			psVar->pui32DefaultValues = malloc(psVar->ui32Size);
+			psVar->pui32DefaultValues = hlslcc_malloc(psVar->ui32Size);
 
 			for(i=0; i<ui32NumDefaultValues;++i)
 			{
@@ -326,7 +327,7 @@ static void ReadResources(const uint32_t* pui32Tokens,//in
     //Resources
     pui32ResourceBindings = (const uint32_t*)((const char*)pui32FirstToken + ui32ResourceBindingOffset);
 
-    psResBindings = malloc(sizeof(ResourceBinding)*ui32NumResourceBindings);
+    psResBindings = hlslcc_malloc(sizeof(ResourceBinding)*ui32NumResourceBindings);
 
     psShaderInfo->ui32NumResourceBindings = ui32NumResourceBindings;
     psShaderInfo->psResourceBindings = psResBindings;
@@ -340,7 +341,7 @@ static void ReadResources(const uint32_t* pui32Tokens,//in
     //Constant buffers
     pui32ConstantBuffers = (const uint32_t*)((const char*)pui32FirstToken + ui32ConstantBufferOffset);
 
-    psConstantBuffers = malloc(sizeof(ConstantBuffer) * ui32NumConstantBuffers);
+    psConstantBuffers = hlslcc_malloc(sizeof(ConstantBuffer) * ui32NumConstantBuffers);
 
     psShaderInfo->ui32NumConstantBuffers = ui32NumConstantBuffers;
     psShaderInfo->psConstantBuffers = psConstantBuffers;
@@ -429,14 +430,14 @@ static void ReadInterfaces(const uint32_t* pui32Tokens,
     ClassType* psClassTypes;
     ClassInstance* psClassInstances;
 
-    psClassTypes = malloc(sizeof(ClassType) * ui32ClassTypeCount);
+    psClassTypes = hlslcc_malloc(sizeof(ClassType) * ui32ClassTypeCount);
     for(i=0; i<ui32ClassTypeCount; ++i)
     {
         pui16ClassTypes = ReadClassType(pui32FirstInterfaceToken, pui16ClassTypes, psClassTypes+i);
         psClassTypes[i].ui16ID = (uint16_t)i;
     }
 
-    psClassInstances = malloc(sizeof(ClassInstance) * ui32ClassInstanceCount);
+    psClassInstances = hlslcc_malloc(sizeof(ClassInstance) * ui32ClassInstanceCount);
     for(i=0; i<ui32ClassInstanceCount; ++i)
     {
         pui16ClassInstances = ReadClassInstance(pui32FirstInterfaceToken, pui16ClassInstances, psClassInstances+i);
@@ -815,16 +816,16 @@ void FreeShaderInfo(ShaderInfo* psShaderInfo)
 			ShaderVar* psVar = &psCBuf->asVars[var];
 			if(psVar->haveDefaultValue)
 			{
-				free(psVar->pui32DefaultValues);
+				hlslcc_free(psVar->pui32DefaultValues);
 			}
 		}
 	}
-    free(psShaderInfo->psInputSignatures);
-    free(psShaderInfo->psResourceBindings);
-    free(psShaderInfo->psConstantBuffers);
-    free(psShaderInfo->psClassTypes);
-    free(psShaderInfo->psClassInstances);
-    free(psShaderInfo->psOutputSignatures);
+    hlslcc_free(psShaderInfo->psInputSignatures);
+    hlslcc_free(psShaderInfo->psResourceBindings);
+    hlslcc_free(psShaderInfo->psConstantBuffers);
+    hlslcc_free(psShaderInfo->psClassTypes);
+    hlslcc_free(psShaderInfo->psClassInstances);
+    hlslcc_free(psShaderInfo->psOutputSignatures);
 
     psShaderInfo->ui32NumInputSignatures = 0;
     psShaderInfo->ui32NumResourceBindings = 0;
@@ -935,7 +936,7 @@ void LoadD3D9ConstantTable(const char* data,
     //Only 1 Constant Table in d3d9
     ASSERT(psInfo->ui32NumConstantBuffers==1);
 
-    psConstantBuffer = malloc(sizeof(ConstantBuffer));
+    psConstantBuffer = hlslcc_malloc(sizeof(ConstantBuffer));
 
     psInfo->psConstantBuffers = psConstantBuffer;
 
@@ -951,7 +952,7 @@ void LoadD3D9ConstantTable(const char* data,
 		}
 	}
 
-	psInfo->psResourceBindings = malloc(numResourceBindingsNeeded*sizeof(ResourceBinding));
+	psInfo->psResourceBindings = hlslcc_malloc(numResourceBindingsNeeded*sizeof(ResourceBinding));
 
 	var = &psConstantBuffer->asVars[0];
 

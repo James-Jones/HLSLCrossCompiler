@@ -1,0 +1,2 @@
+0(2) : warning C7568: #version 430 not fully supported on current GPU target profile
+0(21) : error C3009: layout specifier 'location', incompatable with 'uniform'

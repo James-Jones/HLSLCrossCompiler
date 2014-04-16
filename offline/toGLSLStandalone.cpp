@@ -567,6 +567,19 @@ int GetOptions(int argc, char** argv, Options* psOptions)
     return 1;
 }
 
+void *malloc_hook(size_t size)
+{
+	return malloc(size);
+}
+void *realloc_hook(void *p,size_t size)
+{
+	return realloc(p,size);
+}
+void free_hook(void *p)
+{
+	free(p);
+}
+
 int Run(const char* srcPath, const char* destPath, GLLang language, int flags, const char* reflectPath, GLSLCrossDependencyData* dependencies)
 {
     FILE* outputFile;
@@ -575,6 +588,8 @@ int Run(const char* srcPath, const char* destPath, GLLang language, int flags, c
     int compiledOK = 0;
     double crossCompileTime = 0;
     double glslCompileTime = 0;
+
+	HLSLcc_SetMemoryFunctions(malloc_hook,free_hook,realloc_hook);
 
     InitTimer(&timer);
 

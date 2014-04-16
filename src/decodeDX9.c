@@ -6,6 +6,7 @@
 #include "stdio.h"
 #include "internal_includes/reflect.h"
 #include "internal_includes/debug.h"
+#include "internal_includes/hlslcc_malloc.h"
 
 #define FOURCC(a, b, c, d) ((uint32_t)(uint8_t)(a) | ((uint32_t)(uint8_t)(b) << 8) | ((uint32_t)(uint8_t)(c) << 16) | ((uint32_t)(uint8_t)(d) << 24 ))
 static enum {FOURCC_CTAB = FOURCC('C', 'T', 'A', 'B')}; //Constant table
@@ -336,7 +337,7 @@ static void DecodeOperandDX9(const Shader* psShader,
 
         if(bRelativeAddr)
         {
-            psOperand->psSubOperand[0] = malloc(sizeof(Operand));
+            psOperand->psSubOperand[0] = hlslcc_malloc(sizeof(Operand));
             DecodeOperandDX9(psShader, ui32Token1, 0, ui32Flags, psOperand->psSubOperand[0]);
 
             psOperand->iIndexDims = INDEX_1D;
@@ -600,7 +601,7 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
         pui32CurrentToken += ui32InstLen + 1;
     }
 
-    psInst = malloc(sizeof(Instruction) * ui32NumInstructions);
+    psInst = hlslcc_malloc(sizeof(Instruction) * ui32NumInstructions);
     psShader->psInst = psInst;
     psShader->ui32InstCount = ui32NumInstructions;
 
@@ -613,7 +614,7 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
     //For declaring temps.
     ui32NumDeclarations++;
 
-    psDecl = malloc(sizeof(Declaration) * ui32NumDeclarations);
+    psDecl = hlslcc_malloc(sizeof(Declaration) * ui32NumDeclarations);
     psShader->psDecl = psDecl;
     psShader->ui32DeclCount = ui32NumDeclarations;
 

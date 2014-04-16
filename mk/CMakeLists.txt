@@ -63,6 +63,8 @@ SET(libHLSLcc_SOURCES
 ../src/internal_includes/tokens.h
 ../src/internal_includes/tokensDX9.h
 ../src/internal_includes/shaderLimits.h
+../src/internal_includes/hlslcc_malloc.h
+../src/internal_includes/hlslcc_malloc.c
 ${CBSTRING_HFILES}
 ../src/decode.c
 ../src/decodeDX9.c
@@ -73,9 +75,8 @@ ${CBSTRING_HFILES}
 ../src/toGLSLDeclaration.c
 ${CBSTRING_CFILES}
 )
-
 ADD_LIBRARY( libHLSLcc ${libHLSLcc_SOURCES} )
-
+	
 
 INCLUDE_DIRECTORIES( ../offline/cjson/ )
 
