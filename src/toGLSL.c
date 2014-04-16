@@ -377,7 +377,7 @@ const char* GetVersionString(GLLang language)
     }
 }
 
-void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
+void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,const GlExtensions *extensions)
 {
     bstring glsl;
     uint32_t i;
@@ -404,6 +404,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
     }
     psContext->currentGLSLString = &glsl;
     psShader->eTargetLanguage = language;
+	psShader->extensions = (const struct GlExtensions*)extensions;
     psContext->currentPhase = MAIN_PHASE;
 
     ClearDependencyData(psShader->eShaderType, psContext->psDependencies);
@@ -698,6 +699,7 @@ static void FreeSubOperands(Instruction* psInst, const uint32_t ui32NumInsts)
 HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
     unsigned int flags,
     GLLang language,
+	const GlExtensions *extensions,
     GLSLCrossDependencyData* dependencies,
     GLSLShader* result)
 {
@@ -725,7 +727,7 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
             sContext.havePostShaderCode[i] = 0;
         }
 
-        TranslateToGLSL(&sContext, &language);
+        TranslateToGLSL(&sContext, &language,extensions);
 
         switch(psShader->eShaderType)
         {
@@ -810,6 +812,7 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
 HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
     unsigned int flags,
     GLLang language,
+	const GlExtensions *extensions,
     GLSLCrossDependencyData* dependencies,
     GLSLShader* result)
 {
@@ -839,7 +842,7 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
 
     shader[readLength] = '\0';
 
-    success = TranslateHLSLFromMem(shader, flags, language, dependencies, result);
+    success = TranslateHLSLFromMem(shader, flags, language, extensions, dependencies, result);
 
     hlslcc_free(shader);
 

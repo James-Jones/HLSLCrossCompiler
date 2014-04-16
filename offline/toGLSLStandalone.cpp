@@ -598,7 +598,7 @@ int Run(const char* srcPath, const char* destPath, GLLang language, int flags, c
     InitTimer(&timer);
 
     ResetTimer(&timer);
-    compiledOK = TranslateHLSLFromFile(srcPath, flags, language, dependencies, &result);
+    compiledOK = TranslateHLSLFromFile(srcPath, flags, language, NULL , dependencies, &result);
     crossCompileTime = ReadTimer(&timer);
 
     if(compiledOK)

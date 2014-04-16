@@ -412,7 +412,7 @@ static void DeclareInput(
             }
         }
 
-        if( HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage) ||
+        if( HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage,psContext->psShader->extensions) ||
            (psShader->eShaderType == VERTEX_SHADER && HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage)))
         {
             bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
@@ -857,7 +857,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 							int stream = 0;
 							const char* OutputName = GetDeclaredOutputName(psContext, PIXEL_SHADER, psOperand, &stream);
 
-                            if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage) || HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage))
+                            if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage,psContext->psShader->extensions) || HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage))
                             {
                                 uint32_t index = 0;
                                 uint32_t renderTarget = psDecl->asOperands[0].ui32RegisterNumber;
@@ -907,7 +907,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
                     }
                 }
 
-                if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
+                if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
                 {
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
@@ -929,7 +929,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 				int stream = 0;
 				const char* OutputName = GetDeclaredOutputName(psContext, GEOMETRY_SHADER, psOperand, &stream);
 
-                if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
+                if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
                 {
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
@@ -952,7 +952,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 
                 ASSERT(psDecl->asOperands[0].ui32RegisterNumber!=0);//Reg 0 should be gl_out[gl_InvocationID].gl_Position.
 
-                if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
+                if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
                 {
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
@@ -964,7 +964,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 			{
 				int stream = 0;
 				const char* OutputName = GetDeclaredOutputName(psContext, DOMAIN_SHADER, psOperand, &stream);
-                if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
+                if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
                 {
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
@@ -1014,7 +1014,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 				&psShader->sInfo,
 				&psSignature);
 
-			if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage))
+			if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
 			{
 				bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
 			}
@@ -1074,7 +1074,7 @@ void DeclareUBOConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui3
 	}
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
-    if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
+    if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
         bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
 
 	bformata(glsl, "uniform %s {\n ", Name);
@@ -1122,7 +1122,7 @@ void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t u
         &psCBuf->asVars[0].sType);
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
-    if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
+    if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
         bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
 
     if(ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
@@ -1162,7 +1162,7 @@ void DeclareStructConstants(HLSLCrossCompilerContext* psContext, const uint32_t 
 	}
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
-    if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
+    if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
         bformata(glsl, "layout(location = %d) ", ui32BindingPoint);
     bcatcstr(glsl, "uniform struct ");
     TranslateOperand(psContext, psOperand, TO_FLAG_DECLARATION_NAME);
@@ -1638,7 +1638,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			// We don't have a original resource name, maybe generate one???
 			if(!psCBuf)
 			{
-				if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
+				if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
 					bformata(glsl, "layout(location = %d) ",ui32BindingPoint);
 					
 				bformata(glsl, "uniform vec4 cb%d[%d];\n", ui32BindingPoint,psOperand->aui32ArraySizes[1]);
@@ -1697,7 +1697,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
         case OPCODE_DCL_RESOURCE:
         {
-            if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage))
+            if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
             {
                 //Constant buffer locations start at 0. Resource locations start at ui32NumConstantBuffers.
                 bformata(glsl, "layout(location = %d) ", 

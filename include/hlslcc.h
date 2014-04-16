@@ -32,6 +32,11 @@ typedef enum
     LANG_440,
 } GLLang;
 
+typedef struct {
+	uint32_t ARB_explicit_attrib_location : 1;
+	uint32_t ARB_explicit_uniform_location : 1;
+}GlExtensions;
+
 enum {MAX_SHADER_VEC4_OUTPUT = 512};
 enum {MAX_SHADER_VEC4_INPUT = 512};
 enum {MAX_TEXTURES = 128};
@@ -422,12 +427,15 @@ HLSLCC_API void HLSLCC_APIENTRY HLSLcc_SetMemoryFunctions(	void* (*malloc_overri
 HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
                                                      unsigned int flags,
                                                      GLLang language,
+													 const GlExtensions *extensions,
                                                      GLSLCrossDependencyData* dependencies,
-                                                     GLSLShader* result);
+                                                     GLSLShader* result
+													 );
 
 HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
                                                     unsigned int flags,
                                                     GLLang language,
+													const GlExtensions *extensions,
                                                     GLSLCrossDependencyData* dependencies,
                                                     GLSLShader* result);
 
