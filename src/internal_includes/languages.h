@@ -23,7 +23,9 @@ static int WriteToFragData(const GLLang eLang)
 
 static int ShaderBitEncodingSupported(const GLLang eLang)
 {
-	if(eLang != LANG_ES_300 && eLang < LANG_330)
+	if( eLang != LANG_ES_300 &&
+		eLang != LANG_ES_310 &&
+		eLang < LANG_330)
 	{
 		return 0;
 	}
@@ -43,7 +45,7 @@ static int HaveOverloadedTextureFuncs(const GLLang eLang)
 //Not present in 120, ignored in other desktop languages.
 static int HavePrecisionQualifers(const GLLang eLang)
 {
-	if(eLang == LANG_ES_100 || eLang == LANG_ES_300)
+	if(eLang >= LANG_ES_100 && eLang <= LANG_ES_310)
 	{
 		return 1;
 	}
@@ -53,7 +55,7 @@ static int HavePrecisionQualifers(const GLLang eLang)
 //Only on vertex inputs and pixel outputs.
 static int HaveLimitedInOutLocationQualifier(const GLLang eLang)
 {
-    if(eLang >= LANG_330 || eLang == LANG_ES_300)
+    if(eLang >= LANG_330 || eLang == LANG_ES_300 || eLang == LANG_ES_310)
     {
         return 1;
     }
@@ -62,7 +64,7 @@ static int HaveLimitedInOutLocationQualifier(const GLLang eLang)
 
 static int HaveInOutLocationQualifier(const GLLang eLang)
 {
-    if(eLang >= LANG_410)
+    if(eLang >= LANG_410 || eLang == LANG_ES_310)
     {
         return 1;
     }
@@ -74,7 +76,7 @@ static int HaveInOutLocationQualifier(const GLLang eLang)
 static int HaveUniformBindingsAndLocations(const GLLang eLang)
 {
 #if defined(WORK_IN_PROGRESS)
-    if(eLang >= LANG_430)
+    if(eLang >= LANG_430 || eLang == LANG_ES_310)
     {
         return 1;
     }
@@ -127,7 +129,7 @@ static int HaveUVec(const GLLang eLang)
 
 static int HaveGather(const GLLang eLang)
 {
-	if(eLang >= LANG_400)
+	if(eLang >= LANG_400 || eLang == LANG_ES_310)
 	{
 		return 1;
 	}
@@ -136,7 +138,7 @@ static int HaveGather(const GLLang eLang)
 
 static int HaveGatherNonConstOffset(const GLLang eLang)
 {
-	if(eLang >= LANG_420)
+	if(eLang >= LANG_420 || eLang == LANG_ES_310)
 	{
 		return 1;
 	}
@@ -165,7 +167,7 @@ static int HaveQueryLevels(const GLLang eLang)
 
 static int HaveAtomicCounter(const GLLang eLang)
 {
-	if(eLang >= LANG_420)
+	if(eLang >= LANG_420 || eLang == LANG_ES_310)
 	{
 		return 1;
 	}
@@ -183,7 +185,7 @@ static int HaveAtomicMem(const GLLang eLang)
 
 static int HaveCompute(const GLLang eLang)
 {
-	if(eLang >= LANG_430)
+	if(eLang >= LANG_430 || eLang == LANG_ES_310)
 	{
 		return 1;
 	}
@@ -192,7 +194,7 @@ static int HaveCompute(const GLLang eLang)
 
 static int HaveImageLoadStore(const GLLang eLang)
 {
-	if(eLang >= LANG_420)
+	if(eLang >= LANG_420 || eLang == LANG_ES_310)
 	{
 		return 1;
 	}

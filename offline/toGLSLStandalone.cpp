@@ -218,6 +218,10 @@ GLLang LanguageFromString(const char* str)
     {
         return LANG_ES_300;
     }
+	if(strcmp(str, "es310")==0)
+	{
+		return LANG_ES_310;
+	}
     if(strcmp(str, "120")==0)
     {
         return LANG_120;

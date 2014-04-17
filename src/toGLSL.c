@@ -252,7 +252,7 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
     }
 
     /* There is no default precision qualifier for the following sampler types in either the vertex or fragment language: */
-    if(psContext->psShader->eTargetLanguage == LANG_ES_300 )
+    if(psContext->psShader->eTargetLanguage == LANG_ES_300 || psContext->psShader->eTargetLanguage == LANG_ES_310)
     {
         bcatcstr(glsl,"precision lowp sampler3D;\n");
         bcatcstr(glsl,"precision lowp samplerCubeShadow;\n");
@@ -267,6 +267,26 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
         bcatcstr(glsl,"precision lowp usampler3D;\n");
         bcatcstr(glsl,"precision lowp usamplerCube;\n");
         bcatcstr(glsl,"precision lowp usampler2DArray;\n");
+
+		if(psContext->psShader->eTargetLanguage == LANG_ES_310)
+		{
+			bcatcstr(glsl,"precision lowp isampler2DMS;\n");
+			bcatcstr(glsl,"precision lowp usampler2D;\n");
+			bcatcstr(glsl,"precision lowp usampler3D;\n");
+			bcatcstr(glsl,"precision lowp usamplerCube;\n");
+			bcatcstr(glsl,"precision lowp usampler2DArray;\n");
+			bcatcstr(glsl,"precision lowp usampler2DMS;\n");
+			bcatcstr(glsl,"precision lowp image2D;\n");
+			bcatcstr(glsl,"precision lowp image3D;\n");
+			bcatcstr(glsl,"precision lowp imageCube;\n");
+			bcatcstr(glsl,"precision lowp image2DArray;\n");
+			bcatcstr(glsl,"precision lowp iimage2D;\n");
+			bcatcstr(glsl,"precision lowp iimage3D;\n");
+			bcatcstr(glsl,"precision lowp iimageCube;\n");
+			bcatcstr(glsl,"precision lowp uimage2DArray;\n");
+			//Only highp is valid for atomic_uint
+			bcatcstr(glsl,"precision highp atomic_uint;\n");
+		}
     }
 
     if(SubroutinesSupported(psContext->psShader->eTargetLanguage))
@@ -307,6 +327,11 @@ const char* GetVersionString(GLLang language)
         case LANG_ES_300:
         {
             return "#version 300 es\n";
+            break;
+        }
+        case LANG_ES_310:
+        {
+            return "#version 310 es\n";
             break;
         }
         case LANG_120:

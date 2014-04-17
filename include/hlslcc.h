@@ -20,6 +20,7 @@ typedef enum
     LANG_DEFAULT,// Depends on the HLSL shader model.
     LANG_ES_100,
     LANG_ES_300,
+	LANG_ES_310,
     LANG_120,
     LANG_130,
     LANG_140,
