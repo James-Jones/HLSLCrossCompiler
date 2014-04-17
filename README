@@ -18,6 +18,7 @@ Work is underway to support the DX9 bytecode formats:
 Supported target languages:
   GLSL ES 100
   GLSL ES 300
+  GLSL ES 310
   GLSL 120
   GLSL 130
   GLSL 140
