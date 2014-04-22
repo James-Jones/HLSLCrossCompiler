@@ -151,6 +151,8 @@ typedef struct Declaration_TAG
 
 static enum {MAX_TEMP_VEC4 = 512};
 
+static enum {MAX_GROUPSHARED = 8};
+
 typedef struct Shader_TAG
 {
     uint32_t ui32MajorVersion;
@@ -234,6 +236,8 @@ typedef struct Shader_TAG
 	int aiOpcodeUsed[NUM_OPCODES];
 
 	uint32_t ui32CurrentVertexOutputStream;
+
+	ShaderVarType sGroupSharedVarType[MAX_GROUPSHARED];
 
 } Shader;
 

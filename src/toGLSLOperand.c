@@ -1208,6 +1208,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         case OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY:
         {
             bformata(glsl, "TGSM%d", psOperand->ui32RegisterNumber);
+			*pui32IgnoreSwizzle = 1;
             break;
         }
 		case OPERAND_TYPE_INPUT_PRIMITIVEID:

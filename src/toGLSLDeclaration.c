@@ -2301,10 +2301,37 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
 		case OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED:
 		{
-			bcatcstr(glsl, "shared float ");
+			ShaderVarType* psVarType = &psShader->sGroupSharedVarType[psDecl->asOperands[0].ui32RegisterNumber];
+
+			ASSERT(psDecl->asOperands[0].ui32RegisterNumber < MAX_GROUPSHARED);
+
+			switch(psDecl->sTGSM.ui32Stride)
+			{
+			case 4:
+				bcatcstr(glsl, "shared float ");
+				break;
+			case 8:
+				bcatcstr(glsl, "shared vec2 ");
+				break;
+			case 12:
+				bcatcstr(glsl, "shared vec3 ");
+				break;
+			case 16:
+				bcatcstr(glsl, "shared vec4 ");
+				break;
+			default:
+				ASSERT(0);
+				break;
+			}
 			TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
             bformata(glsl, "[%d];\n",
-				psDecl->sTGSM.ui32Stride * psDecl->sTGSM.ui32Count / 4);
+				psDecl->sTGSM.ui32Count);
+
+			memset(psVarType, 0, sizeof(ShaderVarType));
+			strcpy(psVarType->Name, "$Element");
+
+			psVarType->Columns = psDecl->sTGSM.ui32Stride/4;
+			psVarType->Elements = psDecl->sTGSM.ui32Count;
 			break;
 		}
 		case OPCODE_DCL_STREAM:

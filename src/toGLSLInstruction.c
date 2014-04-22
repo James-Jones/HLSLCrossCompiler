@@ -800,12 +800,13 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
 
 static ShaderVarType* LookupStructuredVar(HLSLCrossCompilerContext* psContext,
 								   Operand* psResource,
-								   Operand* psByteOffset)
+								   Operand* psByteOffset,
+								   uint32_t ui32Component)
 {
 	ConstantBuffer* psCBuf = NULL;
 	ShaderVarType* psVarType = NULL;
 	uint32_t aui32Swizzle[4] = {OPERAND_4_COMPONENT_X};
-	int byteOffset = ((int*)psByteOffset->afImmediates)[0];
+	int byteOffset = ((int*)psByteOffset->afImmediates)[0] + 4*ui32Component;
 	int vec4Offset = 0;
 	int32_t index = -1;
 	int32_t rebase = -1;
@@ -836,9 +837,14 @@ static ShaderVarType* LookupStructuredVar(HLSLCrossCompilerContext* psContext,
 			GetConstantBufferFromBindingPoint(RGROUP_TEXTURE, psResource->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
 			break;
 		case OPERAND_TYPE_UNORDERED_ACCESS_VIEW:
-		case OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY:
 			GetConstantBufferFromBindingPoint(RGROUP_UAV, psResource->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
 			break;
+		case OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY:
+			{
+				//dcl_tgsm_structured defines the amount of memory and a stride.
+				ASSERT(psResource->ui32RegisterNumber < MAX_GROUPSHARED);
+				return &psContext->psShader->sGroupSharedVarType[psResource->ui32RegisterNumber];
+			}
 		default:
 			ASSERT(0);
 			break;
@@ -857,13 +863,14 @@ static void TranslateShaderStorageStore(HLSLCrossCompilerContext* psContext, Ins
     ShaderVarType* psVarType = NULL;
 	uint32_t ui32DataTypeFlag = TO_FLAG_INTEGER;
 	int component;
-	int destComponent = 0;
+	int srcComponent = 0;
 
 	Operand* psDest = 0;
 	Operand* psDestAddr = 0;
 	Operand* psDestByteOff = 0;
 	Operand* psSrc = 0;
 	int structured = 0;
+	int groupshared = 0;
 
 	switch(psInst->eOpcode)
 	{
@@ -873,7 +880,7 @@ static void TranslateShaderStorageStore(HLSLCrossCompilerContext* psContext, Ins
 		psDestByteOff = &psInst->asOperands[2];
 		psSrc = &psInst->asOperands[3];
 		structured = 1;
-		psVarType = LookupStructuredVar(psContext, psDest, psDestByteOff);
+		
 		break;
 	case OPCODE_STORE_RAW:
 		psDest = &psInst->asOperands[0];
@@ -890,6 +897,11 @@ static void TranslateShaderStorageStore(HLSLCrossCompilerContext* psContext, Ins
 		{
 			SHADER_VARIABLE_TYPE eSrcDataType = GetOperandDataType(psContext, psSrc);
 
+			if(structured)
+			{
+				psVarType = LookupStructuredVar(psContext, psDest, psDestByteOff, component);
+			}
+
 			AddIndentation(psContext);
 
 			if(structured && psDest->eType == OPERAND_TYPE_RESOURCE)
@@ -902,11 +914,29 @@ static void TranslateShaderStorageStore(HLSLCrossCompilerContext* psContext, Ins
 			}
 			bformata(glsl, "[");
 			TranslateOperand(psContext, psDestAddr ? psDestAddr : psDestByteOff, TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
+
+			//RAW: change component using index offset
+			if(!structured)
+			{
+				bformata(glsl, " + %d", component);
+			}
+
 			bformata(glsl, "]");
 
-			if(structured && strcmp(psVarType->Name, "$Element") != 0)
+			if(structured)
 			{
-				bformata(glsl, ".%s", psVarType->Name);
+				if(strcmp(psVarType->Name, "$Element") != 0)
+				{
+					bformata(glsl, ".%s", psVarType->Name);
+				}
+
+				if(psDest->eType == OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY)
+				{
+					if(psContext->psShader->sGroupSharedVarType[psDest->ui32RegisterNumber].Columns > 1)
+					{
+						bformata(glsl, swizzleString[component]);
+					}
+				}
 			}
 
 			bformata(glsl, " = ");
@@ -939,6 +969,9 @@ static void TranslateShaderStorageStore(HLSLCrossCompilerContext* psContext, Ins
 					break;
 				}
 			}
+
+			if(GetNumSwizzleElements(psSrc) > 1)
+				bformata(glsl, swizzleString[srcComponent++]);
 
 			//Double takes an extra slot.
 			if(structured && psVarType->Type == SVT_DOUBLE)
@@ -974,7 +1007,6 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 		psSrc = &psInst->asOperands[3];
 		structured = 1;
 		ASSERT(((int*)psSrcByteOff->afImmediates)[0] == 0); //TODO: byte-offset. Fail assert if there is one.
-		psVarType = LookupStructuredVar(psContext, psSrc, psSrcByteOff);
 		break;
 	case OPCODE_LD_RAW:
 		psDest = &psInst->asOperands[0];
@@ -990,6 +1022,11 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 		ASSERT(psDest->eSelMode == OPERAND_4_COMPONENT_MASK_MODE);
 		if(psDest->ui32CompMask & (1<<component))
 		{
+			if(structured)
+			{
+				psVarType = LookupStructuredVar(psContext, psSrc, psSrcByteOff, psSrc->aui32Swizzle[component]);
+			}
+
 			AddIndentation(psContext);
 
 			aui32Swizzle[0] = psSrc->aui32Swizzle[component];
@@ -1013,6 +1050,12 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 			}
 			TranslateOperand(psContext, psSrcAddr ? psSrcAddr : psSrcByteOff, TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
 
+			//RAW: change component using index offset
+			if(!structured)
+			{
+				bformata(glsl, " + %d", psSrc->aui32Swizzle[component]);
+			}
+
 			bformata(glsl, "]");
 			if(structured)
 			{
@@ -1021,9 +1064,17 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 					bformata(glsl, ".%s", psVarType->Name);
 				}
 
-				//Double takes an extra slot.
-				if(psVarType->Type == SVT_DOUBLE)
+				if(psSrc->eType == OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY)
 				{
+					if(psContext->psShader->sGroupSharedVarType[psSrc->ui32RegisterNumber].Columns > 1)
+					{
+						bformata(glsl, swizzleString[component]);
+					}
+				}
+
+				if( psVarType->Type == SVT_DOUBLE)
+				{
+					//Double takes an extra slot.
 					component++;
 				}
 			}
@@ -1293,7 +1344,7 @@ void TranslateAtomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
     AddIndentation(psContext);
 
-	psVarType = LookupStructuredVar(psContext, dest, destAddr);
+	psVarType = LookupStructuredVar(psContext, dest, destAddr, 0);
 
 	if(previousValue)
 	{
@@ -1665,7 +1716,7 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 			{
 				Operand* dest = &psInst->asOperands[1];
 				Operand* destAddr = &psInst->asOperands[2];
-				ShaderVarType* type = LookupStructuredVar(psContext, dest, destAddr);
+				ShaderVarType* type = LookupStructuredVar(psContext, dest, destAddr, 0);
 				eNewType = type->Type;
 				break;
 			}
