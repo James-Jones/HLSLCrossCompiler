@@ -598,7 +598,11 @@ int Run(const char* srcPath, const char* destPath, GLLang language, int flags, c
     InitTimer(&timer);
 
     ResetTimer(&timer);
-    compiledOK = TranslateHLSLFromFile(srcPath, flags, language, NULL , dependencies, &result);
+	GlExtensions ext;
+	ext.ARB_explicit_attrib_location = 0;
+	ext.ARB_explicit_uniform_location = 0;
+	ext.ARB_shading_language_420pack = 0;
+    compiledOK = TranslateHLSLFromFile(srcPath, flags, language, &ext , dependencies, &result);
     crossCompileTime = ReadTimer(&timer);
 
     if(compiledOK)

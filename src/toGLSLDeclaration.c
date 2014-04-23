@@ -1641,7 +1641,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
 					bformata(glsl, "layout(location = %d) ",ui32BindingPoint);
 					
-				bformata(glsl, "uniform vec4 cb%d[%d];\n", ui32BindingPoint,psOperand->aui32ArraySizes[1]);
+				bformata(glsl, "layout(std140) uniform ConstantBuffer%d {\n\tvec4 data[%d];\n} cb%d;\n", ui32BindingPoint,psOperand->aui32ArraySizes[1],ui32BindingPoint);
 				break;
 			}
 

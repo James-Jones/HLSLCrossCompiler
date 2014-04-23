@@ -407,6 +407,16 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 	psShader->extensions = (const struct GlExtensions*)extensions;
     psContext->currentPhase = MAIN_PHASE;
 
+	if(extensions)
+	{
+		if(extensions->ARB_explicit_attrib_location)
+			bcatcstr(glsl,"#extension GL_ARB_explicit_attrib_location : require\n");
+		if(extensions->ARB_explicit_uniform_location)
+			bcatcstr(glsl,"#extension GL_ARB_explicit_uniform_location : require\n");
+		if(extensions->ARB_shading_language_420pack)
+			bcatcstr(glsl,"#extension GL_ARB_shading_language_420pack : require\n");
+	}
+
     ClearDependencyData(psShader->eShaderType, psContext->psDependencies);
 
     AddVersionDependentCode(psContext);

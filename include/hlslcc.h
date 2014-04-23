@@ -35,6 +35,7 @@ typedef enum
 typedef struct {
 	uint32_t ARB_explicit_attrib_location : 1;
 	uint32_t ARB_explicit_uniform_location : 1;
+	uint32_t ARB_shading_language_420pack : 1;
 }GlExtensions;
 
 enum {MAX_SHADER_VEC4_OUTPUT = 512};
