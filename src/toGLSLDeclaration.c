@@ -220,12 +220,7 @@ const char* GetDeclaredInputName(const HLSLCrossCompilerContext* psContext, cons
 	char* cstr;
 	InOutSignature* psIn;
 
-	if((psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES) &&
-		GetInputSignatureFromRegister(psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psIn))
-	{
-		inputName = bformat("%s%d", psIn->SemanticName, psIn->ui32SemanticIndex);
-	}
-	else if(eShaderType == GEOMETRY_SHADER)
+	if(eShaderType == GEOMETRY_SHADER)
 	{
 		inputName = bformat("VtxOutput%d", psOperand->ui32RegisterNumber);
 	}
@@ -253,6 +248,10 @@ const char* GetDeclaredInputName(const HLSLCrossCompilerContext* psContext, cons
 		ASSERT(eShaderType == VERTEX_SHADER);
 		inputName = bformat("dcl_Input%d", psOperand->ui32RegisterNumber);
 	}
+	if((psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES) && GetInputSignatureFromRegister(psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psIn))
+	{
+		bformata(inputName,"_%s%d", psIn->SemanticName, psIn->ui32SemanticIndex);
+	}
 
 	cstr = bstr2cstr(inputName, '\0');
 	bdestroy(inputName);
@@ -276,11 +275,7 @@ const char* GetDeclaredOutputName(const HLSLCrossCompilerContext* psContext,
 
 	ASSERT(foundOutput);
 
-	if(psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES)
-	{
-		outputName = bformat("%s%d", psOut->SemanticName, psOut->ui32SemanticIndex);
-	}
-	else if(eShaderType == GEOMETRY_SHADER)
+	if(eShaderType == GEOMETRY_SHADER)
 	{
 		if(psOut->ui32Stream != 0)
 		{
@@ -316,6 +311,10 @@ const char* GetDeclaredOutputName(const HLSLCrossCompilerContext* psContext,
 	{
 		ASSERT(eShaderType == HULL_SHADER);
 		outputName = bformat("HullOutput%d", psOperand->ui32RegisterNumber);
+	}
+	if(psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES)
+	{
+		bformata(outputName, "_%s%d", psOut->SemanticName, psOut->ui32SemanticIndex);
 	}
 
 	cstr = bstr2cstr(outputName, '\0');
