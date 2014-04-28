@@ -9,6 +9,7 @@
 #include "internal_includes/toGLSLDeclaration.h"
 #include "internal_includes/languages.h"
 #include "internal_includes/debug.h"
+#include "internal_includes/hlslcc_malloc.h"
 
 #ifndef GL_VERTEX_SHADER_ARB
 #define GL_VERTEX_SHADER_ARB              0x8B31
@@ -28,6 +29,15 @@
 #ifndef GL_COMPUTE_SHADER
 #define GL_COMPUTE_SHADER 0x91B9
 #endif
+
+
+HLSLCC_API void HLSLCC_APIENTRY HLSLcc_SetMemoryFunctions(void* (*malloc_override)(size_t),void* (*calloc_override)(size_t,size_t),void (*free_override)(void *),void* (*realloc_override)(void*,size_t))
+{
+	hlslcc_malloc = malloc_override;
+	hlslcc_calloc = calloc_override;
+	hlslcc_free = free_override;	
+	hlslcc_realloc = realloc_override;
+}
 
 static void ClearDependencyData(SHADER_TYPE eType, GLSLCrossDependencyData* depends)
 {
@@ -392,7 +402,7 @@ const char* GetVersionString(GLLang language)
     }
 }
 
-void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
+void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,const GlExtensions *extensions)
 {
     bstring glsl;
     uint32_t i;
@@ -419,7 +429,18 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage)
     }
     psContext->currentGLSLString = &glsl;
     psShader->eTargetLanguage = language;
+	psShader->extensions = (const struct GlExtensions*)extensions;
     psContext->currentPhase = MAIN_PHASE;
+
+	if(extensions)
+	{
+		if(extensions->ARB_explicit_attrib_location)
+			bcatcstr(glsl,"#extension GL_ARB_explicit_attrib_location : require\n");
+		if(extensions->ARB_explicit_uniform_location)
+			bcatcstr(glsl,"#extension GL_ARB_explicit_uniform_location : require\n");
+		if(extensions->ARB_shading_language_420pack)
+			bcatcstr(glsl,"#extension GL_ARB_shading_language_420pack : require\n");
+	}
 
     ClearDependencyData(psShader->eShaderType, psContext->psDependencies);
 
@@ -702,7 +723,7 @@ static void FreeSubOperands(Instruction* psInst, const uint32_t ui32NumInsts)
 			{
 				if(psCurrentInst->asOperands[ui32Operand].psSubOperand[ui32SubOperand])
 				{
-					free(psCurrentInst->asOperands[ui32Operand].psSubOperand[ui32SubOperand]);
+					hlslcc_free(psCurrentInst->asOperands[ui32Operand].psSubOperand[ui32SubOperand]);
 					psCurrentInst->asOperands[ui32Operand].psSubOperand[ui32SubOperand] = NULL;
 				}
 			}
@@ -713,6 +734,7 @@ static void FreeSubOperands(Instruction* psInst, const uint32_t ui32NumInsts)
 HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
     unsigned int flags,
     GLLang language,
+	const GlExtensions *extensions,
     GLSLCrossDependencyData* dependencies,
     GLSLShader* result)
 {
@@ -740,7 +762,7 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
             sContext.havePostShaderCode[i] = 0;
         }
 
-        TranslateToGLSL(&sContext, &language);
+        TranslateToGLSL(&sContext, &language,extensions);
 
         switch(psShader->eShaderType)
         {
@@ -784,27 +806,28 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
             bdestroy(sContext.postShaderCode[i]);
         }
 
-        free(psShader->psHSControlPointPhaseDecl);
+        hlslcc_free(psShader->psHSControlPointPhaseDecl);
 		FreeSubOperands(psShader->psHSControlPointPhaseInstr, psShader->ui32HSControlPointInstrCount);
-        free(psShader->psHSControlPointPhaseInstr);
+        hlslcc_free(psShader->psHSControlPointPhaseInstr);
 
         for(i=0; i < psShader->ui32ForkPhaseCount; ++i)
         {
-            free(psShader->apsHSForkPhaseDecl[i]);
+            hlslcc_free(psShader->apsHSForkPhaseDecl[i]);
 			FreeSubOperands(psShader->apsHSForkPhaseInstr[i], psShader->aui32HSForkInstrCount[i]);
-            free(psShader->apsHSForkPhaseInstr[i]);
+            hlslcc_free(psShader->apsHSForkPhaseInstr[i]);
         }
-        free(psShader->psHSJoinPhaseDecl);
+        hlslcc_free(psShader->psHSJoinPhaseDecl);
 		FreeSubOperands(psShader->psHSJoinPhaseInstr, psShader->ui32HSJoinInstrCount);
-        free(psShader->psHSJoinPhaseInstr);
+        hlslcc_free(psShader->psHSJoinPhaseInstr);
 
-        free(psShader->psDecl);
+        hlslcc_free(psShader->psDecl);
 		FreeSubOperands(psShader->psInst, psShader->ui32InstCount);
-        free(psShader->psInst);
+        hlslcc_free(psShader->psInst);
         
-        result->reflection = psShader->sInfo;
+		memcpy(&result->reflection,&psShader->sInfo,sizeof(psShader->sInfo));
+        
 
-        free(psShader);
+        hlslcc_free(psShader);
 
 		success = 1;
     }
@@ -824,12 +847,13 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
 HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
     unsigned int flags,
     GLLang language,
+	const GlExtensions *extensions,
     GLSLCrossDependencyData* dependencies,
     GLSLShader* result)
 {
     FILE* shaderFile;
     int length;
-    int readLength;
+    size_t readLength;
     char* shader;
 	int success = 0;
 
@@ -844,7 +868,7 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
     length = ftell(shaderFile);
     fseek(shaderFile, 0, SEEK_SET);
 
-    shader = (char*)malloc(length+1);
+    shader = (char*)hlslcc_malloc(length+1);
 
     readLength = fread(shader, 1, length, shaderFile);
 
@@ -853,9 +877,9 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
 
     shader[readLength] = '\0';
 
-    success = TranslateHLSLFromMem(shader, flags, language, dependencies, result);
+    success = TranslateHLSLFromMem(shader, flags, language, extensions, dependencies, result);
 
-    free(shader);
+    hlslcc_free(shader);
 
     return success;
 }

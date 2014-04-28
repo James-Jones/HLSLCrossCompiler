@@ -5,6 +5,10 @@
 #include "stdio.h"
 #include "internal_includes/debug.h"
 
+#ifndef min
+#define min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
+
 extern void AddIndentation(HLSLCrossCompilerContext* psContext);
 
 typedef enum
@@ -125,6 +129,138 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
 			}
 		}
     }
+}
+static void AddMOVCBinaryOp(HLSLCrossCompilerContext* psContext,const Operand *pDest,const Operand *src0,const Operand *src1,const Operand *src2)
+{
+	bstring glsl = *psContext->currentGLSLString;
+	uint32_t destElemCount = GetNumSwizzleElements(pDest);
+	uint32_t s0ElemCount = GetNumSwizzleElements(src0);
+	uint32_t s1ElemCount = GetNumSwizzleElements(src1);
+	uint32_t s2ElemCount = GetNumSwizzleElements(src2);
+	uint32_t destElem;
+	/*
+	for each component in dest[.mask]
+	if the corresponding component in src0 (POS-swizzle)
+	has any bit set
+	{
+	copy this component (POS-swizzle) from src1 into dest
+	}
+	else
+	{
+	copy this component (POS-swizzle) from src2 into dest
+	}
+	endfor
+	*/
+
+	/* Single-component conditional variable (src0) */
+	if(s0ElemCount==1 || IsSwizzleReplacated(src0))
+	{
+		AddIndentation(psContext);
+		bcatcstr(glsl, "if(vec4(");
+
+		TranslateOperand(psContext, src0, TO_FLAG_NONE);
+
+		bcatcstr(glsl, ").x");
+
+		if(psContext->psShader->ui32MajorVersion < 4)
+		{
+			//cmp opcode uses >= 0
+			bcatcstr(glsl, " >= 0) {\n");
+		}
+		else
+		{
+			bcatcstr(glsl, " != 0) {\n");
+		}
+
+		psContext->indent++;
+		AddIndentation(psContext);
+		TranslateOperand(psContext, pDest, TO_FLAG_DESTINATION);
+		bcatcstr(glsl, " = ");
+		if(destElemCount != s1ElemCount)
+		{
+			bcatcstr(glsl, "vec4(");
+		}
+		TranslateOperand(psContext, src1, TO_FLAG_NONE);
+		if(destElemCount != s1ElemCount)
+		{
+			bcatcstr(glsl, ")");
+			AddSwizzleUsingElementCount(psContext, destElemCount);
+		}
+		bcatcstr(glsl, ";\n");
+
+		psContext->indent--;
+		AddIndentation(psContext);
+		bcatcstr(glsl, "} else {\n");
+		psContext->indent++;
+		AddIndentation(psContext);
+		TranslateOperand(psContext, pDest, TO_FLAG_DESTINATION);
+		bcatcstr(glsl, " = ");
+		if(destElemCount != s2ElemCount)
+		{
+			bcatcstr(glsl, "vec4(");
+		}
+		TranslateOperand(psContext, src2, TO_FLAG_NONE);
+		if(destElemCount != s2ElemCount)
+		{
+			bcatcstr(glsl, ")");
+			AddSwizzleUsingElementCount(psContext, destElemCount);
+		}
+		bcatcstr(glsl, ";\n");
+		psContext->indent--;
+		AddIndentation(psContext);
+		bcatcstr(glsl, "}\n");
+	}
+	else
+	{
+		for(destElem=0; destElem < destElemCount; ++destElem)
+		{
+			const char* swizzle[] = {".x", ".y", ".z", ".w"};
+
+			AddIndentation(psContext);
+			bcatcstr(glsl, "if(");
+			TranslateOperand(psContext, src0, TO_FLAG_NONE);
+			if(s0ElemCount>1)
+				bcatcstr(glsl, swizzle[destElem]);
+
+			if(psContext->psShader->ui32MajorVersion < 4)
+			{
+				//cmp opcode uses >= 0
+				bcatcstr(glsl, " >= 0) {\n");
+			}
+			else
+			{
+				bcatcstr(glsl, " != 0) {\n");
+			}
+
+			psContext->indent++;
+			AddIndentation(psContext);
+			TranslateOperand(psContext, pDest, TO_FLAG_DESTINATION);
+			if(destElemCount>1)
+				bcatcstr(glsl, swizzle[destElem]);
+			bcatcstr(glsl, " = ");
+			TranslateOperand(psContext, src1, TO_FLAG_NONE);
+			if(s1ElemCount>1)
+				bcatcstr(glsl, swizzle[destElem]);
+			bcatcstr(glsl, ";\n");
+
+			psContext->indent--;
+			AddIndentation(psContext);
+			bcatcstr(glsl, "} else {\n");
+			psContext->indent++;
+			AddIndentation(psContext);
+			TranslateOperand(psContext, pDest, TO_FLAG_DESTINATION);
+			if(destElemCount>1)
+				bcatcstr(glsl, swizzle[destElem]);
+			bcatcstr(glsl, " = ");
+			TranslateOperand(psContext, src2, TO_FLAG_NONE);
+			if(s2ElemCount>1)
+				bcatcstr(glsl, swizzle[destElem]);
+			bcatcstr(glsl, ";\n");
+			psContext->indent--;
+			AddIndentation(psContext);
+			bcatcstr(glsl, "}\n");
+		}
+	}
 }
 
 void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst, 
@@ -1676,7 +1812,7 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
         case OPCODE_XOR:
         case OPCODE_NOT:
             {
-                eNewType = SVT_INT;
+                eNewType = SVT_UINT;
                 break;
             }
 		case OPCODE_IADD:
@@ -2393,138 +2529,24 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_MOVC:
         {
-            uint32_t destElemCount = GetNumSwizzleElements(&psInst->asOperands[0]);
-            uint32_t s0ElemCount = GetNumSwizzleElements(&psInst->asOperands[1]);
-            uint32_t s1ElemCount = GetNumSwizzleElements(&psInst->asOperands[2]);
-            uint32_t s2ElemCount = GetNumSwizzleElements(&psInst->asOperands[3]);
-            uint32_t destElem;
 #ifdef _DEBUG
-            AddIndentation(psContext);
-            bcatcstr(glsl, "//MOVC\n");
+			AddIndentation(psContext);
+			bcatcstr(glsl, "//MOVC\n");
 #endif
-/*
-            for each component in dest[.mask]
-                if the corresponding component in src0 (POS-swizzle)
-                    has any bit set
-                {
-                    copy this component (POS-swizzle) from src1 into dest
-                }
-                else
-                {
-                    copy this component (POS-swizzle) from src2 into dest
-                }
-            endfor
-*/
-
-			/* Single-component conditional variable (src0) */
-			if(s0ElemCount==1 || IsSwizzleReplacated(&psInst->asOperands[1]))
-			{
-                AddIndentation(psContext);
-                bcatcstr(glsl, "if(vec4(");
-
-                TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-
-				bcatcstr(glsl, ").x");
-
-				if(psContext->psShader->ui32MajorVersion < 4)
-				{
-					//cmp opcode uses >= 0
-					bcatcstr(glsl, " >= 0) {\n");
-				}
-				else
-				{
-					bcatcstr(glsl, " != 0) {\n");
-				}
-
-                psContext->indent++;
-                AddIndentation(psContext);
-                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-                bcatcstr(glsl, " = ");
-				if(destElemCount != s1ElemCount)
-				{
-					bcatcstr(glsl, "vec4(");
-				}
-                TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-				if(destElemCount != s1ElemCount)
-				{
-					bcatcstr(glsl, ")");
-					AddSwizzleUsingElementCount(psContext, destElemCount);
-				}
-                bcatcstr(glsl, ";\n");
-
-                psContext->indent--;
-                AddIndentation(psContext);
-                bcatcstr(glsl, "} else {\n");
-                psContext->indent++;
-                AddIndentation(psContext);
-                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-                bcatcstr(glsl, " = ");
-				if(destElemCount != s2ElemCount)
-				{
-					bcatcstr(glsl, "vec4(");
-				}
-                TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_NONE);
-				if(destElemCount != s2ElemCount)
-				{
-					bcatcstr(glsl, ")");
-					AddSwizzleUsingElementCount(psContext, destElemCount);
-				}
-                bcatcstr(glsl, ";\n");
-                psContext->indent--;
-                AddIndentation(psContext);
-                bcatcstr(glsl, "}\n");
-			}
-			else
-            for(destElem=0; destElem < destElemCount; ++destElem)
-            {
-                const char* swizzle[] = {".x", ".y", ".z", ".w"};
-
-                AddIndentation(psContext);
-                bcatcstr(glsl, "if(");
-                TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
-                if(s0ElemCount>1)
-                    bcatcstr(glsl, swizzle[destElem]);
-
-				if(psContext->psShader->ui32MajorVersion < 4)
-				{
-					//cmp opcode uses >= 0
-					bcatcstr(glsl, " >= 0) {\n");
-				}
-				else
-				{
-					bcatcstr(glsl, " != 0) {\n");
-				}
-
-                psContext->indent++;
-                AddIndentation(psContext);
-                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-                if(destElemCount>1)
-                    bcatcstr(glsl, swizzle[destElem]);
-                bcatcstr(glsl, " = ");
-                TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-                if(s1ElemCount>1)
-                    bcatcstr(glsl, swizzle[destElem]);
-                bcatcstr(glsl, ";\n");
-
-                psContext->indent--;
-                AddIndentation(psContext);
-                bcatcstr(glsl, "} else {\n");
-                psContext->indent++;
-                AddIndentation(psContext);
-                TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-                if(destElemCount>1)
-                    bcatcstr(glsl, swizzle[destElem]);
-                bcatcstr(glsl, " = ");
-                TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_NONE);
-                if(s2ElemCount>1)
-                    bcatcstr(glsl, swizzle[destElem]);
-                bcatcstr(glsl, ";\n");
-                psContext->indent--;
-                AddIndentation(psContext);
-                bcatcstr(glsl, "}\n");
-            }
-            break;
+			AddMOVCBinaryOp(psContext,&psInst->asOperands[0],&psInst->asOperands[1],&psInst->asOperands[2],&psInst->asOperands[3]);
+			break;
         }
+        case OPCODE_SWAPC:
+			{
+#ifdef _DEBUG
+				AddIndentation(psContext);
+				bcatcstr(glsl, "//SWAPC\n");
+#endif
+				AddMOVCBinaryOp(psContext,&psInst->asOperands[0],&psInst->asOperands[2],&psInst->asOperands[4],&psInst->asOperands[3]);
+				AddMOVCBinaryOp(psContext,&psInst->asOperands[1],&psInst->asOperands[2],&psInst->asOperands[3],&psInst->asOperands[4]);
+				break;
+			}
+
 		case OPCODE_LOG:
         {
 #ifdef _DEBUG
@@ -2986,21 +3008,46 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         }
         case OPCODE_BFI:
         {
+			uint32_t numelements_width = GetNumSwizzleElements(&psInst->asOperands[1]);
+			uint32_t numelements_offset = GetNumSwizzleElements(&psInst->asOperands[2]);
+			uint32_t numelements_dest = GetNumSwizzleElements(&psInst->asOperands[0]);
+			uint32_t numoverall_elements = min(min(numelements_width,numelements_offset),numelements_dest);
+			uint32_t i,j;
+			static const char* bfi_elementidx[] = { "x","y","z","w" };
 #ifdef _DEBUG
             AddIndentation(psContext);
-            bcatcstr(glsl, "//BFI\n");
+			bcatcstr(glsl, "//BFI\n");
 #endif
+
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_INTEGER|TO_FLAG_DESTINATION);
-            bcatcstr(glsl, " = bitfieldInsert(");
-            TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_INTEGER);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[3], TO_FLAG_INTEGER);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_INTEGER);
-            bcatcstr(glsl, ", ");
-            TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
-            bcatcstr(glsl, ");\n");
+            bformata(glsl, " = ivec%d(",numoverall_elements);
+			for(i = 0; i < numoverall_elements; ++i)
+			{
+				bcatcstr(glsl,"bitfieldInsert(");
+
+				for(j = 4; j >= 1; --j)
+				{
+					uint32_t opSwizzleCount = GetNumSwizzleElements(&psInst->asOperands[j]);
+
+					if(opSwizzleCount != 1)
+						bcatcstr(glsl, " (");
+					TranslateOperand(psContext, &psInst->asOperands[j], TO_FLAG_INTEGER);
+					if(opSwizzleCount != 1)
+						bformata(glsl, " ).%s",bfi_elementidx[i]);
+					if(j != 1)
+						bcatcstr(glsl, ",");
+				}
+				
+				bcatcstr(glsl, ") ");
+				if(i + 1 != numoverall_elements)
+					bcatcstr(glsl, ", ");
+			}
+            
+			bcatcstr(glsl, ").");
+			for(i = 0; i < numoverall_elements; ++i)
+				bformata(glsl, "%s",bfi_elementidx[i]);
+			bcatcstr(glsl, ";\n");
             break;
         }
         case OPCODE_CUT:
@@ -4036,7 +4083,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			break;
 		}
 
-        case OPCODE_SWAPC:
+
         case OPCODE_DMAX:
         case OPCODE_DMIN:
         case OPCODE_DMUL:

@@ -20,6 +20,7 @@
 
 static int bsafeShouldExit = 1;
 
+#if 0
 char * strcpy (char *dst, const char *src);
 char * strcat (char *dst, const char *src);
 
@@ -80,3 +81,5 @@ char * (strdup) (const char *s) {
 	if (bsafeShouldExit) exit (-1);
 	return NULL;
 }
+
+#endif

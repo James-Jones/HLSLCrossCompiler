@@ -160,6 +160,7 @@ typedef struct Shader_TAG
     SHADER_TYPE eShaderType;
 
     GLLang eTargetLanguage;
+	const struct GlExtensions *extensions;
 
 	int fp64;
 

@@ -18,6 +18,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "bstrlib.h"
+#include "../internal_includes/hlslcc_malloc.h"
 
 /* Optionally include a mechanism for debugging memory */
 

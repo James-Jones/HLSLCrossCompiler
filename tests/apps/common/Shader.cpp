@@ -209,7 +209,7 @@ void ShaderEffect::FromByteFile(std::string& path)
 {
     GLSLShader result;
 
-    int translated = TranslateHLSLFromFile(path.c_str(), mCompileFlags, mRequestedLang, &mDependencies, &result);
+    int translated = TranslateHLSLFromFile(path.c_str(), mCompileFlags, mRequestedLang,NULL, &mDependencies, &result);
 
     ASSERT(translated);
 

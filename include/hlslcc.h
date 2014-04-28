@@ -33,6 +33,12 @@ typedef enum
     LANG_440,
 } GLLang;
 
+typedef struct {
+	uint32_t ARB_explicit_attrib_location : 1;
+	uint32_t ARB_explicit_uniform_location : 1;
+	uint32_t ARB_shading_language_420pack : 1;
+}GlExtensions;
+
 enum {MAX_SHADER_VEC4_OUTPUT = 512};
 enum {MAX_SHADER_VEC4_INPUT = 512};
 enum {MAX_TEXTURES = 128};
@@ -411,19 +417,35 @@ static const unsigned int HLSLCC_FLAG_DUAL_SOURCE_BLENDING = 0x40;
 //If set, shader inputs and outputs are declared with their semantic name.
 static const unsigned int HLSLCC_FLAG_INOUT_SEMANTIC_NAMES = 0x80;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+HLSLCC_API void HLSLCC_APIENTRY HLSLcc_SetMemoryFunctions(	void* (*malloc_override)(size_t),
+															void* (*calloc_override)(size_t,size_t),
+															void (*free_override)(void *),
+															void* (*realloc_override)(void*,size_t));
+
 HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
                                                      unsigned int flags,
                                                      GLLang language,
+													 const GlExtensions *extensions,
                                                      GLSLCrossDependencyData* dependencies,
-                                                     GLSLShader* result);
+                                                     GLSLShader* result
+													 );
 
 HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
                                                     unsigned int flags,
                                                     GLLang language,
+													const GlExtensions *extensions,
                                                     GLSLCrossDependencyData* dependencies,
                                                     GLSLShader* result);
 
 HLSLCC_API void HLSLCC_APIENTRY FreeGLSLShader(GLSLShader*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 
