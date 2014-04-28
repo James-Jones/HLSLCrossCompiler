@@ -1503,7 +1503,7 @@ void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32Registe
 
     if(bZCompare)
     {
-        bcatcstr(glsl, "hlslcc_zcmp_");
+        bcatcstr(glsl, "hlslcc_zcmp");
     }
 
 	if(found)

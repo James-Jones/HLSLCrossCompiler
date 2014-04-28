@@ -143,29 +143,23 @@ void DecodeNameToken(const uint32_t* pui32NameToken, Operand* psOperand)
 void MarkTextureAsShadow(ShaderInfo* psShaderInfo, Declaration* psDeclList, const uint32_t ui32DeclCount, const Operand* psTextureOperand)
 {
     ResourceBinding* psBinding = 0;
-	int found;
+	Declaration* psDecl = psDeclList;
+	uint32_t i;
 
 	ASSERT(psTextureOperand->eType == OPERAND_TYPE_RESOURCE);
 
-    found = GetResourceFromBindingPoint(RGROUP_TEXTURE, psTextureOperand->ui32RegisterNumber, psShaderInfo, &psBinding);
-
-	if(found)
+	for(i = 0; i < ui32DeclCount; ++i)
 	{
-		Declaration* psDecl = psDeclList;
-		uint32_t i;
-		for(i = 0; i < ui32DeclCount; ++i)
+		if(psDecl->eOpcode == OPCODE_DCL_RESOURCE)
 		{
-			if(psDecl->eOpcode == OPCODE_DCL_RESOURCE)
+			if(psDecl->asOperands[0].eType == OPERAND_TYPE_RESOURCE &&
+				psDecl->asOperands[0].ui32RegisterNumber == psTextureOperand->ui32RegisterNumber)
 			{
-				if(psDecl->asOperands[0].eType == OPERAND_TYPE_RESOURCE &&
-					psDecl->asOperands[0].ui32RegisterNumber == psTextureOperand->ui32RegisterNumber)
-				{
-					psDecl->ui32IsShadowTex = 1;
-					break;
-				}
+				psDecl->ui32IsShadowTex = 1;
+				break;
 			}
-			psDecl++;
 		}
+		psDecl++;
 	}
 }
 
