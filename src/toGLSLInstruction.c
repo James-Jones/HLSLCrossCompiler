@@ -2461,7 +2461,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//INE\n");
 #endif
-            AddComparision(psContext, psInst, CMP_NE, TO_FLAG_NONE);
+            AddComparision(psContext, psInst, CMP_NE, TO_FLAG_INTEGER);
             break;
         }
         case OPCODE_NE:
