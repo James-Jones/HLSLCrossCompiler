@@ -62,9 +62,9 @@ static int HaveLimitedInOutLocationQualifier(const GLLang eLang)
     return 0;
 }
 
-static int HaveInOutLocationQualifier(const GLLang eLang)
+static int HaveInOutLocationQualifier(const GLLang eLang,const struct GlExtensions *extensions)
 {
-    if(eLang >= LANG_410 || eLang == LANG_ES_310)
+    if(eLang >= LANG_410 || eLang == LANG_ES_310 || (extensions && ((GlExtensions*)extensions)->ARB_explicit_attrib_location))
     {
         return 1;
     }
@@ -73,14 +73,12 @@ static int HaveInOutLocationQualifier(const GLLang eLang)
 
 //layout(binding = X) uniform {uniformA; uniformB;}
 //layout(location = X) uniform uniform_name;
-static int HaveUniformBindingsAndLocations(const GLLang eLang)
+static int HaveUniformBindingsAndLocations(const GLLang eLang,const struct GlExtensions *extensions)
 {
-#if defined(WORK_IN_PROGRESS)
-    if(eLang >= LANG_430 || eLang == LANG_ES_310)
+    if(eLang >= LANG_430 || eLang == LANG_ES_310 || (extensions && ((GlExtensions*)extensions)->ARB_explicit_uniform_location))
     {
         return 1;
     }
-#endif
     return 0;
 }
 

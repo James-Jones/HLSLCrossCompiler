@@ -388,9 +388,9 @@ int GetOptions(int argc, char** argv, Options* psOptions)
 			psOptions->outputShaderFile = option + strlen("-hashout=");
 
             char* dir;
-            int length;
+            int64_t length;
 
-            uint64_t hash = hash64((const uint8_t*)psOptions->outputShaderFile, strlen(psOptions->outputShaderFile), 0);
+            uint64_t hash = hash64((const uint8_t*)psOptions->outputShaderFile, (uint32_t)strlen(psOptions->outputShaderFile), 0);
 
             uint32_t high = (uint32_t)( hash >> 32 );
             uint32_t low = (uint32_t)( hash & 0x00000000FFFFFFFF );
@@ -526,7 +526,7 @@ int GetOptions(int argc, char** argv, Options* psOptions)
             files[shaderIndex][writeIndex] = '\0';
 
 
-            uint64_t hash = hash64((const uint8_t*)fullList, strlen(fullList), 0);
+            uint64_t hash = hash64((const uint8_t*)fullList, (uint32_t)strlen(fullList), 0);
 
             uint32_t high = (uint32_t)( hash >> 32 );
             uint32_t low = (uint32_t)( hash & 0x00000000FFFFFFFF );
@@ -571,6 +571,23 @@ int GetOptions(int argc, char** argv, Options* psOptions)
     return 1;
 }
 
+void *malloc_hook(size_t size)
+{
+	return malloc(size);
+}
+void *calloc_hook(size_t num,size_t size)
+{
+	return calloc(num,size);
+}
+void *realloc_hook(void *p,size_t size)
+{
+	return realloc(p,size);
+}
+void free_hook(void *p)
+{
+	free(p);
+}
+
 int Run(const char* srcPath, const char* destPath, GLLang language, int flags, const char* reflectPath, GLSLCrossDependencyData* dependencies)
 {
     FILE* outputFile;
@@ -580,10 +597,16 @@ int Run(const char* srcPath, const char* destPath, GLLang language, int flags, c
     double crossCompileTime = 0;
     double glslCompileTime = 0;
 
+	HLSLcc_SetMemoryFunctions(malloc_hook,calloc_hook,free_hook,realloc_hook);
+
     InitTimer(&timer);
 
     ResetTimer(&timer);
-    compiledOK = TranslateHLSLFromFile(srcPath, flags, language, dependencies, &result);
+	GlExtensions ext;
+	ext.ARB_explicit_attrib_location = 0;
+	ext.ARB_explicit_uniform_location = 0;
+	ext.ARB_shading_language_420pack = 0;
+    compiledOK = TranslateHLSLFromFile(srcPath, flags, language, &ext , dependencies, &result);
     crossCompileTime = ReadTimer(&timer);
 
     if(compiledOK)

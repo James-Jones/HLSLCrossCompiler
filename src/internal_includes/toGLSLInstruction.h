@@ -1,4 +1,5 @@
 #ifndef TO_GLSL_INSTRUCTION_H
+#define TO_GLSL_INSTRUCTION_H
 
 #include "internal_includes/structs.h"
 

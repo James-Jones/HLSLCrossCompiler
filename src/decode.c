@@ -5,6 +5,7 @@
 #include "stdio.h"
 #include "internal_includes/reflect.h"
 #include "internal_includes/debug.h"
+#include "internal_includes/hlslcc_malloc.h"
 
 #define FOURCC(a, b, c, d) ((uint32_t)(uint8_t)(a) | ((uint32_t)(uint8_t)(b) << 8) | ((uint32_t)(uint8_t)(c) << 16) | ((uint32_t)(uint8_t)(d) << 24 ))
 static enum {FOURCC_DXBC = FOURCC('D', 'X', 'B', 'C')}; //DirectX byte code
@@ -311,7 +312,7 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
             }
             case OPERAND_INDEX_RELATIVE:
             {
-                psOperand->psSubOperand[i] = malloc(sizeof(Operand));
+                psOperand->psSubOperand[i] = hlslcc_malloc(sizeof(Operand));
                     DecodeOperand(pui32Tokens+ui32NumTokens, psOperand->psSubOperand[i]);
 
                     ui32NumTokens++;
@@ -324,7 +325,7 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 
                 ui32NumTokens++;
 
-                psOperand->psSubOperand[i] = malloc(sizeof(Operand));
+                psOperand->psSubOperand[i] = hlslcc_malloc(sizeof(Operand));
                     DecodeOperand(pui32Tokens+ui32NumTokens, psOperand->psSubOperand[i]);
 
 				ui32NumTokens++;
@@ -1199,7 +1200,7 @@ const uint32_t* DecodeHullShaderJoinPhase(const uint32_t* pui32Tokens, Shader* p
 
 //Declarations
 	Declaration* psDecl;
-    psDecl = malloc(sizeof(Declaration) * ui32ShaderLength);
+    psDecl = hlslcc_malloc(sizeof(Declaration) * ui32ShaderLength);
     psShader->psHSJoinPhaseDecl = psDecl;
     psShader->ui32HSJoinDeclCount = 0;
 
@@ -1226,7 +1227,7 @@ const uint32_t* DecodeHullShaderJoinPhase(const uint32_t* pui32Tokens, Shader* p
 
 
 //Instructions
-    psInst = malloc(sizeof(Instruction) * ui32ShaderLength);
+    psInst = hlslcc_malloc(sizeof(Instruction) * ui32ShaderLength);
     psShader->psHSJoinPhaseInstr = psInst;
     psShader->ui32HSJoinInstrCount = 0;
 
@@ -1261,7 +1262,7 @@ const uint32_t* DecodeHullShaderForkPhase(const uint32_t* pui32Tokens, Shader* p
 
 //Declarations
 	Declaration* psDecl;
-    psDecl = malloc(sizeof(Declaration) * ui32ShaderLength);
+    psDecl = hlslcc_malloc(sizeof(Declaration) * ui32ShaderLength);
 
     ASSERT(ui32ForkPhaseIndex < MAX_FORK_PHASES);
 
@@ -1293,7 +1294,7 @@ const uint32_t* DecodeHullShaderForkPhase(const uint32_t* pui32Tokens, Shader* p
 
 
 //Instructions
-    psInst = malloc(sizeof(Instruction) * ui32ShaderLength);
+    psInst = hlslcc_malloc(sizeof(Instruction) * ui32ShaderLength);
     psShader->apsHSForkPhaseInstr[ui32ForkPhaseIndex] = psInst;
     psShader->aui32HSForkInstrCount[ui32ForkPhaseIndex] = 0;
 
@@ -1332,11 +1333,11 @@ const uint32_t* DecodeHullShaderControlPointPhase(const uint32_t* pui32Tokens, S
 	Instruction* psInst;
 
 //TODO one block of memory for instructions and declarions to reduce memory usage and number of allocs.
-//malloc max(sizeof(declaration), sizeof(instruction) * shader length; or sizeof(DeclInst) - unifying both structs.
+//hlscc_malloc max(sizeof(declaration), sizeof(instruction) * shader length; or sizeof(DeclInst) - unifying both structs.
 
 //Declarations
 	Declaration* psDecl;
-    psDecl = malloc(sizeof(Declaration) * ui32ShaderLength);
+    psDecl = hlslcc_malloc(sizeof(Declaration) * ui32ShaderLength);
     psShader->psHSControlPointPhaseDecl = psDecl;
     psShader->ui32HSControlPointDeclCount = 0;
 
@@ -1363,7 +1364,7 @@ const uint32_t* DecodeHullShaderControlPointPhase(const uint32_t* pui32Tokens, S
 
 
 //Instructions
-    psInst = malloc(sizeof(Instruction) * ui32ShaderLength);
+    psInst = hlslcc_malloc(sizeof(Instruction) * ui32ShaderLength);
     psShader->psHSControlPointPhaseInstr = psInst;
     psShader->ui32HSControlPointInstrCount = 0;
 
@@ -1403,7 +1404,7 @@ const uint32_t* DecodeHullShader(const uint32_t* pui32Tokens, Shader* psShader)
 	const uint32_t* pui32CurrentToken = pui32Tokens;
 	const uint32_t ui32ShaderLength = psShader->ui32ShaderLength;
 	Declaration* psDecl;
-    psDecl = malloc(sizeof(Declaration) * ui32ShaderLength);
+    psDecl = hlslcc_malloc(sizeof(Declaration) * ui32ShaderLength);
     psShader->psHSDecl = psDecl;
     psShader->ui32HSDeclCount = 0;
 
@@ -1474,11 +1475,11 @@ void Decode(const uint32_t* pui32Tokens, Shader* psShader)
     //Using ui32ShaderLength as the instruction count
     //will allocate more than enough memory. Avoids having to
     //traverse the entire shader just to get the real instruction count.
-    psInst = malloc(sizeof(Instruction) * ui32ShaderLength);
+    psInst = hlslcc_malloc(sizeof(Instruction) * ui32ShaderLength);
     psShader->psInst = psInst;
     psShader->ui32InstCount = 0;
 
-    psDecl = malloc(sizeof(Declaration) * ui32ShaderLength);
+    psDecl = hlslcc_malloc(sizeof(Declaration) * ui32ShaderLength);
     psShader->psDecl = psDecl;
     psShader->ui32DeclCount = 0;
 
@@ -1617,7 +1618,7 @@ Shader* DecodeDXBC(uint32_t* data)
         uint32_t ui32MajorVersion;
         uint32_t ui32MinorVersion;
 
-        psShader = calloc(1, sizeof(Shader));
+        psShader = hlslcc_calloc(1, sizeof(Shader));
 
         ui32MajorVersion = DecodeProgramMajorVersion(*shaderChunk);
         ui32MinorVersion = DecodeProgramMinorVersion(*shaderChunk);
