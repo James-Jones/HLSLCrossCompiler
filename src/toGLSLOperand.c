@@ -1026,8 +1026,6 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 						TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
 						bcatcstr(glsl, "]");
 					}
-
-					//ASSERT(index == 0 || index == -1);
 				}
 				else
 				if(index != -1 && psOperand->psSubOperand[1] != NULL)

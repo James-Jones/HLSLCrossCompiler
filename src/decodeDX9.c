@@ -198,9 +198,6 @@ static void DecodeOperandDX9(const Shader* psShader,
         }
     }
 
-    ASSERT(psOperand->ui32RegisterNumber != 1024);
-
-
 #ifdef _DEBUG
     psOperand->id = operandID++;
 #endif
@@ -352,7 +349,6 @@ static void DecodeOperandDX9(const Shader* psShader,
             psOperand->eIndexRep[0] = OPERAND_INDEX_RELATIVE;
 
             psOperand->aui32ArraySizes[0] = 0;
-            //psOperand->ui32RegisterNumber = 0;
         }
     }
 }
@@ -566,10 +562,6 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 					++ui32NumDeclarations;
 					bDeclareConstantTable = 1;
 				}
-            }
-            else
-            {
-                ui32NumDeclarations;
             }
         }
 		else if((eOpcode == OPCODE_DX9_DEF)||(eOpcode == OPCODE_DX9_DEFI))
