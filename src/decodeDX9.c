@@ -183,15 +183,22 @@ static void DecodeOperandDX9(const Shader* psShader,
         }
 		case OPERAND_TYPE_DX9_SAMPLER:
 		{
-			psOperand->eType = OPERAND_TYPE_RESOURCE;			
+			psOperand->eType = OPERAND_TYPE_RESOURCE;
 			break;
 		}
+        case OPERAND_TYPE_DX9_LOOP:
+        {
+            psOperand->eType = OPERAND_TYPE_SPECIAL_LOOPCOUNTER;
+            break;
+        }
         default:
         {
             ASSERT(0);
             break;
         }
     }
+
+    ASSERT(psOperand->ui32RegisterNumber != 1024);
 
 
 #ifdef _DEBUG
@@ -345,7 +352,7 @@ static void DecodeOperandDX9(const Shader* psShader,
             psOperand->eIndexRep[0] = OPERAND_INDEX_RELATIVE;
 
             psOperand->aui32ArraySizes[0] = 0;
-            psOperand->ui32RegisterNumber = 0;
+            //psOperand->ui32RegisterNumber = 0;
         }
     }
 }
@@ -559,6 +566,10 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 					++ui32NumDeclarations;
 					bDeclareConstantTable = 1;
 				}
+            }
+            else
+            {
+                ui32NumDeclarations;
             }
         }
 		else if((eOpcode == OPCODE_DX9_DEF)||(eOpcode == OPCODE_DX9_DEFI))
@@ -988,7 +999,7 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
                 }
                 case OPCODE_DX9_LOOP:
                 {
-                    CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_LOOP, 0, 0, pui32CurrentToken);
+                    CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_LOOP, 0, 2, pui32CurrentToken);
                     break;
                 }
                 case OPCODE_DX9_RET:
@@ -1045,7 +1056,7 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
     if(bDeclareConstantTable)
     {
 		//Pick any constant register in the table. Might not start at c0 (e.g. when register(cX) is used).
-		const uint32_t ui32AnyRegisterInConstantTable = psShader->sInfo.psConstantBuffers->asVars[0].ui32StartOffset;
+		const uint32_t ui32AnyRegisterInConstantTable = psShader->sInfo.psConstantBuffers->asVars[0].ui32StartOffset / 16;
 		//Declaring one constant from a constant buffer will cause all constants in the buffer decalared.
 		//In dx9 there is only one constant buffer per shader.
 		DecodeDeclarationDX9(psShader, 0, CreateOperandTokenDX9(ui32AnyRegisterInConstantTable, OPERAND_TYPE_DX9_CONST), &psDecl[decl]);

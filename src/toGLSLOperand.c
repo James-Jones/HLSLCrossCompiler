@@ -874,6 +874,12 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         case OPERAND_TYPE_SPECIAL_IMMCONST:
         {
             bformata(glsl, "ImmConst%d", psOperand->ui32RegisterNumber);
+			if(psOperand->psSubOperand[0] != NULL)
+			{
+				bcatcstr(glsl, "[int("); //Indexes must be integral.
+				TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
+				bcatcstr(glsl, ")]");
+			}
             break;
         }
         case OPERAND_TYPE_SPECIAL_OUTBASECOLOUR:
@@ -904,6 +910,12 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         case OPERAND_TYPE_SPECIAL_ADDRESS:
         {
             bcatcstr(glsl, "Address");
+            break;
+        }
+        case OPERAND_TYPE_SPECIAL_LOOPCOUNTER:
+        {
+            bcatcstr(glsl, "LoopCounter");
+            pui32IgnoreSwizzle[0] = 1;
             break;
         }
 		case OPERAND_TYPE_SPECIAL_TEXCOORD:
@@ -1015,7 +1027,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 						bcatcstr(glsl, "]");
 					}
 
-					ASSERT(index == 0 || index == -1);
+					//ASSERT(index == 0 || index == -1);
 				}
 				else
 				if(index != -1 && psOperand->psSubOperand[1] != NULL)

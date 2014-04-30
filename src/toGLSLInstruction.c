@@ -3176,8 +3176,29 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             bcatcstr(glsl, "//LOOP\n");
 #endif
             AddIndentation(psContext);
-            bcatcstr(glsl, "while(true){\n");
-            ++psContext->indent;
+
+            if(psInst->ui32NumOperands == 2)
+            {
+                //DX9 version
+                ASSERT(psInst->asOperands[0].eType == OPERAND_TYPE_SPECIAL_LOOPCOUNTER);
+                bcatcstr(glsl, "for(");
+                bcatcstr(glsl, "LoopCounter = ");
+                TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+                bcatcstr(glsl, ".y, ZeroBasedCounter = 0;");
+                bcatcstr(glsl, "ZeroBasedCounter < ");
+                TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+                bcatcstr(glsl, ".x;");
+
+                bcatcstr(glsl, "LoopCounter += ");
+                TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+                bcatcstr(glsl, ".z, ZeroBasedCounter++){\n");
+                ++psContext->indent;
+            }
+            else
+            {
+                bcatcstr(glsl, "while(true){\n");
+                ++psContext->indent;
+            }
             break;
         }
         case OPCODE_ENDLOOP:

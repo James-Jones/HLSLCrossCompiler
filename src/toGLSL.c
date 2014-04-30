@@ -84,6 +84,8 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
     if(psContext->psShader->ui32MajorVersion <= 3)
     {
 		bcatcstr(glsl, "int RepCounter;\n");
+        bcatcstr(glsl, "int LoopCounter;\n");
+        bcatcstr(glsl, "int ZeroBasedCounter;\n");
 		if(psContext->psShader->eShaderType == VERTEX_SHADER)
 		{
 			uint32_t texCoord;

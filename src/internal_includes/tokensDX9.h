@@ -1,3 +1,4 @@
+#include "debug.h"
 
 static const uint32_t D3D9SHADER_TYPE_VERTEX = 0xFFFE0000;
 static const uint32_t D3D9SHADER_TYPE_PIXEL = 0xFFFF0000;
@@ -173,6 +174,7 @@ static OPERAND_TYPE_DX9 DecodeOperandTypeDX9(const uint32_t ui32Token)
 static uint32_t CreateOperandTokenDX9(const uint32_t ui32RegNum, const OPERAND_TYPE_DX9 eType)
 {
     uint32_t ui32Token = ui32RegNum;
+    ASSERT(ui32RegNum <2048);
     ui32Token |= (eType <<28) & 0x70000000;
     ui32Token |= (eType <<8) & 0x00001800;
     return ui32Token;
