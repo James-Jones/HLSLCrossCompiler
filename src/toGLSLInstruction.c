@@ -1566,13 +1566,21 @@ static void TranslateConditional(HLSLCrossCompilerContext* psContext,
 				bcatcstr(glsl, " <= ");
 				break;
 			}
+			case D3DSPC_BOOLEAN:
+			{
+				bcatcstr(glsl, " != 0");
+				break;
+			}
 			default:
 			{
 				break;
 			}
 		}
 
-		TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+		if(psInst->eDX9TestType != D3DSPC_BOOLEAN)
+		{
+			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+		}
 
 		if(psInst->eOpcode != OPCODE_IF)
 		{
