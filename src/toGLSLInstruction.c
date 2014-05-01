@@ -3145,9 +3145,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			//Max of 4 for rep - 'Flow Control Limitations' http://msdn.microsoft.com/en-us/library/windows/desktop/bb219848(v=vs.85).aspx
 
 			AddIndentation(psContext);
-			bcatcstr(glsl, "RepCounter = ");
+			bcatcstr(glsl, "RepCounter = ivec4(");
 			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-			bcatcstr(glsl, ".x;\n");
+			bcatcstr(glsl, ").x;\n");
 
             AddIndentation(psContext);
             bcatcstr(glsl, "while(RepCounter!=0){\n");
