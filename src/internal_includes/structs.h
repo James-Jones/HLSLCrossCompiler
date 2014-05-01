@@ -153,6 +153,8 @@ static enum {MAX_TEMP_VEC4 = 512};
 
 static enum {MAX_GROUPSHARED = 8};
 
+static enum {MAX_DX9_IMMCONST = 256};
+
 typedef struct Shader_TAG
 {
     uint32_t ui32MajorVersion;
@@ -237,6 +239,9 @@ typedef struct Shader_TAG
 	int aiOpcodeUsed[NUM_OPCODES];
 
 	uint32_t ui32CurrentVertexOutputStream;
+
+	uint32_t ui32NumDx9ImmConst;
+	uint32_t aui32Dx9ImmConstArrayRemap[MAX_DX9_IMMCONST];
 
 	ShaderVarType sGroupSharedVarType[MAX_GROUPSHARED];
 

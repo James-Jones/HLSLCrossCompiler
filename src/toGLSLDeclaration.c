@@ -64,6 +64,23 @@ const uint32_t GetTypeElementCount(GLVARTYPE eType)
     }
 }
 
+void AddToDx9ImmConstIndexableArray(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
+{
+	bstring* savedStringPtr = psContext->currentGLSLString;
+
+	psContext->currentGLSLString = &psContext->earlyMain;
+	psContext->indent++;
+	AddIndentation(psContext);
+	psContext->psShader->aui32Dx9ImmConstArrayRemap[psOperand->ui32RegisterNumber] = psContext->psShader->ui32NumDx9ImmConst;
+	bformata(psContext->earlyMain, "ImmConstArray[%d] = ", psContext->psShader->ui32NumDx9ImmConst);
+	TranslateOperand(psContext, psOperand, TO_FLAG_NONE);
+	bcatcstr(psContext->earlyMain, ";\n");
+	psContext->indent--;
+	psContext->psShader->ui32NumDx9ImmConst++;
+
+	psContext->currentGLSLString = savedStringPtr;
+}
+
 void DeclareConstBufferShaderVariable(bstring glsl, const char* Name, const struct ShaderVarType_TAG* psType, int unsizedArray)
 	//const SHADER_VARIABLE_CLASS eClass, const SHADER_VARIABLE_TYPE eType,
     //const char* pszName)
@@ -1622,6 +1639,8 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			}
             TranslateOperand(psContext, psSrc, TO_FLAG_NONE);
             bcatcstr(glsl, ";\n");
+
+			AddToDx9ImmConstIndexableArray(psContext, psDest);
             break;
         }
         case OPCODE_DCL_CONSTANT_BUFFER:

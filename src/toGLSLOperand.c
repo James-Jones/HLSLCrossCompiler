@@ -873,12 +873,15 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 		}
         case OPERAND_TYPE_SPECIAL_IMMCONST:
         {
-            bformata(glsl, "ImmConst%d", psOperand->ui32RegisterNumber);
 			if(psOperand->psSubOperand[0] != NULL)
 			{
-				bcatcstr(glsl, "[int("); //Indexes must be integral.
+				bformata(glsl, "ImmConstArray[%d + ", psContext->psShader->aui32Dx9ImmConstArrayRemap[psOperand->ui32RegisterNumber]);
 				TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
-				bcatcstr(glsl, ")]");
+				bcatcstr(glsl, "]");
+			}
+			else
+			{
+				bformata(glsl, "ImmConst%d", psOperand->ui32RegisterNumber);
 			}
             break;
         }

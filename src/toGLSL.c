@@ -681,6 +681,11 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
         TranslateDeclaration(psContext, psShader->psDecl+i);
     }
 
+	if(psContext->psShader->ui32NumDx9ImmConst)
+	{
+		bformata(psContext->glsl, "vec4 ImmConstArray [%d];\n", psContext->psShader->ui32NumDx9ImmConst);
+	}
+
     bcatcstr(glsl, "void main()\n{\n");
 
     psContext->indent++;
