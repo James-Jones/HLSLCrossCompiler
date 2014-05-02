@@ -1636,11 +1636,11 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			else
 			{
 				bformata(glsl, "const vec4 ImmConst%d = ", psDest->ui32RegisterNumber);
+				AddToDx9ImmConstIndexableArray(psContext, psDest);
 			}
             TranslateOperand(psContext, psSrc, TO_FLAG_NONE);
             bcatcstr(glsl, ";\n");
-
-			AddToDx9ImmConstIndexableArray(psContext, psDest);
+			
             break;
         }
         case OPCODE_DCL_CONSTANT_BUFFER:
