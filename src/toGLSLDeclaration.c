@@ -2336,24 +2336,9 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 
 			ASSERT(psDecl->asOperands[0].ui32RegisterNumber < MAX_GROUPSHARED);
 
-			switch(psDecl->sTGSM.ui32Stride)
-			{
-			case 4:
-				bcatcstr(glsl, "shared float ");
-				break;
-			case 8:
-				bcatcstr(glsl, "shared vec2 ");
-				break;
-			case 12:
-				bcatcstr(glsl, "shared vec3 ");
-				break;
-			case 16:
-				bcatcstr(glsl, "shared vec4 ");
-				break;
-			default:
-				ASSERT(0);
-				break;
-			}
+			bcatcstr(glsl, "shared struct {");
+				bformata(glsl, "float value[%d];", psDecl->sTGSM.ui32Stride/4);
+			bcatcstr(glsl, "}");
 			TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
             bformata(glsl, "[%d];\n",
 				psDecl->sTGSM.ui32Count);

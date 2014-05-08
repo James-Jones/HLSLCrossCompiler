@@ -1033,7 +1033,7 @@ static void TranslateShaderStorageStore(HLSLCrossCompilerContext* psContext, Ins
 		{
 			SHADER_VARIABLE_TYPE eSrcDataType = GetOperandDataType(psContext, psSrc);
 
-			if(structured)
+			if(structured && psDest->eType != OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY)
 			{
 				psVarType = LookupStructuredVar(psContext, psDest, psDestByteOff, component);
 			}
@@ -1049,29 +1049,38 @@ static void TranslateShaderStorageStore(HLSLCrossCompilerContext* psContext, Ins
 				TranslateOperand(psContext, psDest, TO_FLAG_DESTINATION|TO_FLAG_NAME_ONLY);
 			}
 			bformata(glsl, "[");
-			TranslateOperand(psContext, psDestAddr ? psDestAddr : psDestByteOff, TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
+			if(structured) //Dest address and dest byte offset
+			{
+				if(psDest->eType == OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY)
+				{
+					TranslateOperand(psContext, psDestAddr, TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
+					bformata(glsl, "].value[");
+					TranslateOperand(psContext, psDestByteOff, TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
+					bformata(glsl, "/4 ");//bytes to floats
+				}
+				else
+				{
+					TranslateOperand(psContext, psDestAddr, TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
+				}
+			}
+			else
+			{
+				TranslateOperand(psContext, psDestByteOff, TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
+			}
 
 			//RAW: change component using index offset
-			if(!structured)
+			if(!structured || (psDest->eType == OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY))
 			{
 				bformata(glsl, " + %d", component);
 			}
 
 			bformata(glsl, "]");
 
-			if(structured)
+			if(structured && psDest->eType != OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY)
 			{
 				if(strcmp(psVarType->Name, "$Element") != 0)
 				{
 					bformata(glsl, ".%s", psVarType->Name);
-				}
-
-				if(psDest->eType == OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY)
-				{
-					if(psContext->psShader->sGroupSharedVarType[psDest->ui32RegisterNumber].Columns > 1)
-					{
-						bformata(glsl, swizzleString[component]);
-					}
 				}
 			}
 
@@ -1080,13 +1089,16 @@ static void TranslateShaderStorageStore(HLSLCrossCompilerContext* psContext, Ins
 			if(structured)
 			{
 				uint32_t flags = TO_FLAG_NONE;
-				if(psVarType->Type == SVT_INT)
+				if(psVarType)
 				{
-					flags |= TO_FLAG_INTEGER;
-				}
-				else if(psVarType->Type == SVT_UINT)
-				{
-					flags |= TO_FLAG_UNSIGNED_INTEGER;
+					if(psVarType->Type == SVT_INT)
+					{
+						flags |= TO_FLAG_INTEGER;
+					}
+					else if(psVarType->Type == SVT_UINT)
+					{
+						flags |= TO_FLAG_UNSIGNED_INTEGER;
+					}
 				}
 				TranslateOperand(psContext, psSrc, flags);
 			}
@@ -1110,7 +1122,7 @@ static void TranslateShaderStorageStore(HLSLCrossCompilerContext* psContext, Ins
 				bformata(glsl, swizzleString[srcComponent++]);
 
 			//Double takes an extra slot.
-			if(structured && psVarType->Type == SVT_DOUBLE)
+			if(psVarType && psVarType->Type == SVT_DOUBLE)
 			{
 				component++;
 			}
@@ -1142,7 +1154,6 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 		psSrcByteOff = &psInst->asOperands[2];
 		psSrc = &psInst->asOperands[3];
 		structured = 1;
-		ASSERT(((int*)psSrcByteOff->afImmediates)[0] == 0); //TODO: byte-offset. Fail assert if there is one.
 		break;
 	case OPCODE_LD_RAW:
 		psDest = &psInst->asOperands[0];
@@ -1158,7 +1169,7 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 		ASSERT(psDest->eSelMode == OPERAND_4_COMPONENT_MASK_MODE);
 		if(psDest->ui32CompMask & (1<<component))
 		{
-			if(structured)
+			if(structured && psSrc->eType != OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY)
 			{
 				psVarType = LookupStructuredVar(psContext, psSrc, psSrcByteOff, psSrc->aui32Swizzle[component]);
 			}
@@ -1184,28 +1195,38 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 				TranslateOperand(psContext, psSrc, TO_FLAG_NAME_ONLY);
 				bformata(glsl, "[");
 			}
-			TranslateOperand(psContext, psSrcAddr ? psSrcAddr : psSrcByteOff, TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
+
+			if(structured) //src address and src byte offset
+			{
+				if(psSrc->eType == OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY)
+				{
+					TranslateOperand(psContext, psSrcAddr, TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
+					bformata(glsl, "].value[");
+					TranslateOperand(psContext, psSrcByteOff, TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
+					bformata(glsl, "/4 ");//bytes to floats
+				}
+				else
+				{
+					TranslateOperand(psContext, psSrcAddr, TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
+				}
+			}
+			else
+			{
+				TranslateOperand(psContext, psSrcByteOff, TO_FLAG_INTEGER|TO_FLAG_UNSIGNED_INTEGER);
+			}
 
 			//RAW: change component using index offset
-			if(!structured)
+			if(!structured || (psSrc->eType == OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY))
 			{
 				bformata(glsl, " + %d", psSrc->aui32Swizzle[component]);
 			}
 
 			bformata(glsl, "]");
-			if(structured)
+			if(structured && psSrc->eType != OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY)
 			{
 				if(strcmp(psVarType->Name, "$Element") != 0)
 				{
 					bformata(glsl, ".%s", psVarType->Name);
-				}
-
-				if(psSrc->eType == OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY)
-				{
-					if(psContext->psShader->sGroupSharedVarType[psSrc->ui32RegisterNumber].Columns > 1)
-					{
-						bformata(glsl, swizzleString[component]);
-					}
 				}
 
 				if( psVarType->Type == SVT_DOUBLE)
