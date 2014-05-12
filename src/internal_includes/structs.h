@@ -66,9 +66,9 @@ typedef struct Instruction_TAG
 	RESINFO_RETURN_TYPE eResInfoReturnType;
 
     int bAddressOffset;
-    int iUAddrOffset;
-    int iVAddrOffset;
-    int iWAddrOffset;
+    int8_t iUAddrOffset;
+    int8_t iVAddrOffset;
+    int8_t iWAddrOffset;
 	RESOURCE_RETURN_TYPE xType, yType, zType, wType;
 	RESOURCE_DIMENSION eResDim;
 

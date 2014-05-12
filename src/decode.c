@@ -784,14 +784,22 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 
             if(eExtType == EXTENDED_OPCODE_SAMPLE_CONTROLS)
             {
+				struct {int i4:4;} sU;
+				struct {int i4:4;} sV;
+				struct {int i4:4;} sW;
+
                 psInst->bAddressOffset = 1;
 
-                psInst->iUAddrOffset = DecodeImmediateAddressOffset(
+                sU.i4 = DecodeImmediateAddressOffset(
 							    IMMEDIATE_ADDRESS_OFFSET_U, ui32ExtOpcodeToken);
-			    psInst->iVAddrOffset = DecodeImmediateAddressOffset(
+			    sV.i4 = DecodeImmediateAddressOffset(
 							    IMMEDIATE_ADDRESS_OFFSET_V, ui32ExtOpcodeToken);
-			    psInst->iWAddrOffset = DecodeImmediateAddressOffset(
+			    sW.i4 = DecodeImmediateAddressOffset(
 							    IMMEDIATE_ADDRESS_OFFSET_W, ui32ExtOpcodeToken);
+
+				 psInst->iUAddrOffset = sU.i4;
+				 psInst->iVAddrOffset = sV.i4;
+				 psInst->iWAddrOffset = sW.i4;
             }
 			else if(eExtType == EXTENDED_OPCODE_RESOURCE_RETURN_TYPE)
 			{
