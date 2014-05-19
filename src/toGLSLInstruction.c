@@ -2774,7 +2774,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//LOG\n");
 #endif
-			CallHelper1(psContext, "log", psInst, 0, 1);
+			CallHelper1(psContext, "log2", psInst, 0, 1);
             break;
         }
 		case OPCODE_RSQ:
@@ -2792,7 +2792,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             AddIndentation(psContext);
             bcatcstr(glsl, "//EXP\n");
 #endif
-			CallHelper1(psContext, "exp", psInst, 0, 1);
+			CallHelper1(psContext, "exp2", psInst, 0, 1);
             break;
         }
 		case OPCODE_SQRT:
