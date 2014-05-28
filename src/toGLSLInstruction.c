@@ -3333,8 +3333,21 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         {
 #ifdef _DEBUG
             AddIndentation(psContext);
-            bcatcstr(glsl, "//EMIT\n");
+            bcatcstr(glsl, "//EMIT_STREAM\n");
 #endif
+            if(psContext->havePostShaderCode[psContext->currentPhase])
+            {
+#ifdef _DEBUG
+                AddIndentation(psContext);
+                bcatcstr(glsl, "//--- Post shader code ---\n");
+#endif
+                bconcat(glsl, psContext->postShaderCode[psContext->currentPhase]);
+#ifdef _DEBUG
+                AddIndentation(psContext);
+                bcatcstr(glsl, "//--- End post shader code ---\n");
+#endif
+            }
+
             AddIndentation(psContext);
 			bcatcstr(glsl, "EmitStreamVertex(");
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);

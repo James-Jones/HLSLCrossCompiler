@@ -13,7 +13,9 @@
     #define HLSLCC_API
 #endif
 
+#ifndef EXCLUDE_PSTDINT
 #include "pstdint.h"
+#endif
 
 typedef enum
 {
