@@ -236,8 +236,13 @@ const char* GetDeclaredInputName(const HLSLCrossCompilerContext* psContext, cons
 	bstring inputName;
 	char* cstr;
 	InOutSignature* psIn;
+	int found = GetInputSignatureFromRegister(psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psIn);
 
-	if(eShaderType == GEOMETRY_SHADER)
+	if((psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES) && found)
+	{
+		inputName = bformat("%s%d", psIn->SemanticName, psIn->ui32SemanticIndex);
+	}
+	else if(eShaderType == GEOMETRY_SHADER)
 	{
 		inputName = bformat("VtxOutput%d", psOperand->ui32RegisterNumber);
 	}
@@ -265,7 +270,7 @@ const char* GetDeclaredInputName(const HLSLCrossCompilerContext* psContext, cons
 		ASSERT(eShaderType == VERTEX_SHADER);
 		inputName = bformat("dcl_Input%d", psOperand->ui32RegisterNumber);
 	}
-	if((psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES) && GetInputSignatureFromRegister(psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psIn))
+	if((psContext->flags & HLSLCC_FLAG_INOUT_APPEND_SEMANTIC_NAMES) && found)
 	{
 		bformata(inputName,"_%s%d", psIn->SemanticName, psIn->ui32SemanticIndex);
 	}
@@ -292,7 +297,11 @@ const char* GetDeclaredOutputName(const HLSLCrossCompilerContext* psContext,
 
 	ASSERT(foundOutput);
 
-	if(eShaderType == GEOMETRY_SHADER)
+	if(psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES)
+	{
+		outputName = bformat("%s%d", psOut->SemanticName, psOut->ui32SemanticIndex);
+	}
+	else if(eShaderType == GEOMETRY_SHADER)
 	{
 		if(psOut->ui32Stream != 0)
 		{
@@ -329,7 +338,7 @@ const char* GetDeclaredOutputName(const HLSLCrossCompilerContext* psContext,
 		ASSERT(eShaderType == HULL_SHADER);
 		outputName = bformat("HullOutput%d", psOperand->ui32RegisterNumber);
 	}
-	if(psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES)
+	if(psContext->flags & HLSLCC_FLAG_INOUT_APPEND_SEMANTIC_NAMES)
 	{
 		bformata(outputName, "_%s%d", psOut->SemanticName, psOut->ui32SemanticIndex);
 	}
@@ -1009,14 +1018,14 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 
 			MAX0.x = FACTOR0.y;
 
-			This unpacking of outputs is only done when using HLSLCC_FLAG_INOUT_SEMANTIC_NAMES.
+			This unpacking of outputs is only done when using HLSLCC_FLAG_INOUT_SEMANTIC_NAMES/HLSLCC_FLAG_INOUT_APPEND_SEMANTIC_NAMES.
 			When not set the application will be using HLSL reflection information to discover
 			what the input and outputs mean if need be.
 		*/
 
 		//
 
-		if((psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES) && (psDecl->asOperands[0].eType == OPERAND_TYPE_OUTPUT))
+		if((psContext->flags & (HLSLCC_FLAG_INOUT_SEMANTIC_NAMES|HLSLCC_FLAG_INOUT_APPEND_SEMANTIC_NAMES)) && (psDecl->asOperands[0].eType == OPERAND_TYPE_OUTPUT))
 		{
 			const Operand* psOperand = &psDecl->asOperands[0];
 			InOutSignature* psSignature = NULL;

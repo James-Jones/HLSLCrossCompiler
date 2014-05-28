@@ -418,6 +418,8 @@ static const unsigned int HLSLCC_FLAG_DUAL_SOURCE_BLENDING = 0x40;
 
 //If set, shader inputs and outputs are declared with their semantic name.
 static const unsigned int HLSLCC_FLAG_INOUT_SEMANTIC_NAMES = 0x80;
+//If set, shader inputs and outputs are declared with their semantic name appended.
+static const unsigned int HLSLCC_FLAG_INOUT_APPEND_SEMANTIC_NAMES = 0x100;
 
 #ifdef __cplusplus
 extern "C" {
