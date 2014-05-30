@@ -456,7 +456,8 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
     //Special case. Can have multiple phases.
     if(psShader->eShaderType == HULL_SHADER)
     {
-        int haveInstancedForkPhase = 0;
+        int haveInstancedForkPhase = 0;			// Do we have an instanced fork phase?
+        int isCurrentForkPhasedInstanced = 0;	// Is the current fork phase instanced?
         uint32_t forkIndex = 0;
 
         ConsolidateHullTempVars(psShader);
@@ -480,7 +481,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 
         if(psShader->ui32HSControlPointInstrCount)
         {
-			SetDataTypes(psContext, psShader->psHSControlPointPhaseInstr, psShader->ui32HSControlPointInstrCount);
+            SetDataTypes(psContext, psShader->psHSControlPointPhaseInstr, psShader->ui32HSControlPointInstrCount);
 
             bcatcstr(glsl, "void control_point_phase()\n{\n");
             psContext->indent++;
@@ -497,7 +498,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
         psContext->currentPhase = HS_FORK_PHASE;
         for(forkIndex = 0; forkIndex < psShader->ui32ForkPhaseCount; ++forkIndex)
         {
-            haveInstancedForkPhase = 0; //reset for each fork phase for cases we don't have a fork phase instance count opcode.
+            isCurrentForkPhasedInstanced = 0; //reset for each fork phase for cases we don't have a fork phase instance count opcode.
             bcatcstr(glsl, "//Fork phase declarations\n");
             for(i=0; i < psShader->aui32HSForkDeclCount[forkIndex]; ++i)
             {
@@ -505,15 +506,16 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
                 if(psShader->apsHSForkPhaseDecl[forkIndex][i].eOpcode == OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT)
                 {
                     haveInstancedForkPhase = 1;
+                    isCurrentForkPhasedInstanced = 1;
                 }
             }
 
             bformata(glsl, "void fork_phase%d()\n{\n", forkIndex);
             psContext->indent++;
 
-			SetDataTypes(psContext, psShader->apsHSForkPhaseInstr[forkIndex], psShader->aui32HSForkInstrCount[forkIndex]-1);
+            SetDataTypes(psContext, psShader->apsHSForkPhaseInstr[forkIndex], psShader->aui32HSForkInstrCount[forkIndex]-1);
 
-                if(haveInstancedForkPhase)
+                if(isCurrentForkPhasedInstanced)
                 {
                     AddIndentation(psContext);
                     bformata(glsl, "for(int forkInstanceID = 0; forkInstanceID < HullPhase%dInstanceCount; ++forkInstanceID) {\n", forkIndex);
@@ -532,7 +534,11 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
                 {
                     psContext->indent--;
                     AddIndentation(psContext);
-                    bcatcstr(glsl, "}\n");
+
+                    if(isCurrentForkPhasedInstanced)
+                    {
+                        bcatcstr(glsl, "}\n");
+                    }
 
                     if(psContext->havePostShaderCode[psContext->currentPhase])
                     {
@@ -546,7 +552,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
                         bcatcstr(glsl, "//--- End post shader code ---\n");
 #endif
                     }
-                }
+            }
 
             psContext->indent--;
             bcatcstr(glsl, "}\n");
