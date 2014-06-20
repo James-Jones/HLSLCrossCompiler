@@ -812,13 +812,17 @@ void FreeShaderInfo(ShaderInfo* psShaderInfo)
 	{
 		ConstantBuffer* psCBuf = &psShaderInfo->psConstantBuffers[cbuf];
 		uint32_t var;
-		for(var=0; var < psCBuf->ui32NumVars; ++var)
+		if(psCBuf->ui32NumVars)
 		{
-			ShaderVar* psVar = &psCBuf->asVars[var];
-			if(psVar->haveDefaultValue)
+			for(var=0; var < psCBuf->ui32NumVars; ++var)
 			{
-				hlslcc_free(psVar->pui32DefaultValues);
+				ShaderVar* psVar = &psCBuf->asVars[var];
+				if(psVar->haveDefaultValue)
+				{
+					hlslcc_free(psVar->pui32DefaultValues);
+				}
 			}
+			hlslcc_free(psCBuf->asVars);
 		}
 	}
     hlslcc_free(psShaderInfo->psInputSignatures);
