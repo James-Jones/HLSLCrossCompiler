@@ -51,7 +51,6 @@ enum {MAX_FUNCTION_POINTERS = 128};
 
 //Reflection
 #define MAX_REFLECT_STRING_LENGTH 512
-#define MAX_SHADER_VARS 256
 #define MAX_CBUFFERS 256
 #define MAX_UAV 256
 #define MAX_FUNCTION_TABLES 256
@@ -270,7 +269,7 @@ typedef struct ConstantBuffer_TAG
     char Name[MAX_REFLECT_STRING_LENGTH];
 
     uint32_t ui32NumVars;
-    ShaderVar asVars [MAX_SHADER_VARS];
+    ShaderVar* asVars;
 
     uint32_t ui32TotalSizeInBytes;
 } ConstantBuffer;

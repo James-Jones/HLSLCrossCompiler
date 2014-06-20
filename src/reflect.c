@@ -230,6 +230,7 @@ static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
     FormatVariableName(psBuffer->Name);
 
     psBuffer->ui32NumVars = ui32VarCount;
+	psBuffer->asVars = hlslcc_malloc(psBuffer->ui32NumVars * sizeof(ShaderVar));
 
     for(i=0; i<ui32VarCount; ++i)
     {
@@ -953,6 +954,8 @@ void LoadD3D9ConstantTable(const char* data,
 	}
 
 	psInfo->psResourceBindings = hlslcc_malloc(numResourceBindingsNeeded*sizeof(ResourceBinding));
+
+	psConstantBuffer->asVars = hlslcc_malloc((ctab->constants - numResourceBindingsNeeded) * sizeof(ShaderVar));
 
 	var = &psConstantBuffer->asVars[0];
 
