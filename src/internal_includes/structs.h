@@ -78,6 +78,7 @@ typedef struct Instruction_TAG
 } Instruction;
 
 static enum{ MAX_IMMEDIATE_CONST_BUFFER_VEC4_SIZE = 1024};
+static enum{ MAX_TEXTURE_SAMPLERS_PAIRS = 32};
 
 typedef struct ICBVec4_TAG {
 	uint32_t a;
@@ -147,6 +148,9 @@ typedef struct Declaration_TAG
     uint32_t ui32TableLength;
 
 	uint32_t ui32IsShadowTex;
+
+    uint32_t ui32SamplerUsed[MAX_TEXTURE_SAMPLERS_PAIRS];
+    uint32_t ui32SamplerUsedCount;
 } Declaration;
 
 static enum {MAX_TEMP_VEC4 = 512};
@@ -245,6 +249,7 @@ typedef struct Shader_TAG
 
 	ShaderVarType sGroupSharedVarType[MAX_GROUPSHARED];
 
+    TextureSamplerInfo textureSamplerInfo;
 } Shader;
 
 static const uint32_t MAIN_PHASE = 0;

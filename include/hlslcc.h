@@ -311,6 +311,17 @@ typedef enum TESSELLATOR_OUTPUT_PRIMITIVE
     TESSELLATOR_OUTPUT_TRIANGLE_CCW  = 4
 } TESSELLATOR_OUTPUT_PRIMITIVE;
 
+typedef struct TextureSamplerPair_TAG
+{
+    char Name[MAX_REFLECT_STRING_LENGTH];
+} TextureSamplerPair;
+
+typedef struct TextureSamplerInfo_TAG
+{
+    uint32_t ui32NumTextureSamplerPairs;
+    TextureSamplerPair aTextureSamplerPair[MAX_RESOURCE_BINDINGS];
+} TextureSamplerInfo;
+
 typedef struct ShaderInfo_TAG
 {
     uint32_t ui32MajorVersion;
@@ -386,6 +397,7 @@ typedef struct
     char* sourceCode;
     ShaderInfo reflection;
     GLLang GLSLLanguage;
+    TextureSamplerInfo textureSamplerInfo;    // HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS fills this out
 } GLSLShader;
 
 /*HLSL constant buffers are treated as default-block unform arrays by default. This is done
@@ -419,6 +431,9 @@ static const unsigned int HLSLCC_FLAG_DUAL_SOURCE_BLENDING = 0x40;
 static const unsigned int HLSLCC_FLAG_INOUT_SEMANTIC_NAMES = 0x80;
 //If set, shader inputs and outputs are declared with their semantic name appended.
 static const unsigned int HLSLCC_FLAG_INOUT_APPEND_SEMANTIC_NAMES = 0x100;
+
+//If set, combines texture/sampler pairs used together into samplers named "texturename_X_samplername".
+static const unsigned int HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS = 0x200;
 
 #ifdef __cplusplus
 extern "C" {

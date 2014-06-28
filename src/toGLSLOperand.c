@@ -1555,3 +1555,65 @@ void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32Registe
 		bformata(glsl, "UnknownResource%d", ui32RegisterNumber);
 	}
 }
+
+bstring TextureSamplerName(ShaderInfo* psShaderInfo, const uint32_t ui32TextureRegisterNumber, const uint32_t ui32SamplerRegisterNumber, const int bZCompare)
+{
+    bstring result;
+    ResourceBinding* psTextureBinding = 0;
+    ResourceBinding* psSamplerBinding = 0;
+    int foundTexture, foundSampler;
+    uint32_t i = 0;
+    char textureName[MAX_REFLECT_STRING_LENGTH];
+    uint32_t ui32ArrayOffset;
+
+    foundTexture = GetResourceFromBindingPoint(RGROUP_TEXTURE, ui32TextureRegisterNumber, psShaderInfo, &psTextureBinding);
+    foundSampler = GetResourceFromBindingPoint(RGROUP_SAMPLER, ui32SamplerRegisterNumber, psShaderInfo, &psSamplerBinding);
+
+    if (!foundTexture || !foundSampler)
+    {
+        result = bformat("UnknownResource%d_%d", ui32TextureRegisterNumber, ui32SamplerRegisterNumber);
+        return result;
+    }
+
+    ui32ArrayOffset = ui32TextureRegisterNumber - psTextureBinding->ui32BindPoint;
+    
+    while(psTextureBinding->Name[i] != '\0' && i < (MAX_REFLECT_STRING_LENGTH-1))
+    {
+        textureName[i] = psTextureBinding->Name[i];
+        
+        //array syntax [X] becomes _0_
+        //Otherwise declarations could end up as:
+        //uniform sampler2D SomeTextures[0];
+        //uniform sampler2D SomeTextures[1];
+        if(textureName[i] == '[' || textureName[i] == ']')
+            textureName[i] = '_';
+        
+        ++i;
+    }
+    textureName[i] = '\0';
+
+    result = bfromcstr("");
+    
+    if(bZCompare)
+    {
+        bcatcstr(result, "hlslcc_zcmp");
+    }
+
+    if(ui32ArrayOffset)
+    {
+        bformata(result, "%s%d_X_%s", textureName, ui32ArrayOffset, psSamplerBinding->Name);
+    }
+    else
+    {
+        bformata(result, "%s_X_%s", textureName, psSamplerBinding->Name);
+    }
+
+    return result;
+}
+
+void ConcatTextureSamplerName(bstring str, ShaderInfo* psShaderInfo, const uint32_t ui32TextureRegisterNumber, const uint32_t ui32SamplerRegisterNumber, const int bZCompare)
+{
+    bstring texturesamplername = TextureSamplerName(psShaderInfo, ui32TextureRegisterNumber, ui32SamplerRegisterNumber, bZCompare);
+    bconcat(str, texturesamplername);
+    bdestroy(texturesamplername);
+}
