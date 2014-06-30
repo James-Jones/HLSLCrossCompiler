@@ -82,7 +82,7 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
     bstring glsl = *psContext->currentGLSLString;
 
     if(psContext->psShader->ui32MajorVersion <= 3)
-    {
+	{
 		bcatcstr(glsl, "int RepCounter;\n");
         bcatcstr(glsl, "int LoopCounter;\n");
         bcatcstr(glsl, "int ZeroBasedCounter;\n");
@@ -136,6 +136,12 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 			}
 		}
     }
+	else
+	{
+		//DX10+ bycode format requires the ability to treat registers
+		//as raw bits.
+		bcatcstr(glsl,"#extension GL_ARB_shader_bit_encoding : require\n");
+	}
 
 	if(!HaveCompute(psContext->psShader->eTargetLanguage))
 	{

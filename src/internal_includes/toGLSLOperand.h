@@ -10,6 +10,14 @@
 #define TO_FLAG_DESTINATION 0x8 //Operand is being written to by assignment.
 #define TO_FLAG_UNSIGNED_INTEGER 0x10
 #define TO_FLAG_DOUBLE 0x20
+// --- TO_AUTO_BITCAST_TO_FLOAT ---
+//If the operand is an integer temp variable then this flag
+//indicates that the temp has a valid floating point encoding
+//and that the current expression expects the operand to be floating point
+//and therefore intBitsToFloat must be applied to that variable.
+#define TO_AUTO_BITCAST_TO_FLOAT 0x40
+#define TO_AUTO_BITCAST_TO_INT 0x80
+
 void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag);
 
 int GetMaxComponentFromComponentMask(const Operand* psOperand);

@@ -862,10 +862,12 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 
                     CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_DP4, 1, 1, pui32CurrentToken);
                     memcpy(&psInst[inst].asOperands[2],&psInst[inst].asOperands[1], sizeof(Operand));
+					psInst[inst].ui32NumOperands++;
                     ++inst;
 
                     CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_RSQ, 0, 0, pui32CurrentToken);
                     memcpy(&psInst[inst].asOperands[0],&psInst[inst-1].asOperands[0], sizeof(Operand));
+					psInst[inst].ui32NumOperands++;
                     break;
                 }
                 case OPCODE_DX9_SINCOS:
