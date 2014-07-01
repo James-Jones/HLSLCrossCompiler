@@ -1604,7 +1604,9 @@ bstring TextureSamplerName(ShaderInfo* psShaderInfo, const uint32_t ui32TextureR
         //uniform sampler2D SomeTextures[0];
         //uniform sampler2D SomeTextures[1];
         if(textureName[i] == '[' || textureName[i] == ']')
+		{
             textureName[i] = '_';
+		}
         
         ++i;
     }
@@ -1617,14 +1619,7 @@ bstring TextureSamplerName(ShaderInfo* psShaderInfo, const uint32_t ui32TextureR
         bcatcstr(result, "hlslcc_zcmp");
     }
 
-    if(ui32ArrayOffset)
-    {
-        bformata(result, "%s%d_X_%s", textureName, ui32ArrayOffset, psSamplerBinding->Name);
-    }
-    else
-    {
-        bformata(result, "%s_X_%s", textureName, psSamplerBinding->Name);
-    }
+	bformata(result, "%s%d_X_%s", textureName, ui32ArrayOffset, psSamplerBinding->Name);
 
     return result;
 }
