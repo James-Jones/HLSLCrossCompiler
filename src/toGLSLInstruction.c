@@ -1061,6 +1061,8 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
 
     const int iHaveOverloadedTexFuncs = HaveOverloadedTextureFuncs(psContext->psShader->eTargetLanguage);
 
+    const int useCombinedTextureSamplers = (psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) ? 1 : 0;
+
     ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
 
     if(psInst->bAddressOffset)
@@ -1154,7 +1156,10 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
                 {
 			        bcatcstr(glsl, "(vec4(texture(");
                 }
-			    TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
+                if (!useCombinedTextureSamplers)
+                    TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, (ui32Flags & TEXSMP_FLAG_DEPTHCOMPARE)?1:0);
+                else
+                    bconcat(glsl, TextureSamplerName(&psContext->psShader->sInfo, psInst->asOperands[2].ui32RegisterNumber, psInst->asOperands[3].ui32RegisterNumber, (ui32Flags & TEXSMP_FLAG_DEPTHCOMPARE)?1:0));
 			    bcatcstr(glsl, ",");
                 TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 			    bcatcstr(glsl, ",");
@@ -1204,7 +1209,10 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         {
             bformata(glsl, "(vec4(%s%s(", funcName, offset);
         }
-		TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
+        if (!useCombinedTextureSamplers)
+            TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
+        else
+            bconcat(glsl, TextureSamplerName(&psContext->psShader->sInfo, psInst->asOperands[2].ui32RegisterNumber, psInst->asOperands[3].ui32RegisterNumber, 1));
 		bformata(glsl, ", %s(", depthCmpCoordType);
 		TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 		bcatcstr(glsl, ",");
@@ -1238,7 +1246,10 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         {
             bformata(glsl, "(%s%s(", funcName, offset);
         }
-        TranslateOperand(psContext, &psInst->asOperands[2], TO_AUTO_BITCAST_TO_FLOAT);//resource
+        if (!useCombinedTextureSamplers)
+        TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);//resource
+        else
+            bconcat(glsl, TextureSamplerName(&psContext->psShader->sInfo, psInst->asOperands[2].ui32RegisterNumber, psInst->asOperands[3].ui32RegisterNumber, 0));
         bcatcstr(glsl, ", ");
         TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 
@@ -3164,6 +3175,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         {
             //dest, coords, tex, sampler
 			const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber];
+			const int useCombinedTextureSamplers = (psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) ? 1 : 0;
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//GATHER4\n");
@@ -3174,7 +3186,11 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			AddAssignToDest(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, "(textureGather(");
 
-            TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+            if (!useCombinedTextureSamplers)
+                TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 0);
+            else
+                bconcat(glsl, TextureSamplerName(&psContext->psShader->sInfo, psInst->asOperands[2].ui32RegisterNumber, psInst->asOperands[3].ui32RegisterNumber, 0));
+
             bcatcstr(glsl, ", ");
 			TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
             bcatcstr(glsl, ")");
@@ -3192,6 +3208,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         {
             //dest, coords, offset, tex, sampler, srcReferenceValue
 			const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[3].ui32RegisterNumber];
+			const int useCombinedTextureSamplers = (psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) ? 1 : 0;
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//GATHER4_PO_C\n");
@@ -3202,7 +3219,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			AddAssignToDest(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, "(textureGatherOffset(");
 
-            TextureName(psContext, psInst->asOperands[3].ui32RegisterNumber, 1);
+            if (!useCombinedTextureSamplers)
+                TextureName(psContext, psInst->asOperands[3].ui32RegisterNumber, 1);
+            else
+                bconcat(glsl, TextureSamplerName(&psContext->psShader->sInfo, psInst->asOperands[3].ui32RegisterNumber, psInst->asOperands[3].ui32RegisterNumber, 1));
 
             bcatcstr(glsl, ", ");
 
@@ -3230,6 +3250,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_GATHER4_PO:
         {
             //dest, coords, offset, tex, sampler
+			const int useCombinedTextureSamplers = (psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) ? 1 : 0;
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//GATHER4_PO\n");
@@ -3240,7 +3261,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			AddAssignToDest(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, "(textureGatherOffset(");
 
-            TextureName(psContext, psInst->asOperands[3].ui32RegisterNumber, 0);
+            if (!useCombinedTextureSamplers)
+                TextureName(psContext, psInst->asOperands[3].ui32RegisterNumber, 0);
+            else
+                bconcat(glsl, TextureSamplerName(&psContext->psShader->sInfo, psInst->asOperands[3].ui32RegisterNumber, psInst->asOperands[3].ui32RegisterNumber, 0));
 
             bcatcstr(glsl, ", ");
             //Texture coord cannot be vec4
@@ -3268,6 +3292,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_GATHER4_C:
         {
             //dest, coords, tex, sampler srcReferenceValue
+			const int useCombinedTextureSamplers = (psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) ? 1 : 0;
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//GATHER4_C\n");
@@ -3278,7 +3303,10 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			AddAssignToDest(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, "(textureGather(");
 
-            TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
+            if (!useCombinedTextureSamplers)
+                TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 0);
+            else
+                bconcat(glsl, TextureSamplerName(&psContext->psShader->sInfo, psInst->asOperands[2].ui32RegisterNumber, psInst->asOperands[3].ui32RegisterNumber, 0));
 
             bcatcstr(glsl, ", ");
             //Texture coord cannot be vec4

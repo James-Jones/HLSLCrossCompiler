@@ -31,6 +31,9 @@ uint32_t IsSwizzleReplacated(const Operand* psOperand);
 
 void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32RegisterNumber, const int bZCompare);
 
+bstring TextureSamplerName(ShaderInfo* psShaderInfo, const uint32_t ui32TextureRegisterNumber, const uint32_t ui32SamplerRegisterNumber, const int bZCompare);
+void ConcatTextureSamplerName(bstring str, ShaderInfo* psShaderInfo, const uint32_t ui32TextureRegisterNumber, const uint32_t ui32SamplerRegisterNumber, const int bZCompare);
+
 //Non-zero means the components overlap
 int CompareOperandSwizzles(const Operand* psOperandA, const Operand* psOperandB);
 

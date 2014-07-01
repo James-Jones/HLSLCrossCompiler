@@ -773,6 +773,11 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
     {
         HLSLCrossCompilerContext sContext;
 
+		if(psShader->ui32MajorVersion <= 3)
+		{
+			flags &= ~HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS;
+		}
+
         sContext.psShader = psShader;
         sContext.flags = flags;
         sContext.psDependencies = dependencies;
@@ -846,6 +851,9 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
         
 		memcpy(&result->reflection,&psShader->sInfo,sizeof(psShader->sInfo));
         
+		result->textureSamplerInfo.ui32NumTextureSamplerPairs = psShader->textureSamplerInfo.ui32NumTextureSamplerPairs;
+		for (i=0; i<result->textureSamplerInfo.ui32NumTextureSamplerPairs; i++)
+			strcpy(result->textureSamplerInfo.aTextureSamplerPair[i].Name, psShader->textureSamplerInfo.aTextureSamplerPair[i].Name);
 
         hlslcc_free(psShader);
 
