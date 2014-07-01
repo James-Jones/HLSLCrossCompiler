@@ -1777,11 +1777,12 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             {
                 // Explicit layout bindings are not currently compatible with combined texture samplers. The layout below assumes there is exactly one GLSL sampler
                 // for each HLSL texture declaration, but when combining textures+samplers, there can be multiple OGL samplers for each HLSL texture declaration.
-                ASSERT((psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) == 0);
-                
-                //Constant buffer locations start at 0. Resource locations start at ui32NumConstantBuffers.
-                bformata(glsl, "layout(location = %d) ", 
-                    psContext->psShader->sInfo.ui32NumConstantBuffers + psDecl->asOperands[0].ui32RegisterNumber);
+                if((psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) != HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS)
+				{      
+					//Constant buffer locations start at 0. Resource locations start at ui32NumConstantBuffers.
+					bformata(glsl, "layout(location = %d) ", 
+						psContext->psShader->sInfo.ui32NumConstantBuffers + psDecl->asOperands[0].ui32RegisterNumber);
+				}
             }
 
             switch(psDecl->value.eResourceDimension)
