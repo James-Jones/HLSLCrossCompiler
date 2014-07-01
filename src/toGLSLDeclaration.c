@@ -1208,6 +1208,54 @@ void DeclareStructConstants(HLSLCrossCompilerContext* psContext, const uint32_t 
     bcatcstr(glsl, ";\n");
 }
 
+static void TranslateResourceTexture(HLSLCrossCompilerContext* psContext, const Declaration* psDecl, const char* samplerTypeName, uint32_t samplerCanDoShadowCmp)
+{
+    bstring glsl = *psContext->currentGLSLString;
+    Shader* psShader = psContext->psShader;
+    uint32_t i;
+    
+    if (psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS)
+    {
+        if(samplerCanDoShadowCmp && psDecl->ui32IsShadowTex)
+        {
+            for (i = 0; i < psDecl->ui32SamplerUsedCount; i++)
+            {
+                bcatcstr(glsl, "uniform ");
+                bcatcstr(glsl, samplerTypeName);
+                bcatcstr(glsl, "Shadow ");
+                ConcatTextureSamplerName(glsl, &psShader->sInfo, psDecl->asOperands[0].ui32RegisterNumber, psDecl->ui32SamplerUsed[i], 1);
+                bcatcstr(glsl, ";\n");
+            }
+        }
+        for (i = 0; i < psDecl->ui32SamplerUsedCount; i++)
+        {
+            bcatcstr(glsl, "uniform ");
+            bcatcstr(glsl, samplerTypeName);
+            bcatcstr(glsl, " ");
+            ConcatTextureSamplerName(glsl, &psShader->sInfo, psDecl->asOperands[0].ui32RegisterNumber, psDecl->ui32SamplerUsed[i], 0);
+            bcatcstr(glsl, ";\n");
+        }
+    } else {
+        if(samplerCanDoShadowCmp && psDecl->ui32IsShadowTex)
+        {
+            //Create shadow and non-shadow sampler.
+            //HLSL does not have separate types for depth compare, just different functions.
+
+            bcatcstr(glsl, "uniform ");
+            bcatcstr(glsl, samplerTypeName);
+            bcatcstr(glsl, "Shadow ");
+            TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 1);
+            bcatcstr(glsl, ";\n");
+        }
+                        
+        bcatcstr(glsl, "uniform ");
+        bcatcstr(glsl, samplerTypeName);
+        bcatcstr(glsl, " ");
+        TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
+        bcatcstr(glsl, ";\n");
+    }
+}
+
 void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration* psDecl)
 {
     bstring glsl = *psContext->currentGLSLString;
@@ -1727,6 +1775,10 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         {
             if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
             {
+                // Explicit layout bindings are not currently compatible with combined texture samplers. The layout below assumes there is exactly one GLSL sampler
+                // for each HLSL texture declaration, but when combining textures+samplers, there can be multiple OGL samplers for each HLSL texture declaration.
+                ASSERT((psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) == 0);
+                
                 //Constant buffer locations start at 0. Resource locations start at ui32NumConstantBuffers.
                 bformata(glsl, "layout(location = %d) ", 
                     psContext->psShader->sInfo.ui32NumConstantBuffers + psDecl->asOperands[0].ui32RegisterNumber);
@@ -1738,117 +1790,55 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 {
                     bcatcstr(glsl, "uniform samplerBuffer ");
                     TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+                    bcatcstr(glsl, ";\n");
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE1D:
                 {
-					if(psDecl->ui32IsShadowTex)
-                    {
-                        //Create shadow and non-shadow sampler.
-                        //HLSL does not have separate types for depth compare, just different functions.
-						bcatcstr(glsl, "uniform sampler1DShadow ");
-                        TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 1);
-                        bcatcstr(glsl, ";\n");
-                    }
-
-					bcatcstr(glsl, "uniform sampler1D ");
-                    TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
+                    TranslateResourceTexture(psContext, psDecl, "sampler1D", 1);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2D:
                 {
-					if(psDecl->ui32IsShadowTex)
-                    {
-                        //Create shadow and non-shadow sampler.
-                        //HLSL does not have separate types for depth compare, just different functions.
-						bcatcstr(glsl, "uniform sampler2DShadow ");
-                        TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 1);
-                        bcatcstr(glsl, ";\n");
-                    }
-					bcatcstr(glsl, "uniform sampler2D ");
-					TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
+                    TranslateResourceTexture(psContext, psDecl, "sampler2D", 1);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DMS:
                 {
-                    bcatcstr(glsl, "uniform sampler2DMS ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+                    TranslateResourceTexture(psContext, psDecl, "sampler2DMS", 0);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE3D:
                 {
-                    bcatcstr(glsl, "uniform sampler3D ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+                    TranslateResourceTexture(psContext, psDecl, "sampler3D", 0);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBE:
                 {
-					if(psDecl->ui32IsShadowTex)
-                    {
-                        //Create shadow and non-shadow sampler.
-                        //HLSL does not have separate types for depth compare, just different functions.
-						bcatcstr(glsl, "uniform samplerCubeShadow ");
-                        TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 1);
-                        bcatcstr(glsl, ";\n");
-                    }
-
-					bcatcstr(glsl, "uniform samplerCube ");
-                    TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
+                    TranslateResourceTexture(psContext, psDecl, "samplerCube", 1);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE1DARRAY:
                 {
-					if(psDecl->ui32IsShadowTex)
-                    {
-                        //Create shadow and non-shadow sampler.
-                        //HLSL does not have separate types for depth compare, just different functions.
-						bcatcstr(glsl, "uniform sampler1DArrayShadow ");
-                        TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 1);
-                        bcatcstr(glsl, ";\n");
-                    }
-
-					bcatcstr(glsl, "uniform sampler1DArray ");
-                    TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
+                    TranslateResourceTexture(psContext, psDecl, "sampler1DArray", 1);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DARRAY:
                 {
-					if(psDecl->ui32IsShadowTex)
-                    {
-                        //Create shadow and non-shadow sampler.
-                        //HLSL does not have separate types for depth compare, just different functions.
-						bcatcstr(glsl, "uniform sampler2DArrayShadow ");
-                        TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 1);
-                        bcatcstr(glsl, ";\n");
-                    }
-
-					bcatcstr(glsl, "uniform sampler2DArray ");
-                    TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
+                    TranslateResourceTexture(psContext, psDecl, "sampler2DArray", 1);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
                 {
-                    bcatcstr(glsl, "uniform sampler3DArray ");
-                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+                    TranslateResourceTexture(psContext, psDecl, "sampler3DArray", 0);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
                 {
-					if(psDecl->ui32IsShadowTex)
-                    {
-                        //Create shadow and non-shadow sampler.
-                        //HLSL does not have separate types for depth compare, just different functions.
-						bcatcstr(glsl, "uniform samplerCubeArrayShadow ");
-                        TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 1);
-                        bcatcstr(glsl, ";\n");
-                    }
-
-					bcatcstr(glsl, "uniform samplerCubeArray ");
-                    TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
+                    TranslateResourceTexture(psContext, psDecl, "samplerCubeArray", 1);
                     break;
                 }
             }
-            bcatcstr(glsl, ";\n");
             ASSERT(psDecl->asOperands[0].ui32RegisterNumber < MAX_TEXTURES);
             psShader->aeResourceDims[psDecl->asOperands[0].ui32RegisterNumber] = psDecl->value.eResourceDimension;
             break;

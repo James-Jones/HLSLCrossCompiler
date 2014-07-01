@@ -1061,6 +1061,8 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
 
     const int iHaveOverloadedTexFuncs = HaveOverloadedTextureFuncs(psContext->psShader->eTargetLanguage);
 
+    const int useCombinedTextureSamplers = (psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) ? 1 : 0;
+
     ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
 
     if(psInst->bAddressOffset)
@@ -1154,7 +1156,10 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
                 {
 			        bcatcstr(glsl, "(vec4(texture(");
                 }
-			    TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
+                if (!useCombinedTextureSamplers)
+                    TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, (ui32Flags & TEXSMP_FLAG_DEPTHCOMPARE)?1:0);
+                else
+                    bconcat(glsl, TextureSamplerName(&psContext->psShader->sInfo, psInst->asOperands[2].ui32RegisterNumber, psInst->asOperands[3].ui32RegisterNumber, (ui32Flags & TEXSMP_FLAG_DEPTHCOMPARE)?1:0));
 			    bcatcstr(glsl, ",");
                 TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 			    bcatcstr(glsl, ",");
@@ -1204,7 +1209,10 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         {
             bformata(glsl, "(vec4(%s%s(", funcName, offset);
         }
-		TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
+        if (!useCombinedTextureSamplers)
+            TextureName(psContext, psInst->asOperands[2].ui32RegisterNumber, 1);
+        else
+            bconcat(glsl, TextureSamplerName(&psContext->psShader->sInfo, psInst->asOperands[2].ui32RegisterNumber, psInst->asOperands[3].ui32RegisterNumber, 1));
 		bformata(glsl, ", %s(", depthCmpCoordType);
 		TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 		bcatcstr(glsl, ",");
@@ -1238,7 +1246,10 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
         {
             bformata(glsl, "(%s%s(", funcName, offset);
         }
-        TranslateOperand(psContext, &psInst->asOperands[2], TO_AUTO_BITCAST_TO_FLOAT);//resource
+        if (!useCombinedTextureSamplers)
+        TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);//resource
+        else
+            bconcat(glsl, TextureSamplerName(&psContext->psShader->sInfo, psInst->asOperands[2].ui32RegisterNumber, psInst->asOperands[3].ui32RegisterNumber, 0));
         bcatcstr(glsl, ", ");
         TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 

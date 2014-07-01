@@ -1,3 +1,4 @@
+
 #include "internal_includes/tokens.h"
 #include "internal_includes/structs.h"
 #include "internal_includes/decode.h"
@@ -6,6 +7,7 @@
 #include "internal_includes/reflect.h"
 #include "internal_includes/debug.h"
 #include "internal_includes/hlslcc_malloc.h"
+#include "internal_includes/toGLSLOperand.h"
 
 #define FOURCC(a, b, c, d) ((uint32_t)(uint8_t)(a) | ((uint32_t)(uint8_t)(b) << 8) | ((uint32_t)(uint8_t)(c) << 16) | ((uint32_t)(uint8_t)(d) << 24 ))
 static enum {FOURCC_DXBC = FOURCC('D', 'X', 'B', 'C')}; //DirectX byte code
@@ -161,6 +163,55 @@ void MarkTextureAsShadow(ShaderInfo* psShaderInfo, Declaration* psDeclList, cons
 		}
 		psDecl++;
 	}
+}
+
+// Search through the list. Return the index if the value is found, return 0xffffffff if not found
+static uint32_t Find(uint32_t* psList, uint32_t ui32Count, uint32_t ui32Value)
+{
+    uint32_t i;
+    for (i=0; i<ui32Count; i++)
+        if (psList[i] == ui32Value)
+            return i;
+    return 0xffffffff;
+}
+
+void MarkTextureSamplerPair(ShaderInfo* psShaderInfo, Declaration* psDeclList, const uint32_t ui32DeclCount, const Operand* psTextureOperand, const Operand* psSamplerOperand, TextureSamplerInfo* psTextureSamplerInfo)
+{
+    Declaration* psDecl = psDeclList;
+    uint32_t i;
+    bstring combinedname;
+    const char* cstr;
+
+    ASSERT(psTextureOperand->eType == OPERAND_TYPE_RESOURCE);
+    ASSERT(psSamplerOperand->eType == OPERAND_TYPE_SAMPLER);
+
+    for(i = 0; i < ui32DeclCount; ++i)
+    {
+        if(psDecl->eOpcode == OPCODE_DCL_RESOURCE)
+        {
+            if(psDecl->asOperands[0].eType == OPERAND_TYPE_RESOURCE &&
+                psDecl->asOperands[0].ui32RegisterNumber == psTextureOperand->ui32RegisterNumber)
+            {
+                // psDecl is the texture resource referenced by psTextureOperand
+                ASSERT(psDecl->ui32SamplerUsedCount < MAX_TEXTURE_SAMPLERS_PAIRS);
+
+                // add psSamplerOperand->ui32RegisterNumber to list of samplers that use this texture
+                if (Find(psDecl->ui32SamplerUsed, psDecl->ui32SamplerUsedCount, psSamplerOperand->ui32RegisterNumber) == 0xffffffff)
+                {
+                    psDecl->ui32SamplerUsed[psDecl->ui32SamplerUsedCount++] = psSamplerOperand->ui32RegisterNumber;
+
+                    // Record the texturename_X_samplername string in the TextureSamplerPair array that we return to the client
+                    ASSERT(psTextureSamplerInfo->ui32NumTextureSamplerPairs < MAX_RESOURCE_BINDINGS);
+                    combinedname = TextureSamplerName(psShaderInfo, psTextureOperand->ui32RegisterNumber, psSamplerOperand->ui32RegisterNumber, psDecl->ui32IsShadowTex);
+                    cstr = bstr2cstr(combinedname, '\0');
+                    bdestroy(combinedname);
+                    strcpy(psTextureSamplerInfo->aTextureSamplerPair[psTextureSamplerInfo->ui32NumTextureSamplerPairs++].Name, cstr);
+                }
+                break;
+            }
+        }
+        psDecl++;
+    }
 }
 
 uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
@@ -367,6 +418,7 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         {
             psDecl->value.eResourceDimension = DecodeResourceDimension(*pui32Token);
             psDecl->ui32NumOperands = 1;
+			psDecl->ui32SamplerUsedCount = 0;
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
@@ -1163,7 +1215,58 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         }
     }
 
-	UpdateOperandReferences(psShader, psInst);
+    // For opcodes that sample textures, mark which samplers are used by each texture
+    {
+        uint32_t ui32TextureRegisterNumber;
+        uint32_t ui32SamplerRegisterNumber;
+        uint32_t bTextureSampleInstruction = 0;
+        switch (eOpcode)
+        {
+        case OPCODE_GATHER4:
+            // dest, coords, tex, sampler
+            ui32TextureRegisterNumber = 2;
+            ui32SamplerRegisterNumber = 3;
+            bTextureSampleInstruction = 1;
+            break;
+        case OPCODE_GATHER4_PO:
+            //dest, coords, offset, tex, sampler
+            ui32TextureRegisterNumber = 3;
+            ui32SamplerRegisterNumber = 4;
+            bTextureSampleInstruction = 1;
+            break;
+        case OPCODE_GATHER4_C:
+            //dest, coords, tex, sampler srcReferenceValue
+            ui32TextureRegisterNumber = 2;
+            ui32SamplerRegisterNumber = 3;
+            bTextureSampleInstruction = 1;
+            break;
+        case OPCODE_GATHER4_PO_C:
+            //dest, coords, offset, tex, sampler, srcReferenceValue
+            ui32TextureRegisterNumber = 3;
+            ui32SamplerRegisterNumber = 4;
+            bTextureSampleInstruction = 1;
+            break;
+        case OPCODE_SAMPLE:
+        case OPCODE_SAMPLE_L:
+        case OPCODE_SAMPLE_C:
+        case OPCODE_SAMPLE_C_LZ:
+        case OPCODE_SAMPLE_B:
+        case OPCODE_SAMPLE_D:
+        case OPCODE_LD_MS:
+            // dest, coords, tex, sampler [, reference]
+            ui32TextureRegisterNumber = 2;
+            ui32SamplerRegisterNumber = 3;
+            bTextureSampleInstruction = 1;
+            break;
+        }
+        
+        if (bTextureSampleInstruction)
+        {
+            MarkTextureSamplerPair(&psShader->sInfo, psShader->psDecl, psShader->ui32DeclCount, &psInst->asOperands[ui32TextureRegisterNumber], &psInst->asOperands[ui32SamplerRegisterNumber], &psShader->textureSamplerInfo);
+        }
+    }
+    
+    UpdateOperandReferences(psShader, psInst);
 
     return pui32Token + ui32TokenLength;
 }
