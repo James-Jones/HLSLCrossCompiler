@@ -1252,7 +1252,6 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_SAMPLE_C_LZ:
         case OPCODE_SAMPLE_B:
         case OPCODE_SAMPLE_D:
-        case OPCODE_LD_MS:
             // dest, coords, tex, sampler [, reference]
             ui32TextureRegisterNumber = 2;
             ui32SamplerRegisterNumber = 3;

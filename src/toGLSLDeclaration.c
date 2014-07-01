@@ -1235,25 +1235,25 @@ static void TranslateResourceTexture(HLSLCrossCompilerContext* psContext, const 
             ConcatTextureSamplerName(glsl, &psShader->sInfo, psDecl->asOperands[0].ui32RegisterNumber, psDecl->ui32SamplerUsed[i], 0);
             bcatcstr(glsl, ";\n");
         }
-    } else {
-        if(samplerCanDoShadowCmp && psDecl->ui32IsShadowTex)
-        {
-            //Create shadow and non-shadow sampler.
-            //HLSL does not have separate types for depth compare, just different functions.
+    }
 
-            bcatcstr(glsl, "uniform ");
-            bcatcstr(glsl, samplerTypeName);
-            bcatcstr(glsl, "Shadow ");
-            TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 1);
-            bcatcstr(glsl, ";\n");
-        }
-                        
+    if(samplerCanDoShadowCmp && psDecl->ui32IsShadowTex)
+    {
+        //Create shadow and non-shadow sampler.
+        //HLSL does not have separate types for depth compare, just different functions.
+
         bcatcstr(glsl, "uniform ");
         bcatcstr(glsl, samplerTypeName);
-        bcatcstr(glsl, " ");
-        TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
+        bcatcstr(glsl, "Shadow ");
+        TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 1);
         bcatcstr(glsl, ";\n");
     }
+                        
+    bcatcstr(glsl, "uniform ");
+    bcatcstr(glsl, samplerTypeName);
+    bcatcstr(glsl, " ");
+    TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
+    bcatcstr(glsl, ";\n");
 }
 
 void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration* psDecl)
