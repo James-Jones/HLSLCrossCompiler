@@ -1619,7 +1619,22 @@ bstring TextureSamplerName(ShaderInfo* psShaderInfo, const uint32_t ui32TextureR
         bcatcstr(result, "hlslcc_zcmp");
     }
 
-	bformata(result, "%s%d_X_%s", textureName, ui32ArrayOffset, psSamplerBinding->Name);
+
+	if(ui32ArrayOffset)
+	{
+		bformata(result, "%s%d_X_%s", textureName, ui32ArrayOffset, psSamplerBinding->Name);
+	}
+	else
+	{
+		if((i>0) && (textureName[i-1] == '_'))//Prevent double underscore which is reserved
+		{
+			bformata(result, "%sX_%s", textureName, psSamplerBinding->Name);
+		}
+		else
+		{
+			bformata(result, "%s_X_%s", textureName, psSamplerBinding->Name);
+		}
+	}
 
     return result;
 }

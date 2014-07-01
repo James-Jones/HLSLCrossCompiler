@@ -69,7 +69,7 @@ def RunTest(ByteCodeFileName, lang):
 		stdoutFile = open(os.devnull);
 		stderrFile = open(os.devnull);
 
-	returnCode = call([executable, '-in='+ByteCodeFileName, '-out='+directory+"/"+outputfilename, '-lang='+lang], stdin=stdinFile, stdout=stdoutFile, stderr=stderrFile)
+	returnCode = call([executable, '-in='+ByteCodeFileName, '-out='+directory+"/"+outputfilename, '-lang='+lang, '-flags=512'], stdin=stdinFile, stdout=stdoutFile, stderr=stderrFile)
 
 	if returnCode == 1:
 		failCount += 1
