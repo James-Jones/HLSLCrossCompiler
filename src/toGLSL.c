@@ -773,6 +773,11 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
     {
         HLSLCrossCompilerContext sContext;
 
+		if(psShader->ui32MajorVersion <= 3)
+		{
+			flags &= ~HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS;
+		}
+
         sContext.psShader = psShader;
         sContext.flags = flags;
         sContext.psDependencies = dependencies;
