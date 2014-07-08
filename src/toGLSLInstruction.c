@@ -30,6 +30,22 @@ void AddAssignToDest(HLSLCrossCompilerContext* psContext, const Operand* psDest,
 	bcatcstr(glsl, " = ");
 }
 
+static uint32_t ResourceReturnTypeToFlag(const RESOURCE_RETURN_TYPE eType)
+{
+	if(eType == RETURN_TYPE_SINT)
+	{
+		return TO_FLAG_INTEGER;
+	}
+	else if(eType == RETURN_TYPE_UINT)
+	{
+		return TO_FLAG_UNSIGNED_INTEGER;
+	}
+	else
+	{
+		return TO_FLAG_NONE;
+	}
+}
+
 static uint32_t SVTTypeToFlag(const SHADER_VARIABLE_TYPE eType)
 {
 	if(eType == SVT_UINT)
@@ -702,7 +718,7 @@ static void TranslateTexelFetch(HLSLCrossCompilerContext* psContext,
 {
 	AddIndentation(psContext);
 	TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-	AddAssignToDest(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+	AddAssignToDest(psContext, &psInst->asOperands[0], ResourceReturnTypeToFlag(psBinding->ui32ReturnType));
 	bcatcstr(glsl, "(texelFetch(");
 	switch(psBinding->eDimension)
 	{

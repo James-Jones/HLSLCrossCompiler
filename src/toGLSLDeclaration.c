@@ -1208,11 +1208,173 @@ void DeclareStructConstants(HLSLCrossCompilerContext* psContext, const uint32_t 
     bcatcstr(glsl, ";\n");
 }
 
-static void TranslateResourceTexture(HLSLCrossCompilerContext* psContext, const Declaration* psDecl, const char* samplerTypeName, uint32_t samplerCanDoShadowCmp)
+char* GetSamplerType(HLSLCrossCompilerContext* psContext,
+					 const RESOURCE_DIMENSION eDimension,
+					 const uint32_t ui32RegisterNumber)
+{
+	ResourceBinding* psBinding = 0;
+	RESOURCE_RETURN_TYPE eType = RETURN_TYPE_UNORM;
+	int found;
+	found = GetResourceFromBindingPoint(RGROUP_TEXTURE, ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
+	if(found)
+	{
+		eType = (RESOURCE_RETURN_TYPE)psBinding->ui32ReturnType;
+	}
+	switch(eDimension)
+	{
+		case RESOURCE_DIMENSION_BUFFER:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "isamplerBuffer";
+				case RETURN_TYPE_UINT:
+					return "usamplerBuffer";
+				default:
+					return "samplerBuffer";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURE1D:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "isampler1D";
+				case RETURN_TYPE_UINT:
+					return "usampler1D";
+				default:
+					return "sampler1D";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURE2D:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "isampler2D";
+				case RETURN_TYPE_UINT:
+					return "usampler2D";
+				default:
+					return "sampler2D";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURE2DMS:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "isampler2DMS";
+				case RETURN_TYPE_UINT:
+					return "usampler2DMS";
+				default:
+					return "sampler2DMS";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURE3D:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "isampler3D";
+				case RETURN_TYPE_UINT:
+					return "usampler3D";
+				default:
+					return "sampler3D";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURECUBE:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "isamplerCube";
+				case RETURN_TYPE_UINT:
+					return "usamplerCube";
+				default:
+					return "samplerCube";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "isampler1DArray";
+				case RETURN_TYPE_UINT:
+					return "usampler1DArray";
+				default:
+					return "sampler1DArray";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "isampler2DArray";
+				case RETURN_TYPE_UINT:
+					return "usampler2DArray";
+				default:
+					return "sampler2DArray";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "isampler2DMSArray";
+				case RETURN_TYPE_UINT:
+					return "usampler2DMSArray";
+				default:
+					return "sampler2DMSArray";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "isamplerCubeArray";
+				case RETURN_TYPE_UINT:
+					return "usamplerCubeArray";
+				default:
+					return "samplerCubeArray";
+			}
+			break;
+		}
+	}
+
+	return "sampler2D";
+}
+
+static void TranslateResourceTexture(HLSLCrossCompilerContext* psContext, const Declaration* psDecl, uint32_t samplerCanDoShadowCmp)
 {
     bstring glsl = *psContext->currentGLSLString;
     Shader* psShader = psContext->psShader;
     uint32_t i;
+
+	const char* samplerTypeName = GetSamplerType(psContext,
+		psDecl->value.eResourceDimension,
+		psDecl->asOperands[0].ui32RegisterNumber);
     
     if (psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS)
     {
@@ -1789,54 +1951,57 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             {
                 case RESOURCE_DIMENSION_BUFFER:
                 {
-                    bcatcstr(glsl, "uniform samplerBuffer ");
+                    bcatcstr(glsl, "uniform ");
+                    bcatcstr(glsl, GetSamplerType(psContext,
+						RESOURCE_DIMENSION_BUFFER,
+						psDecl->asOperands[0].ui32RegisterNumber));
                     TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
                     bcatcstr(glsl, ";\n");
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE1D:
                 {
-                    TranslateResourceTexture(psContext, psDecl, "sampler1D", 1);
+                    TranslateResourceTexture(psContext, psDecl, 1);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2D:
                 {
-                    TranslateResourceTexture(psContext, psDecl, "sampler2D", 1);
+                    TranslateResourceTexture(psContext, psDecl, 1);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DMS:
                 {
-                    TranslateResourceTexture(psContext, psDecl, "sampler2DMS", 0);
+                    TranslateResourceTexture(psContext, psDecl, 0);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE3D:
                 {
-                    TranslateResourceTexture(psContext, psDecl, "sampler3D", 0);
+                    TranslateResourceTexture(psContext, psDecl, 0);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBE:
                 {
-                    TranslateResourceTexture(psContext, psDecl, "samplerCube", 1);
+                    TranslateResourceTexture(psContext, psDecl, 1);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE1DARRAY:
                 {
-                    TranslateResourceTexture(psContext, psDecl, "sampler1DArray", 1);
+                    TranslateResourceTexture(psContext, psDecl, 1);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DARRAY:
                 {
-                    TranslateResourceTexture(psContext, psDecl, "sampler2DArray", 1);
+                    TranslateResourceTexture(psContext, psDecl, 1);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
                 {
-                    TranslateResourceTexture(psContext, psDecl, "sampler3DArray", 0);
+                    TranslateResourceTexture(psContext, psDecl, 0);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
                 {
-                    TranslateResourceTexture(psContext, psDecl, "samplerCubeArray", 1);
+                    TranslateResourceTexture(psContext, psDecl, 1);
                     break;
                 }
             }
