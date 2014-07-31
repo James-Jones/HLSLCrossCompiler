@@ -136,7 +136,14 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
 
 	SHADER_VARIABLE_TYPE eDestType = GetOperandDataType(psContext, &psInst->asOperands[0]);
 
+	int floatResult = 0;
+
     minElemCount = s1ElemCount < minElemCount ? s1ElemCount : minElemCount;
+
+	if(psContext->psShader->ui32MajorVersion < 4)
+	{
+		floatResult = 1;
+	}
 
     if(destElemCount > 1)
     {
@@ -160,7 +167,14 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
         //Component-wise compare
         AddIndentation(psContext);
 		TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-		AddAssignToDest(psContext, &psInst->asOperands[0], typeFlag);
+		if(floatResult)
+		{
+			AddAssignToDest(psContext, &psInst->asOperands[0], typeFlag);
+		}
+		else
+		{
+			AddAssignToDest(psContext, &psInst->asOperands[0], typeFlag | TO_FLAG_INTEGER);
+		}
 		bcatcstr(glsl, "(");
 
 		if(eDestType == SVT_UINT)
@@ -182,7 +196,7 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
         TranslateOperand(psContext, &psInst->asOperands[2], typeFlag);
         bcatcstr(glsl, ")");
         AddSwizzleUsingElementCount(psContext, minElemCount);
-		if(psContext->psShader->ui32MajorVersion < 4)
+		if(floatResult)
 		{
 			//Result is 1.0f or 0.0f
 			bcatcstr(glsl, "))");
@@ -213,7 +227,16 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
         //Scalar compare
         AddIndentation(psContext);
 		TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-		AddAssignToDest(psContext, &psInst->asOperands[0], typeFlag);
+		
+		if(floatResult)
+		{
+			AddAssignToDest(psContext, &psInst->asOperands[0], typeFlag);
+		}
+		else
+		{
+			AddAssignToDest(psContext, &psInst->asOperands[0], typeFlag | TO_FLAG_INTEGER);
+		}
+		
 		bcatcstr(glsl, "(");
 
         bcatcstr(glsl, "((");
@@ -226,7 +249,7 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
         bcatcstr(glsl, ")");
         if(s1ElemCount > minElemCount)
             AddSwizzleUsingElementCount(psContext, minElemCount);
-		if(psContext->psShader->ui32MajorVersion < 4)
+		if(floatResult)
 		{
 			bcatcstr(glsl, ") ? 1.0f : 1.0f");
 		}
@@ -716,9 +739,6 @@ static void TranslateTexelFetch(HLSLCrossCompilerContext* psContext,
 								ResourceBinding* psBinding,
 								bstring glsl)
 {
-	const uint32_t ui32ResultElementCount = GetNumSwizzleElements(&psInst->asOperands[0]);
-	const uint32_t ui32ResourceSwizzleElementCount = GetNumSwizzleElements(&psInst->asOperands[2]);
-
 	AddIndentation(psContext);
 	TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
 	AddAssignToDest(psContext, &psInst->asOperands[0], ResourceReturnTypeToFlag(psBinding->ui32ReturnType));
@@ -728,7 +748,6 @@ static void TranslateTexelFetch(HLSLCrossCompilerContext* psContext,
 	{
 		case REFLECT_RESOURCE_DIMENSION_TEXTURE1D:
 		{
-			//texelFetch(samplerBuffer, int coord, level)
 			TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 			bcatcstr(glsl, ", int((");
 			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
@@ -738,7 +757,6 @@ static void TranslateTexelFetch(HLSLCrossCompilerContext* psContext,
 		case REFLECT_RESOURCE_DIMENSION_TEXTURE2DARRAY:
 		case REFLECT_RESOURCE_DIMENSION_TEXTURE3D:
 		{
-			//texelFetch(samplerBuffer, ivec3 coord, level)
 			TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 			bcatcstr(glsl, ", ivec3((");
 			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
@@ -748,7 +766,6 @@ static void TranslateTexelFetch(HLSLCrossCompilerContext* psContext,
 		case REFLECT_RESOURCE_DIMENSION_TEXTURE2D:
 		case REFLECT_RESOURCE_DIMENSION_TEXTURE1DARRAY:
 		{
-			//texelFetch(samplerBuffer, ivec2 coord, level)
 			TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 			bcatcstr(glsl, ", ivec2((");
 			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
@@ -757,7 +774,6 @@ static void TranslateTexelFetch(HLSLCrossCompilerContext* psContext,
 		}
 		case REFLECT_RESOURCE_DIMENSION_BUFFER:
 		{
-			//texelFetch(samplerBuffer, scalar integer coord)
 			TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 			bcatcstr(glsl, ", int((");
 			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
@@ -766,8 +782,6 @@ static void TranslateTexelFetch(HLSLCrossCompilerContext* psContext,
 		}
 		case REFLECT_RESOURCE_DIMENSION_TEXTURE2DMS:
 		{
-			//texelFetch(samplerBuffer, ivec2 coord, sample)
-
             ASSERT(psInst->eOpcode == OPCODE_LD_MS);
 			TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 			bcatcstr(glsl, ", ivec2((");
@@ -779,8 +793,6 @@ static void TranslateTexelFetch(HLSLCrossCompilerContext* psContext,
 		}
 		case REFLECT_RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
 		{
-			//texelFetch(samplerBuffer, ivec3 coord, sample)
-
             ASSERT(psInst->eOpcode == OPCODE_LD_MS);
 			TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 			bcatcstr(glsl, ", ivec3((");
@@ -801,12 +813,9 @@ static void TranslateTexelFetch(HLSLCrossCompilerContext* psContext,
 	}
 
 	TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
-	if(ui32ResourceSwizzleElementCount != ui32ResultElementCount)
-	{
-		AddSwizzleUsingElementCount(psContext, ui32ResultElementCount);
-	}
-
-	bcatcstr(glsl, ");\n");
+	bcatcstr(glsl, ")");
+	TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+	bcatcstr(glsl, ";\n");
 }
 
 static void TranslateTexelFetchOffset(HLSLCrossCompilerContext* psContext,
@@ -814,9 +823,6 @@ static void TranslateTexelFetchOffset(HLSLCrossCompilerContext* psContext,
 								ResourceBinding* psBinding,
 								bstring glsl)
 {
-	const uint32_t ui32ResultElementCount = GetNumSwizzleElements(&psInst->asOperands[0]);
-	const uint32_t ui32ResourceSwizzleElementCount = GetNumSwizzleElements(&psInst->asOperands[2]);
-
 	AddIndentation(psContext);
 	TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
 	AddAssignToDest(psContext, &psInst->asOperands[0], ResourceReturnTypeToFlag(psBinding->ui32ReturnType));
@@ -883,12 +889,9 @@ static void TranslateTexelFetchOffset(HLSLCrossCompilerContext* psContext,
 	}
 
 	TranslateOperandSwizzle(psContext, &psInst->asOperands[2]);
-	if(ui32ResourceSwizzleElementCount != ui32ResultElementCount)
-	{
-		AddSwizzleUsingElementCount(psContext, ui32ResultElementCount);
-	}
-
-	bcatcstr(glsl, ");\n");
+	bcatcstr(glsl, ")");
+	TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+	bcatcstr(glsl, ";\n");
 }
 
 

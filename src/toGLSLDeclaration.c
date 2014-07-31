@@ -1951,8 +1951,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             {
                 case RESOURCE_DIMENSION_BUFFER:
                 {
-                    bcatcstr(glsl, "uniform ");
-                    bcatcstr(glsl, GetSamplerType(psContext,
+                    bformata(glsl, "uniform %s ", GetSamplerType(psContext,
 						RESOURCE_DIMENSION_BUFFER,
 						psDecl->asOperands[0].ui32RegisterNumber));
                     TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
