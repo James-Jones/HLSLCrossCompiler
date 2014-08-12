@@ -4529,6 +4529,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
             bcatcstr(glsl, " = ~(");
             TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
+			TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ");\n");
             break;
         }
