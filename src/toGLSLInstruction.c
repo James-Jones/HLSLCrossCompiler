@@ -440,13 +440,26 @@ static void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, 
 		AddAssignToDest(psContext, &psInst->asOperands[dest], dataType);
 
 		bcatcstr(glsl, "(");
+
+		if(dataType == TO_FLAG_UNSIGNED_INTEGER)
+		{
+			bcatcstr(glsl, "uvec4(");
+		}
+		else if(dataType == TO_FLAG_INTEGER)
+		{
+			bcatcstr(glsl, "ivec4(");
+		}
+		else
+		{
+			bcatcstr(glsl, "vec4(");
+		}
 		
 		TranslateOperand(psContext, &psInst->asOperands[src0], ui32Flags);
 
 		bformata(glsl, " %s ", name);
 
 		TranslateOperand(psContext, &psInst->asOperands[src1], ui32Flags);
-		bcatcstr(glsl, ")");
+		bcatcstr(glsl, "))");
 		//Limit src swizzles based on dest swizzle
 		//e.g. given hlsl asm: add r0.xy, v0.xyxx, l(0.100000, 0.000000, 0.000000, 0.000000)
 		//the two sources must become vec2
