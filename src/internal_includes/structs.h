@@ -77,8 +77,8 @@ typedef struct Instruction_TAG
 #endif
 } Instruction;
 
-static enum{ MAX_IMMEDIATE_CONST_BUFFER_VEC4_SIZE = 1024};
-static enum{ MAX_TEXTURE_SAMPLERS_PAIRS = 32};
+enum{ MAX_IMMEDIATE_CONST_BUFFER_VEC4_SIZE = 1024};
+enum{ MAX_TEXTURE_SAMPLERS_PAIRS = 32};
 
 typedef struct ICBVec4_TAG {
 	uint32_t a;
@@ -153,9 +153,9 @@ typedef struct Declaration_TAG
     uint32_t ui32SamplerUsedCount;
 } Declaration;
 
-static enum {MAX_TEMP_VEC4 = 512};
+enum {MAX_TEMP_VEC4 = 512};
 
-static enum {MAX_GROUPSHARED = 8};
+enum {MAX_GROUPSHARED = 8};
 
 static enum {MAX_DX9_IMMCONST = 256};
 
