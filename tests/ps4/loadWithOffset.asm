@@ -7,7 +7,11 @@
 //
 // Name                                 Type  Format         Dim Slot Elements
 // ------------------------------ ---------- ------- ----------- ---- --------
-// Tex                               texture  float4          2d    0        1
+// Tex1                              texture  float4          1d    0        1
+// Tex2                              texture  float4          2d    1        1
+// Tex3                              texture  float4          3d    2        1
+// Tex4                              texture  float4     1darray    3        1
+// Tex5                              texture  float4     2darray    4        1
 //
 //
 //
@@ -23,14 +27,31 @@
 // Name                 Index   Mask Register SysValue  Format   Used
 // -------------------- ----- ------ -------- -------- ------- ------
 // SV_Target                0   xyzw        0   TARGET   float   xyzw
+// SV_Target                1   xyzw        1   TARGET   float   xyzw
+// SV_Target                2   xyzw        2   TARGET   float   xyzw
 //
-ps_4_0
-dcl_resource_texture2d (float,float,float,float) t0
+ps_5_0
+dcl_globalFlags refactoringAllowed
+dcl_resource_texture1d (float,float,float,float) t0
+dcl_resource_texture2d (float,float,float,float) t1
+dcl_resource_texture3d (float,float,float,float) t2
+dcl_resource_texture1darray (float,float,float,float) t3
+dcl_resource_texture2darray (float,float,float,float) t4
 dcl_input_ps_siv linear noperspective v0.xy, position
 dcl_output o0.xyzw
-dcl_temps 1
+dcl_output o1.xyzw
+dcl_output o2.xyzw
+dcl_temps 2
 ftoi r0.xy, v0.xyxx
-mov r0.zw, l(0,0,0,0)
-ld_aoffimmi(-8,7,0) o0.xyzw, r0.xyzw, t0.xyzw
+ld_aoffimmi_indexable(-8,0,0)(texture1d)(float,float,float,float) r1.xy, r0.xxxx, t0.xyzw
+mov o0.xy, r1.xyxx
+mov r0.zw, l(0,0,0,1)
+ld_aoffimmi_indexable(-8,7,0)(texture2d)(float,float,float,float) r1.xy, r0.xyzz, t1.xyzw
+mov o0.zw, r1.xxxy
+ld_aoffimmi_indexable(-8,7,2)(texture3d)(float,float,float,float) r1.xy, r0.xyzw, t2.xyzw
+mov o1.xy, r1.xyxx
+ld_aoffimmi_indexable(-8,0,0)(texture1darray)(float,float,float,float) r1.xy, r0.xyzz, t3.xyzw
+ld_aoffimmi_indexable(-8,7,0)(texture2darray)(float,float,float,float) o2.xyzw, r0.xyzw, t4.xyzw
+mov o1.zw, r1.xxxy
 ret 
-// Approximately 4 instruction slots used
+// Approximately 12 instruction slots used

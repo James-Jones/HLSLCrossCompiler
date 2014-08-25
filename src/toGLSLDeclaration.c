@@ -247,7 +247,7 @@ const char* GetDeclaredInputName(const HLSLCrossCompilerContext* psContext, cons
 		if (eShaderType == VERTEX_SHADER) /* We cannot have input and output names conflict, but vs output must match ps input. Prefix vs input. */
 			inputName = bformat("in_%s%d", psIn->SemanticName, psIn->ui32SemanticIndex);
 		else
-			inputName = bformat("%s%d", psIn->SemanticName, psIn->ui32SemanticIndex);
+		inputName = bformat("%s%d", psIn->SemanticName, psIn->ui32SemanticIndex);
 	}
 	else if(eShaderType == GEOMETRY_SHADER)
 	{
@@ -446,11 +446,11 @@ static void DeclareInput(
 
 		if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags) ||
 			(psShader->eShaderType == VERTEX_SHADER && HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->flags)))
-		{
+        {
 			// Skip location if requested by the flags.
 			if (!(psContext->flags & HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS))
-				bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
-		}
+            bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
+        }
 
         switch(eIndexDim)
         {
@@ -895,24 +895,24 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 							const char* OutputName = GetDeclaredOutputName(psContext, PIXEL_SHADER, psOperand, &stream);
 
 							if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags) || HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->flags))
-							{
-								uint32_t index = 0;
-								uint32_t renderTarget = psDecl->asOperands[0].ui32RegisterNumber;
+                            {
+                                uint32_t index = 0;
+                                uint32_t renderTarget = psDecl->asOperands[0].ui32RegisterNumber;
 
-								if ((psContext->flags & HLSLCC_FLAG_DUAL_SOURCE_BLENDING) && DualSourceBlendSupported(psContext->psShader->eTargetLanguage))
-								{
-									if (renderTarget > 0)
-									{
-										renderTarget = 0;
-										index = 1;
-									}
-									bformata(glsl, "layout(location = %d, index = %d) ", renderTarget, index);
-								}
-								else
-								{
-									bformata(glsl, "layout(location = %d) ", renderTarget);
-								}
-							}
+                                if((psContext->flags & HLSLCC_FLAG_DUAL_SOURCE_BLENDING) && DualSourceBlendSupported(psContext->psShader->eTargetLanguage))
+                                {
+                                    if(renderTarget > 0)
+                                    {
+                                        renderTarget = 0;
+                                        index = 1;
+                                    }
+                                    bformata(glsl, "layout(location = %d, index = %d) ", renderTarget, index);
+                                }
+                                else
+                                {
+                                    bformata(glsl, "layout(location = %d) ", renderTarget);
+                                }
+                            }
 
 							bformata(glsl, "out %s %s4 %s;\n", Precision, type, OutputName);
 							if(stream)
@@ -947,7 +947,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 				if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
                 {
 					if (!(psContext->flags & HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS))
-	                    bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
+                    bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
 
 				if(InOutSupported(psContext->psShader->eTargetLanguage))
@@ -1055,7 +1055,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 			if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
 			{
 				if (!((psShader->eShaderType == VERTEX_SHADER) && (psContext->flags & HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS)))
-					bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
 			}
 
 			switch(psSignature->eComponentType)
@@ -1199,12 +1199,12 @@ void DeclareStructConstants(HLSLCrossCompilerContext* psContext, const uint32_t 
 
 	if(useGlobalsStruct)
 	{
-		for(i=0; i < psCBuf->ui32NumVars; ++i)
-		{
-			PreDeclareStructType(glsl,
-				psCBuf->asVars[i].Name,
-				&psCBuf->asVars[i].sType);
-		}
+	for(i=0; i < psCBuf->ui32NumVars; ++i)
+	{
+        PreDeclareStructType(glsl,
+			psCBuf->asVars[i].Name,
+            &psCBuf->asVars[i].sType);
+	}
 	}
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
@@ -1212,10 +1212,10 @@ void DeclareStructConstants(HLSLCrossCompilerContext* psContext, const uint32_t 
         bformata(glsl, "layout(location = %d) ", ui32BindingPoint);
 	if(useGlobalsStruct)
 	{
-		bcatcstr(glsl, "uniform struct ");
-		TranslateOperand(psContext, psOperand, TO_FLAG_DECLARATION_NAME);
+    bcatcstr(glsl, "uniform struct ");
+    TranslateOperand(psContext, psOperand, TO_FLAG_DECLARATION_NAME);
 
-		bcatcstr(glsl, "_Type {\n");
+    bcatcstr(glsl, "_Type {\n");
 	}
 
     for(i=0; i < psCBuf->ui32NumVars; ++i)
@@ -1223,19 +1223,19 @@ void DeclareStructConstants(HLSLCrossCompilerContext* psContext, const uint32_t 
 		if(!useGlobalsStruct)
 			bcatcstr(glsl, "uniform ");
 
-		DeclareConstBufferShaderVariable(glsl,
+        DeclareConstBufferShaderVariable(glsl,
 			psCBuf->asVars[i].Name,
             &psCBuf->asVars[i].sType, 0);
     }
-
+                
 	if(useGlobalsStruct)
 	{
-		bcatcstr(glsl, "} ");
+    bcatcstr(glsl, "} ");
 
-		TranslateOperand(psContext, psOperand, TO_FLAG_DECLARATION_NAME);
+    TranslateOperand(psContext, psOperand, TO_FLAG_DECLARATION_NAME);
 
-		bcatcstr(glsl, ";\n");
-	}
+    bcatcstr(glsl, ";\n");
+}
 }
 
 char* GetSamplerType(HLSLCrossCompilerContext* psContext,
@@ -1970,18 +1970,18 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 // Explicit layout bindings are not currently compatible with combined texture samplers. The layout below assumes there is exactly one GLSL sampler
                 // for each HLSL texture declaration, but when combining textures+samplers, there can be multiple OGL samplers for each HLSL texture declaration.
                 if((psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) != HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS)
-            {
-                //Constant buffer locations start at 0. Resource locations start at ui32NumConstantBuffers.
-                bformata(glsl, "layout(location = %d) ", 
-                    psContext->psShader->sInfo.ui32NumConstantBuffers + psDecl->asOperands[0].ui32RegisterNumber);
-            }
+				{      
+					//Constant buffer locations start at 0. Resource locations start at ui32NumConstantBuffers.
+					bformata(glsl, "layout(location = %d) ", 
+						psContext->psShader->sInfo.ui32NumConstantBuffers + psDecl->asOperands[0].ui32RegisterNumber);
+				}
             }
 
             switch(psDecl->value.eResourceDimension)
             {
                 case RESOURCE_DIMENSION_BUFFER:
                 {
-					bformata(glsl, "uniform %s ", GetSamplerType(psContext,
+                    bformata(glsl, "uniform %s ", GetSamplerType(psContext,
 						RESOURCE_DIMENSION_BUFFER,
 						psDecl->asOperands[0].ui32RegisterNumber));
                     TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
