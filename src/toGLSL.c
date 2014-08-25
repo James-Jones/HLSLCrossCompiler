@@ -81,8 +81,53 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 {
     bstring glsl = *psContext->currentGLSLString;
 
+	
+    //The fragment language has no default precision qualifier for floating point types.
+    if(psContext->psShader->eShaderType == PIXEL_SHADER &&
+        psContext->psShader->eTargetLanguage == LANG_ES_100 || psContext->psShader->eTargetLanguage == LANG_ES_300 )
+    {
+        bcatcstr(glsl,"precision highp float;\n");
+    }
+
+    /* There is no default precision qualifier for the following sampler types in either the vertex or fragment language: */
+    if(psContext->psShader->eTargetLanguage == LANG_ES_300 || psContext->psShader->eTargetLanguage == LANG_ES_310)
+    {
+        bcatcstr(glsl,"precision lowp sampler3D;\n");
+        bcatcstr(glsl,"precision lowp samplerCubeShadow;\n");
+        bcatcstr(glsl,"precision lowp sampler2DShadow;\n");
+        bcatcstr(glsl,"precision lowp sampler2DArray;\n");
+        bcatcstr(glsl,"precision lowp sampler2DArrayShadow;\n");
+        bcatcstr(glsl,"precision lowp isampler2D;\n");
+        bcatcstr(glsl,"precision lowp isampler3D;\n");
+        bcatcstr(glsl,"precision lowp isamplerCube;\n");
+        bcatcstr(glsl,"precision lowp isampler2DArray;\n");
+        bcatcstr(glsl,"precision lowp usampler2D;\n");
+        bcatcstr(glsl,"precision lowp usampler3D;\n");
+        bcatcstr(glsl,"precision lowp usamplerCube;\n");
+        bcatcstr(glsl,"precision lowp usampler2DArray;\n");
+
+		if(psContext->psShader->eTargetLanguage == LANG_ES_310)
+		{
+			bcatcstr(glsl,"precision lowp isampler2DMS;\n");
+			bcatcstr(glsl,"precision lowp usampler2D;\n");
+			bcatcstr(glsl,"precision lowp usampler3D;\n");
+			bcatcstr(glsl,"precision lowp usamplerCube;\n");
+			bcatcstr(glsl,"precision lowp usampler2DArray;\n");
+			bcatcstr(glsl,"precision lowp usampler2DMS;\n");
+			bcatcstr(glsl,"precision lowp image2D;\n");
+			bcatcstr(glsl,"precision lowp image3D;\n");
+			bcatcstr(glsl,"precision lowp imageCube;\n");
+			bcatcstr(glsl,"precision lowp image2DArray;\n");
+			bcatcstr(glsl,"precision lowp iimage2D;\n");
+			bcatcstr(glsl,"precision lowp iimage3D;\n");
+			bcatcstr(glsl,"precision lowp iimageCube;\n");
+			bcatcstr(glsl,"precision lowp uimage2DArray;\n");
+		}
+		bcatcstr(glsl, "\n");
+    }
+
     if(psContext->psShader->ui32MajorVersion <= 3)
-	{
+    {
 		bcatcstr(glsl, "int RepCounter;\n");
         bcatcstr(glsl, "int LoopCounter;\n");
         bcatcstr(glsl, "int ZeroBasedCounter;\n");
@@ -136,12 +181,12 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 			}
 		}
     }
-	else
-	{
-		//DX10+ bycode format requires the ability to treat registers
-		//as raw bits.
-		bcatcstr(glsl,"#extension GL_ARB_shader_bit_encoding : require\n");
-	}
+    else if(psContext->psShader->eTargetLanguage != LANG_ES_300 && psContext->psShader->eTargetLanguage != LANG_ES_310)
+    {
+        //DX10+ bycode format requires the ability to treat registers
+        //as raw bits. ES3.0+ has that built-in.
+        bcatcstr(glsl,"#extension GL_ARB_shader_bit_encoding : require\n");
+    }
 
 	if(!HaveCompute(psContext->psShader->eTargetLanguage))
 	{
@@ -261,56 +306,6 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
         bcatcstr(glsl, "float gl_ClipDistance[];");
         bcatcstr(glsl, "};\n");
     }
-
-    //The fragment language has no default precision qualifier for floating point types.
-    if(psContext->psShader->eShaderType == PIXEL_SHADER &&
-        psContext->psShader->eTargetLanguage == LANG_ES_100 || psContext->psShader->eTargetLanguage == LANG_ES_300 )
-    {
-        bcatcstr(glsl,"precision highp float;\n");
-    }
-
-    /* There is no default precision qualifier for the following sampler types in either the vertex or fragment language: */
-    if(psContext->psShader->eTargetLanguage == LANG_ES_300 || psContext->psShader->eTargetLanguage == LANG_ES_310)
-    {
-        bcatcstr(glsl,"precision lowp sampler3D;\n");
-        bcatcstr(glsl,"precision lowp samplerCubeShadow;\n");
-        bcatcstr(glsl,"precision lowp sampler2DShadow;\n");
-        bcatcstr(glsl,"precision lowp sampler2DArray;\n");
-        bcatcstr(glsl,"precision lowp sampler2DArrayShadow;\n");
-        bcatcstr(glsl,"precision lowp isampler2D;\n");
-        bcatcstr(glsl,"precision lowp isampler3D;\n");
-        bcatcstr(glsl,"precision lowp isamplerCube;\n");
-        bcatcstr(glsl,"precision lowp isampler2DArray;\n");
-        bcatcstr(glsl,"precision lowp usampler2D;\n");
-        bcatcstr(glsl,"precision lowp usampler3D;\n");
-        bcatcstr(glsl,"precision lowp usamplerCube;\n");
-        bcatcstr(glsl,"precision lowp usampler2DArray;\n");
-
-		if(psContext->psShader->eTargetLanguage == LANG_ES_310)
-		{
-			bcatcstr(glsl,"precision lowp isampler2DMS;\n");
-			bcatcstr(glsl,"precision lowp usampler2D;\n");
-			bcatcstr(glsl,"precision lowp usampler3D;\n");
-			bcatcstr(glsl,"precision lowp usamplerCube;\n");
-			bcatcstr(glsl,"precision lowp usampler2DArray;\n");
-			bcatcstr(glsl,"precision lowp usampler2DMS;\n");
-			bcatcstr(glsl,"precision lowp image2D;\n");
-			bcatcstr(glsl,"precision lowp image3D;\n");
-			bcatcstr(glsl,"precision lowp imageCube;\n");
-			bcatcstr(glsl,"precision lowp image2DArray;\n");
-			bcatcstr(glsl,"precision lowp iimage2D;\n");
-			bcatcstr(glsl,"precision lowp iimage3D;\n");
-			bcatcstr(glsl,"precision lowp iimageCube;\n");
-			bcatcstr(glsl,"precision lowp uimage2DArray;\n");
-			//Only highp is valid for atomic_uint
-			bcatcstr(glsl,"precision highp atomic_uint;\n");
-		}
-    }
-
-    if(SubroutinesSupported(psContext->psShader->eTargetLanguage))
-    {
-        bcatcstr(glsl, "subroutine void SubroutineType();\n");
-    }
 }
 
 GLLang ChooseLanguage(Shader* psShader)
@@ -427,7 +422,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
         *planguage = language;
     }
 
-    glsl = bfromcstralloc (1024, GetVersionString(language));
+		glsl = bfromcstralloc (1024, GetVersionString(language));
 
     psContext->glsl = glsl;
 	psContext->earlyMain = bfromcstralloc (1024, "");
@@ -494,7 +489,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 
                 for(i=0; i < psShader->ui32HSControlPointInstrCount; ++i)
                 {
-                    TranslateInstruction(psContext, psShader->psHSControlPointPhaseInstr+i);
+                    TranslateInstruction(psContext, psShader->psHSControlPointPhaseInstr+i, NULL);
                 }
             psContext->indent--;
             bcatcstr(glsl, "}\n");
@@ -533,7 +528,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
                     ASSERT(psShader->apsHSForkPhaseInstr[forkIndex][psShader->aui32HSForkInstrCount[forkIndex]-1].eOpcode == OPCODE_RET);
                     for(i=0; i < psShader->aui32HSForkInstrCount[forkIndex]-1; ++i)
                     {
-                        TranslateInstruction(psContext, psShader->apsHSForkPhaseInstr[forkIndex]+i);
+                        TranslateInstruction(psContext, psShader->apsHSForkPhaseInstr[forkIndex]+i, NULL);
                     }
 
                 if(haveInstancedForkPhase)
@@ -585,7 +580,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 
                 for(i=0; i < psShader->ui32HSJoinInstrCount; ++i)
                 {
-                    TranslateInstruction(psContext, psShader->psHSJoinPhaseInstr+i);
+                    TranslateInstruction(psContext, psShader->psHSJoinPhaseInstr+i, NULL);
                 }
 
             psContext->indent--;
@@ -719,7 +714,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 
     for(i=0; i < ui32InstCount; ++i)
     {
-        TranslateInstruction(psContext, psShader->psInst+i);
+        TranslateInstruction(psContext, psShader->psInst+i, i+1 < ui32InstCount ? psShader->psInst+i+1 : 0);
     }
 
     psContext->indent--;

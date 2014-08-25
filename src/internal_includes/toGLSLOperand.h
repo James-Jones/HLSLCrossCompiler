@@ -17,19 +17,24 @@
 //and therefore intBitsToFloat must be applied to that variable.
 #define TO_AUTO_BITCAST_TO_FLOAT 0x40
 #define TO_AUTO_BITCAST_TO_INT 0x80
+#define TO_AUTO_BITCAST_TO_UINT 0x100
 
 void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag);
+// Translate operand but add additional component mask
+void TranslateOperandWithMask(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag, uint32_t ui32ComponentMask);
 
 int GetMaxComponentFromComponentMask(const Operand* psOperand);
 void TranslateOperandIndex(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index);
 void TranslateOperandIndexMAD(HLSLCrossCompilerContext* psContext, const Operand* psOperand, int index, uint32_t multiply, uint32_t add);
 void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
+void TranslateOperandSwizzleWithMask(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32ComponentMask);
+
 uint32_t GetNumSwizzleElements(const Operand* psOperand);
 void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t count);
 int GetFirstOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
-uint32_t IsSwizzleReplacated(const Operand* psOperand);
+uint32_t IsSwizzleReplicated(const Operand* psOperand);
 
-void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32RegisterNumber, const int bZCompare);
+void ResourceName(bstring targetStr, HLSLCrossCompilerContext* psContext, ResourceGroup group, const uint32_t ui32RegisterNumber, const int bZCompare);
 
 bstring TextureSamplerName(ShaderInfo* psShaderInfo, const uint32_t ui32TextureRegisterNumber, const uint32_t ui32SamplerRegisterNumber, const int bZCompare);
 void ConcatTextureSamplerName(bstring str, ShaderInfo* psShaderInfo, const uint32_t ui32TextureRegisterNumber, const uint32_t ui32SamplerRegisterNumber, const int bZCompare);

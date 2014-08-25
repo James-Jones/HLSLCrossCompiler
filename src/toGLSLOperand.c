@@ -20,7 +20,7 @@ int GetMaxComponentFromComponentMask(const Operand* psOperand)
     if(psOperand->iWriteMaskEnabled &&
        psOperand->iNumComponents == 4)
     {
-        //Comonent Mask
+        //Component Mask
         if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
         {
             if(psOperand->ui32CompMask != 0 && psOperand->ui32CompMask != (OPERAND_4_COMPONENT_MASK_X|OPERAND_4_COMPONENT_MASK_Y|OPERAND_4_COMPONENT_MASK_Z|OPERAND_4_COMPONENT_MASK_W))
@@ -61,7 +61,7 @@ int GetMaxComponentFromComponentMask(const Operand* psOperand)
 
 //Single component repeated
 //e..g .wwww
-uint32_t IsSwizzleReplacated(const Operand* psOperand)
+uint32_t IsSwizzleReplicated(const Operand* psOperand)
 {
     if(psOperand->iWriteMaskEnabled &&
        psOperand->iNumComponents == 4)
@@ -107,7 +107,7 @@ uint32_t GetNumSwizzleElements(const Operand* psOperand)
     if(psOperand->iWriteMaskEnabled &&
        psOperand->iNumComponents == 4)
     {
-		//Comonent Mask
+		//Component Mask
 		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
 		{
 			if(psOperand->ui32CompMask != 0 && psOperand->ui32CompMask != (OPERAND_4_COMPONENT_MASK_X|OPERAND_4_COMPONENT_MASK_Y|OPERAND_4_COMPONENT_MASK_Z|OPERAND_4_COMPONENT_MASK_W))
@@ -230,7 +230,7 @@ static uint32_t ConvertOperandSwizzleToComponentMask(const Operand* psOperand)
     if(psOperand->iWriteMaskEnabled &&
        psOperand->iNumComponents == 4)
     {
-		//Comonent Mask
+		//Component Mask
 		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
 		{
             mask = psOperand->ui32CompMask;
@@ -309,6 +309,11 @@ int CompareOperandSwizzles(const Operand* psOperandA, const Operand* psOperandB)
 
 void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
 {
+	TranslateOperandSwizzleWithMask(psContext, psOperand, OPERAND_4_COMPONENT_MASK_ALL);
+}
+
+void TranslateOperandSwizzleWithMask(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32ComponentMask)
+{
     bstring glsl = *psContext->currentGLSLString;
 
 	if(psOperand->eType == OPERAND_TYPE_INPUT)
@@ -343,25 +348,31 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
     if(psOperand->iWriteMaskEnabled &&
        psOperand->iNumComponents == 4)
     {
-		//Comonent Mask
+		//Component Mask
 		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
 		{
-			if(psOperand->ui32CompMask != 0 && psOperand->ui32CompMask != (OPERAND_4_COMPONENT_MASK_X|OPERAND_4_COMPONENT_MASK_Y|OPERAND_4_COMPONENT_MASK_Z|OPERAND_4_COMPONENT_MASK_W))
+			uint32_t mask;
+			if (psOperand->ui32CompMask != 0)
+				mask = psOperand->ui32CompMask & ui32ComponentMask;
+			else
+				mask = ui32ComponentMask;
+
+			if(mask != 0 && mask != OPERAND_4_COMPONENT_MASK_ALL)
 			{
 				bcatcstr(glsl, ".");
-				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_X)
+				if(mask & OPERAND_4_COMPONENT_MASK_X)
 				{
 					bcatcstr(glsl, "x");
 				}
-				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Y)
+				if(mask & OPERAND_4_COMPONENT_MASK_Y)
 				{
 					bcatcstr(glsl, "y");
 				}
-				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Z)
+				if(mask & OPERAND_4_COMPONENT_MASK_Z)
 				{
 					bcatcstr(glsl, "z");
 				}
-				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_W)
+				if(mask & OPERAND_4_COMPONENT_MASK_W)
 				{
 					bcatcstr(glsl, "w");
 				}
@@ -371,7 +382,7 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
 		//Component Swizzle
 		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
 		{
-			if(psOperand->ui32Swizzle != (NO_SWIZZLE))
+			if(psOperand->ui32Swizzle != (NO_SWIZZLE) || ui32ComponentMask != OPERAND_4_COMPONENT_MASK_ALL)
 			{
 				uint32_t i;
 
@@ -379,22 +390,25 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
 
 				for(i=0; i< 4; ++i)
 				{
+					if (!(ui32ComponentMask & (OPERAND_4_COMPONENT_MASK_X << i)))
+						continue;
+
 					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X)
 					{
 						bcatcstr(glsl, "x");
 					}
 					else
-					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y)
+					if (psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y)
 					{
 						bcatcstr(glsl, "y");
 					}
 					else
-					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z)
+					if (psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z)
 					{
 						bcatcstr(glsl, "z");
 					}
 					else
-					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W)
+					if (psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W)
 					{
 						bcatcstr(glsl, "w");
 					}
@@ -402,7 +416,7 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
 			}
 		}
 		else
-		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE) // ui32ComponentMask is ignored in this case
 		{
 			bcatcstr(glsl, ".");
 
@@ -444,7 +458,7 @@ int GetFirstOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* p
     if(psOperand->iWriteMaskEnabled &&
        psOperand->iNumComponents == 4)
     {
-		//Comonent Mask
+		//Component Mask
 		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
 		{
 			if(psOperand->ui32CompMask != 0 && psOperand->ui32CompMask != (OPERAND_4_COMPONENT_MASK_X|OPERAND_4_COMPONENT_MASK_Y|OPERAND_4_COMPONENT_MASK_Z|OPERAND_4_COMPONENT_MASK_W))
@@ -673,6 +687,8 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 
 	if((ui32TOFlag & TO_AUTO_BITCAST_TO_FLOAT) && eType == SVT_INT)
 		bcatcstr(glsl, "intBitsToFloat(");
+	if ((ui32TOFlag & TO_AUTO_BITCAST_TO_FLOAT) && eType == SVT_UINT)
+		bcatcstr(glsl, "uintBitsToFloat(");
 
     switch(psOperand->eType)
     {
@@ -715,7 +731,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                     fpcheck(psOperand->afImmediates[2]) ||
                     fpcheck(psOperand->afImmediates[3]))
                 {
-                    bformata(glsl, "ivec4(0x%X, 0x%X, 0x%X, 0x%X)",
+                    bformata(glsl, "ivec4(int(0x%X), int(0x%X), int(0x%X), int(0x%X))",
                         *(int*)&psOperand->afImmediates[0],
                         *(int*)&psOperand->afImmediates[1],
                         *(int*)&psOperand->afImmediates[2],
@@ -851,7 +867,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 			{
 				bcatcstr(glsl, "_double");
 			}
-            else if(eType == SVT_VOID ||
+            else if(eType == SVT_VOID &&
                 (ui32TOFlag & TO_FLAG_DESTINATION))
             {
                 if(ui32TOFlag & TO_FLAG_INTEGER)
@@ -975,7 +991,9 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                 pui32IgnoreSwizzle[0] = 1;
             }
 
-			if((psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)!=HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)
+			// FIXME: With ES 3.0 the buffer name is often not prepended to variable names
+			if(((psContext->flags & HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT)!=HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT) &&
+				((psContext->flags & HLSLCC_FLAG_DISABLE_GLOBALS_STRUCT)!=HLSLCC_FLAG_DISABLE_GLOBALS_STRUCT))
 			{
 				if(psCBuf)
 				{
@@ -1022,9 +1040,9 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 					SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand->psSubOperand[0]);
 					if(eType != SVT_INT && eType != SVT_UINT)
 					{
-						bcatcstr(glsl, "[int("); //Indexes must be integral.
-						TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
-						bcatcstr(glsl, ")]");
+						bcatcstr(glsl, "["); //Indexes must be integral.
+						TranslateOperand(psContext, psOperand->psSubOperand[0], TO_AUTO_BITCAST_TO_INT);
+						bcatcstr(glsl, "]");
 					}
 					else
 					{
@@ -1042,9 +1060,9 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 						SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand->psSubOperand[1]);
 						if(eType != SVT_INT && eType != SVT_UINT)
 						{
-							bcatcstr(glsl, "[int(");
-							TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
-							bformata(glsl, ") + %d]", index);
+							bcatcstr(glsl, "[");
+							TranslateOperand(psContext, psOperand->psSubOperand[1], TO_AUTO_BITCAST_TO_INT);
+							bformata(glsl, " + %d]", index);
 						}
 						else
 						{
@@ -1056,7 +1074,17 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 				}
 				else if(index != -1)
                 {
-                    bformata(glsl, "[%d]", index);
+					if ((psVarType->Class == SVC_MATRIX_COLUMNS || psVarType->Class == SVC_MATRIX_COLUMNS) && (psVarType->Elements > 1))
+					{
+						// Special handling for matrix arrays, open them up into vec4's
+						size_t matidx = index / 4;
+						size_t rowidx = index - (matidx*4);
+						bformata(glsl, "[%d][%d]", matidx, rowidx);
+					}
+					else
+					{
+						bformata(glsl, "[%d]", index);
+					}
                 }
 				else if(psOperand->psSubOperand[1] != NULL)
 				{
@@ -1129,7 +1157,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         }
         case OPERAND_TYPE_RESOURCE:
         {
-            TextureName(psContext, psOperand->ui32RegisterNumber, 0);
+            ResourceName(glsl, psContext, RGROUP_TEXTURE, psOperand->ui32RegisterNumber, 0);
 			*pui32IgnoreSwizzle = 1;
             break;
         }
@@ -1213,17 +1241,17 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         }
 		case OPERAND_TYPE_INPUT_THREAD_ID://SV_DispatchThreadID
 		{
-			bcatcstr(glsl, "gl_GlobalInvocationID");
+			bcatcstr(glsl, "gl_GlobalInvocationID.xyzz");
 			break;
 		}
 		case OPERAND_TYPE_INPUT_THREAD_GROUP_ID://SV_GroupThreadID
 		{
-			bcatcstr(glsl, "gl_LocalInvocationID");
+			bcatcstr(glsl, "gl_LocalInvocationID.xyzz");
 			break;
 		}
 		case OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP://SV_GroupID
 		{
-			bcatcstr(glsl, "gl_WorkGroupID");
+			bcatcstr(glsl, "gl_WorkGroupID.xyzz");
 			break;
 		}
 		case OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED://SV_GroupIndex
@@ -1233,7 +1261,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 		}
         case OPERAND_TYPE_UNORDERED_ACCESS_VIEW:
         {
-            bformata(glsl, "UAV%d", psOperand->ui32RegisterNumber);
+			ResourceName(glsl, psContext, RGROUP_UAV, psOperand->ui32RegisterNumber, 0);
             break;
         }
         case OPERAND_TYPE_THREAD_GROUP_SHARED_MEMORY:
@@ -1291,7 +1319,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
         }
     }
 
-	if((ui32TOFlag & TO_AUTO_BITCAST_TO_FLOAT) && eType == SVT_INT)
+	if((ui32TOFlag & TO_AUTO_BITCAST_TO_FLOAT) && (eType == SVT_INT || eType == SVT_UINT))
 		bcatcstr(glsl, ")");
 
     if(integerConstructor)
@@ -1450,17 +1478,50 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
 
 void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag)
 {
+	TranslateOperandWithMask(psContext, psOperand, ui32TOFlag, OPERAND_4_COMPONENT_MASK_ALL);
+}
+
+void TranslateOperandWithMask(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag, uint32_t ui32ComponentMask)
+{
     bstring glsl = *psContext->currentGLSLString;
     uint32_t ui32IgnoreSwizzle = 0;
 	SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand);
 
 	if(psContext->psShader->ui32MajorVersion <=3)
 	{
-		ui32TOFlag &= ~(TO_AUTO_BITCAST_TO_FLOAT|TO_AUTO_BITCAST_TO_INT);
+		ui32TOFlag &= ~(TO_AUTO_BITCAST_TO_FLOAT|TO_AUTO_BITCAST_TO_INT|TO_AUTO_BITCAST_TO_UINT);
+	}
+
+	// Make immediates directly have the correct format
+	if (psOperand->eType == OPERAND_TYPE_IMMEDIATE32)
+	{
+		// Cast away const, we'll need to modify stuff.
+		Operand *psOp = (Operand *)psOperand;
+		if (ui32TOFlag & (TO_AUTO_BITCAST_TO_INT | TO_FLAG_INTEGER))
+		{
+			eType = psOp->aeDataType[0] = psOp->aeDataType[1] = psOp->aeDataType[2] = psOp->aeDataType[3] = SVT_INT;
+			ui32TOFlag = TO_FLAG_INTEGER;
+		}
+		else if (ui32TOFlag & (TO_AUTO_BITCAST_TO_UINT | TO_FLAG_UNSIGNED_INTEGER))
+		{
+			eType = psOp->aeDataType[0] = psOp->aeDataType[1] = psOp->aeDataType[2] = psOp->aeDataType[3] = SVT_UINT;
+			ui32TOFlag = TO_FLAG_UNSIGNED_INTEGER;
+		}
 	}
 
 	if((ui32TOFlag & TO_AUTO_BITCAST_TO_INT) && eType == SVT_FLOAT)
+	{
 		bcatcstr(glsl, "floatBitsToInt(");
+		// Clear possible TO_FLAG_INTEGER
+		ui32TOFlag &= ~(TO_FLAG_INTEGER);
+	}
+	else if ((ui32TOFlag & TO_AUTO_BITCAST_TO_UINT) && eType == SVT_FLOAT)
+	{
+		bcatcstr(glsl, "floatBitsToUint(");
+		ui32TOFlag &= ~(TO_FLAG_UNSIGNED_INTEGER);
+	}
+	else if ((ui32TOFlag & TO_AUTO_BITCAST_TO_INT) && eType == SVT_BOOL)
+		bcatcstr(glsl, "int(");
 
     if(ui32TOFlag & TO_FLAG_NAME_ONLY)
     {
@@ -1495,7 +1556,7 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
 
     if(!ui32IgnoreSwizzle)
     {
-        TranslateOperandSwizzle(psContext, psOperand);
+        TranslateOperandSwizzleWithMask(psContext, psOperand, ui32ComponentMask);
     }
 
     switch(psOperand->eModifier)
@@ -1520,17 +1581,17 @@ void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOper
         }
     }
 
-	if((ui32TOFlag & TO_AUTO_BITCAST_TO_INT) && eType == SVT_FLOAT)
+	if((ui32TOFlag & (TO_AUTO_BITCAST_TO_INT|TO_AUTO_BITCAST_TO_UINT)) && (eType == SVT_FLOAT || eType == SVT_BOOL))
 		bcatcstr(glsl, ")");
 }
 
-void TextureName(HLSLCrossCompilerContext* psContext, const uint32_t ui32RegisterNumber, const int bZCompare)
+void ResourceName(bstring targetStr, HLSLCrossCompilerContext* psContext, ResourceGroup group, const uint32_t ui32RegisterNumber, const int bZCompare)
 {
-    bstring glsl = *psContext->currentGLSLString;
+    bstring glsl = (targetStr == NULL) ? *psContext->currentGLSLString : targetStr;
     ResourceBinding* psBinding = 0;
 	int found;
 
-    found = GetResourceFromBindingPoint(RGROUP_TEXTURE, ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
+    found = GetResourceFromBindingPoint(group, ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
 
     if(bZCompare)
     {

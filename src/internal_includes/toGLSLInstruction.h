@@ -3,7 +3,7 @@
 
 #include "internal_includes/structs.h"
 
-void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psInst);
+void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psInst, Instruction* psNextInst);
 
 //For each MOV temp, immediate; check to see if the next instruction
 //using that temp has an integer opcode. If so then the immediate value

@@ -435,6 +435,12 @@ static const unsigned int HLSLCC_FLAG_INOUT_APPEND_SEMANTIC_NAMES = 0x100;
 //If set, combines texture/sampler pairs used together into samplers named "texturename_X_samplername".
 static const unsigned int HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS = 0x200;
 
+//If set, attribute and uniform explicit location qualifiers are disabled (even if the language version supports that)
+static const unsigned int HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS = 0x400;
+
+//If set, global uniforms are not stored in a struct.
+static const unsigned int HLSLCC_FLAG_DISABLE_GLOBALS_STRUCT = 0x800;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
