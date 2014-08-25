@@ -1124,7 +1124,10 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[3]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[4]);
 
+			/* sample_b is not a shadow sampler, others need flagging */
+			if (eOpcode != OPCODE_SAMPLE_B)
 			MarkTextureAsShadow(&psShader->sInfo, psShader->psDecl, psShader->ui32DeclCount, &psInst->asOperands[2]);
+
             break;
 		}
         case OPCODE_GATHER4_PO_C:
@@ -1138,6 +1141,8 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[4]);
             ui32OperandOffset += DecodeOperand(pui32Token+ui32OperandOffset, &psInst->asOperands[5]);
 
+			/* sample_d is not a shadow sampler, others need flagging */
+			if (eOpcode != OPCODE_SAMPLE_D)
 			MarkTextureAsShadow(&psShader->sInfo, psShader->psDecl, psShader->ui32DeclCount, &psInst->asOperands[2]);
             break;
         }
