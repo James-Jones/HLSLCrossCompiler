@@ -595,7 +595,15 @@ static int IsOffsetInType(ShaderVarType* psType,
 
 	if(psType->Elements)
 	{
-		thisSize *= psType->Elements;
+		// Everything smaller than vec4 in an array takes the space of vec4, except for the last one
+		if (thisSize < 4 * 4)
+		{
+			thisSize = (4 * 4 * (psType->Elements - 1)) + thisSize;
+		}
+		else
+		{
+			thisSize *= psType->Elements;
+		}
 	}
 
     //Swizzle can point to another variable. In the example below
@@ -648,8 +656,8 @@ static int IsOffsetInType(ShaderVarType* psType,
 			//Matrices are treated as arrays of vectors.
 			pi32Index[0] = (offsetToFind - thisOffset) / 16;
         }
-		//Check for array of vectors
-		else if(psType->Class == SVC_VECTOR && psType->Elements > 1)
+		//Check for array of scalars or vectors (both take up 16 bytes per element)
+		else if ((psType->Class == SVC_SCALAR || psType->Class == SVC_VECTOR) && psType->Elements > 1)
 		{
 			pi32Index[0] = (offsetToFind - thisOffset) / 16;
 		}
@@ -813,17 +821,17 @@ void FreeShaderInfo(ShaderInfo* psShaderInfo)
 		ConstantBuffer* psCBuf = &psShaderInfo->psConstantBuffers[cbuf];
 		uint32_t var;
 		if(psCBuf->ui32NumVars)
-		{
+ 		{
 			for(var=0; var < psCBuf->ui32NumVars; ++var)
-			{
+ 			{
 				ShaderVar* psVar = &psCBuf->asVars[var];
 				if(psVar->haveDefaultValue)
 				{
 					hlslcc_free(psVar->pui32DefaultValues);
 				}
-			}
+ 			}
 			hlslcc_free(psCBuf->asVars);
-		}
+ 		}
 	}
     hlslcc_free(psShaderInfo->psInputSignatures);
     hlslcc_free(psShaderInfo->psResourceBindings);
@@ -1074,7 +1082,7 @@ void LoadD3D9ConstantTable(const char* data,
 				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURE2D;
 				break;
 			case PT_SAMPLER3D:
-				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURE2D;
+				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURE3D;
 				break;
 			case PT_SAMPLERCUBE:
 				res->eDimension = REFLECT_RESOURCE_DIMENSION_TEXTURECUBE;
