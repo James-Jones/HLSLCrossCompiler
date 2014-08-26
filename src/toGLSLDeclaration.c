@@ -8,8 +8,13 @@
 #include <float.h>
 
 #ifdef _MSC_VER
-#define isnan(x) _isnan(x)
-#define isinf(x) (!_finite(x))
+	#ifndef isnan
+	#define isnan(x) _isnan(x)
+	#endif
+
+	#ifndef isinf
+	#define isinf(x) (!_finite(x))
+	#endif
 #endif
 
 #define fpcheck(x) (isnan(x) || isinf(x))
