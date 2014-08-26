@@ -135,7 +135,6 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
 
     uint32_t minElemCount = destElemCount < s0ElemCount ? destElemCount : s0ElemCount;
 
-	SHADER_VARIABLE_TYPE eDestType = GetOperandDataType(psContext, &psInst->asOperands[0]);
 	int floatResult = 0;
 
     minElemCount = s1ElemCount < minElemCount ? s1ElemCount : minElemCount;
@@ -265,7 +264,7 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
             AddSwizzleUsingElementCount(psContext, minElemCount);
 		if(floatResult)
 		{
-			bcatcstr(glsl, ") ? 1.0 : 0.0;");
+			bcatcstr(glsl, ") ? 1.0 : 0.0");
 		}
 		else
 		{
