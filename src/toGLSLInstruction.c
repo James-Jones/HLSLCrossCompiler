@@ -37,47 +37,6 @@ static SHADER_VARIABLE_TYPE TypeFlagsToSVTType(const uint32_t typeflags)
 	return SVT_FLOAT;
 }
 
-static const char * GetConstructorForType(const SHADER_VARIABLE_TYPE eType,
-	const int components)
-{
-	static const char * const uintTypes[] = { " ", "uint", "uvec2", "uvec3", "uvec4" };
-	static const char * const intTypes[] = { " ", "int", "ivec2", "ivec3", "ivec4" };
-	static const char * const floatTypes[] = { " ", "float", "vec2", "vec3", "vec4" };
-
-	if (components < 1 || components > 4)
-		return "ERROR TOO MANY COMPONENTS IN VECTOR";
-
-	switch (eType)
-	{
-	case SVT_UINT:
-		return uintTypes[components];
-	case SVT_INT:
-		return intTypes[components];
-	case SVT_FLOAT:
-		return floatTypes[components];
-	default:
-		return "ERROR UNSUPPORTED TYPE";
-	}
-}
-
-
-static const char * GetConstructorForTypeFlag(const uint32_t ui32Flag,
-	const int components)
-{
-	if (ui32Flag & TO_FLAG_UNSIGNED_INTEGER || ui32Flag & TO_AUTO_BITCAST_TO_UINT)
-	{
-		return GetConstructorForType(SVT_UINT, components);
-	}
-	else if (ui32Flag & TO_FLAG_INTEGER || ui32Flag & TO_AUTO_BITCAST_TO_INT)
-	{
-		return GetConstructorForType(SVT_INT, components);
-	}
-	else
-	{
-		return GetConstructorForType(SVT_FLOAT, components);
-	}
-}
-
 static void AddOpAssignToDest(HLSLCrossCompilerContext* psContext, const Operand* psDest,
 	uint32_t ui32SrcTypeFlags, uint32_t ui32DestElementCount, const char *szAssignmentOp)
 {

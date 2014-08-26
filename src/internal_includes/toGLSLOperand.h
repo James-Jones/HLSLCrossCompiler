@@ -30,6 +30,7 @@ void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand*
 void TranslateOperandSwizzleWithMask(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32ComponentMask);
 
 uint32_t GetNumSwizzleElements(const Operand* psOperand);
+uint32_t GetNumSwizzleElementsWithMask(const Operand *psOperand, uint32_t ui32CompMask);
 void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t count);
 int GetFirstOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
 uint32_t IsSwizzleReplicated(const Operand* psOperand);
@@ -43,5 +44,11 @@ void ConcatTextureSamplerName(bstring str, ShaderInfo* psShaderInfo, const uint3
 int CompareOperandSwizzles(const Operand* psOperandA, const Operand* psOperandB);
 
 SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
+
+const char * GetConstructorForType(const SHADER_VARIABLE_TYPE eType,
+	const int components);
+
+const char * GetConstructorForTypeFlag(const uint32_t ui32Flag,
+	const int components);
 
 #endif
