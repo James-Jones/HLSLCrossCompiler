@@ -121,11 +121,25 @@ uint32_t IsSwizzleReplicated(const Operand* psOperand)
 	return 0;
 }
 
+static uint32_t GetNumberBitsSet(uint32_t a)
+{
+	// Calculate number of bits in a
+	// Taken from https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSet64
+	// Works only up to 14 bits (we're only using up to 4)
+	return (a * 0x200040008001ULL & 0x111111111111111ULL) % 0xf;
+}
+
 //e.g.
 //.z = 1
 //.x = 1
 //.yw = 2
 uint32_t GetNumSwizzleElements(const Operand* psOperand)
+{
+	return GetNumSwizzleElementsWithMask(psOperand, OPERAND_4_COMPONENT_MASK_ALL);
+}
+
+// Get the number of elements returned by operand, taking additional component mask into account
+uint32_t GetNumSwizzleElementsWithMask(const Operand *psOperand, uint32_t ui32CompMask)
 {
 	uint32_t count = 0;
 
@@ -137,7 +151,13 @@ uint32_t GetNumSwizzleElements(const Operand* psOperand)
 		case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
 		case OPERAND_TYPE_OUTPUT_DEPTH:
 		{
-			return psOperand->iNumComponents;
+			// Translate numComponents into bitmask
+			// 1 -> 1, 2 -> 3, 3 -> 7 and 4 -> 15
+			uint32_t compMask = (1 << psOperand->iNumComponents) - 1;
+			
+			compMask &= ui32CompMask;
+			// Calculate bits left in compMask
+			return GetNumberBitsSet(compMask);
 		}
 		default:
 		{
@@ -151,24 +171,29 @@ uint32_t GetNumSwizzleElements(const Operand* psOperand)
 		//Component Mask
 		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
 		{
-			if(psOperand->ui32CompMask != 0 && psOperand->ui32CompMask != (OPERAND_4_COMPONENT_MASK_X|OPERAND_4_COMPONENT_MASK_Y|OPERAND_4_COMPONENT_MASK_Z|OPERAND_4_COMPONENT_MASK_W))
+			uint32_t compMask = psOperand->ui32CompMask;
+			if (compMask == 0)
+				compMask = OPERAND_4_COMPONENT_MASK_ALL;
+			compMask &= ui32CompMask;
+
+			if (compMask == OPERAND_4_COMPONENT_MASK_ALL)
+				return 4;
+
+			if(compMask & OPERAND_4_COMPONENT_MASK_X)
 			{
-				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_X)
-				{
-					count++;
-				}
-				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Y)
-				{
-					count++;
-				}
-				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_Z)
-				{
-					count++;
-				}
-				if(psOperand->ui32CompMask & OPERAND_4_COMPONENT_MASK_W)
-				{
-					count++;
-				}
+				count++;
+			}
+			if(compMask & OPERAND_4_COMPONENT_MASK_Y)
+			{
+				count++;
+			}
+			if(compMask & OPERAND_4_COMPONENT_MASK_Z)
+			{
+				count++;
+			}
+			if(compMask & OPERAND_4_COMPONENT_MASK_W)
+			{
+				count++;
 			}
 		}
 		else
@@ -181,22 +206,22 @@ uint32_t GetNumSwizzleElements(const Operand* psOperand)
 
 				for(i=0; i< 4; ++i)
 				{
-					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X)
+					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X && (ui32CompMask & OPERAND_4_COMPONENT_MASK_X))
 					{
 						count++;
 					}
 					else
-					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y)
+					if (psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y && (ui32CompMask & OPERAND_4_COMPONENT_MASK_Y))
 					{
 						count++;
 					}
 					else
-					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z)
+					if (psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z && (ui32CompMask & OPERAND_4_COMPONENT_MASK_Z))
 					{
 						count++;
 					}
 					else
-					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W)
+					if (psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W && (ui32CompMask & OPERAND_4_COMPONENT_MASK_W))
 					{
 						count++;
 					}
@@ -206,22 +231,22 @@ uint32_t GetNumSwizzleElements(const Operand* psOperand)
 		else
 		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
 		{
-			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_X)
+			if (psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_X && (ui32CompMask & OPERAND_4_COMPONENT_MASK_X))
 			{
 				count++;
 			}
 			else
-			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Y)
+			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Y && (ui32CompMask & OPERAND_4_COMPONENT_MASK_Y))
 			{
 				count++;
 			}
 			else
-			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Z)
+			if (psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_Z && (ui32CompMask & OPERAND_4_COMPONENT_MASK_Z))
 			{
 				count++;
 			}
 			else
-			if(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_W)
+			if (psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_W && (ui32CompMask & OPERAND_4_COMPONENT_MASK_W))
 			{
 				count++;
 			}
@@ -232,8 +257,14 @@ uint32_t GetNumSwizzleElements(const Operand* psOperand)
 
     if(!count)
     {
-        return psOperand->iNumComponents;
-    }
+		// Translate numComponents into bitmask
+		// 1 -> 1, 2 -> 3, 3 -> 7 and 4 -> 15
+		uint32_t compMask = (1 << psOperand->iNumComponents) - 1;
+
+		compMask &= ui32CompMask;
+		// Calculate bits left in compMask
+		return GetNumberBitsSet(compMask);
+	}
 
 	return count;
 }
@@ -1056,7 +1087,7 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 				{
 					//bformata(glsl, "cb%d", psOperand->aui32ArraySizes[0]);
 				}
-		}
+			}
 
             if((ui32TOFlag & TO_FLAG_DECLARATION_NAME) != TO_FLAG_DECLARATION_NAME)
             {
@@ -1095,27 +1126,37 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 				else
 				if(index != -1 && psOperand->psSubOperand[1] != NULL)
 				{
-					//Array of matrices is treated as array of vec4s
+					// Array of matrices is treated as array of vec4s in HLSL,
+					// but that would mess up uniform types in GLSL. Do gymnastics.
 					if(index != -1)
 					{
 						SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand->psSubOperand[1]);
-						if(eType != SVT_INT && eType != SVT_UINT)
+						uint32_t opFlags = TO_FLAG_NONE;
+						if (eType != SVT_INT && eType != SVT_UINT)
+							opFlags = TO_AUTO_BITCAST_TO_INT;
+
+						if ((psVarType->Class == SVC_MATRIX_COLUMNS || psVarType->Class == SVC_MATRIX_ROWS) && (psVarType->Elements > 1))
 						{
-							bcatcstr(glsl, "[");
-							TranslateOperand(psContext, psOperand->psSubOperand[1], TO_AUTO_BITCAST_TO_INT);
-							bformata(glsl, " + %d]", index);
+							// Special handling for matrix arrays
+							bcatcstr(glsl, "[(");
+							TranslateOperand(psContext, psOperand->psSubOperand[1], opFlags);
+							bformata(glsl, " + %d) >> 2]", index);
+							bcatcstr(glsl, "[(");
+							TranslateOperand(psContext, psOperand->psSubOperand[1], opFlags);
+							bformata(glsl, " + %d) %% 4]", index);
+
 						}
 						else
 						{
 							bcatcstr(glsl, "[");
-							TranslateOperand(psContext, psOperand->psSubOperand[1], TO_FLAG_NONE);
+							TranslateOperand(psContext, psOperand->psSubOperand[1], opFlags);
 							bformata(glsl, " + %d]", index);
 						}
 					}
 				}
 				else if(index != -1)
                 {
-					if ((psVarType->Class == SVC_MATRIX_COLUMNS || psVarType->Class == SVC_MATRIX_COLUMNS) && (psVarType->Elements > 1))
+					if ((psVarType->Class == SVC_MATRIX_COLUMNS || psVarType->Class == SVC_MATRIX_ROWS) && (psVarType->Elements > 1))
 					{
 						// Special handling for matrix arrays, open them up into vec4's
 						size_t matidx = index / 4;
@@ -1527,6 +1568,7 @@ void TranslateOperandWithMask(HLSLCrossCompilerContext* psContext, const Operand
     bstring glsl = *psContext->currentGLSLString;
     uint32_t ui32IgnoreSwizzle = 0;
 	SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand);
+	int iNeedsCtor = 0;
 
 	if(psContext->psShader->ui32MajorVersion <=3)
 	{
@@ -1555,14 +1597,28 @@ void TranslateOperandWithMask(HLSLCrossCompilerContext* psContext, const Operand
 		bcatcstr(glsl, "floatBitsToInt(");
 		// Clear possible TO_FLAG_INTEGER
 		ui32TOFlag &= ~(TO_FLAG_INTEGER);
+		iNeedsCtor = 1;
 	}
 	else if ((ui32TOFlag & TO_AUTO_BITCAST_TO_UINT) && eType == SVT_FLOAT)
 	{
 		bcatcstr(glsl, "floatBitsToUint(");
 		ui32TOFlag &= ~(TO_FLAG_UNSIGNED_INTEGER);
+		iNeedsCtor = 1;
 	}
-	else if ((ui32TOFlag & TO_AUTO_BITCAST_TO_INT) && eType == SVT_BOOL)
-		bcatcstr(glsl, "int(");
+	else if ((ui32TOFlag & TO_AUTO_BITCAST_TO_INT) && (eType == SVT_BOOL || eType == SVT_UINT))
+	{
+		int swizzleElems = GetNumSwizzleElementsWithMask(psOperand, ui32ComponentMask);
+		bcatcstr(glsl, GetConstructorForType(SVT_INT, swizzleElems));
+		bcatcstr(glsl, "(");
+		iNeedsCtor = 1;
+	}
+	else if ((ui32TOFlag & TO_AUTO_BITCAST_TO_UINT) && (eType == SVT_BOOL || eType == SVT_INT))
+	{
+		int swizzleElems = GetNumSwizzleElementsWithMask(psOperand, ui32ComponentMask);
+		bcatcstr(glsl, GetConstructorForType(SVT_UINT, swizzleElems));
+		bcatcstr(glsl, "(");
+		iNeedsCtor = 1;
+	}
 
     if(ui32TOFlag & TO_FLAG_NAME_ONLY)
     {
@@ -1622,7 +1678,7 @@ void TranslateOperandWithMask(HLSLCrossCompilerContext* psContext, const Operand
         }
     }
 
-	if((ui32TOFlag & (TO_AUTO_BITCAST_TO_INT|TO_AUTO_BITCAST_TO_UINT)) && (eType == SVT_FLOAT || eType == SVT_BOOL))
+	if (iNeedsCtor)
 		bcatcstr(glsl, ")");
 }
 
