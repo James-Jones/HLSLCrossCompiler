@@ -2247,7 +2247,7 @@ static void TranslateConditional(HLSLCrossCompilerContext* psContext,
 			}
 			else
 			{
-				if(eDestType != SVT_INT)
+				if(eDestType != SVT_INT && eDestType != SVT_BOOL)
 					bcatcstr(glsl, ")!=0u){\n");
 				else
 					bcatcstr(glsl, ")!=0){\n");
@@ -2256,42 +2256,87 @@ static void TranslateConditional(HLSLCrossCompilerContext* psContext,
 	}
 }
 
-static void MarkOperandAs(Operand *psOperand, SHADER_VARIABLE_TYPE eType, SHADER_VARIABLE_TYPE *aeTempVecType)
+// Returns the "more important" type of a and b, currently int < uint < float
+static SHADER_VARIABLE_TYPE SelectHigherType(SHADER_VARIABLE_TYPE a, SHADER_VARIABLE_TYPE b)
+{
+	if (a == SVT_FLOAT || b == SVT_FLOAT)
+		return SVT_FLOAT;
+	// Apart from floats, the enum values are fairly well-ordered, use that directly.
+	return a > b ? a : b;
+}
+
+// Helper function to set the vector type of 1 or more components in a vector
+// If the existing values (that we're writing to) are all SVT_VOID, just upgrade the value and we're done
+// Otherwise, set all the components in the vector that currently are set to that same value OR are now being written to
+// to the "highest" type value (ordering int->uint->float)
+static void SetVectorType(SHADER_VARIABLE_TYPE *aeTempVecType, uint32_t regBaseIndex, uint32_t componentMask, SHADER_VARIABLE_TYPE eType)
+{
+	int existingTypesFound = 0;
+	int i = 0;
+	for (i = 0; i < 4; i++)
 	{
-	if (psOperand->eType == OPERAND_TYPE_INDEXABLE_TEMP || psOperand->eType == OPERAND_TYPE_TEMP)
+		if (componentMask & (1 << i))
 		{
+			if (aeTempVecType[regBaseIndex + i] != SVT_VOID)
+			{
+				existingTypesFound = 1;
+				break;
+			}
+		}
+	}
+
+	if (existingTypesFound != 0)
+	{
+		// Expand the mask to include all components that are used, also upgrade type
+		for (i = 0; i < 4; i++)
+		{
+			if (aeTempVecType[regBaseIndex + i] != SVT_VOID)
+			{
+				componentMask |= (1 << i);
+				eType = SelectHigherType(eType, aeTempVecType[regBaseIndex + i]);
+			}
+		}
+	}
+
+	// Now componentMask contains the components we actually need to update and eType may have been changed to something else.
+	// Write the results
+	for (i = 0; i < 4; i++)
+	{
+		if (componentMask & (1 << i))
+		{
+			aeTempVecType[regBaseIndex + i] = eType;
+		}
+	}
+
+}
+
+static void MarkOperandAs(Operand *psOperand, SHADER_VARIABLE_TYPE eType, SHADER_VARIABLE_TYPE *aeTempVecType)
+{
+	if (psOperand->eType == OPERAND_TYPE_INDEXABLE_TEMP || psOperand->eType == OPERAND_TYPE_TEMP)
+	{
 		const uint32_t ui32RegIndex = psOperand->ui32RegisterNumber * 4;
 
 		if (psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
-				{
-			aeTempVecType[ui32RegIndex + psOperand->aui32Swizzle[0]] = eType;
-				}
+		{
+			SetVectorType(aeTempVecType, ui32RegIndex, 1 << psOperand->aui32Swizzle[0], eType);
+		}
 		else if (psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
-				{
-			aeTempVecType[ui32RegIndex + 0] = eType;
-			aeTempVecType[ui32RegIndex + 1] = eType;
-			aeTempVecType[ui32RegIndex + 2] = eType;
-			aeTempVecType[ui32RegIndex + 3] = eType;
-					}
+		{
+			// 0xf == all components, swizzle order doesn't matter.
+			SetVectorType(aeTempVecType, ui32RegIndex, 0xf, eType);
+		}
 		else if (psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
-				{
-					int c = 0;
+		{
 			uint32_t ui32CompMask = psOperand->ui32CompMask;
 			if (!psOperand->ui32CompMask)
-					{
-						ui32CompMask = OPERAND_4_COMPONENT_MASK_ALL;
-					}
+			{
+				ui32CompMask = OPERAND_4_COMPONENT_MASK_ALL;
+			}
 
-					for(;c<4;++c)
-					{
-						if(ui32CompMask & (1<<c))
-						{
-					aeTempVecType[ui32RegIndex + c] = eType;
-						}
-					}
-				}
-            }
-        }
+			SetVectorType(aeTempVecType, ui32RegIndex, ui32CompMask, eType);
+		}
+	}
+}
 
 static void MarkAllOperandsAs(Instruction* psInst, SHADER_VARIABLE_TYPE eType, SHADER_VARIABLE_TYPE *aeTempVecType)
 {
@@ -2303,51 +2348,51 @@ static void MarkAllOperandsAs(Instruction* psInst, SHADER_VARIABLE_TYPE eType, S
 }
 
 static void WriteOperandTypes(Operand *psOperand, const SHADER_VARIABLE_TYPE *aeTempVecType)
-            {
-				const uint32_t ui32RegIndex = psOperand->ui32RegisterNumber*4;
+{
+	const uint32_t ui32RegIndex = psOperand->ui32RegisterNumber*4;
 
 	if (psOperand->eType != OPERAND_TYPE_TEMP)
 		return;
 
-				if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
-				{
-					psOperand->aeDataType[psOperand->aui32Swizzle[0]] = aeTempVecType[ui32RegIndex+psOperand->aui32Swizzle[0]];
-				}
-				else if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
-				{
-					if(psOperand->ui32Swizzle == (NO_SWIZZLE))
-					{
-						psOperand->aeDataType[0] = aeTempVecType[ui32RegIndex];
-						psOperand->aeDataType[1] = aeTempVecType[ui32RegIndex];
-						psOperand->aeDataType[2] = aeTempVecType[ui32RegIndex];
-						psOperand->aeDataType[3] = aeTempVecType[ui32RegIndex];
-					}
-					else
-					{
-						psOperand->aeDataType[psOperand->aui32Swizzle[0]] = aeTempVecType[ui32RegIndex+psOperand->aui32Swizzle[0]];
+	if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+	{
+		psOperand->aeDataType[psOperand->aui32Swizzle[0]] = aeTempVecType[ui32RegIndex+psOperand->aui32Swizzle[0]];
+	}
+	else if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+	{
+		if(psOperand->ui32Swizzle == (NO_SWIZZLE))
+		{
+			psOperand->aeDataType[0] = aeTempVecType[ui32RegIndex];
+			psOperand->aeDataType[1] = aeTempVecType[ui32RegIndex+1];
+			psOperand->aeDataType[2] = aeTempVecType[ui32RegIndex+2];
+			psOperand->aeDataType[3] = aeTempVecType[ui32RegIndex+3];
+		}
+		else
+		{
+			psOperand->aeDataType[psOperand->aui32Swizzle[0]] = aeTempVecType[ui32RegIndex+psOperand->aui32Swizzle[0]];
 			psOperand->aeDataType[psOperand->aui32Swizzle[1]] = aeTempVecType[ui32RegIndex + psOperand->aui32Swizzle[1]];
 			psOperand->aeDataType[psOperand->aui32Swizzle[2]] = aeTempVecType[ui32RegIndex + psOperand->aui32Swizzle[2]];
 			psOperand->aeDataType[psOperand->aui32Swizzle[3]] = aeTempVecType[ui32RegIndex + psOperand->aui32Swizzle[3]];
-					}
-				}
-				else if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
-				{
-					int c = 0;
-					uint32_t ui32CompMask = psOperand->ui32CompMask;
-					if(!psOperand->ui32CompMask)
-					{
-						ui32CompMask = OPERAND_4_COMPONENT_MASK_ALL;
-					}
+		}
+	}
+	else if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+	{
+		int c = 0;
+		uint32_t ui32CompMask = psOperand->ui32CompMask;
+		if(!psOperand->ui32CompMask)
+		{
+			ui32CompMask = OPERAND_4_COMPONENT_MASK_ALL;
+		}
 
-					for(;c<4;++c)
-					{
-						if(ui32CompMask & (1<<c))
-						{
-							psOperand->aeDataType[c] = aeTempVecType[ui32RegIndex+c];
-						}
-					}
-				}
+		for(;c<4;++c)
+		{
+			if(ui32CompMask & (1<<c))
+			{
+				psOperand->aeDataType[c] = aeTempVecType[ui32RegIndex+c];
 			}
+		}
+	}
+}
 
 void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, const int32_t i32InstCount)
 {
@@ -2355,25 +2400,22 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 	Instruction *psFirstInst = psInst;
 
 	SHADER_VARIABLE_TYPE aeTempVecType[MAX_TEMP_VEC4 * 4];
-	SHADER_VARIABLE_TYPE eNewType;
 
 	if(psContext->psShader->ui32MajorVersion <= 3)
-				{
-		for(i=0; i < MAX_TEMP_VEC4 * 4; ++i)
-					{
-			aeTempVecType[i] = SVT_FLOAT;
-						}
-							}
-							else
-							{
-		// Default to integers, switch to floats when needed
-		// (and then reinterpret the bits on per-instruction basis if floats needed)
-		eNewType = SVT_INT;
+	{
 		for(i=0; i < MAX_TEMP_VEC4 * 4; ++i)
 		{
-			aeTempVecType[i] = SVT_INT;
-							}
-						}
+			aeTempVecType[i] = SVT_FLOAT;
+		}
+	}
+	else
+	{
+		// Start with void, then move up the chain void->int->uint->float
+		for(i=0; i < MAX_TEMP_VEC4 * 4; ++i)
+		{
+			aeTempVecType[i] = SVT_VOID;
+		}
+	}
 
 	// First pass, do analysis: deduce the data type based on opcodes, fill out aeTempVecType table
 	// Only ever to int->float promotion (or int->uint), never the other way around
@@ -2485,8 +2527,9 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		case OPCODE_MOV:
 		case OPCODE_MOVC:
 		case OPCODE_SWAPC:
-				break;
-			// uint ops, do nothing as well 
+			MarkAllOperandsAs(psInst, SVT_INT, aeTempVecType);
+			break;
+		// uint ops
 		case OPCODE_UDIV:
 		case OPCODE_ULT:
 		case OPCODE_UGE:
@@ -2497,16 +2540,19 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		case OPCODE_USHR:
 		case OPCODE_UADDC:
 		case OPCODE_USUBB:
-				break;
+			MarkAllOperandsAs(psInst, SVT_UINT, aeTempVecType);
+			break;
 
 			// Need special handling
 		case OPCODE_FTOI:
 		case OPCODE_FTOU:
+			MarkOperandAs(&psInst->asOperands[0], psInst->eOpcode == OPCODE_FTOI ? SVT_INT : SVT_UINT, aeTempVecType);
 			MarkOperandAs(&psInst->asOperands[1], SVT_FLOAT, aeTempVecType);
-					break;
+			break;
 
 		case OPCODE_GE:
 		case OPCODE_LT:
+			MarkOperandAs(&psInst->asOperands[0], SVT_UINT, aeTempVecType);
 			MarkOperandAs(&psInst->asOperands[1], SVT_FLOAT, aeTempVecType);
 			MarkOperandAs(&psInst->asOperands[2], SVT_FLOAT, aeTempVecType);
 					break;
@@ -2514,7 +2560,8 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		case OPCODE_ITOF:
 		case OPCODE_UTOF:
 			MarkOperandAs(&psInst->asOperands[0], SVT_FLOAT, aeTempVecType);
-					break;
+			MarkOperandAs(&psInst->asOperands[1], psInst->eOpcode == OPCODE_ITOF ? SVT_INT : SVT_UINT, aeTempVecType);
+			break;
 
 		case OPCODE_LD:
 		case OPCODE_LD_MS:
@@ -2546,8 +2593,8 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		case OPCODE_STORE_RAW:
 		case OPCODE_LD_STRUCTURED:
 		case OPCODE_STORE_STRUCTURED:
-			// TODO
-				break;
+			MarkOperandAs(&psInst->asOperands[0], SVT_INT, aeTempVecType);
+			break;
 
 		case OPCODE_F32TOF16:
 		case OPCODE_F16TOF32:
@@ -2659,10 +2706,16 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 			default:
 			break;
 		}
-			}
+	}
+
+	// Fill the rest of aeTempVecType, just in case.
+	for (i = 0; i < MAX_TEMP_VEC4 * 4; i++)
+	{
+		if (aeTempVecType[i] == SVT_VOID)
+			aeTempVecType[i] = SVT_INT;
+	}
 
 	// Now the aeTempVecType table has been filled with (mostly) valid data, write it back to all operands
-
 	psInst = psFirstInst;
 	for(i=0; i < i32InstCount; ++i, psInst++)
 			{
