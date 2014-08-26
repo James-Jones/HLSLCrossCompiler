@@ -33,9 +33,9 @@ vec4 Input2;
 vec4 Temp[3];
 ivec4 Temp_int[3];
 uniform struct GlobalsVS_Type {
-	vec4 g_mProj[4];
-	vec4 g_mView[4];
-	vec4 g_mWorld[4];
+	mat4 g_mProj;
+	mat4 g_mView;
+	mat4 g_mWorld;
 	vec4 g_vBoxInstance_Color[120];
 	vec4 g_vBoxInstance_Position[120];
 } GlobalsVS;

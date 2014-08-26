@@ -46,9 +46,9 @@ void main()
     //Instruction 1
     //MOVC
     if(ivec4(-abs(Temp[0].x)).x >= 0) {
-        Temp[0] = ivec4(ImmConst0.x).xyzw;
+        Temp[0] = vec4(ImmConst0.x);
     } else {
-        Temp[0] = ivec4(ImmConst0.y).xyzw;
+        Temp[0] = vec4(ImmConst0.y);
     }
     //Instruction 2
     //DISCARD

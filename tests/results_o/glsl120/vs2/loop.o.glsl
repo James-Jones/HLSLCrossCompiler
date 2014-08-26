@@ -25,7 +25,7 @@ const vec4 ImmConst196 = vec4(1.000000, 0.000000, 0.000000, 0.000000);
 const vec4 ImmConst197 = vec4(0.000000, 1.000000, 0.000000, 0.000000);
 const vec4 ImmConst198 = vec4(0.000000, 0.000000, 1.000000, 0.000000);
 const vec4 ImmConst199 = vec4(0.000000, 0.000000, 0.000000, 1.000000);
-const ivec4 IntImmConst0 = ivec4(0x4, 0x0, 0x1, 0x0);
+const ivec4 IntImmConst0 = ivec4(int(0x4), int(0x0), int(0x1), int(0x0));
  attribute  vec4 dcl_Input0;
 vec4 Input0;
  attribute  vec4 dcl_Input1;
@@ -39,8 +39,8 @@ vec4 Input4;
 vec4 Temp[8];
 ivec4 Temp_int[8];
 uniform struct GlobalsVS_Type {
-	vec4 g_mW2C[4];
-	vec4 vJointMatrix[4 * 48];
+	mat4 g_mW2C;
+	mat4 vJointMatrix[48];
 } GlobalsVS;
 vec4 ImmConstArray [5];
 void main()

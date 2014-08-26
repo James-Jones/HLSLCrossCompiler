@@ -35,10 +35,10 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //LT
-    Temp[0].x = (((-GlobalsVS.factor)< (GlobalsVS.factor)) ? 1.0f : 1.0f);
+    Temp[0].x = (((-GlobalsVS.factor)< (GlobalsVS.factor)) ? 1.0 : 0.0);
     //Instruction 1
     //LT
-    Temp[0].y = (((GlobalsVS.factor)< (-GlobalsVS.factor)) ? 1.0f : 1.0f);
+    Temp[0].y = (((GlobalsVS.factor)< (-GlobalsVS.factor)) ? 1.0 : 0.0);
     //Instruction 2
     //ADD
     Temp[0].x = (-Temp[0].y + Temp[0].x);

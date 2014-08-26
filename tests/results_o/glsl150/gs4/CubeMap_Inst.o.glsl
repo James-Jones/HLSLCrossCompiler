@@ -45,10 +45,10 @@ void main()
     while(true){
         //Instruction 2
         //IGE
-        Temp_int[0].y = (((Temp_int[0].x)>= (int(0x3))) ? int(0xFFFFFFFF) : 0);
+        // IGE+BREAKC opt
+        if (((Temp_int[0].x)>= (int(0x3)))) { break; }
+        Temp_int[0].y = int(((Temp_int[0].x)>= (int(0x3))) ? 0xFFFFFFFFu : 0u);
         //Instruction 3
-        //BREAKC
-        if((Temp_int[0].y)!=0){break;}
         //Instruction 4
         //MOV
         Output0 = vec4(gl_in[int(Temp_int[0].x)].gl_Position).xyzw;
