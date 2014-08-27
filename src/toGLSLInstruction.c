@@ -2092,11 +2092,19 @@ void TranslateAtomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIn
     AddIndentation(psContext);
 
 	psVarType = LookupStructuredVar(psContext, dest, destAddr, 0);
+	if (psVarType->Type == SVT_UINT)
+	{
+		ui32DataTypeFlag = TO_FLAG_UNSIGNED_INTEGER | TO_AUTO_BITCAST_TO_UINT;
+	}
+	else
+	{
+		ui32DataTypeFlag = TO_FLAG_INTEGER | TO_AUTO_BITCAST_TO_INT;
+	}
 
-	if(previousValue)
+	if (previousValue)
 	{
 		TranslateOperand(psContext, previousValue, TO_FLAG_DESTINATION);
-		AddAssignToDest(psContext, dest, SVTTypeToFlag(psVarType->Type), GetNumSwizzleElements(dest));
+		AddAssignToDest(psContext, previousValue, ui32DataTypeFlag, 1);
 		bcatcstr(glsl, "(");
 	}
 	bcatcstr(glsl, func);
@@ -2108,10 +2116,6 @@ void TranslateAtomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		bformata(glsl, ".%s",psVarType->Name);
 	}
 
-	if(psVarType->Type == SVT_UINT)
-	{
-		ui32DataTypeFlag = TO_FLAG_UNSIGNED_INTEGER;
-	}
 	bcatcstr(glsl, ", ");
 
 	if(compare)
@@ -2792,7 +2796,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         case OPCODE_FTOI: 
 		case OPCODE_FTOU:
 		{
-			uint32_t srcCount = GetNumSwizzleElements(&psInst->asOperands[1]);
 			uint32_t dstCount = GetNumSwizzleElements(&psInst->asOperands[0]);
 			uint32_t ui32DstFlags = TO_FLAG_DESTINATION;
 			const SHADER_VARIABLE_TYPE eSrcType = GetOperandDataType(psContext, &psInst->asOperands[1]);
@@ -2809,43 +2812,13 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			AddIndentation(psContext);
 
 			TranslateOperand(psContext, &psInst->asOperands[0], ui32DstFlags);
-			bcatcstr(glsl, " = ");
-
-			if (eDestType == SVT_FLOAT)
-				bcatcstr(glsl, psInst->eOpcode == OPCODE_FTOI ? "intBitsToFloat" : "uintBitsToFloat");
-			else if ((eDestType == SVT_UINT && psInst->eOpcode == OPCODE_FTOI) ||
-					 (eDestType == SVT_INT && psInst->eOpcode == OPCODE_FTOU))
-			{
-				// Need cast int->uint or vice versa
-				if (srcCount == 1)
-					bcatcstr(glsl, eDestType == SVT_UINT ? "uint" : "int");
-				else
-					bformata(glsl, eDestType == SVT_UINT ? "uvec%d" : "ivec%d", srcCount);
-			}
-			bcatcstr(glsl, "(");
-
-			if (srcCount == 1)
-				bcatcstr(glsl, psInst->eOpcode == OPCODE_FTOU ? "uint(" : "int(");
-			if (srcCount == 2)
-				bcatcstr(glsl, psInst->eOpcode == OPCODE_FTOU ? "uvec2(" : "ivec2(");
-			if (srcCount == 3)
-				bcatcstr(glsl, psInst->eOpcode == OPCODE_FTOU ? "uvec3(" : "ivec3(");
-			if (srcCount == 4)
-				bcatcstr(glsl, psInst->eOpcode == OPCODE_FTOU ? "uvec4(" : "ivec4(");
-
+			AddAssignToDest(psContext, &psInst->asOperands[0], psInst->eOpcode == OPCODE_FTOU ? TO_FLAG_UNSIGNED_INTEGER : TO_FLAG_INTEGER, dstCount);
+			bcatcstr(glsl, "("); // 1
+			bcatcstr(glsl, GetConstructorForType(psInst->eOpcode == OPCODE_FTOU ? SVT_UINT : SVT_INT, dstCount));
+			bcatcstr(glsl, "("); // 2
 			TranslateOperand(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT);
-
-			if (srcCount != dstCount)
-			{
-				bcatcstr(glsl, ")");
-				TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
-				bcatcstr(glsl, ");\n");
-			}
-			else
-			{
-				bcatcstr(glsl, "));\n");
-			}
-
+			bcatcstr(glsl, ")"); // 2
+			bcatcstr(glsl, ");\n"); // 1
 		}
 
 		case OPCODE_MOV:
@@ -2863,17 +2836,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
         {
 			const SHADER_VARIABLE_TYPE eDestType = GetOperandDataType(psContext, &psInst->asOperands[0]);
 			const SHADER_VARIABLE_TYPE eSrcType = GetOperandDataType(psContext, &psInst->asOperands[1]);
-
-			if(eSrcType == SVT_FLOAT)
-			{
-				//With ld_uav_typed, the result is uint and then converted to the actual format.
-				//But we will set the dest of imageLoad as the actual format and igore the utof.
-				//Otherwise no suitable overload of imageLoad will be found.
-				//Example from tests\ps5\load_store:
-				//ld_uav_typed_indexable(texture3d)(float,float,float,float) r1.x, r0.xxxx, u5.xyzw
-				//utof r1.x, r1.x
-				bcatcstr(glsl, "//Warning. UTOF/ITOF on a src which is float. This is okay if ld_uav_typed last wrote to the src.\n");
-			}
+			uint32_t dstCount = GetNumSwizzleElements(&psInst->asOperands[0]);
 
 #ifdef _DEBUG
 			AddIndentation(psContext);
@@ -2888,11 +2851,12 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-			AddAssignToDest(psContext, &psInst->asOperands[0], TO_FLAG_NONE, GetNumSwizzleElements(&psInst->asOperands[0]));
-            bcatcstr(glsl, "(vec4(");
-            TranslateOperand(psContext, &psInst->asOperands[1], (eSrcType == SVT_INT) ? TO_FLAG_INTEGER : TO_FLAG_UNSIGNED_INTEGER);
+			AddAssignToDest(psContext, &psInst->asOperands[0], TO_FLAG_NONE, dstCount);
+            bcatcstr(glsl, "(");
+			bcatcstr(glsl, GetConstructorForType(SVT_FLOAT, dstCount));
+			bcatcstr(glsl, "(");
+			TranslateOperand(psContext, &psInst->asOperands[1], (eSrcType == SVT_INT) ? TO_FLAG_INTEGER | TO_AUTO_BITCAST_TO_INT : TO_FLAG_UNSIGNED_INTEGER | TO_AUTO_BITCAST_TO_UINT);
             bcatcstr(glsl, ")");
-            TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ");\n");
             break;
         }
