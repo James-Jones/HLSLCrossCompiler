@@ -1099,6 +1099,10 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 					GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index, &rebase);
 
 					bformata(glsl, "%s", psVarType->FullName);
+
+					// Can't do swizzles on scalars.
+					if (psVarType->Class == SVC_SCALAR)
+						*pui32IgnoreSwizzle = 1;
 				}
 				else // We don't have a semantic for this variable, so try the raw dump appoach.
 				{
@@ -1109,18 +1113,37 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 				//Dx9 only?
 				if(psOperand->psSubOperand[0] != NULL)
 				{
+					// Array of matrices is treated as array of vec4s in HLSL,
+					// but that would mess up uniform types in GLSL. Do gymnastics.
 					SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand->psSubOperand[0]);
-					if(eType != SVT_INT && eType != SVT_UINT)
+					uint32_t opFlags = TO_FLAG_NONE;
+					if (eType != SVT_INT && eType != SVT_UINT)
+						opFlags = TO_AUTO_BITCAST_TO_INT;
+
+					if ((psVarType->Class == SVC_MATRIX_COLUMNS || psVarType->Class == SVC_MATRIX_ROWS) && (psVarType->Elements > 1))
 					{
-						bcatcstr(glsl, "["); //Indexes must be integral.
-						TranslateOperand(psContext, psOperand->psSubOperand[0], TO_AUTO_BITCAST_TO_INT);
-						bcatcstr(glsl, "]");
+						// Special handling for matrix arrays
+						bcatcstr(glsl, "[(");
+						TranslateOperand(psContext, psOperand->psSubOperand[0], opFlags);
+						bformata(glsl, ") / 4]");
+						if (psContext->psShader->eTargetLanguage <= LANG_120)
+						{
+							bcatcstr(glsl, "[int(mod(float(");
+							TranslateOperand(psContext, psOperand->psSubOperand[0], opFlags);
+							bformata(glsl, "), 4.0))]");
+						}
+						else
+						{
+							bcatcstr(glsl, "[((");
+							TranslateOperand(psContext, psOperand->psSubOperand[0], opFlags);
+							bformata(glsl, ") %% 4)]");
+						}
 					}
 					else
 					{
-						bcatcstr(glsl, "["); //Indexes must be integral.
-						TranslateOperand(psContext, psOperand->psSubOperand[0], TO_FLAG_NONE);
-						bcatcstr(glsl, "]");
+						bcatcstr(glsl, "[");
+						TranslateOperand(psContext, psOperand->psSubOperand[0], opFlags);
+						bformata(glsl, "]");
 					}
 				}
 				else
@@ -1128,30 +1151,35 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 				{
 					// Array of matrices is treated as array of vec4s in HLSL,
 					// but that would mess up uniform types in GLSL. Do gymnastics.
-					if(index != -1)
+					SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand->psSubOperand[1]);
+					uint32_t opFlags = TO_FLAG_NONE;
+					if (eType != SVT_INT && eType != SVT_UINT)
+						opFlags = TO_AUTO_BITCAST_TO_INT;
+
+					if ((psVarType->Class == SVC_MATRIX_COLUMNS || psVarType->Class == SVC_MATRIX_ROWS) && (psVarType->Elements > 1))
 					{
-						SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, psOperand->psSubOperand[1]);
-						uint32_t opFlags = TO_FLAG_NONE;
-						if (eType != SVT_INT && eType != SVT_UINT)
-							opFlags = TO_AUTO_BITCAST_TO_INT;
-
-						if ((psVarType->Class == SVC_MATRIX_COLUMNS || psVarType->Class == SVC_MATRIX_ROWS) && (psVarType->Elements > 1))
+						// Special handling for matrix arrays
+						bcatcstr(glsl, "[(");
+						TranslateOperand(psContext, psOperand->psSubOperand[1], opFlags);
+						bformata(glsl, " + %d) / 4]", index);
+						if (psContext->psShader->eTargetLanguage <= LANG_120)
 						{
-							// Special handling for matrix arrays
-							bcatcstr(glsl, "[(");
+							bcatcstr(glsl, "[int(mod(float(");
 							TranslateOperand(psContext, psOperand->psSubOperand[1], opFlags);
-							bformata(glsl, " + %d) >> 2]", index);
-							bcatcstr(glsl, "[(");
-							TranslateOperand(psContext, psOperand->psSubOperand[1], opFlags);
-							bformata(glsl, " + %d) %% 4]", index);
-
+							bformata(glsl, " + %d), 4.0))]", index);
 						}
 						else
 						{
-							bcatcstr(glsl, "[");
+							bcatcstr(glsl, "[((");
 							TranslateOperand(psContext, psOperand->psSubOperand[1], opFlags);
-							bformata(glsl, " + %d]", index);
+							bformata(glsl, " + %d) %% 4)]", index);
 						}
+					}
+					else
+					{
+						bcatcstr(glsl, "[");
+						TranslateOperand(psContext, psOperand->psSubOperand[1], opFlags);
+						bformata(glsl, " + %d]", index);
 					}
 				}
 				else if(index != -1)
