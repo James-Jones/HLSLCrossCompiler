@@ -170,19 +170,58 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 		{
 			uint32_t renderTargets, texCoord;
 
-			bcatcstr(glsl, "varying vec4 OffsetColour;\n");
-			bcatcstr(glsl, "varying vec4 BaseColour;\n");
-
-			bcatcstr(glsl, "varying vec4 Fog;\n");
-
-			for(texCoord=0; texCoord<8; ++texCoord)
+			if (InOutSupported(psContext->psShader->eTargetLanguage))
 			{
-				bformata(glsl, "varying vec4 TexCoord%d;\n", texCoord);
+				bcatcstr(glsl, "in vec4 OffsetColour;\n");
+				bcatcstr(glsl, "in vec4 BaseColour;\n");
+
+				bcatcstr(glsl, "in vec4 Fog;\n");
+
+				for (texCoord = 0; texCoord < 8; ++texCoord)
+				{
+					bformata(glsl, "in vec4 TexCoord%d;\n", texCoord);
+				}
+			}
+			else
+			{
+				bcatcstr(glsl, "varying vec4 OffsetColour;\n");
+				bcatcstr(glsl, "varying vec4 BaseColour;\n");
+
+				bcatcstr(glsl, "varying vec4 Fog;\n");
+
+				for (texCoord = 0; texCoord < 8; ++texCoord)
+				{
+					bformata(glsl, "varying vec4 TexCoord%d;\n", texCoord);
+				}
 			}
 
-			for(renderTargets=0; renderTargets<8; ++renderTargets)
+			if (psContext->psShader->eTargetLanguage > LANG_120)
 			{
-				bformata(glsl, "#define Output%d gl_FragData[%d]\n", renderTargets, renderTargets);
+				bcatcstr(glsl, "out vec4 outFragData[8];\n");
+				for (renderTargets = 0; renderTargets < 8; ++renderTargets)
+				{
+					bformata(glsl, "#define Output%d outFragData[%d]\n", renderTargets, renderTargets);
+				}
+			}
+			else if(psContext->psShader->eTargetLanguage >= LANG_ES_300 && psContext->psShader->eTargetLanguage < LANG_120)
+			{
+				// ES 3 supports min 4 rendertargets, I guess this is reasonable lower limit for DX9 shaders
+				bcatcstr(glsl, "out vec4 outFragData[4];\n");
+				for (renderTargets = 0; renderTargets < 4; ++renderTargets)
+				{
+					bformata(glsl, "#define Output%d outFragData[%d]\n", renderTargets, renderTargets);
+				}
+			}
+			else if (psContext->psShader->eTargetLanguage == LANG_ES_100)
+			{
+				bcatcstr(glsl, "#define Output0 gl_FragColor;\n");
+			}
+			else
+			{
+				for (renderTargets = 0; renderTargets < 8; ++renderTargets)
+				{
+					bformata(glsl, "#define Output%d gl_FragData[%d]\n", renderTargets, renderTargets);
+				}
 			}
 		}
     }
