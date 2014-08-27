@@ -2960,17 +2960,16 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
         case OPCODE_DP2:
         {
-			SHADER_VARIABLE_TYPE eDestDataType = GetOperandDataType(psContext, &psInst->asOperands[0]);
 #ifdef _DEBUG
             AddIndentation(psContext);
             bcatcstr(glsl, "//DP2\n");
 #endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
-			AddAssignToDest(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
 
-			bformata(glsl, "(%s4(", GetConstructorForType(eDestDataType, 4));
-            bcatcstr(glsl, "dot((");
+			AddAssignToDest(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
+            bcatcstr(glsl, "(vec4(dot((");
+
             TranslateOperand(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT);
             bcatcstr(glsl, ").xy, (");
             TranslateOperand(psContext, &psInst->asOperands[2], TO_AUTO_BITCAST_TO_FLOAT);
