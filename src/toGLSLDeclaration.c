@@ -671,8 +671,16 @@ void AddBuiltinOutput(HLSLCrossCompilerContext* psContext, const Declaration* ps
         TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
         bcatcstr(glsl, "\n");
 
-        bcatcstr(glsl, "vec4 ");
-        bformata(glsl, "phase%d_", psContext->currentPhase);
+		switch (type)
+		{
+		case GLVARTYPE_INT:
+			bcatcstr(glsl, "ivec4 ");
+			break;
+		default:
+			bcatcstr(glsl, "vec4 ");
+		}
+		
+		bformata(glsl, "phase%d_", psContext->currentPhase);
         TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
         if(arrayElements)
             bformata(glsl, "[%d];\n", arrayElements);

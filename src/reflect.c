@@ -132,6 +132,12 @@ static void ReadOutputSignatures(const uint32_t* pui32Tokens,
         psCurrentSignature->eComponentType = (INOUT_COMPONENT_TYPE) *pui32Tokens++;
         psCurrentSignature->ui32Register = *pui32Tokens++;
 
+		// Massage some special inputs/outputs to match the types of GLSL counterparts
+		if (psCurrentSignature->eSystemValueType == NAME_RENDER_TARGET_ARRAY_INDEX)
+		{
+			psCurrentSignature->eComponentType = INOUT_COMPONENT_SINT32;
+		}
+
         ui32ComponentMasks = *pui32Tokens++;
         psCurrentSignature->ui32Mask = ui32ComponentMasks & 0x7F;
         //Shows which components are NEVER written.
