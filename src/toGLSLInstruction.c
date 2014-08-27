@@ -290,21 +290,21 @@ static void AddMOVBinaryOp(HLSLCrossCompilerContext* psContext, const Operand *p
 	TranslateOperand(psContext, pDest, ui32DstFlags);
 
 
-	switch (eDestType)
-	{
-	case SVT_FLOAT:
-		ui32SrcFlags |= TO_AUTO_BITCAST_TO_FLOAT;
-		bcatcstr(glsl, " = vec4(");
-		break;
-	case SVT_INT:
-		ui32SrcFlags |= TO_AUTO_BITCAST_TO_INT;
-		bcatcstr(glsl, " = ivec4(");
-		break;
-	case SVT_UINT:
-		ui32SrcFlags |= TO_AUTO_BITCAST_TO_INT;
-		bcatcstr(glsl, " = uvec4(");
-		break;
-	}
+		switch (eDestType)
+		{
+		case SVT_FLOAT:
+			ui32SrcFlags |= TO_AUTO_BITCAST_TO_FLOAT;
+			bcatcstr(glsl, " = vec4(");
+			break;
+		case SVT_INT:
+			ui32SrcFlags |= TO_AUTO_BITCAST_TO_INT;
+			bcatcstr(glsl, " = ivec4(");
+			break;
+		case SVT_UINT:
+			ui32SrcFlags |= TO_AUTO_BITCAST_TO_INT;
+			bcatcstr(glsl, " = uvec4(");
+			break;
+		}
 
 	//Always treat immediate src with MOV as int. For floats this will
 	//be the *(int*)&float.
@@ -2818,6 +2818,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			bcatcstr(glsl, "("); // 2
 			TranslateOperand(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT);
 			bcatcstr(glsl, ")"); // 2
+			// Add destination writemask if the component counts do not match
+			if (GetNumSwizzleElements(&psInst->asOperands[1]) != dstCount)
+				TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
 			bcatcstr(glsl, ");\n"); // 1
 		}
 
@@ -2857,6 +2860,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			bcatcstr(glsl, "(");
 			TranslateOperand(psContext, &psInst->asOperands[1], (eSrcType == SVT_INT) ? TO_FLAG_INTEGER | TO_AUTO_BITCAST_TO_INT : TO_FLAG_UNSIGNED_INTEGER | TO_AUTO_BITCAST_TO_UINT);
             bcatcstr(glsl, ")");
+			// Add destination writemask if the component counts do not match
+			if (GetNumSwizzleElements(&psInst->asOperands[1]) != dstCount)
+				TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ");\n");
             break;
         }
