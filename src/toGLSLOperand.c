@@ -1378,7 +1378,8 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
 		}
 		case OPERAND_TYPE_INPUT_GS_INSTANCE_ID:
 		{
-			bcatcstr(glsl, "gl_InvocationID");
+			// In HLSL the instance id is uint, so cast here.
+			bcatcstr(glsl, "uint(gl_InvocationID)");
 			break;
 		}
 		case OPERAND_TYPE_THIS_POINTER:
@@ -1548,6 +1549,10 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
 		case OPERAND_TYPE_SPECIAL_ADDRESS:
 		{
 			return SVT_INT;
+		}
+		case OPERAND_TYPE_INPUT_GS_INSTANCE_ID:
+		{
+			return SVT_UINT;
 		}
 		default:
 		{
