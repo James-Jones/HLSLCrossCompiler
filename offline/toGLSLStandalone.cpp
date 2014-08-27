@@ -160,38 +160,37 @@ int TryCompileShader(GLenum eGLSLShaderType, const char* inFilename, char* shade
     /* Check it compiled OK */
     glGetObjectParameterivARB (hShader, GL_OBJECT_COMPILE_STATUS_ARB, &iCompileStatus);
 
-    if (iCompileStatus != GL_TRUE)
-    {
-        FILE* errorFile;
-        GLint iInfoLogLength = 0;
-        char* pszInfoLog;
-		std::string filename;
+    FILE* errorFile;
+    GLint iInfoLogLength = 0;
+    char* pszInfoLog;
+	std::string filename;
 
-        filename += inFilename;
+    filename += inFilename;
 
-        glGetObjectParameterivARB (hShader, GL_OBJECT_INFO_LOG_LENGTH_ARB, &iInfoLogLength);
+    glGetObjectParameterivARB (hShader, GL_OBJECT_INFO_LOG_LENGTH_ARB, &iInfoLogLength);
 
-        pszInfoLog = new char[iInfoLogLength];
+	if (iInfoLogLength > 1)
+	{
+		pszInfoLog = new char[iInfoLogLength];
 
-        printf("Error: Failed to compile GLSL shader\n");
+		if (iCompileStatus != GL_TRUE)
+			printf("Error: Failed to compile GLSL shader\n");
 
-		glGetInfoLogARB (hShader, iInfoLogLength, NULL, pszInfoLog);
+		glGetInfoLogARB(hShader, iInfoLogLength, NULL, pszInfoLog);
 
-        printf(pszInfoLog);
+		printf(pszInfoLog);
 
 		filename += "_compileErrors.txt";
 
-        //Dump to file
-        errorFile = fopen(filename.c_str(), "w");
-        fprintf(errorFile, pszInfoLog);
-        fclose(errorFile);
+		//Dump to file
+		errorFile = fopen(filename.c_str(), "w");
+		fprintf(errorFile, pszInfoLog);
+		fclose(errorFile);
 
-        delete [] pszInfoLog;
+		delete[] pszInfoLog;
+	}
+    return iCompileStatus == GL_TRUE ? 1 : 0;
 
-        return 0;
-    }
-
-    return 1;
 }
 #endif
 
