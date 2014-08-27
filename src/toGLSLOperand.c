@@ -1582,6 +1582,10 @@ SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, con
 		{
 			return SVT_UINT;
 		}
+		case OPERAND_TYPE_OUTPUT_COVERAGE_MASK:
+		{
+			return SVT_INT;
+		}
 		default:
 		{
 			return SVT_FLOAT;
