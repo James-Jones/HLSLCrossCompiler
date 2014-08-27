@@ -283,13 +283,14 @@ static void AddMOVBinaryOp(HLSLCrossCompilerContext* psContext, const Operand *p
 
 	const SHADER_VARIABLE_TYPE eDestType = GetOperandDataType(psContext, pDest);
 	const SHADER_VARIABLE_TYPE eSrcType = GetOperandDataType(psContext, pSrc);
-	int bitCasted = 0;
+	int cast = 0;
 
 	uint32_t ui32SrcFlags = TO_FLAG_NONE;
 
 	TranslateOperand(psContext, pDest, ui32DstFlags);
 
-
+	if (srcCount != dstCount || eSrcType != eDestType)
+	{
 		switch (eDestType)
 		{
 		case SVT_FLOAT:
@@ -305,6 +306,10 @@ static void AddMOVBinaryOp(HLSLCrossCompilerContext* psContext, const Operand *p
 			bcatcstr(glsl, " = uvec4(");
 			break;
 		}
+		cast = 1;
+	}
+	else
+		bcatcstr(glsl, " = ");
 
 	//Always treat immediate src with MOV as int. For floats this will
 	//be the *(int*)&float.
@@ -313,16 +318,14 @@ static void AddMOVBinaryOp(HLSLCrossCompilerContext* psContext, const Operand *p
 
 
 	TranslateOperand(psContext, pSrc, ui32SrcFlags);
-	if (bitCasted)
-		bcatcstr(glsl, "))");
-	else
+	if (cast)
 		bcatcstr(glsl, ")");
 	//Mismatched element count or destination has any swizzle
-	if (srcCount != dstCount || (GetFirstOperandSwizzle(psContext, pDest) != -1))
+	if (srcCount != dstCount /*|| (GetFirstOperandSwizzle(psContext, pDest) != -1)*/)
 	{
 		TranslateOperandSwizzle(psContext, pDest);
 	}
-	else
+	else if (srcCount != 1)
 	{
 		AddSwizzleUsingElementCount(psContext, dstCount);
 	}
@@ -2797,6 +2800,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		case OPCODE_FTOU:
 		{
 			uint32_t dstCount = GetNumSwizzleElements(&psInst->asOperands[0]);
+			uint32_t srcCount = GetNumSwizzleElements(&psInst->asOperands[1]);
 			uint32_t ui32DstFlags = TO_FLAG_DESTINATION;
 			const SHADER_VARIABLE_TYPE eSrcType = GetOperandDataType(psContext, &psInst->asOperands[1]);
 			const SHADER_VARIABLE_TYPE eDestType = GetOperandDataType(psContext, &psInst->asOperands[0]);
@@ -2814,12 +2818,12 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			TranslateOperand(psContext, &psInst->asOperands[0], ui32DstFlags);
 			AddAssignToDest(psContext, &psInst->asOperands[0], psInst->eOpcode == OPCODE_FTOU ? TO_FLAG_UNSIGNED_INTEGER : TO_FLAG_INTEGER, dstCount);
 			bcatcstr(glsl, "("); // 1
-			bcatcstr(glsl, GetConstructorForType(psInst->eOpcode == OPCODE_FTOU ? SVT_UINT : SVT_INT, dstCount));
+			bcatcstr(glsl, GetConstructorForType(psInst->eOpcode == OPCODE_FTOU ? SVT_UINT : SVT_INT, srcCount == dstCount ? dstCount : 4));
 			bcatcstr(glsl, "("); // 2
 			TranslateOperand(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT);
 			bcatcstr(glsl, ")"); // 2
 			// Add destination writemask if the component counts do not match
-			if (GetNumSwizzleElements(&psInst->asOperands[1]) != dstCount)
+			if (srcCount != dstCount)
 				TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
 			bcatcstr(glsl, ");\n"); // 1
 		}
@@ -2840,6 +2844,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			const SHADER_VARIABLE_TYPE eDestType = GetOperandDataType(psContext, &psInst->asOperands[0]);
 			const SHADER_VARIABLE_TYPE eSrcType = GetOperandDataType(psContext, &psInst->asOperands[1]);
 			uint32_t dstCount = GetNumSwizzleElements(&psInst->asOperands[0]);
+			uint32_t srcCount = GetNumSwizzleElements(&psInst->asOperands[1]);
 
 #ifdef _DEBUG
 			AddIndentation(psContext);
@@ -2856,12 +2861,12 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
 			AddAssignToDest(psContext, &psInst->asOperands[0], TO_FLAG_NONE, dstCount);
             bcatcstr(glsl, "(");
-			bcatcstr(glsl, GetConstructorForType(SVT_FLOAT, dstCount));
+			bcatcstr(glsl, GetConstructorForType(SVT_FLOAT, srcCount == dstCount ? dstCount : 4));
 			bcatcstr(glsl, "(");
 			TranslateOperand(psContext, &psInst->asOperands[1], (eSrcType == SVT_INT) ? TO_FLAG_INTEGER | TO_AUTO_BITCAST_TO_INT : TO_FLAG_UNSIGNED_INTEGER | TO_AUTO_BITCAST_TO_UINT);
             bcatcstr(glsl, ")");
 			// Add destination writemask if the component counts do not match
-			if (GetNumSwizzleElements(&psInst->asOperands[1]) != dstCount)
+			if (srcCount != dstCount)
 				TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
             bcatcstr(glsl, ");\n");
             break;

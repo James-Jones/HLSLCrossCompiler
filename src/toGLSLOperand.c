@@ -272,6 +272,8 @@ uint32_t GetNumSwizzleElementsWithMask(const Operand *psOperand, uint32_t ui32Co
 void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t count)
 {
 	bstring glsl = *psContext->currentGLSLString;
+	if (count == 4)
+		return;
 	if(count)
 	{
 		bcatcstr(glsl, ".");
@@ -454,33 +456,36 @@ void TranslateOperandSwizzleWithMask(HLSLCrossCompilerContext* psContext, const 
 		//Component Swizzle
 		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
 		{
-			if(psOperand->ui32Swizzle != (NO_SWIZZLE) || ui32ComponentMask != OPERAND_4_COMPONENT_MASK_ALL)
+			if (ui32ComponentMask != OPERAND_4_COMPONENT_MASK_ALL ||
+				!(psOperand->aui32Swizzle[0] == OPERAND_4_COMPONENT_X &&
+					psOperand->aui32Swizzle[1] == OPERAND_4_COMPONENT_Y &&
+					psOperand->aui32Swizzle[2] == OPERAND_4_COMPONENT_Z &&
+					psOperand->aui32Swizzle[3] == OPERAND_4_COMPONENT_W
+				 )
+				)
 			{
 				uint32_t i;
 
 				bcatcstr(glsl, ".");
 
-				for(i=0; i< 4; ++i)
+				for (i = 0; i < 4; ++i)
 				{
 					if (!(ui32ComponentMask & (OPERAND_4_COMPONENT_MASK_X << i)))
 						continue;
 
-					if(psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X)
+					if (psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X)
 					{
 						bcatcstr(glsl, "x");
 					}
-					else
-					if (psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y)
+					else if (psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y)
 					{
 						bcatcstr(glsl, "y");
 					}
-					else
-					if (psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z)
+					else if (psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z)
 					{
 						bcatcstr(glsl, "z");
 					}
-					else
-					if (psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W)
+					else if (psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W)
 					{
 						bcatcstr(glsl, "w");
 					}
@@ -776,8 +781,14 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                 else
 				if((ui32TOFlag & TO_FLAG_INTEGER) || psOperand->iIntegerImmediate || fpcheck(psOperand->afImmediates[0]))
 				{
-					bformata(glsl, "int(0x%X)",
-						*((int*)(&psOperand->afImmediates[0])));
+					// Need special handling for anything >= uint 0x3fffffff
+					int val = *((int*)(&psOperand->afImmediates[0]));
+					uint32_t uval = *((uint32_t*)(&psOperand->afImmediates[0]));
+					if (uval > 0x3ffffffe)
+						bformata(glsl, "int(0x%X)",val);
+					else
+						bformata(glsl, "0x%X", val);
+
 				}
 				else
 				{
@@ -803,11 +814,18 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                     fpcheck(psOperand->afImmediates[2]) ||
                     fpcheck(psOperand->afImmediates[3]))
                 {
-                    bformata(glsl, "ivec4(int(0x%X), int(0x%X), int(0x%X), int(0x%X))",
-                        *(int*)&psOperand->afImmediates[0],
-                        *(int*)&psOperand->afImmediates[1],
-                        *(int*)&psOperand->afImmediates[2],
-                        *(int*)&psOperand->afImmediates[3]);
+					// Need special handling for anything >= uint 0x3fffffff
+					bcatcstr(glsl, "ivec4(");
+					for (int i = 0; i < 4; i++)
+					{
+						int val = *((int*)(&psOperand->afImmediates[i]));
+						uint32_t uval = *((uint32_t*)(&psOperand->afImmediates[i]));
+						if (uval > 0x3ffffffe)
+							bformata(glsl, "int(0x%X)", val);
+						else
+							bformata(glsl, "0x%X", val);
+						bcatcstr(glsl, i != 3 ? ", " : ")");
+					}
                 }
                 else
                 {
