@@ -2438,57 +2438,57 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 
             switch(psDecl->value.eResourceDimension)
             {
-                case RESOURCE_DIMENSION_BUFFER:
-                {
+			case RESOURCE_DIMENSION_BUFFER:
+			{
 				bformata(glsl, "uniform %simageBuffer ", imageTypePrefix);
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE1D:
-                {
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURE1D:
+			{
 				bformata(glsl, "uniform %simage1D ", imageTypePrefix);
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2D:
-                {
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURE2D:
+			{
 				bformata(glsl, "uniform %simage2D ", imageTypePrefix);
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2DMS:
-                {
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURE2DMS:
+			{
 				bformata(glsl, "uniform %simage2DMS ", imageTypePrefix);
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE3D:
-                {
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURE3D:
+			{
 				bformata(glsl, "uniform %simage3D ", imageTypePrefix);
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURECUBE:
-                {
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURECUBE:
+			{
 				bformata(glsl, "uniform %simageCube ", imageTypePrefix);
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE1DARRAY:
-                {
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+			{
 				bformata(glsl, "uniform %simage1DArray ", imageTypePrefix);
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2DARRAY:
-                {
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+			{
 				bformata(glsl, "uniform %simage2DArray ", imageTypePrefix);
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
-                {
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
+			{
 				bformata(glsl, "uniform %simage3DArray ", imageTypePrefix);
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
-                {
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+			{
 				bformata(glsl, "uniform %simageCubeArray ", imageTypePrefix);
-                    break;
-                }
-            }
+				break;
+			}
+			}
             TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ";\n");
             break;
@@ -2520,7 +2520,10 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				bformata(glsl, "_counter; \n");
 			}
 
-			bformata(glsl, "buffer Block%d {\n\tuint UAV%d[];\n};\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+			bformata(glsl, "buffer Block%d {\n\tuint ", psDecl->asOperands[0].ui32RegisterNumber);
+			ResourceName(glsl, psContext, RGROUP_UAV, psDecl->asOperands[0].ui32RegisterNumber, 0);
+			bcatcstr(glsl, "[];\n};\n");
+
 			break;
 		}
         case OPCODE_DCL_RESOURCE_STRUCTURED:
