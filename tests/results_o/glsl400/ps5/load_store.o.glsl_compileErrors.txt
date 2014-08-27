@@ -1,6 +1,0 @@
-0(46) : error C1318: can't apply layout(rgba32ui) to image type "image1D"
-0(61) : error C7011: implicit cast from "float" to "int"
-0(91) : error C7011: implicit cast from "float" to "int"
-0(97) : error C7011: implicit cast from "float" to "int"
-0(106) : error C7011: implicit cast from "float" to "int"
-0(109) : error C7011: implicit cast from "float" to "int"
