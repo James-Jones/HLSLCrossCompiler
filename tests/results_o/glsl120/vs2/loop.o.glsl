@@ -90,16 +90,16 @@ void main()
         Address.x = (ivec4(floor(Temp[1].w)).x);
         //Instruction 10
         //MOV
-        Temp[3] = vec4(GlobalsVS.vJointMatrix[Address.x].xyzw).xyzw;
+        Temp[3] = vec4(GlobalsVS.vJointMatrix[(Address.x) / 4][int(mod(float(Address.x), 4.0))].xyzw).xyzw;
         //Instruction 11
         //MOV
-        Temp[4] = vec4(GlobalsVS.vJointMatrix[Address.x].xyzw).xyzw;
+        Temp[4] = vec4(GlobalsVS.vJointMatrix[(Address.x) / 4][int(mod(float(Address.x), 4.0))].xyzw).xyzw;
         //Instruction 12
         //MOV
-        Temp[5] = vec4(GlobalsVS.vJointMatrix[Address.x].xyzw).xyzw;
+        Temp[5] = vec4(GlobalsVS.vJointMatrix[(Address.x) / 4][int(mod(float(Address.x), 4.0))].xyzw).xyzw;
         //Instruction 13
         //MOV
-        Temp[6] = vec4(GlobalsVS.vJointMatrix[Address.x].xyzw).xyzw;
+        Temp[6] = vec4(GlobalsVS.vJointMatrix[(Address.x) / 4][int(mod(float(Address.x), 4.0))].xyzw).xyzw;
         //Instruction 14
         //DP4
         Temp[7].x = (vec4(dot(Input0.xyzw, Temp[3].xyzw)).x);
