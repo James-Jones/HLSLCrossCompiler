@@ -4678,11 +4678,13 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             #endif
             AddIndentation(psContext);
             TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION);
+			AddAssignToDest(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION | TO_FLAG_INTEGER, GetNumSwizzleElements(&psInst->asOperands[0]));
 
-            bcatcstr(glsl, " = ~(");
+            bcatcstr(glsl, "(~(ivec4(");
             TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
+			bcatcstr(glsl, ")");
 			TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
-            bcatcstr(glsl, ");\n");
+            bcatcstr(glsl, "));\n");
             break;
         }
         case OPCODE_XOR:
