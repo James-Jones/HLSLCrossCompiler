@@ -45,7 +45,7 @@ void main()
     while(RepCounter!=0){
         //Instruction 2
         //MUL
-        Temp[0].xy = (Temp[0].xyzw * ImmConst0.xyzw).xy;
+        Temp[0].xy = (Temp[0] * ImmConst0).xy;
         //Instruction 3
         //ENDREP
         RepCounter--;
@@ -55,7 +55,7 @@ void main()
     gl_Position.xz = vec4(Temp[0].xyyw).xz;
     //Instruction 5
     //MOV
-    gl_Position.yw = vec4(Input0.xyzw).yw;
+    gl_Position.yw = vec4(Input0).yw;
     //Instruction 6
     //RET
     return;

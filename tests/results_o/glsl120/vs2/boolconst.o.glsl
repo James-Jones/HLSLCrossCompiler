@@ -38,25 +38,25 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //MOV
-    Temp[0] = vec4(Input0.xyzw).xyzw;
+    Temp[0] = Input0;
     //Instruction 1
     //IF
     if(GlobalsVS.LOOP_COUNT != 0){
         //Instruction 2
         //MUL
-        Temp[1] = (Temp[0].xyzw * ImmConst0.xyzy);
+        Temp[1] = (Temp[0] * ImmConst0.xyzy);
         //Instruction 3
     //ELSE
     } else {
         //Instruction 4
         //MUL
-        Temp[1] = (Temp[0].xyzw * ImmConst0.xyyy);
+        Temp[1] = (Temp[0] * ImmConst0.xyyy);
         //Instruction 5
     //ENDIF
     }
     //Instruction 6
     //MOV
-    gl_Position = vec4(Temp[1].xyzw).xyzw;
+    gl_Position = Temp[1];
     //Instruction 7
     //RET
     return;

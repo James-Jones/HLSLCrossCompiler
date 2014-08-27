@@ -1,4 +1,5 @@
 #version 400
+subroutine void SubroutineType();
 #extension GL_ARB_shader_bit_encoding : require
 struct vec1 {
 	float x;
@@ -9,7 +10,6 @@ struct uvec1 {
 struct ivec1 {
 	int x;
 };
-subroutine void SubroutineType();
 layout(location = 0)  in  vec4 dcl_Input0;
 vec4 Input0;
 #undef Output0
@@ -25,16 +25,16 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //DP4
-    Temp_int[0].x = floatBitsToInt(vec4(dot(Input0, Input0)).x);
+    Temp[0].x = (vec4(dot(Input0, Input0)).x);
     //Instruction 1
     //NE
-    Temp_int[0].x = floatBitsToInt(((intBitsToFloat(Temp_int[0]).x)!= (0.000000)) ? int(0xFFFFFFFF) : 0);
+    Temp[0].x = uintBitsToFloat(((Temp[0].x)!= (0.000000)) ? 0xFFFFFFFFu : 0u);
     //Instruction 2
     //MOVC
-    if(ivec4(Temp_int[0].x).x != 0) {
-        Output0.z = int(0x40000000);
+    if(ivec4(floatBitsToInt(Temp[0].x)).x != 0) {
+        Output0.z = vec4(intBitsToFloat(int(0x40000000)));
     } else {
-        Output0.z = floatBitsToInt(Input0.z);
+        Output0.z = Input0.z;
     }
     //Instruction 3
     //MOV

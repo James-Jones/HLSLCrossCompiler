@@ -100,7 +100,7 @@ void main()
             Temp[0] = (texelFetch(g_triCenterBuffer, int((ivec4(Temp[0]).xxxx).x)));
             //Instruction 8
             //UTOF
-            Temp[0].w = (vec4(Input5[0].x).w);
+            Temp[0].w = (float(Input5[0].x));
             //Instruction 9
             //ADD
             Temp[0].w = (Temp[0].w + cb0GS.g_fGlobalTime);
@@ -142,11 +142,10 @@ void main()
             Temp[2].xyz = (Temp[0].wwww * Temp[2].xyzx).xyz;
             //Instruction 22
             //IADD
-            Temp[0].w = intBitsToFloat(int(0x64) + ivec4(Input5[0]).x);
+            Temp[0].w = intBitsToFloat(int(0x64) + int(ivec4(Input5[0]).x));
             //Instruction 23
-//Warning. UTOF/ITOF on a src which is float. This is okay if ld_uav_typed last wrote to the src.
             //UTOF
-            Temp[0].w = (vec4(uvec4(Temp[0]).w).w);
+            Temp[0].w = (float(floatBitsToUint(Temp[0].w)));
             //Instruction 24
             //ADD
             Temp[0].w = (Temp[0].w + cb0GS.g_fGlobalTime);
@@ -221,7 +220,7 @@ void main()
         Output4.xyz = vec4(Temp[1].xyzx).xyz;
         //Instruction 48
         //MOV
-        Output5.xy = uvec4(Input5[0].xyxx).xy;
+        Output5.xy = uvec4(ivec4(Input5[0].xyxx)).xy;
         //Instruction 49
         //EMIT
         EmitVertex();
@@ -251,7 +250,7 @@ void main()
             if((floatBitsToUint(Temp[0].x))!=0u){
                 //Instruction 58
                 //IMUL
-                Temp[0].x = intBitsToFloat(int(0x3) * ivec4(Input5[0]).x);
+                Temp[0].x = intBitsToFloat(int(0x3) * int(ivec4(Input5[0]).x));
                 //Instruction 59
                 //LD
                 Temp[0] = (texelFetch(g_adjBuffer, int((ivec4(Temp[0]).xxxx).x)));
@@ -341,7 +340,7 @@ void main()
                 Temp[2].yzw = (Temp[7].xxyz + -Input4[0].xxyz).yzw;
                 //Instruction 84
                 //UTOF
-                Temp[4].w = (vec4(Input5[0].x).w);
+                Temp[4].w = (float(Input5[0].x));
                 //Instruction 85
                 //ADD
                 Temp[4].w = (Temp[4].w + cb0GS.g_fGlobalTime);
@@ -587,7 +586,7 @@ void main()
                 Output5.x = uvec4(floatBitsToInt(Temp[2].w)).x;
                 //Instruction 156
                 //MOV
-                Output5.y = uvec4(Input5[0].y).y;
+                Output5.y = uvec4(int(Input5[0].y)).y;
                 //Instruction 157
                 //EMIT
                 EmitVertex();
@@ -650,7 +649,7 @@ void main()
                 Temp[2].xyz = (Temp[0].wwww * Temp[2].xyzx).xyz;
                 //Instruction 177
                 //UTOF
-                Temp[0].w = (vec4(Input5[0].x).w);
+                Temp[0].w = (float(Input5[0].x));
                 //Instruction 178
                 //ADD
                 Temp[0].w = (Temp[0].w + cb0GS.g_fGlobalTime);
@@ -688,7 +687,7 @@ void main()
                 Temp[1].w = uintBitsToFloat(((cbUIUpdatesGS.g_fLifeSpan)< (Input3[0].z)) ? 0xFFFFFFFFu : 0u);
                 //Instruction 189
                 //UTOF
-                Temp[2].w = (vec4(cbUIUpdatesGS.g_uMaxFaces).w);
+                Temp[2].w = (float(cbUIUpdatesGS.g_uMaxFaces));
                 //Instruction 190
                 //MUL
                 Temp[2].w = (Temp[2].w * abs(Temp[3].z));
@@ -784,7 +783,7 @@ void main()
             Output4.xyz = vec4(Input4[0].xyzx).xyz;
             //Instruction 219
             //MOV
-            Output5.xy = uvec4(Input5[0].xyxx).xy;
+            Output5.xy = uvec4(ivec4(Input5[0].xyxx)).xy;
             //Instruction 220
             //EMIT
             EmitVertex();

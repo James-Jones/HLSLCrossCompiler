@@ -25,7 +25,7 @@ out vec4 VtxGeoOutput1;
 #define Output1 VtxGeoOutput1
 #undef Output2
 #define Output2 phase0_Output2
-vec4 phase0_Output2;
+ivec4 phase0_Output2;
 layout(max_vertices = 3) out;
 void main()
 {
@@ -57,7 +57,7 @@ void main()
         Output1.xy = vec4(Input1[int(Temp_int[0].x)].xyxx).xy;
         //Instruction 6
         //MOV
-        Output2.x = uvec4(Input2[int(Temp_int[0].x)].x).x;
+        Output2.x = ivec4(int(Input2[int(Temp_int[0].x)].x)).x;
         //Instruction 7
         //EMIT
         //--- Post shader code ---
