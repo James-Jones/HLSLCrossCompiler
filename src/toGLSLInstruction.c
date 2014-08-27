@@ -4383,7 +4383,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 				break;
 			};
 
-			TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+			TranslateOperand(psContext, &psInst->asOperands[2], ResourceReturnTypeToFlag(psRes->ui32ReturnType));
 			bformata(glsl, ");\n");
 
 			break;

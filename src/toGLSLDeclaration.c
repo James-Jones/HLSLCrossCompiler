@@ -2394,6 +2394,8 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
         case OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED:
         {
+			// non-float images need either 'i' or 'u' prefix.
+			char imageTypePrefix[2] = { 0, 0 };
             if(psDecl->sUAV.ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
             {
                 bcatcstr(glsl, "coherent ");
@@ -2423,9 +2425,11 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 					break;
 				case RETURN_TYPE_UINT:
 					bcatcstr(glsl, "layout(rgba32ui) ");
+					imageTypePrefix[0] = 'u';
 					break;
 				case RETURN_TYPE_SINT:
 					bcatcstr(glsl, "layout(rgba32i) ");
+					imageTypePrefix[0] = 'i';
 					break;
 				default:
 					ASSERT(0);
@@ -2436,52 +2440,52 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             {
                 case RESOURCE_DIMENSION_BUFFER:
                 {
-                    bcatcstr(glsl, "uniform imageBuffer ");
+				bformata(glsl, "uniform %simageBuffer ", imageTypePrefix);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE1D:
                 {
-					bcatcstr(glsl, "uniform image1D ");
+				bformata(glsl, "uniform %simage1D ", imageTypePrefix);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2D:
                 {
-					bcatcstr(glsl, "uniform image2D ");
+				bformata(glsl, "uniform %simage2D ", imageTypePrefix);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DMS:
                 {
-                    bcatcstr(glsl, "uniform image2DMS ");
+				bformata(glsl, "uniform %simage2DMS ", imageTypePrefix);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE3D:
                 {
-                    bcatcstr(glsl, "uniform image3D ");
+				bformata(glsl, "uniform %simage3D ", imageTypePrefix);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBE:
                 {
-					bcatcstr(glsl, "uniform imageCube ");
+				bformata(glsl, "uniform %simageCube ", imageTypePrefix);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE1DARRAY:
                 {
-					bcatcstr(glsl, "uniform image1DArray ");
+				bformata(glsl, "uniform %simage1DArray ", imageTypePrefix);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DARRAY:
                 {
-					bcatcstr(glsl, "uniform image2DArray ");
+				bformata(glsl, "uniform %simage2DArray ", imageTypePrefix);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
                 {
-                    bcatcstr(glsl, "uniform image3DArray ");
+				bformata(glsl, "uniform %simage3DArray ", imageTypePrefix);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
                 {
-					bcatcstr(glsl, "uniform imageCubeArray ");
+				bformata(glsl, "uniform %simageCubeArray ", imageTypePrefix);
                     break;
                 }
             }
