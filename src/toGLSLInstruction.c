@@ -3428,7 +3428,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             if (!useCombinedTextureSamplers)
 				ResourceName(glsl, psContext, RGROUP_TEXTURE, psInst->asOperands[2].ui32RegisterNumber, 0);
             else
-                bconcat(glsl, TextureSamplerName(&psContext->psShader->sInfo, psInst->asOperands[2].ui32RegisterNumber, psInst->asOperands[3].ui32RegisterNumber, 0));
+                bconcat(glsl, TextureSamplerName(&psContext->psShader->sInfo, psInst->asOperands[2].ui32RegisterNumber, psInst->asOperands[3].ui32RegisterNumber, 1));
 
             bcatcstr(glsl, ", ");
             //Texture coord cannot be vec4
