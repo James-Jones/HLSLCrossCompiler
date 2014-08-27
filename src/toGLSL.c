@@ -126,6 +126,11 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 		bcatcstr(glsl, "\n");
     }
 
+	if (SubroutinesSupported(psContext->psShader->eTargetLanguage))
+	{
+		bcatcstr(glsl, "subroutine void SubroutineType();\n");
+	}
+
     if(psContext->psShader->ui32MajorVersion <= 3)
     {
 		bcatcstr(glsl, "int RepCounter;\n");
