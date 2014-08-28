@@ -814,9 +814,10 @@ static void TranslateVariableName(HLSLCrossCompilerContext* psContext, const Ope
                     fpcheck(psOperand->afImmediates[2]) ||
                     fpcheck(psOperand->afImmediates[3]))
                 {
+					int i;
 					// Need special handling for anything >= uint 0x3fffffff
 					bcatcstr(glsl, "ivec4(");
-					for (int i = 0; i < 4; i++)
+					for (i = 0; i < 4; i++)
 					{
 						int val = *((int*)(&psOperand->afImmediates[i]));
 						uint32_t uval = *((uint32_t*)(&psOperand->afImmediates[i]));
