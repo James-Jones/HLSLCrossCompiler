@@ -94,16 +94,16 @@ for files in glob.glob("ps2/*.o"):
 	RunTest(files, "120")
 
 for files in glob.glob("ps3/*.o"):
-	RunTest(files, "150")
+	RunTest(files, "330")
 
 for files in glob.glob("vs4/*.o"):
-	RunTest(files, "150")
+	RunTest(files, "330")
 
 for files in glob.glob("ps4/*.o"):
-	RunTest(files, "150")
+	RunTest(files, "330")
 
 for files in glob.glob("gs4/*.o"):
-	RunTest(files, "150")
+	RunTest(files, "330")
 
 for files in glob.glob("vs5/*.o"):
 	 RunTest(files, "400")
