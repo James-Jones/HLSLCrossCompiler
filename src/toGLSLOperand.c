@@ -150,6 +150,7 @@ uint32_t GetNumSwizzleElementsWithMask(const Operand *psOperand, uint32_t ui32Co
 		case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
 		case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
 		case OPERAND_TYPE_OUTPUT_DEPTH:
+		case OPERAND_TYPE_CONSTANT_BUFFER:
 		{
 			// Translate numComponents into bitmask
 			// 1 -> 1, 2 -> 3, 3 -> 7 and 4 -> 15
