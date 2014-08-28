@@ -81,151 +81,7 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 {
     bstring glsl = *psContext->currentGLSLString;
 
-	
-    //The fragment language has no default precision qualifier for floating point types.
-    if(psContext->psShader->eShaderType == PIXEL_SHADER &&
-        psContext->psShader->eTargetLanguage == LANG_ES_100 || psContext->psShader->eTargetLanguage == LANG_ES_300 )
-    {
-        bcatcstr(glsl,"precision highp float;\n");
-    }
-
-    /* There is no default precision qualifier for the following sampler types in either the vertex or fragment language: */
-    if(psContext->psShader->eTargetLanguage == LANG_ES_300 || psContext->psShader->eTargetLanguage == LANG_ES_310)
-    {
-        bcatcstr(glsl,"precision lowp sampler3D;\n");
-        bcatcstr(glsl,"precision lowp samplerCubeShadow;\n");
-        bcatcstr(glsl,"precision lowp sampler2DShadow;\n");
-        bcatcstr(glsl,"precision lowp sampler2DArray;\n");
-        bcatcstr(glsl,"precision lowp sampler2DArrayShadow;\n");
-        bcatcstr(glsl,"precision lowp isampler2D;\n");
-        bcatcstr(glsl,"precision lowp isampler3D;\n");
-        bcatcstr(glsl,"precision lowp isamplerCube;\n");
-        bcatcstr(glsl,"precision lowp isampler2DArray;\n");
-        bcatcstr(glsl,"precision lowp usampler2D;\n");
-        bcatcstr(glsl,"precision lowp usampler3D;\n");
-        bcatcstr(glsl,"precision lowp usamplerCube;\n");
-        bcatcstr(glsl,"precision lowp usampler2DArray;\n");
-
-		if(psContext->psShader->eTargetLanguage == LANG_ES_310)
-		{
-			bcatcstr(glsl,"precision lowp isampler2DMS;\n");
-			bcatcstr(glsl,"precision lowp usampler2D;\n");
-			bcatcstr(glsl,"precision lowp usampler3D;\n");
-			bcatcstr(glsl,"precision lowp usamplerCube;\n");
-			bcatcstr(glsl,"precision lowp usampler2DArray;\n");
-			bcatcstr(glsl,"precision lowp usampler2DMS;\n");
-			bcatcstr(glsl,"precision lowp image2D;\n");
-			bcatcstr(glsl,"precision lowp image3D;\n");
-			bcatcstr(glsl,"precision lowp imageCube;\n");
-			bcatcstr(glsl,"precision lowp image2DArray;\n");
-			bcatcstr(glsl,"precision lowp iimage2D;\n");
-			bcatcstr(glsl,"precision lowp iimage3D;\n");
-			bcatcstr(glsl,"precision lowp iimageCube;\n");
-			bcatcstr(glsl,"precision lowp uimage2DArray;\n");
-		}
-		bcatcstr(glsl, "\n");
-    }
-
-	if (SubroutinesSupported(psContext->psShader->eTargetLanguage))
-	{
-		bcatcstr(glsl, "subroutine void SubroutineType();\n");
-	}
-
-    if(psContext->psShader->ui32MajorVersion <= 3)
-    {
-		bcatcstr(glsl, "int RepCounter;\n");
-        bcatcstr(glsl, "int LoopCounter;\n");
-        bcatcstr(glsl, "int ZeroBasedCounter;\n");
-		if(psContext->psShader->eShaderType == VERTEX_SHADER)
-		{
-			uint32_t texCoord;
-			bcatcstr(glsl, "ivec4 Address;\n");
-
-			if(InOutSupported(psContext->psShader->eTargetLanguage))
-			{
-				bcatcstr(glsl, "out vec4 OffsetColour;\n");
-				bcatcstr(glsl, "out vec4 BaseColour;\n");
-
-				bcatcstr(glsl, "out vec4 Fog;\n");
-
-				for(texCoord=0; texCoord<8; ++texCoord)
-				{
-					bformata(glsl, "out vec4 TexCoord%d;\n", texCoord);
-				}
-			}
-			else
-			{
-				bcatcstr(glsl, "varying vec4 OffsetColour;\n");
-				bcatcstr(glsl, "varying vec4 BaseColour;\n");
-
-				bcatcstr(glsl, "varying vec4 Fog;\n");
-
-				for(texCoord=0; texCoord<8; ++texCoord)
-				{
-					bformata(glsl, "varying vec4 TexCoord%d;\n", texCoord);
-				}
-			}
-		}
-		else
-		{
-			uint32_t renderTargets, texCoord;
-
-			if (InOutSupported(psContext->psShader->eTargetLanguage))
-			{
-				bcatcstr(glsl, "in vec4 OffsetColour;\n");
-				bcatcstr(glsl, "in vec4 BaseColour;\n");
-
-				bcatcstr(glsl, "in vec4 Fog;\n");
-
-				for (texCoord = 0; texCoord < 8; ++texCoord)
-				{
-					bformata(glsl, "in vec4 TexCoord%d;\n", texCoord);
-				}
-			}
-			else
-			{
-				bcatcstr(glsl, "varying vec4 OffsetColour;\n");
-				bcatcstr(glsl, "varying vec4 BaseColour;\n");
-
-				bcatcstr(glsl, "varying vec4 Fog;\n");
-
-				for (texCoord = 0; texCoord < 8; ++texCoord)
-				{
-					bformata(glsl, "varying vec4 TexCoord%d;\n", texCoord);
-				}
-			}
-
-			if (psContext->psShader->eTargetLanguage > LANG_120)
-			{
-				bcatcstr(glsl, "out vec4 outFragData[8];\n");
-				for (renderTargets = 0; renderTargets < 8; ++renderTargets)
-				{
-					bformata(glsl, "#define Output%d outFragData[%d]\n", renderTargets, renderTargets);
-				}
-			}
-			else if(psContext->psShader->eTargetLanguage >= LANG_ES_300 && psContext->psShader->eTargetLanguage < LANG_120)
-			{
-				// ES 3 supports min 4 rendertargets, I guess this is reasonable lower limit for DX9 shaders
-				bcatcstr(glsl, "out vec4 outFragData[4];\n");
-				for (renderTargets = 0; renderTargets < 4; ++renderTargets)
-				{
-					bformata(glsl, "#define Output%d outFragData[%d]\n", renderTargets, renderTargets);
-				}
-			}
-			else if (psContext->psShader->eTargetLanguage == LANG_ES_100)
-			{
-				bcatcstr(glsl, "#define Output0 gl_FragColor;\n");
-			}
-			else
-			{
-				for (renderTargets = 0; renderTargets < 8; ++renderTargets)
-				{
-					bformata(glsl, "#define Output%d gl_FragData[%d]\n", renderTargets, renderTargets);
-				}
-			}
-		}
-    }
-    else if(psContext->psShader->eTargetLanguage != LANG_ES_300 && psContext->psShader->eTargetLanguage != LANG_ES_310 && !(psContext->psShader->eTargetLanguage >= LANG_330))
+    if(psContext->psShader->ui32MajorVersion > 3 && psContext->psShader->eTargetLanguage != LANG_ES_300 && psContext->psShader->eTargetLanguage != LANG_ES_310 && !(psContext->psShader->eTargetLanguage >= LANG_330))
     {
         //DX10+ bycode format requires the ability to treat registers
         //as raw bits. ES3.0+ has that built-in, also 330 onwards
@@ -308,6 +164,149 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 		}
 	}
 	
+	//The fragment language has no default precision qualifier for floating point types.
+	if (psContext->psShader->eShaderType == PIXEL_SHADER &&
+		psContext->psShader->eTargetLanguage == LANG_ES_100 || psContext->psShader->eTargetLanguage == LANG_ES_300 || psContext->psShader->eTargetLanguage == LANG_ES_310)
+	{
+		bcatcstr(glsl, "precision highp float;\n");
+	}
+
+	/* There is no default precision qualifier for the following sampler types in either the vertex or fragment language: */
+	if (psContext->psShader->eTargetLanguage == LANG_ES_300 || psContext->psShader->eTargetLanguage == LANG_ES_310)
+	{
+		bcatcstr(glsl, "precision lowp sampler3D;\n");
+		bcatcstr(glsl, "precision lowp samplerCubeShadow;\n");
+		bcatcstr(glsl, "precision lowp sampler2DShadow;\n");
+		bcatcstr(glsl, "precision lowp sampler2DArray;\n");
+		bcatcstr(glsl, "precision lowp sampler2DArrayShadow;\n");
+		bcatcstr(glsl, "precision lowp isampler2D;\n");
+		bcatcstr(glsl, "precision lowp isampler3D;\n");
+		bcatcstr(glsl, "precision lowp isamplerCube;\n");
+		bcatcstr(glsl, "precision lowp isampler2DArray;\n");
+		bcatcstr(glsl, "precision lowp usampler2D;\n");
+		bcatcstr(glsl, "precision lowp usampler3D;\n");
+		bcatcstr(glsl, "precision lowp usamplerCube;\n");
+		bcatcstr(glsl, "precision lowp usampler2DArray;\n");
+
+		if (psContext->psShader->eTargetLanguage == LANG_ES_310)
+		{
+			bcatcstr(glsl, "precision lowp isampler2DMS;\n");
+			bcatcstr(glsl, "precision lowp usampler2D;\n");
+			bcatcstr(glsl, "precision lowp usampler3D;\n");
+			bcatcstr(glsl, "precision lowp usamplerCube;\n");
+			bcatcstr(glsl, "precision lowp usampler2DArray;\n");
+			bcatcstr(glsl, "precision lowp usampler2DMS;\n");
+			bcatcstr(glsl, "precision lowp image2D;\n");
+			bcatcstr(glsl, "precision lowp image3D;\n");
+			bcatcstr(glsl, "precision lowp imageCube;\n");
+			bcatcstr(glsl, "precision lowp image2DArray;\n");
+			bcatcstr(glsl, "precision lowp iimage2D;\n");
+			bcatcstr(glsl, "precision lowp iimage3D;\n");
+			bcatcstr(glsl, "precision lowp iimageCube;\n");
+			bcatcstr(glsl, "precision lowp uimage2DArray;\n");
+		}
+		bcatcstr(glsl, "\n");
+	}
+
+	if (SubroutinesSupported(psContext->psShader->eTargetLanguage))
+	{
+		bcatcstr(glsl, "subroutine void SubroutineType();\n");
+	}
+
+	if (psContext->psShader->ui32MajorVersion <= 3)
+	{
+		bcatcstr(glsl, "int RepCounter;\n");
+		bcatcstr(glsl, "int LoopCounter;\n");
+		bcatcstr(glsl, "int ZeroBasedCounter;\n");
+		if (psContext->psShader->eShaderType == VERTEX_SHADER)
+		{
+			uint32_t texCoord;
+			bcatcstr(glsl, "ivec4 Address;\n");
+
+			if (InOutSupported(psContext->psShader->eTargetLanguage))
+			{
+				bcatcstr(glsl, "out vec4 OffsetColour;\n");
+				bcatcstr(glsl, "out vec4 BaseColour;\n");
+
+				bcatcstr(glsl, "out vec4 Fog;\n");
+
+				for (texCoord = 0; texCoord < 8; ++texCoord)
+				{
+					bformata(glsl, "out vec4 TexCoord%d;\n", texCoord);
+				}
+			}
+			else
+			{
+				bcatcstr(glsl, "varying vec4 OffsetColour;\n");
+				bcatcstr(glsl, "varying vec4 BaseColour;\n");
+
+				bcatcstr(glsl, "varying vec4 Fog;\n");
+
+				for (texCoord = 0; texCoord < 8; ++texCoord)
+				{
+					bformata(glsl, "varying vec4 TexCoord%d;\n", texCoord);
+				}
+			}
+		}
+		else
+		{
+			uint32_t renderTargets, texCoord;
+
+			if (InOutSupported(psContext->psShader->eTargetLanguage))
+			{
+				bcatcstr(glsl, "in vec4 OffsetColour;\n");
+				bcatcstr(glsl, "in vec4 BaseColour;\n");
+
+				bcatcstr(glsl, "in vec4 Fog;\n");
+
+				for (texCoord = 0; texCoord < 8; ++texCoord)
+				{
+					bformata(glsl, "in vec4 TexCoord%d;\n", texCoord);
+				}
+			}
+			else
+			{
+				bcatcstr(glsl, "varying vec4 OffsetColour;\n");
+				bcatcstr(glsl, "varying vec4 BaseColour;\n");
+
+				bcatcstr(glsl, "varying vec4 Fog;\n");
+
+				for (texCoord = 0; texCoord < 8; ++texCoord)
+				{
+					bformata(glsl, "varying vec4 TexCoord%d;\n", texCoord);
+				}
+			}
+
+			if (psContext->psShader->eTargetLanguage > LANG_120)
+			{
+				bcatcstr(glsl, "out vec4 outFragData[8];\n");
+				for (renderTargets = 0; renderTargets < 8; ++renderTargets)
+				{
+					bformata(glsl, "#define Output%d outFragData[%d]\n", renderTargets, renderTargets);
+				}
+			}
+			else if (psContext->psShader->eTargetLanguage >= LANG_ES_300 && psContext->psShader->eTargetLanguage < LANG_120)
+			{
+				// ES 3 supports min 4 rendertargets, I guess this is reasonable lower limit for DX9 shaders
+				bcatcstr(glsl, "out vec4 outFragData[4];\n");
+				for (renderTargets = 0; renderTargets < 4; ++renderTargets)
+				{
+					bformata(glsl, "#define Output%d outFragData[%d]\n", renderTargets, renderTargets);
+				}
+			}
+			else if (psContext->psShader->eTargetLanguage == LANG_ES_100)
+			{
+				bcatcstr(glsl, "#define Output0 gl_FragColor;\n");
+			}
+			else
+			{
+				for (renderTargets = 0; renderTargets < 8; ++renderTargets)
+				{
+					bformata(glsl, "#define Output%d gl_FragData[%d]\n", renderTargets, renderTargets);
+				}
+			}
+		}
+	}
 
     if((psContext->flags & HLSLCC_FLAG_ORIGIN_UPPER_LEFT)
         && (psContext->psShader->eTargetLanguage >= LANG_150))
