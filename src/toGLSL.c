@@ -225,10 +225,10 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 			}
 		}
     }
-    else if(psContext->psShader->eTargetLanguage != LANG_ES_300 && psContext->psShader->eTargetLanguage != LANG_ES_310)
+    else if(psContext->psShader->eTargetLanguage != LANG_ES_300 && psContext->psShader->eTargetLanguage != LANG_ES_310 && !(psContext->psShader->eTargetLanguage >= LANG_330))
     {
         //DX10+ bycode format requires the ability to treat registers
-        //as raw bits. ES3.0+ has that built-in.
+        //as raw bits. ES3.0+ has that built-in, also 330 onwards
         bcatcstr(glsl,"#extension GL_ARB_shader_bit_encoding : require\n");
     }
 
