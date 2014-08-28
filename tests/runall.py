@@ -5,7 +5,7 @@ import sys;
 import argparse
 
 executable = ""
-
+validator = ""
 passCount = 0
 failCount = 0
 listOfFailedTests = []
@@ -15,7 +15,8 @@ i = 0
 parser = argparse.ArgumentParser(description='Test runner.')
 parser.add_argument("-e", "--exe", dest="argExecutableName", help="The executable")
 parser.add_argument("-v", "--verbose", dest="argVerbose", action='store_true', help="Verbose output")
-options = parser.parse_args()	
+parser.add_argument("-c", "--validator", dest="argValidator", help="Path to external GLSL validator executable")
+options = parser.parse_args()
 
 def FindExecutable():
 	global executable
@@ -43,6 +44,7 @@ def RunTest(ByteCodeFileName, lang):
 	global passCount
 	global listOfFailedTests
 	global executable
+	global validator
 
 	if options.argVerbose:
 		print "Running " + ByteCodeFileName +"\n"
@@ -54,6 +56,19 @@ def RunTest(ByteCodeFileName, lang):
 	(head2, tail2) = os.path.split(head);
 
 	outputfilename = tail + ".glsl"
+
+	# GLSLang needs the extension to deduce shader type (vert, frag, etc)
+	if validator:
+		if "vs" in tail2:
+			outputfilename += ".vert"
+		elif "ps" in tail2:
+			outputfilename += ".frag"
+		elif "hs" in tail2:
+			outputfilename += ".tese"
+		elif "cs" in tail2:
+			outputfilename += ".comp"
+		elif "gs" in tail2:
+			outputfilename += ".geom"
 
 	directory = "results/glsl" + lang + os.sep + tail2
 
@@ -76,6 +91,9 @@ def RunTest(ByteCodeFileName, lang):
 		listOfFailedTests.append(ByteCodeFileName)
 	else:
 		passCount += 1
+		if validator:
+			print "Running validator for "+directory+"/"+outputfilename+"\n"
+			returnCode = call([validator, '-d', directory+"/"+outputfilename])
 
 	if options.argVerbose:
 		print "\n"
@@ -84,6 +102,10 @@ if(options.argExecutableName):
 	executable = options.argExecutableName
 else:
 	FindExecutable()
+
+if(options.argValidator):
+	validator = options.argValidator
+	print "Using validator: "  + validator + "\n"
 
 print "Using " + executable + "\n"
 
