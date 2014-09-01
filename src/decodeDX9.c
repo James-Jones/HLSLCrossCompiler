@@ -867,8 +867,10 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 
                     CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_RSQ, 0, 0, pui32CurrentToken);
                     memcpy(&psInst[inst].asOperands[0],&psInst[inst-1].asOperands[0], sizeof(Operand));
+					memcpy(&psInst[inst].asOperands[1], &psInst[inst - 1].asOperands[0], sizeof(Operand));
 					psInst[inst].ui32NumOperands++;
-                    break;
+					psInst[inst].ui32NumOperands++;
+					break;
                 }
                 case OPCODE_DX9_SINCOS:
                 {
@@ -1017,7 +1019,14 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
 					// texldd, dst, src0, src1, src2, src3
 					// srcAddress[.swizzle], srcResource[.swizzle], srcSampler, XGradient, YGradient
 					CreateD3D10Instruction(psShader, &psInst[inst], OPCODE_SAMPLE_D, 1, 4, pui32CurrentToken);
-					psInst[inst].asOperands[2].ui32RegisterNumber = 0;
+
+					// Move the gradients one slot up
+					memcpy(&psInst[inst].asOperands[5], &psInst[inst].asOperands[4], sizeof(Operand));
+					memcpy(&psInst[inst].asOperands[4], &psInst[inst].asOperands[3], sizeof(Operand));
+
+					// Sampler register
+					psInst[inst].asOperands[3].ui32RegisterNumber = 0;
+					psInst[inst].ui32NumOperands = 6;
 					break;
 				}
 				case OPCODE_DX9_LRP:
