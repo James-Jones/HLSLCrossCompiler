@@ -4576,7 +4576,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		AddIndentation(psContext);
 		AddAssignToDest(psContext, &psInst->asOperands[0], dstType, dstCount, &numParenthesis);
 		bcatcstr(glsl, "clamp(");
-		TranslateOperand(psContext, &psInst->asOperands[0], TypeFlagsToSVTType(dstType));
+		TranslateOperand(psContext, &psInst->asOperands[0], SVTTypeToFlag(dstType));
 		switch (dstType)
 		{
 		case SVT_FLOAT:
