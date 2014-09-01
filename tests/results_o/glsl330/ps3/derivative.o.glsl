@@ -1,26 +1,27 @@
-#version 150
+#version 330
 int RepCounter;
 int LoopCounter;
 int ZeroBasedCounter;
-varying vec4 OffsetColour;
-varying vec4 BaseColour;
-varying vec4 Fog;
-varying vec4 TexCoord0;
-varying vec4 TexCoord1;
-varying vec4 TexCoord2;
-varying vec4 TexCoord3;
-varying vec4 TexCoord4;
-varying vec4 TexCoord5;
-varying vec4 TexCoord6;
-varying vec4 TexCoord7;
-#define Output0 gl_FragData[0]
-#define Output1 gl_FragData[1]
-#define Output2 gl_FragData[2]
-#define Output3 gl_FragData[3]
-#define Output4 gl_FragData[4]
-#define Output5 gl_FragData[5]
-#define Output6 gl_FragData[6]
-#define Output7 gl_FragData[7]
+in vec4 OffsetColour;
+in vec4 BaseColour;
+in vec4 Fog;
+in vec4 TexCoord0;
+in vec4 TexCoord1;
+in vec4 TexCoord2;
+in vec4 TexCoord3;
+in vec4 TexCoord4;
+in vec4 TexCoord5;
+in vec4 TexCoord6;
+in vec4 TexCoord7;
+out vec4 outFragData[8];
+#define Output0 outFragData[0]
+#define Output1 outFragData[1]
+#define Output2 outFragData[2]
+#define Output3 outFragData[3]
+#define Output4 outFragData[4]
+#define Output5 outFragData[5]
+#define Output6 outFragData[6]
+#define Output7 outFragData[7]
 struct vec1 {
 	float x;
 };
@@ -39,13 +40,13 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //DERIV_RTX
-    Temp[0] = (vec4(dFdx(TexCoord0.xyzw)));
+    Temp[0] = dFdx(TexCoord0);
     //Instruction 1
     //DERIV_RTY
-    Temp[1] = (vec4(dFdy(TexCoord0.xyzw)));
+    Temp[1] = dFdy(TexCoord0);
     //Instruction 2
     //MUL
-    Output0 = (Temp[0].xyzw * Temp[1].xyzw);
+    Output0 = Temp[0] * Temp[1];
     //Instruction 3
     //RET
     return;

@@ -1,5 +1,4 @@
-#version 150
-#extension GL_ARB_shader_bit_encoding : require
+#version 330
 struct vec1 {
 	float x;
 };

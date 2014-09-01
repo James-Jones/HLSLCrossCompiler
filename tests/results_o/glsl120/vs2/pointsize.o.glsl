@@ -33,10 +33,10 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //MOV
-    gl_Position = vec4(Input0.xyzw).xyzw;
+    gl_Position = Input0;
     //Instruction 1
     //MOV
-    gl_PointSize = vec4(ImmConst0.x).x;
+    gl_PointSize = ImmConst0.x;
     //Instruction 2
     //RET
     return;

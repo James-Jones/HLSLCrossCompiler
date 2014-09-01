@@ -44,13 +44,13 @@ void main()
     if(GlobalsVS.LOOP_COUNT != 0){
         //Instruction 2
         //MUL
-        Temp[1] = (Temp[0] * ImmConst0.xyzy);
+        Temp[1] = Temp[0] * ImmConst0.xyzy;
         //Instruction 3
     //ELSE
     } else {
         //Instruction 4
         //MUL
-        Temp[1] = (Temp[0] * ImmConst0.xyyy);
+        Temp[1] = Temp[0] * ImmConst0.xyyy;
         //Instruction 5
     //ENDIF
     }

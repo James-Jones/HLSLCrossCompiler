@@ -30,7 +30,7 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //MOV
-    gl_Position = vec4(Input0.xyzw).xyzw;
+    gl_Position = Input0;
     //Instruction 1
     //RET
     return;

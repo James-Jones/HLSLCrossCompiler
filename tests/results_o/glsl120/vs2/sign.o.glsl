@@ -35,16 +35,16 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //LT
-    Temp[0].x = (((-GlobalsVS.factor)< (GlobalsVS.factor)) ? 1.0 : 0.0);
+    Temp[0].x = ((-GlobalsVS.factor)<GlobalsVS.factor) ? 1.0 : 0.0;
     //Instruction 1
     //LT
-    Temp[0].y = (((GlobalsVS.factor)< (-GlobalsVS.factor)) ? 1.0 : 0.0);
+    Temp[0].y = (GlobalsVS.factor<(-GlobalsVS.factor)) ? 1.0 : 0.0;
     //Instruction 2
     //ADD
-    Temp[0].x = (-Temp[0].y + Temp[0].x);
+    Temp[0].x = (-Temp[0].y) + Temp[0].x;
     //Instruction 3
     //MUL
-    gl_Position = (Temp[0].x * Input0.xyzw);
+    gl_Position = Temp[0].x * Input0;
     //Instruction 4
     //RET
     return;

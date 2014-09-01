@@ -38,24 +38,24 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //MOV
-    Temp[0].xy = vec4(Input0.xzzw).xy;
+    Temp[0].xy = Input0.xz;
     //Instruction 1
     //REP
-    RepCounter = ivec4(GlobalsVS.LOOP_COUNT).x;
+    RepCounter = GlobalsVS.LOOP_COUNT;
     while(RepCounter!=0){
         //Instruction 2
         //MUL
-        Temp[0].xy = (Temp[0] * ImmConst0).xy;
+        Temp[0].xy = Temp[0].xy * ImmConst0.xy;
         //Instruction 3
         //ENDREP
         RepCounter--;
     }
     //Instruction 4
     //MOV
-    gl_Position.xz = vec4(Temp[0].xyyw).xz;
+    gl_Position.xz = Temp[0].xy;
     //Instruction 5
     //MOV
-    gl_Position.yw = vec4(Input0).yw;
+    gl_Position.yw = Input0.yw;
     //Instruction 6
     //RET
     return;

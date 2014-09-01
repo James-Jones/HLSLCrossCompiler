@@ -39,10 +39,10 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //SAMPLE
-    Temp[0] = (texture2D(_diffuseMap, TexCoord0.xy));
+    Temp[0] = texture2D(_diffuseMap, TexCoord0.xy);
     //Instruction 1
     //MUL
-    Temp[0] = (Temp[0] * GlobalsPS._diffuseMaterialColor);
+    Temp[0] = Temp[0] * GlobalsPS._diffuseMaterialColor;
     //Instruction 2
     //MOV
     Output0 = Temp[0];
