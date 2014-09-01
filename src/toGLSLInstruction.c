@@ -16,13 +16,14 @@ static int IsIntegerImmediateOpcode(OPCODE_TYPE eOpcode);
 // Calculate the bits set in mask
 static int WriteMaskToComponentCount(uint32_t writeMask)
 {
+	uint32_t count;
 	// In HLSL bytecode writemask 0 also means everything
 	if (writeMask == 0)
 		return 4;
 
 	// Count bits set
 	// https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSet64
-	uint32_t count = (writeMask * 0x200040008001ULL & 0x111111111111111ULL) % 0xf;
+	count = (writeMask * 0x200040008001ULL & 0x111111111111111ULL) % 0xf;
 
 	return (int)count;
 }
@@ -337,8 +338,8 @@ static void AddMOVCBinaryOp(HLSLCrossCompilerContext* psContext, const Operand *
 	/* Single-component conditional variable (src0) */
 	if (s0ElemCount == 1 || IsSwizzleReplicated(src0))
 	{
-		AddIndentation(psContext);
 		int numParenthesis = 0;
+		AddIndentation(psContext);
 		AddAssignToDest(psContext, pDest, eDestType, destElemCount, &numParenthesis);
 		bcatcstr(glsl, "(");
 		TranslateOperand(psContext, src0, TO_AUTO_BITCAST_TO_INT);
@@ -373,11 +374,11 @@ static void AddMOVCBinaryOp(HLSLCrossCompilerContext* psContext, const Operand *
 		int srcElem = 0;
 		for (destElem = 0; destElem < 4; ++destElem)
 		{
+			int numParenthesis = 0;
 			if (pDest->eSelMode == OPERAND_4_COMPONENT_MASK_MODE && pDest->ui32CompMask != 0 && !(pDest->ui32CompMask & (1 << destElem)))
 				continue;
 
 			AddIndentation(psContext);
-			int numParenthesis = 0;
 			AddOpAssignToDestWithMask(psContext, pDest, eDestType, 1, "=", &numParenthesis, 1 << destElem);
 			bcatcstr(glsl, "(");
 			TranslateOperandWithMask(psContext, src0, TO_AUTO_BITCAST_TO_INT, 1 << srcElem);
@@ -500,10 +501,9 @@ static void CallTernaryOp(HLSLCrossCompilerContext* psContext, const char* op1, 
 	uint32_t destMask = GetOperandWriteMask(&psInst->asOperands[dest]);
 
 	uint32_t ui32Flags = dataType;
+	int numParenthesis = 0;
 
 	AddIndentation(psContext);
-
-	int numParenthesis = 0;
 
 	AddAssignToDest(psContext, &psInst->asOperands[dest], TypeFlagsToSVTType(dataType), dstSwizCount, &numParenthesis);
 
@@ -525,11 +525,11 @@ static void CallHelper3(HLSLCrossCompilerContext* psContext, const char* name, I
 	uint32_t src1SwizCount = GetNumSwizzleElements(&psInst->asOperands[src1]);
 	uint32_t src0SwizCount = GetNumSwizzleElements(&psInst->asOperands[src0]);
 	uint32_t dstSwizCount = GetNumSwizzleElements(&psInst->asOperands[dest]);
+	int numParenthesis = 0;
+
 
 	AddIndentation(psContext);
 	
-	int numParenthesis = 0;
-
 	AddAssignToDest(psContext, &psInst->asOperands[dest], SVT_FLOAT, dstSwizCount, &numParenthesis);
 
 	bformata(glsl, "%s(", name);
@@ -577,10 +577,9 @@ static void CallHelper2Int(HLSLCrossCompilerContext* psContext, const char* name
 	uint32_t src0SwizCount = GetNumSwizzleElements(&psInst->asOperands[src0]);
 	uint32_t dstSwizCount = GetNumSwizzleElements(&psInst->asOperands[dest]);
 	uint32_t destMask = paramsShouldFollowWriteMask ? GetOperandWriteMask(&psInst->asOperands[dest]) : OPERAND_4_COMPONENT_MASK_ALL;
+	int numParenthesis = 0;
 
 	AddIndentation(psContext);
-
-	int numParenthesis = 0;
 
 	AddAssignToDest(psContext, &psInst->asOperands[dest], SVT_INT, dstSwizCount, &numParenthesis);
 
@@ -601,10 +600,9 @@ static void CallHelper2UInt(HLSLCrossCompilerContext* psContext, const char* nam
 	uint32_t src0SwizCount = GetNumSwizzleElements(&psInst->asOperands[src0]);
 	uint32_t dstSwizCount = GetNumSwizzleElements(&psInst->asOperands[dest]);
 	uint32_t destMask = paramsShouldFollowWriteMask ? GetOperandWriteMask(&psInst->asOperands[dest]) : OPERAND_4_COMPONENT_MASK_ALL;
+	int numParenthesis = 0;
 
 	AddIndentation(psContext);
-
-	int numParenthesis = 0;
 
 	AddAssignToDest(psContext, &psInst->asOperands[dest], SVT_UINT, dstSwizCount, &numParenthesis);
 
@@ -624,10 +622,9 @@ static void CallHelper1(HLSLCrossCompilerContext* psContext, const char* name, I
 	uint32_t src0SwizCount = GetNumSwizzleElements(&psInst->asOperands[src0]);
 	uint32_t dstSwizCount = GetNumSwizzleElements(&psInst->asOperands[dest]);
 	uint32_t destMask = paramsShouldFollowWriteMask ? GetOperandWriteMask(&psInst->asOperands[dest]) : OPERAND_4_COMPONENT_MASK_ALL;
+	int numParenthesis = 0;
 
 	AddIndentation(psContext);
-
-	int numParenthesis = 0;
 
 	AddAssignToDest(psContext, &psInst->asOperands[dest], SVT_FLOAT, dstSwizCount, &numParenthesis);
 
@@ -650,10 +647,9 @@ static void CallHelper1Int(HLSLCrossCompilerContext* psContext,
 	uint32_t src0SwizCount = GetNumSwizzleElements(&psInst->asOperands[src0]);
 	uint32_t dstSwizCount = GetNumSwizzleElements(&psInst->asOperands[dest]);
 	uint32_t destMask = paramsShouldFollowWriteMask ? GetOperandWriteMask(&psInst->asOperands[dest]) : OPERAND_4_COMPONENT_MASK_ALL;
+	int numParenthesis = 0;
 
 	AddIndentation(psContext);
-
-	int numParenthesis = 0;
 
 	AddAssignToDest(psContext, &psInst->asOperands[dest], SVT_INT, dstSwizCount, &numParenthesis);
 
@@ -1517,11 +1513,11 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 	}
 	else
 	{
-		ASSERT(psInst->eOpcode == OPCODE_LD_STRUCTURED);
 		int numParenthesis = 0;
 		int firstItemAdded = 0;
 		uint32_t destCount = GetNumSwizzleElements(psDest);
 		uint32_t destMask = GetOperandWriteMask(psDest);
+		ASSERT(psInst->eOpcode == OPCODE_LD_STRUCTURED);
 		AddIndentation(psContext);
 		AddAssignToDest(psContext, psDest, SVT_UINT, destCount, &numParenthesis);
 		if (destCount > 1)
@@ -2917,12 +2913,12 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	case OPCODE_DP2:
 	{
 		SHADER_VARIABLE_TYPE eDestDataType = GetOperandDataType(psContext, &psInst->asOperands[0]);
+		int numParenthesis = 0;
 #ifdef _DEBUG
 		AddIndentation(psContext);
 		bcatcstr(glsl, "//DP2\n");
 #endif
 		AddIndentation(psContext);
-		int numParenthesis = 0;
 		AddAssignToDest(psContext, &psInst->asOperands[0], SVT_FLOAT, 1, &numParenthesis);
 		bcatcstr(glsl, "dot(");
 		TranslateOperandWithMask(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT, 3 /* .xy */);
@@ -2934,12 +2930,12 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	}
 	case OPCODE_DP3:
 	{
+		int numParenthesis = 0;
 #ifdef _DEBUG
 		AddIndentation(psContext);
 		bcatcstr(glsl, "//DP3\n");
 #endif
 		AddIndentation(psContext);
-		int numParenthesis = 0;
 		AddAssignToDest(psContext, &psInst->asOperands[0], SVT_FLOAT, 1, &numParenthesis);
 		bcatcstr(glsl, "dot(");
 		TranslateOperandWithMask(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT, 7 /* .xyz */);
