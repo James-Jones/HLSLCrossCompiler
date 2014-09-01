@@ -54,6 +54,7 @@ public:
 
     void SetTexture(const char* name, int imageUnit);
     void SetTexture(std::string& name, int imageUnit);
+	void SetMat4(std::string& name, int count, float* v);
     void SetVec4(std::string& name, int count, float* v);
 	void SetVec3(std::string& name, int count, float* v);
 	void SetFloat(std::string& name, int count, float* v);
