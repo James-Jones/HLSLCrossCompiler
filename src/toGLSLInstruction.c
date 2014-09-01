@@ -2286,294 +2286,297 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		}
 	}
 
-	// First pass, do analysis: deduce the data type based on opcodes, fill out aeTempVecType table
-	// Only ever to int->float promotion (or int->uint), never the other way around
-	for (i = 0; i < i32InstCount; ++i, psInst++)
+	if (psContext->psShader->ui32MajorVersion <= 3)
 	{
-		int k = 0;
-		if (psInst->ui32NumOperands == 0)
-			continue;
-
-		switch (psInst->eOpcode)
+		// First pass, do analysis: deduce the data type based on opcodes, fill out aeTempVecType table
+		// Only ever to int->float promotion (or int->uint), never the other way around
+		for (i = 0; i < i32InstCount; ++i, psInst++)
 		{
-			// All float-only ops
-		case OPCODE_ADD:
-		case OPCODE_DERIV_RTX:
-		case OPCODE_DERIV_RTY:
-		case OPCODE_DIV:
-		case OPCODE_DP2:
-		case OPCODE_DP3:
-		case OPCODE_DP4:
-		case OPCODE_EQ:
-		case OPCODE_EXP:
-		case OPCODE_FRC:
-		case OPCODE_LOG:
-		case OPCODE_MAD:
-		case OPCODE_MIN:
-		case OPCODE_MAX:
-		case OPCODE_MUL:
-		case OPCODE_NE:
-		case OPCODE_ROUND_NE:
-		case OPCODE_ROUND_NI:
-		case OPCODE_ROUND_PI:
-		case OPCODE_ROUND_Z:
-		case OPCODE_RSQ:
-		case OPCODE_SAMPLE:
-		case OPCODE_SAMPLE_C:
-		case OPCODE_SAMPLE_C_LZ:
-		case OPCODE_SAMPLE_L:
-		case OPCODE_SAMPLE_D:
-		case OPCODE_SAMPLE_B:
-		case OPCODE_SQRT:
-		case OPCODE_SINCOS:
-		case OPCODE_LOD:
-		case OPCODE_GATHER4:
+			int k = 0;
+			if (psInst->ui32NumOperands == 0)
+				continue;
 
-		case OPCODE_DERIV_RTX_COARSE:
-		case OPCODE_DERIV_RTX_FINE:
-		case OPCODE_DERIV_RTY_COARSE:
-		case OPCODE_DERIV_RTY_FINE:
-		case OPCODE_GATHER4_C:
-		case OPCODE_GATHER4_PO:
-		case OPCODE_GATHER4_PO_C:
-		case OPCODE_RCP:
+			switch (psInst->eOpcode)
+			{
+				// All float-only ops
+			case OPCODE_ADD:
+			case OPCODE_DERIV_RTX:
+			case OPCODE_DERIV_RTY:
+			case OPCODE_DIV:
+			case OPCODE_DP2:
+			case OPCODE_DP3:
+			case OPCODE_DP4:
+			case OPCODE_EQ:
+			case OPCODE_EXP:
+			case OPCODE_FRC:
+			case OPCODE_LOG:
+			case OPCODE_MAD:
+			case OPCODE_MIN:
+			case OPCODE_MAX:
+			case OPCODE_MUL:
+			case OPCODE_NE:
+			case OPCODE_ROUND_NE:
+			case OPCODE_ROUND_NI:
+			case OPCODE_ROUND_PI:
+			case OPCODE_ROUND_Z:
+			case OPCODE_RSQ:
+			case OPCODE_SAMPLE:
+			case OPCODE_SAMPLE_C:
+			case OPCODE_SAMPLE_C_LZ:
+			case OPCODE_SAMPLE_L:
+			case OPCODE_SAMPLE_D:
+			case OPCODE_SAMPLE_B:
+			case OPCODE_SQRT:
+			case OPCODE_SINCOS:
+			case OPCODE_LOD:
+			case OPCODE_GATHER4:
 
-			MarkAllOperandsAs(psInst, SVT_FLOAT, aeTempVecType);
-			break;
+			case OPCODE_DERIV_RTX_COARSE:
+			case OPCODE_DERIV_RTX_FINE:
+			case OPCODE_DERIV_RTY_COARSE:
+			case OPCODE_DERIV_RTY_FINE:
+			case OPCODE_GATHER4_C:
+			case OPCODE_GATHER4_PO:
+			case OPCODE_GATHER4_PO_C:
+			case OPCODE_RCP:
 
-			// Int-only ops, no need to do anything
-		case OPCODE_AND:
-		case OPCODE_BREAKC:
-		case OPCODE_CALLC:
-		case OPCODE_CONTINUEC:
-		case OPCODE_IADD:
-		case OPCODE_IEQ:
-		case OPCODE_IGE:
-		case OPCODE_ILT:
-		case OPCODE_IMAD:
-		case OPCODE_IMAX:
-		case OPCODE_IMIN:
-		case OPCODE_IMUL:
-		case OPCODE_INE:
-		case OPCODE_INEG:
-		case OPCODE_ISHL:
-		case OPCODE_ISHR:
-		case OPCODE_IF:
-		case OPCODE_NOT:
-		case OPCODE_OR:
-		case OPCODE_RETC:
-		case OPCODE_XOR:
-		case OPCODE_BUFINFO:
-		case OPCODE_COUNTBITS:
-		case OPCODE_FIRSTBIT_HI:
-		case OPCODE_FIRSTBIT_LO:
-		case OPCODE_FIRSTBIT_SHI:
-		case OPCODE_UBFE:
-		case OPCODE_IBFE:
-		case OPCODE_BFI:
-		case OPCODE_BFREV:
-		case OPCODE_ATOMIC_AND:
-		case OPCODE_ATOMIC_OR:
-		case OPCODE_ATOMIC_XOR:
-		case OPCODE_ATOMIC_CMP_STORE:
-		case OPCODE_ATOMIC_IADD:
-		case OPCODE_ATOMIC_IMAX:
-		case OPCODE_ATOMIC_IMIN:
-		case OPCODE_ATOMIC_UMAX:
-		case OPCODE_ATOMIC_UMIN:
-		case OPCODE_IMM_ATOMIC_ALLOC:
-		case OPCODE_IMM_ATOMIC_CONSUME:
-		case OPCODE_IMM_ATOMIC_IADD:
-		case OPCODE_IMM_ATOMIC_AND:
-		case OPCODE_IMM_ATOMIC_OR:
-		case OPCODE_IMM_ATOMIC_XOR:
-		case OPCODE_IMM_ATOMIC_EXCH:
-		case OPCODE_IMM_ATOMIC_CMP_EXCH:
-		case OPCODE_IMM_ATOMIC_IMAX:
-		case OPCODE_IMM_ATOMIC_IMIN:
-		case OPCODE_IMM_ATOMIC_UMAX:
-		case OPCODE_IMM_ATOMIC_UMIN:
-		case OPCODE_MOV:
-		case OPCODE_MOVC:
-		case OPCODE_SWAPC:
-			MarkAllOperandsAs(psInst, SVT_INT, aeTempVecType);
-			break;
-			// uint ops
-		case OPCODE_UDIV:
-		case OPCODE_ULT:
-		case OPCODE_UGE:
-		case OPCODE_UMUL:
-		case OPCODE_UMAD:
-		case OPCODE_UMAX:
-		case OPCODE_UMIN:
-		case OPCODE_USHR:
-		case OPCODE_UADDC:
-		case OPCODE_USUBB:
-			MarkAllOperandsAs(psInst, SVT_UINT, aeTempVecType);
-			break;
-
-			// Need special handling
-		case OPCODE_FTOI:
-		case OPCODE_FTOU:
-			MarkOperandAs(&psInst->asOperands[0], psInst->eOpcode == OPCODE_FTOI ? SVT_INT : SVT_UINT, aeTempVecType);
-			MarkOperandAs(&psInst->asOperands[1], SVT_FLOAT, aeTempVecType);
-			break;
-
-		case OPCODE_GE:
-		case OPCODE_LT:
-			MarkOperandAs(&psInst->asOperands[0], SVT_UINT, aeTempVecType);
-			MarkOperandAs(&psInst->asOperands[1], SVT_FLOAT, aeTempVecType);
-			MarkOperandAs(&psInst->asOperands[2], SVT_FLOAT, aeTempVecType);
-			break;
-
-		case OPCODE_ITOF:
-		case OPCODE_UTOF:
-			MarkOperandAs(&psInst->asOperands[0], SVT_FLOAT, aeTempVecType);
-			MarkOperandAs(&psInst->asOperands[1], psInst->eOpcode == OPCODE_ITOF ? SVT_INT : SVT_UINT, aeTempVecType);
-			break;
-
-		case OPCODE_LD:
-		case OPCODE_LD_MS:
-			// TODO: Would need to know the sampler return type
-			MarkOperandAs(&psInst->asOperands[0], SVT_FLOAT, aeTempVecType);
-			break;
-
-
-		case OPCODE_RESINFO:
-		{
-			if (psInst->eResInfoReturnType != RESINFO_INSTRUCTION_RETURN_UINT)
 				MarkAllOperandsAs(psInst, SVT_FLOAT, aeTempVecType);
-			break;
-		}
+				break;
 
-		case OPCODE_SAMPLE_INFO:
-			// TODO decode the _uint flag
-			MarkOperandAs(&psInst->asOperands[0], SVT_FLOAT, aeTempVecType);
-			break;
+				// Int-only ops, no need to do anything
+			case OPCODE_AND:
+			case OPCODE_BREAKC:
+			case OPCODE_CALLC:
+			case OPCODE_CONTINUEC:
+			case OPCODE_IADD:
+			case OPCODE_IEQ:
+			case OPCODE_IGE:
+			case OPCODE_ILT:
+			case OPCODE_IMAD:
+			case OPCODE_IMAX:
+			case OPCODE_IMIN:
+			case OPCODE_IMUL:
+			case OPCODE_INE:
+			case OPCODE_INEG:
+			case OPCODE_ISHL:
+			case OPCODE_ISHR:
+			case OPCODE_IF:
+			case OPCODE_NOT:
+			case OPCODE_OR:
+			case OPCODE_RETC:
+			case OPCODE_XOR:
+			case OPCODE_BUFINFO:
+			case OPCODE_COUNTBITS:
+			case OPCODE_FIRSTBIT_HI:
+			case OPCODE_FIRSTBIT_LO:
+			case OPCODE_FIRSTBIT_SHI:
+			case OPCODE_UBFE:
+			case OPCODE_IBFE:
+			case OPCODE_BFI:
+			case OPCODE_BFREV:
+			case OPCODE_ATOMIC_AND:
+			case OPCODE_ATOMIC_OR:
+			case OPCODE_ATOMIC_XOR:
+			case OPCODE_ATOMIC_CMP_STORE:
+			case OPCODE_ATOMIC_IADD:
+			case OPCODE_ATOMIC_IMAX:
+			case OPCODE_ATOMIC_IMIN:
+			case OPCODE_ATOMIC_UMAX:
+			case OPCODE_ATOMIC_UMIN:
+			case OPCODE_IMM_ATOMIC_ALLOC:
+			case OPCODE_IMM_ATOMIC_CONSUME:
+			case OPCODE_IMM_ATOMIC_IADD:
+			case OPCODE_IMM_ATOMIC_AND:
+			case OPCODE_IMM_ATOMIC_OR:
+			case OPCODE_IMM_ATOMIC_XOR:
+			case OPCODE_IMM_ATOMIC_EXCH:
+			case OPCODE_IMM_ATOMIC_CMP_EXCH:
+			case OPCODE_IMM_ATOMIC_IMAX:
+			case OPCODE_IMM_ATOMIC_IMIN:
+			case OPCODE_IMM_ATOMIC_UMAX:
+			case OPCODE_IMM_ATOMIC_UMIN:
+			case OPCODE_MOV:
+			case OPCODE_MOVC:
+			case OPCODE_SWAPC:
+				MarkAllOperandsAs(psInst, SVT_INT, aeTempVecType);
+				break;
+				// uint ops
+			case OPCODE_UDIV:
+			case OPCODE_ULT:
+			case OPCODE_UGE:
+			case OPCODE_UMUL:
+			case OPCODE_UMAD:
+			case OPCODE_UMAX:
+			case OPCODE_UMIN:
+			case OPCODE_USHR:
+			case OPCODE_UADDC:
+			case OPCODE_USUBB:
+				MarkAllOperandsAs(psInst, SVT_UINT, aeTempVecType);
+				break;
 
-		case OPCODE_SAMPLE_POS:
-			MarkOperandAs(&psInst->asOperands[0], SVT_FLOAT, aeTempVecType);
-			break;
+				// Need special handling
+			case OPCODE_FTOI:
+			case OPCODE_FTOU:
+				MarkOperandAs(&psInst->asOperands[0], psInst->eOpcode == OPCODE_FTOI ? SVT_INT : SVT_UINT, aeTempVecType);
+				MarkOperandAs(&psInst->asOperands[1], SVT_FLOAT, aeTempVecType);
+				break;
+
+			case OPCODE_GE:
+			case OPCODE_LT:
+				MarkOperandAs(&psInst->asOperands[0], SVT_UINT, aeTempVecType);
+				MarkOperandAs(&psInst->asOperands[1], SVT_FLOAT, aeTempVecType);
+				MarkOperandAs(&psInst->asOperands[2], SVT_FLOAT, aeTempVecType);
+				break;
+
+			case OPCODE_ITOF:
+			case OPCODE_UTOF:
+				MarkOperandAs(&psInst->asOperands[0], SVT_FLOAT, aeTempVecType);
+				MarkOperandAs(&psInst->asOperands[1], psInst->eOpcode == OPCODE_ITOF ? SVT_INT : SVT_UINT, aeTempVecType);
+				break;
+
+			case OPCODE_LD:
+			case OPCODE_LD_MS:
+				// TODO: Would need to know the sampler return type
+				MarkOperandAs(&psInst->asOperands[0], SVT_FLOAT, aeTempVecType);
+				break;
 
 
-		case OPCODE_LD_UAV_TYPED:
-		case OPCODE_STORE_UAV_TYPED:
-		case OPCODE_LD_RAW:
-		case OPCODE_STORE_RAW:
-		case OPCODE_LD_STRUCTURED:
-		case OPCODE_STORE_STRUCTURED:
-			MarkOperandAs(&psInst->asOperands[0], SVT_INT, aeTempVecType);
-			break;
+			case OPCODE_RESINFO:
+			{
+				if (psInst->eResInfoReturnType != RESINFO_INSTRUCTION_RETURN_UINT)
+					MarkAllOperandsAs(psInst, SVT_FLOAT, aeTempVecType);
+				break;
+			}
 
-		case OPCODE_F32TOF16:
-		case OPCODE_F16TOF32:
-			// TODO
-			break;
+			case OPCODE_SAMPLE_INFO:
+				// TODO decode the _uint flag
+				MarkOperandAs(&psInst->asOperands[0], SVT_FLOAT, aeTempVecType);
+				break;
 
-
-
-			// No-operands, should never get here anyway
-			/*				case OPCODE_BREAK:
-							case OPCODE_CALL:
-							case OPCODE_CASE:
-							case OPCODE_CONTINUE:
-							case OPCODE_CUT:
-							case OPCODE_DEFAULT:
-							case OPCODE_DISCARD:
-							case OPCODE_ELSE:
-							case OPCODE_EMIT:
-							case OPCODE_EMITTHENCUT:
-							case OPCODE_ENDIF:
-							case OPCODE_ENDLOOP:
-							case OPCODE_ENDSWITCH:
-
-							case OPCODE_LABEL:
-							case OPCODE_LOOP:
-							case OPCODE_CUSTOMDATA:
-							case OPCODE_NOP:
-							case OPCODE_RET:
-							case OPCODE_SWITCH:
-							case OPCODE_DCL_RESOURCE: // DCL* opcodes have
-							case OPCODE_DCL_CONSTANT_BUFFER: // custom operand formats.
-							case OPCODE_DCL_SAMPLER:
-							case OPCODE_DCL_INDEX_RANGE:
-							case OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY:
-							case OPCODE_DCL_GS_INPUT_PRIMITIVE:
-							case OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT:
-							case OPCODE_DCL_INPUT:
-							case OPCODE_DCL_INPUT_SGV:
-							case OPCODE_DCL_INPUT_SIV:
-							case OPCODE_DCL_INPUT_PS:
-							case OPCODE_DCL_INPUT_PS_SGV:
-							case OPCODE_DCL_INPUT_PS_SIV:
-							case OPCODE_DCL_OUTPUT:
-							case OPCODE_DCL_OUTPUT_SGV:
-							case OPCODE_DCL_OUTPUT_SIV:
-							case OPCODE_DCL_TEMPS:
-							case OPCODE_DCL_INDEXABLE_TEMP:
-							case OPCODE_DCL_GLOBAL_FLAGS:
+			case OPCODE_SAMPLE_POS:
+				MarkOperandAs(&psInst->asOperands[0], SVT_FLOAT, aeTempVecType);
+				break;
 
 
-							case OPCODE_HS_DECLS: // token marks beginning of HS sub-shader
-							case OPCODE_HS_CONTROL_POINT_PHASE: // token marks beginning of HS sub-shader
-							case OPCODE_HS_FORK_PHASE: // token marks beginning of HS sub-shader
-							case OPCODE_HS_JOIN_PHASE: // token marks beginning of HS sub-shader
+			case OPCODE_LD_UAV_TYPED:
+			case OPCODE_STORE_UAV_TYPED:
+			case OPCODE_LD_RAW:
+			case OPCODE_STORE_RAW:
+			case OPCODE_LD_STRUCTURED:
+			case OPCODE_STORE_STRUCTURED:
+				MarkOperandAs(&psInst->asOperands[0], SVT_INT, aeTempVecType);
+				break;
 
-							case OPCODE_EMIT_STREAM:
-							case OPCODE_CUT_STREAM:
-							case OPCODE_EMITTHENCUT_STREAM:
-							case OPCODE_INTERFACE_CALL:
+			case OPCODE_F32TOF16:
+			case OPCODE_F16TOF32:
+				// TODO
+				break;
 
 
-							case OPCODE_DCL_STREAM:
-							case OPCODE_DCL_FUNCTION_BODY:
-							case OPCODE_DCL_FUNCTION_TABLE:
-							case OPCODE_DCL_INTERFACE:
 
-							case OPCODE_DCL_INPUT_CONTROL_POINT_COUNT:
-							case OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT:
-							case OPCODE_DCL_TESS_DOMAIN:
-							case OPCODE_DCL_TESS_PARTITIONING:
-							case OPCODE_DCL_TESS_OUTPUT_PRIMITIVE:
-							case OPCODE_DCL_HS_MAX_TESSFACTOR:
-							case OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT:
-							case OPCODE_DCL_HS_JOIN_PHASE_INSTANCE_COUNT:
+				// No-operands, should never get here anyway
+				/*				case OPCODE_BREAK:
+								case OPCODE_CALL:
+								case OPCODE_CASE:
+								case OPCODE_CONTINUE:
+								case OPCODE_CUT:
+								case OPCODE_DEFAULT:
+								case OPCODE_DISCARD:
+								case OPCODE_ELSE:
+								case OPCODE_EMIT:
+								case OPCODE_EMITTHENCUT:
+								case OPCODE_ENDIF:
+								case OPCODE_ENDLOOP:
+								case OPCODE_ENDSWITCH:
 
-							case OPCODE_DCL_THREAD_GROUP:
-							case OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED:
-							case OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW:
-							case OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED:
-							case OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW:
-							case OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED:
-							case OPCODE_DCL_RESOURCE_RAW:
-							case OPCODE_DCL_RESOURCE_STRUCTURED:
-							case OPCODE_SYNC:
+								case OPCODE_LABEL:
+								case OPCODE_LOOP:
+								case OPCODE_CUSTOMDATA:
+								case OPCODE_NOP:
+								case OPCODE_RET:
+								case OPCODE_SWITCH:
+								case OPCODE_DCL_RESOURCE: // DCL* opcodes have
+								case OPCODE_DCL_CONSTANT_BUFFER: // custom operand formats.
+								case OPCODE_DCL_SAMPLER:
+								case OPCODE_DCL_INDEX_RANGE:
+								case OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY:
+								case OPCODE_DCL_GS_INPUT_PRIMITIVE:
+								case OPCODE_DCL_MAX_OUTPUT_VERTEX_COUNT:
+								case OPCODE_DCL_INPUT:
+								case OPCODE_DCL_INPUT_SGV:
+								case OPCODE_DCL_INPUT_SIV:
+								case OPCODE_DCL_INPUT_PS:
+								case OPCODE_DCL_INPUT_PS_SGV:
+								case OPCODE_DCL_INPUT_PS_SIV:
+								case OPCODE_DCL_OUTPUT:
+								case OPCODE_DCL_OUTPUT_SGV:
+								case OPCODE_DCL_OUTPUT_SIV:
+								case OPCODE_DCL_TEMPS:
+								case OPCODE_DCL_INDEXABLE_TEMP:
+								case OPCODE_DCL_GLOBAL_FLAGS:
 
-							// TODO
-							case OPCODE_DADD:
-							case OPCODE_DMAX:
-							case OPCODE_DMIN:
-							case OPCODE_DMUL:
-							case OPCODE_DEQ:
-							case OPCODE_DGE:
-							case OPCODE_DLT:
-							case OPCODE_DNE:
-							case OPCODE_DMOV:
-							case OPCODE_DMOVC:
-							case OPCODE_DTOF:
-							case OPCODE_FTOD:
 
-							case OPCODE_EVAL_SNAPPED:
-							case OPCODE_EVAL_SAMPLE_INDEX:
-							case OPCODE_EVAL_CENTROID:
+								case OPCODE_HS_DECLS: // token marks beginning of HS sub-shader
+								case OPCODE_HS_CONTROL_POINT_PHASE: // token marks beginning of HS sub-shader
+								case OPCODE_HS_FORK_PHASE: // token marks beginning of HS sub-shader
+								case OPCODE_HS_JOIN_PHASE: // token marks beginning of HS sub-shader
 
-							case OPCODE_DCL_GS_INSTANCE_COUNT:
+								case OPCODE_EMIT_STREAM:
+								case OPCODE_CUT_STREAM:
+								case OPCODE_EMITTHENCUT_STREAM:
+								case OPCODE_INTERFACE_CALL:
 
-							case OPCODE_ABORT:
-							case OPCODE_DEBUG_BREAK:*/
 
-		default:
-			break;
+								case OPCODE_DCL_STREAM:
+								case OPCODE_DCL_FUNCTION_BODY:
+								case OPCODE_DCL_FUNCTION_TABLE:
+								case OPCODE_DCL_INTERFACE:
+
+								case OPCODE_DCL_INPUT_CONTROL_POINT_COUNT:
+								case OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT:
+								case OPCODE_DCL_TESS_DOMAIN:
+								case OPCODE_DCL_TESS_PARTITIONING:
+								case OPCODE_DCL_TESS_OUTPUT_PRIMITIVE:
+								case OPCODE_DCL_HS_MAX_TESSFACTOR:
+								case OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT:
+								case OPCODE_DCL_HS_JOIN_PHASE_INSTANCE_COUNT:
+
+								case OPCODE_DCL_THREAD_GROUP:
+								case OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED:
+								case OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW:
+								case OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED:
+								case OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW:
+								case OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED:
+								case OPCODE_DCL_RESOURCE_RAW:
+								case OPCODE_DCL_RESOURCE_STRUCTURED:
+								case OPCODE_SYNC:
+
+								// TODO
+								case OPCODE_DADD:
+								case OPCODE_DMAX:
+								case OPCODE_DMIN:
+								case OPCODE_DMUL:
+								case OPCODE_DEQ:
+								case OPCODE_DGE:
+								case OPCODE_DLT:
+								case OPCODE_DNE:
+								case OPCODE_DMOV:
+								case OPCODE_DMOVC:
+								case OPCODE_DTOF:
+								case OPCODE_FTOD:
+
+								case OPCODE_EVAL_SNAPPED:
+								case OPCODE_EVAL_SAMPLE_INDEX:
+								case OPCODE_EVAL_CENTROID:
+
+								case OPCODE_DCL_GS_INSTANCE_COUNT:
+
+								case OPCODE_ABORT:
+								case OPCODE_DEBUG_BREAK:*/
+
+			default:
+				break;
+			}
 		}
 	}
 
