@@ -18,6 +18,12 @@
 #define TO_AUTO_BITCAST_TO_FLOAT 0x40
 #define TO_AUTO_BITCAST_TO_INT 0x80
 #define TO_AUTO_BITCAST_TO_UINT 0x100
+// AUTO_EXPAND flags automatically expand the operand to at least (i/u)vecX
+// to match HLSL functionality.
+#define TO_AUTO_EXPAND_TO_VEC2 0x200
+#define TO_AUTO_EXPAND_TO_VEC3 0x400
+#define TO_AUTO_EXPAND_TO_VEC4 0x800
+
 
 void TranslateOperand(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32TOFlag);
 // Translate operand but add additional component mask
@@ -43,12 +49,19 @@ void ConcatTextureSamplerName(bstring str, ShaderInfo* psShaderInfo, const uint3
 //Non-zero means the components overlap
 int CompareOperandSwizzles(const Operand* psOperandA, const Operand* psOperandB);
 
+// Returns the write mask for the operand used for destination
+uint32_t GetOperandWriteMask(const Operand *psOperand);
+
 SHADER_VARIABLE_TYPE GetOperandDataType(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
+SHADER_VARIABLE_TYPE GetOperandDataTypeEx(HLSLCrossCompilerContext* psContext, const Operand* psOperand, SHADER_VARIABLE_TYPE ePreferredTypeForImmediates);
 
 const char * GetConstructorForType(const SHADER_VARIABLE_TYPE eType,
 	const int components);
 
 const char * GetConstructorForTypeFlag(const uint32_t ui32Flag,
 	const int components);
+
+uint32_t SVTTypeToFlag(const SHADER_VARIABLE_TYPE eType);
+SHADER_VARIABLE_TYPE TypeFlagsToSVTType(const uint32_t typeflags);
 
 #endif

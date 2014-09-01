@@ -187,6 +187,8 @@ void DeclareConstBufferShaderVariable(bstring glsl, const char* Name, const stru
 				//Allows implicit conversions to integer and
 				//bool consumes 4-bytes in HLSL and GLSL anyway.
 				bformata(glsl, "\tint %s", Name);
+				// Also change the definition in the type tree.
+				((ShaderVarType *)psType)->Type = SVT_INT;
 				break;
 			}
 			default:
@@ -599,7 +601,7 @@ void AddBuiltinInput(HLSLCrossCompilerContext* psContext, const Declaration* psD
     psContext->currentGLSLString = &psContext->earlyMain;
     psContext->indent++;
     AddIndentation(psContext);
-    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_DESTINATION);
 
     bformata(psContext->earlyMain, " = %s", builtinName);
 
@@ -787,7 +789,7 @@ void AddBuiltinOutput(HLSLCrossCompilerContext* psContext, const Declaration* ps
 				{
 					AddIndentation(psContext);
 					bformata(glsl, "%s = %s(phase%d_", builtinName, GetTypeString(type), psContext->currentPhase);
-					TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+					TranslateOperand(psContext, &psDecl->asOperands[0], type == GLVARTYPE_INT ? TO_FLAG_INTEGER : TO_FLAG_NONE);
 					bformata(glsl, ");\n");
 				}
             }
@@ -1901,7 +1903,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				bformata(glsl, "const vec4 ImmConst%d = ", psDest->ui32RegisterNumber);
 				AddToDx9ImmConstIndexableArray(psContext, psDest);
 			}
-            TranslateOperand(psContext, psSrc, TO_FLAG_NONE);
+            TranslateOperand(psContext, psSrc, psDest->eType == OPERAND_TYPE_SPECIAL_IMMCONSTINT ? TO_FLAG_INTEGER : TO_AUTO_BITCAST_TO_FLOAT);
             bcatcstr(glsl, ";\n");
 			
             break;
@@ -2555,9 +2557,9 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 
 			ASSERT(psDecl->asOperands[0].ui32RegisterNumber < MAX_GROUPSHARED);
 
-			bcatcstr(glsl, "shared struct {");
-				bformata(glsl, "float value[%d];", psDecl->sTGSM.ui32Stride/4);
-			bcatcstr(glsl, "}");
+			bcatcstr(glsl, "shared struct {\n");
+				bformata(glsl, "uint value[%d];\n", psDecl->sTGSM.ui32Stride/4);
+			bcatcstr(glsl, "} ");
 			TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
             bformata(glsl, "[%d];\n",
 				psDecl->sTGSM.ui32Count);
