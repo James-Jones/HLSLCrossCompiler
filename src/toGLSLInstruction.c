@@ -4568,27 +4568,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	}
 	}
 
-	if (psInst->bSaturate)
+	if (psInst->bSaturate) //Saturate is only for floating point data (float opcodes or MOV)
 	{
-		SHADER_VARIABLE_TYPE dstType = GetOperandDataType(psContext, &psInst->asOperands[0]);
 		int dstCount = GetNumSwizzleElements(&psInst->asOperands[0]);
 		AddIndentation(psContext);
-		AddAssignToDest(psContext, &psInst->asOperands[0], dstType, dstCount, &numParenthesis);
+		AddAssignToDest(psContext, &psInst->asOperands[0], SVT_FLOAT, dstCount, &numParenthesis);
 		bcatcstr(glsl, "clamp(");
-		TranslateOperand(psContext, &psInst->asOperands[0], SVTTypeToFlag(dstType));
-		switch (dstType)
-		{
-		case SVT_FLOAT:
-		default:
-			bcatcstr(glsl, ", 0.0, 1.0)");
-			break;
-		case SVT_INT:
-			bcatcstr(glsl, ", 0, 1)");
-			break;
-		case SVT_UINT:
-			bcatcstr(glsl, ", 0u, 1u)");
-			break;
-		}
+
+		TranslateOperand(psContext, &psInst->asOperands[0], TO_AUTO_BITCAST_TO_FLOAT);
+		bcatcstr(glsl, ", 0.0, 1.0)");
 		AddAssignPrologue(psContext, numParenthesis);
 	}
 }
