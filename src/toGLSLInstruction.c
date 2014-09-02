@@ -3986,41 +3986,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		else if (psInst->eBooleanTestType == INSTRUCTION_TEST_ZERO)
 		{
 			bcatcstr(glsl, "if((");
-			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-			switch (GetOperandDataType(psContext, &psInst->asOperands[0]))
-			{
-			case SVT_FLOAT:
-			case SVT_DOUBLE:
-				bcatcstr(glsl, ")==0.0){discard;}\n");
-				break;
-			case SVT_UINT:
-				bcatcstr(glsl, ")==0u){discard;}\n");
-				break;
-			case SVT_INT:
-			default:
-				bcatcstr(glsl, ")==0){discard;}\n");
-				break;
-			}
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_INTEGER);
+			bcatcstr(glsl, ")==0){discard;}\n");
 		}
 		else
 		{
 			ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
 			bcatcstr(glsl, "if((");
-			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_NONE);
-			switch (GetOperandDataType(psContext, &psInst->asOperands[0]))
-			{
-			case SVT_FLOAT:
-			case SVT_DOUBLE:
-				bcatcstr(glsl, ")!=0.0){discard;}\n");
-				break;
-			case SVT_UINT:
-				bcatcstr(glsl, ")!=0u){discard;}\n");
-				break;
-			case SVT_INT:
-			default:
-				bcatcstr(glsl, ")!=0){discard;}\n");
-				break;
-			}
+			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_INTEGER);
+			bcatcstr(glsl, ")==0){discard;}\n");
 		}
 		break;
 	}
