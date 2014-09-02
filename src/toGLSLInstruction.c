@@ -3997,7 +3997,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			ASSERT(psInst->eBooleanTestType == INSTRUCTION_TEST_NONZERO);
 			bcatcstr(glsl, "if((");
 			TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_INTEGER);
-			bcatcstr(glsl, ")==0){discard;}\n");
+			bcatcstr(glsl, ")!=0){discard;}\n");
 		}
 		break;
 	}
