@@ -66,9 +66,9 @@ public:
 
 		gChangesEveryFrame.Time = gTime;
 
-		mEffect.SetVec4(std::string("cbChangesEveryFrameVS.World"), 4, gChangesEveryFrame.World);
-		mEffect.SetVec4(std::string("cbChangesEveryFrameVS.View"), 4, gChangesEveryFrame.View);
-		mEffect.SetVec4(std::string("cbChangesEveryFrameVS.Projection"), 4, gChangesEveryFrame.Projection);
+		mEffect.SetMat4(std::string("cbChangesEveryFrameVS.World"), 1, gChangesEveryFrame.World);
+		mEffect.SetMat4(std::string("cbChangesEveryFrameVS.View"), 1, gChangesEveryFrame.View);
+		mEffect.SetMat4(std::string("cbChangesEveryFrameVS.Projection"), 1, gChangesEveryFrame.Projection);
 		mEffect.SetVec4(std::string("cbChangesEveryFrameVS.Time"), 1, &gChangesEveryFrame.Time);
 
         mEffect.SetTexture(std::string("g_txDiffuse"), 0);

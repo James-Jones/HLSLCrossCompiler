@@ -1,5 +1,4 @@
-#version 150
-#extension GL_ARB_shader_bit_encoding : require
+#version 330
 struct vec1 {
 	float x;
 };
@@ -9,8 +8,9 @@ struct uvec1 {
 struct ivec1 {
 	int x;
 };
+uniform sampler2D Texture0_X_TextureSampler;
 uniform sampler2D Texture0;
-out  vec4 PixOutput0;
+layout(location = 0) out  vec4 PixOutput0;
 #define Output0 PixOutput0
 vec4 Temp[1];
 ivec4 Temp_int[1];
@@ -21,10 +21,10 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //SAMPLE
-    Temp_int[0] = floatBitsToInt(texture(Texture0, vec4(0.500000, 0.500000, 0.000000, 0.000000).xy));
+    Temp[0] = texture(Texture0_X_TextureSampler, vec2(0.500000, 0.500000));
     //Instruction 1
     //MOV
-    Output0 = vec4(intBitsToFloat(Temp_int[0].xxxx)).xyzw;
+    Output0 = Temp[0].xxxx;
     //Instruction 2
     //RET
     return;

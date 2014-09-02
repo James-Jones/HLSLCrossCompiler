@@ -1,5 +1,0 @@
-0(59) : error C7011: implicit cast from "uint" to "int"
-0(65) : error C7011: implicit cast from "uint" to "int"
-0(71) : error C7011: implicit cast from "uint" to "int"
-0(74) : error C7011: implicit cast from "uint" to "int"
-0(80) : error C7011: implicit cast from "uint" to "int"

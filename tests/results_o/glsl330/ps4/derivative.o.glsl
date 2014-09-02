@@ -1,5 +1,4 @@
-#version 150
-#extension GL_ARB_shader_bit_encoding : require
+#version 330
 struct vec1 {
 	float x;
 };
@@ -11,7 +10,7 @@ struct ivec1 {
 };
  in  vec4 VtxGeoOutput0;
 vec4 Input0;
-out  vec4 PixOutput0;
+layout(location = 0) out  vec4 PixOutput0;
 #define Output0 PixOutput0
 vec4 Temp[2];
 ivec4 Temp_int[2];
@@ -23,13 +22,13 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //DERIV_RTX
-    Temp_int[0] = floatBitsToInt(vec4(dFdx(Input0)));
+    Temp[0] = dFdx(Input0);
     //Instruction 1
     //DERIV_RTY
-    Temp_int[1] = floatBitsToInt(vec4(dFdy(Input0)));
+    Temp[1] = dFdy(Input0);
     //Instruction 2
     //MUL
-    Output0 = (intBitsToFloat(Temp_int[0]) * intBitsToFloat(Temp_int[1]));
+    Output0 = Temp[0] * Temp[1];
     //Instruction 3
     //RET
     return;

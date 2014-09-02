@@ -39,13 +39,13 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //SAMPLE
-    Temp[0] = (texture2D(g_samScene, TexCoord0.xy).xyzw);
+    Temp[0] = texture2D(g_samScene, TexCoord0.xy);
     //Instruction 1
     //MAD
-    Temp[0] = (vec4(Temp[0].xyzw * BaseColour.xyzw + GlobalsPS.ColOffset.xyzw));
+    Temp[0] = Temp[0] * BaseColour + GlobalsPS.ColOffset;
     //Instruction 2
     //MOV
-    Output0 = vec4(Temp[0].xyzw).xyzw;
+    Output0 = Temp[0];
     //Instruction 3
     //RET
     return;

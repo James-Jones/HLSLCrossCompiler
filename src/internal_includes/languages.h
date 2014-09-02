@@ -53,7 +53,7 @@ static int HavePrecisionQualifers(const GLLang eLang)
 }
 
 //Only on vertex inputs and pixel outputs.
-static int HaveLimitedInOutLocationQualifier(const GLLang eLang)
+static int HaveLimitedInOutLocationQualifier(const GLLang eLang, unsigned int flags)
 {
     if(eLang >= LANG_330 || eLang == LANG_ES_300 || eLang == LANG_ES_310)
     {
@@ -62,9 +62,9 @@ static int HaveLimitedInOutLocationQualifier(const GLLang eLang)
     return 0;
 }
 
-static int HaveInOutLocationQualifier(const GLLang eLang,const struct GlExtensions *extensions)
+static int HaveInOutLocationQualifier(const GLLang eLang,const struct GlExtensions *extensions, unsigned int flags)
 {
-    if(eLang >= LANG_410 || eLang == LANG_ES_310 || (extensions && ((GlExtensions*)extensions)->ARB_explicit_attrib_location))
+	if(eLang >= LANG_410 || eLang == LANG_ES_310 || (extensions && ((GlExtensions*)extensions)->ARB_explicit_attrib_location))
     {
         return 1;
     }
@@ -73,9 +73,13 @@ static int HaveInOutLocationQualifier(const GLLang eLang,const struct GlExtensio
 
 //layout(binding = X) uniform {uniformA; uniformB;}
 //layout(location = X) uniform uniform_name;
-static int HaveUniformBindingsAndLocations(const GLLang eLang,const struct GlExtensions *extensions)
+static int HaveUniformBindingsAndLocations(const GLLang eLang,const struct GlExtensions *extensions, unsigned int flags)
 {
-    if(eLang >= LANG_430 || eLang == LANG_ES_310 || (extensions && ((GlExtensions*)extensions)->ARB_explicit_uniform_location))
+	if (flags & HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS)
+		return 0;
+
+	if (eLang >= LANG_430 || eLang == LANG_ES_310 ||
+		(extensions && ((GlExtensions*)extensions)->ARB_explicit_uniform_location && ((GlExtensions*)extensions)->ARB_shading_language_420pack))
     {
         return 1;
     }

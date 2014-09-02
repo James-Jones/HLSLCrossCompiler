@@ -439,6 +439,11 @@ void ShaderEffect::SetTexture(std::string& name, int imageUnit) {
     glUniform1i(loc, imageUnit);
 }
 
+void ShaderEffect::SetMat4(std::string& name, int count, float* v) {
+    int loc = glGetUniformLocation(mProgram, name.c_str());
+    glUniformMatrix4fv(loc, count, GL_FALSE, v);
+}
+
 void ShaderEffect::SetVec4(std::string& name, int count, float* v) {
     int loc = glGetUniformLocation(mProgram, name.c_str());
     glUniform4fv(loc, count, v);

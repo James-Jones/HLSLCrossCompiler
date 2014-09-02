@@ -93,14 +93,14 @@ typedef enum {
 } INOUT_COMPONENT_TYPE;
 
 typedef enum MIN_PRECISION { 
-  D3D_MIN_PRECISION_DEFAULT    = 0,
-  D3D_MIN_PRECISION_FLOAT_16   = 1,
-  D3D_MIN_PRECISION_FLOAT_2_8  = 2,
-  D3D_MIN_PRECISION_RESERVED   = 3,
-  D3D_MIN_PRECISION_SINT_16    = 4,
-  D3D_MIN_PRECISION_UINT_16    = 5,
-  D3D_MIN_PRECISION_ANY_16     = 0xf0,
-  D3D_MIN_PRECISION_ANY_10     = 0xf1
+  MIN_PRECISION_DEFAULT    = 0,
+  MIN_PRECISION_FLOAT_16   = 1,
+  MIN_PRECISION_FLOAT_2_8  = 2,
+  MIN_PRECISION_RESERVED   = 3,
+  MIN_PRECISION_SINT_16    = 4,
+  MIN_PRECISION_UINT_16    = 5,
+  MIN_PRECISION_ANY_16     = 0xf0,
+  MIN_PRECISION_ANY_10     = 0xf1
 } MIN_PRECISION;
 
 typedef struct InOutSignature_TAG
@@ -434,6 +434,12 @@ static const unsigned int HLSLCC_FLAG_INOUT_APPEND_SEMANTIC_NAMES = 0x100;
 
 //If set, combines texture/sampler pairs used together into samplers named "texturename_X_samplername".
 static const unsigned int HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS = 0x200;
+
+//If set, attribute and uniform explicit location qualifiers are disabled (even if the language version supports that)
+static const unsigned int HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS = 0x400;
+
+//If set, global uniforms are not stored in a struct.
+static const unsigned int HLSLCC_FLAG_DISABLE_GLOBALS_STRUCT = 0x800;
 
 #ifdef __cplusplus
 extern "C" {

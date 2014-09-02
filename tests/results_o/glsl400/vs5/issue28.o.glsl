@@ -10,6 +10,11 @@ struct uvec1 {
 struct ivec1 {
 	int x;
 };
+uniform struct RenderTargetParamsVS_Type {
+	int Width;
+	int Height;
+	float AspectRatio;
+} RenderTargetParamsVS;
 layout(location = 0)  in  vec4 dcl_Input0;
 vec4 Input0;
 #undef Output0
@@ -24,22 +29,21 @@ void main()
     Input0 = dcl_Input0;
     //--- End Early Main ---
     //Instruction 0
-    //DP4
-    Temp[0].x = (vec4(dot(Input0, Input0)).x);
+    //DP2
+    Temp[0].x = (vec4(dot((Input0.xyxx).xy, (Input0.xyxx).xy)).x);
     //Instruction 1
-    //NE
-    Temp[0].x = uintBitsToFloat(((Temp[0].x)!= (0.000000)) ? 0xFFFFFFFFu : 0u);
+    //MIN
+    Temp[0].x = (vec4(min(Temp[0].x, 1.000000)).x);
     //Instruction 2
-    //MOVC
-    if(ivec4(floatBitsToInt(Temp[0].x)).x != 0) {
-        Output0.z = vec4(intBitsToFloat(int(0x40000000)));
-    } else {
-        Output0.z = Input0.z;
-    }
+    //ADD
+    Output0.xy = (-Temp[0].xxxx + vec4(1.000000, 1.000000, 0.000000, 0.000000)).xy;
     //Instruction 3
-    //MOV
-    Output0.xyw = vec4(Input0.xyxw).xyw;
+    //ISHL
+    Temp[0].xy = uintBitsToFloat((uvec4(uvec4(RenderTargetParamsVS.Width)) << uvec4(uvec4(1u, 1u, 0u, 0u))).xy);
     //Instruction 4
+    //ITOF
+    Output0.zw = (vec4(floatBitsToUint(Temp[0].xxxy)).zw);
+    //Instruction 5
     //RET
     //--- Post shader code ---
     gl_Position = vec4(phase0_Output0);

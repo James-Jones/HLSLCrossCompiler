@@ -1,5 +1,4 @@
-#version 150
-#extension GL_ARB_shader_bit_encoding : require
+#version 330
 struct vec1 {
 	float x;
 };
@@ -25,7 +24,7 @@ out vec4 VtxGeoOutput1;
 #define Output1 VtxGeoOutput1
 #undef Output2
 #define Output2 phase0_Output2
-vec4 phase0_Output2;
+ivec4 phase0_Output2;
 layout(max_vertices = 3) out;
 void main()
 {
@@ -39,25 +38,25 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //MOV
-    Temp_int[0].x = ivec4(int(0x0)).x;
+    Temp_int[0].x = 0x0;
     //Instruction 1
     //LOOP
     while(true){
         //Instruction 2
         //IGE
-        Temp_int[0].y = (((Temp_int[0].x)>= (int(0x3))) ? int(0xFFFFFFFF) : 0);
+        // IGE+BREAKC opt
+        if ((Temp_int[0].x>= 0x3)) { break; }
+        Temp_int[0].y = int((Temp_int[0].x>=0x3) ? 0xFFFFFFFFu : 0u);
         //Instruction 3
-        //BREAKC
-        if((Temp_int[0].y)!=0){break;}
         //Instruction 4
         //MOV
-        Output0 = vec4(gl_in[int(Temp_int[0].x)].gl_Position).xyzw;
+        Output0 = gl_in[Temp_int[0].x].gl_Position;
         //Instruction 5
         //MOV
-        Output1.xy = vec4(Input1[int(Temp_int[0].x)].xyxx).xy;
+        Output1.xy = Input1[Temp_int[0].x].xy;
         //Instruction 6
         //MOV
-        Output2.x = uvec4(Input2[int(Temp_int[0].x)].x).x;
+        Output2.x = int(Input2[Temp_int[0].x].x);
         //Instruction 7
         //EMIT
         //--- Post shader code ---
@@ -67,7 +66,7 @@ void main()
                 EmitVertex();
         //Instruction 8
         //IADD
-        Temp_int[0].x = (Temp_int[0].x + int(0x1));
+        Temp_int[0].x = Temp_int[0].x + 0x1;
         //Instruction 9
     //ENDLOOP
     }

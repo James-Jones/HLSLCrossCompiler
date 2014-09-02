@@ -1,2 +1,0 @@
-0(49) : error C1115: unable to find compatible overloaded function "floatBitsToInt(float64_t)"
-0(54) : error C1115: unable to find compatible overloaded function "floatBitsToInt(float64_t)"

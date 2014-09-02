@@ -8,8 +8,13 @@
 #include <float.h>
 
 #ifdef _MSC_VER
-#define isnan(x) _isnan(x)
-#define isinf(x) (!_finite(x))
+	#ifndef isnan
+	#define isnan(x) _isnan(x)
+	#endif
+
+	#ifndef isinf
+	#define isinf(x) (!_finite(x))
+	#endif
 #endif
 
 #define fpcheck(x) (isnan(x) || isinf(x))
@@ -95,7 +100,7 @@ void DeclareConstBufferShaderVariable(bstring glsl, const char* Name, const stru
         {
             case SVT_FLOAT:
             {
-                bformata(glsl, "\tvec4 %s[4", Name);
+                bformata(glsl, "\tmat4 %s", Name);
                 break;
             }
 			default:
@@ -106,9 +111,8 @@ void DeclareConstBufferShaderVariable(bstring glsl, const char* Name, const stru
         }
 		if(psType->Elements > 1)
 		{
-			bformata(glsl, " * %d", psType->Elements);
+			bformata(glsl, "[%d]", psType->Elements);
 		}
-		bformata(glsl, "]");
     }
     else
     if(psType->Class == SVC_VECTOR)
@@ -133,6 +137,11 @@ void DeclareConstBufferShaderVariable(bstring glsl, const char* Name, const stru
             case SVT_DOUBLE:
             {
                 bformata(glsl, "\tdvec%d %s", psType->Columns, Name);
+                break;
+            }
+            case SVT_BOOL:
+            {
+                bformata(glsl, "\tbvec%d %s", psType->Columns, Name);
                 break;
             }
 			default:
@@ -178,6 +187,8 @@ void DeclareConstBufferShaderVariable(bstring glsl, const char* Name, const stru
 				//Allows implicit conversions to integer and
 				//bool consumes 4-bytes in HLSL and GLSL anyway.
 				bformata(glsl, "\tint %s", Name);
+				// Also change the definition in the type tree.
+				((ShaderVarType *)psType)->Type = SVT_INT;
 				break;
 			}
 			default:
@@ -240,6 +251,9 @@ const char* GetDeclaredInputName(const HLSLCrossCompilerContext* psContext, cons
 
 	if((psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES) && found)
 	{
+		if (eShaderType == VERTEX_SHADER) /* We cannot have input and output names conflict, but vs output must match ps input. Prefix vs input. */
+			inputName = bformat("in_%s%d", psIn->SemanticName, psIn->ui32SemanticIndex);
+		else
 		inputName = bformat("%s%d", psIn->SemanticName, psIn->ui32SemanticIndex);
 	}
 	else if(eShaderType == GEOMETRY_SHADER)
@@ -437,9 +451,11 @@ static void DeclareInput(
             }
         }
 
-        if( HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage,psContext->psShader->extensions) ||
-           (psShader->eShaderType == VERTEX_SHADER && HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage)))
+		if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags) ||
+			(psShader->eShaderType == VERTEX_SHADER && HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->flags)))
         {
+			// Skip location if requested by the flags.
+			if (!(psContext->flags & HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS))
             bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
         }
 
@@ -560,6 +576,9 @@ void AddBuiltinInput(HLSLCrossCompilerContext* psContext, const Declaration* psD
 			case SVT_UINT:
 				bformata(glsl, "uvec4 ");
 				break;
+			case SVT_BOOL:
+				bformata(glsl, "bvec4 ");
+				break;
 			default:
 				bformata(glsl, "vec4 ");
 				break;
@@ -582,7 +601,7 @@ void AddBuiltinInput(HLSLCrossCompilerContext* psContext, const Declaration* psD
     psContext->currentGLSLString = &psContext->earlyMain;
     psContext->indent++;
     AddIndentation(psContext);
-    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_DESTINATION);
 
     bformata(psContext->earlyMain, " = %s", builtinName);
 
@@ -654,8 +673,16 @@ void AddBuiltinOutput(HLSLCrossCompilerContext* psContext, const Declaration* ps
         TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
         bcatcstr(glsl, "\n");
 
-        bcatcstr(glsl, "vec4 ");
-        bformata(glsl, "phase%d_", psContext->currentPhase);
+		switch (type)
+		{
+		case GLVARTYPE_INT:
+			bcatcstr(glsl, "ivec4 ");
+			break;
+		default:
+			bcatcstr(glsl, "vec4 ");
+		}
+		
+		bformata(glsl, "phase%d_", psContext->currentPhase);
         TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NAME_ONLY);
         if(arrayElements)
             bformata(glsl, "[%d];\n", arrayElements);
@@ -762,7 +789,7 @@ void AddBuiltinOutput(HLSLCrossCompilerContext* psContext, const Declaration* ps
 				{
 					AddIndentation(psContext);
 					bformata(glsl, "%s = %s(phase%d_", builtinName, GetTypeString(type), psContext->currentPhase);
-					TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+					TranslateOperand(psContext, &psDecl->asOperands[0], type == GLVARTYPE_INT ? TO_FLAG_INTEGER : TO_FLAG_NONE);
 					bformata(glsl, ");\n");
 				}
             }
@@ -882,7 +909,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 							int stream = 0;
 							const char* OutputName = GetDeclaredOutputName(psContext, PIXEL_SHADER, psOperand, &stream);
 
-                            if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage,psContext->psShader->extensions) || HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage))
+							if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags) || HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->flags))
                             {
                                 uint32_t index = 0;
                                 uint32_t renderTarget = psDecl->asOperands[0].ui32RegisterNumber;
@@ -932,8 +959,9 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
                     }
                 }
 
-                if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
+				if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
                 {
+					if (!(psContext->flags & HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS))
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
 
@@ -954,7 +982,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 				int stream = 0;
 				const char* OutputName = GetDeclaredOutputName(psContext, GEOMETRY_SHADER, psOperand, &stream);
 
-                if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
+				if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
                 {
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
@@ -977,7 +1005,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 
                 ASSERT(psDecl->asOperands[0].ui32RegisterNumber!=0);//Reg 0 should be gl_out[gl_InvocationID].gl_Position.
 
-                if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
+				if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
                 {
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
@@ -989,7 +1017,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 			{
 				int stream = 0;
 				const char* OutputName = GetDeclaredOutputName(psContext, DOMAIN_SHADER, psOperand, &stream);
-                if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
+				if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
                 {
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
@@ -1039,8 +1067,9 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 				&psShader->sInfo,
 				&psSignature);
 
-			if(HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
+			if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
 			{
+				if (!((psShader->eShaderType == VERTEX_SHADER) && (psContext->flags & HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS)))
 				bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
 			}
 
@@ -1099,7 +1128,7 @@ void DeclareUBOConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui3
 	}
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
-    if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
+	if (HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
         bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
 
 	bformata(glsl, "uniform %s {\n ", Name);
@@ -1139,7 +1168,7 @@ void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t u
 	}
 	else
 	{
-		bformata(StructName, "UAV%d", psOperand->ui32RegisterNumber);
+		ResourceName(StructName, psContext, RGROUP_UAV, psOperand->ui32RegisterNumber, 0);
 	}
 
     PreDeclareStructType(glsl,
@@ -1147,7 +1176,7 @@ void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t u
         &psCBuf->asVars[0].sType);
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
-    if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
+	if (HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
         bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
 
     if(ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
@@ -1178,34 +1207,50 @@ void DeclareStructConstants(HLSLCrossCompilerContext* psContext, const uint32_t 
 							bstring glsl)
 {
     uint32_t i;
+	int useGlobalsStruct = 1;
 
+	if(psContext->flags & HLSLCC_FLAG_DISABLE_GLOBALS_STRUCT && psCBuf->Name[0] == '$')
+		useGlobalsStruct = 0;
+
+	if(useGlobalsStruct)
+	{
 	for(i=0; i < psCBuf->ui32NumVars; ++i)
 	{
         PreDeclareStructType(glsl,
 			psCBuf->asVars[i].Name,
             &psCBuf->asVars[i].sType);
 	}
+	}
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
-    if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
+	if (HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
         bformata(glsl, "layout(location = %d) ", ui32BindingPoint);
+	if(useGlobalsStruct)
+	{
     bcatcstr(glsl, "uniform struct ");
     TranslateOperand(psContext, psOperand, TO_FLAG_DECLARATION_NAME);
 
     bcatcstr(glsl, "_Type {\n");
+	}
 
     for(i=0; i < psCBuf->ui32NumVars; ++i)
     {
+		if(!useGlobalsStruct)
+			bcatcstr(glsl, "uniform ");
+
         DeclareConstBufferShaderVariable(glsl,
 			psCBuf->asVars[i].Name,
             &psCBuf->asVars[i].sType, 0);
     }
                 
+	if(useGlobalsStruct)
+	{
     bcatcstr(glsl, "} ");
 
     TranslateOperand(psContext, psOperand, TO_FLAG_DECLARATION_NAME);
 
     bcatcstr(glsl, ";\n");
+}
 }
 
 char* GetSamplerType(HLSLCrossCompilerContext* psContext,
@@ -1407,14 +1452,14 @@ static void TranslateResourceTexture(HLSLCrossCompilerContext* psContext, const 
         bcatcstr(glsl, "uniform ");
         bcatcstr(glsl, samplerTypeName);
         bcatcstr(glsl, "Shadow ");
-        TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 1);
+		ResourceName(glsl, psContext, RGROUP_TEXTURE, psDecl->asOperands[0].ui32RegisterNumber, 1);
         bcatcstr(glsl, ";\n");
     }
                         
     bcatcstr(glsl, "uniform ");
     bcatcstr(glsl, samplerTypeName);
     bcatcstr(glsl, " ");
-    TextureName(psContext, psDecl->asOperands[0].ui32RegisterNumber, 0);
+	ResourceName(glsl, psContext, RGROUP_TEXTURE, psDecl->asOperands[0].ui32RegisterNumber, 0);
     bcatcstr(glsl, ";\n");
 }
 
@@ -1858,7 +1903,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				bformata(glsl, "const vec4 ImmConst%d = ", psDest->ui32RegisterNumber);
 				AddToDx9ImmConstIndexableArray(psContext, psDest);
 			}
-            TranslateOperand(psContext, psSrc, TO_FLAG_NONE);
+            TranslateOperand(psContext, psSrc, psDest->eType == OPERAND_TYPE_SPECIAL_IMMCONSTINT ? TO_FLAG_INTEGER : TO_AUTO_BITCAST_TO_FLOAT);
             bcatcstr(glsl, ";\n");
 			
             break;
@@ -1876,7 +1921,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			// We don't have a original resource name, maybe generate one???
 			if(!psCBuf)
 			{
-				if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
+				if (HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
 					bformata(glsl, "layout(location = %d) ",ui32BindingPoint);
 					
 				bformata(glsl, "layout(std140) uniform ConstantBuffer%d {\n\tvec4 data[%d];\n} cb%d;\n", ui32BindingPoint,psOperand->aui32ArraySizes[1],ui32BindingPoint);
@@ -1935,7 +1980,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
         case OPCODE_DCL_RESOURCE:
         {
-            if(HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage,psContext->psShader->extensions))
+			if (HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
             {
                 // Explicit layout bindings are not currently compatible with combined texture samplers. The layout below assumes there is exactly one GLSL sampler
                 // for each HLSL texture declaration, but when combining textures+samplers, there can be multiple OGL samplers for each HLSL texture declaration.
@@ -2359,6 +2404,8 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
         case OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED:
         {
+			// non-float images need either 'i' or 'u' prefix.
+			char imageTypePrefix[2] = { 0, 0 };
             if(psDecl->sUAV.ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
             {
                 bcatcstr(glsl, "coherent ");
@@ -2388,9 +2435,11 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 					break;
 				case RETURN_TYPE_UINT:
 					bcatcstr(glsl, "layout(rgba32ui) ");
+					imageTypePrefix[0] = 'u';
 					break;
 				case RETURN_TYPE_SINT:
 					bcatcstr(glsl, "layout(rgba32i) ");
+					imageTypePrefix[0] = 'i';
 					break;
 				default:
 					ASSERT(0);
@@ -2399,57 +2448,57 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 
             switch(psDecl->value.eResourceDimension)
             {
-                case RESOURCE_DIMENSION_BUFFER:
-                {
-                    bcatcstr(glsl, "uniform imageBuffer ");
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE1D:
-                {
-					bcatcstr(glsl, "uniform image1D ");
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2D:
-                {
-					bcatcstr(glsl, "uniform image2D ");
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2DMS:
-                {
-                    bcatcstr(glsl, "uniform image2DMS ");
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE3D:
-                {
-                    bcatcstr(glsl, "uniform image3D ");
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURECUBE:
-                {
-					bcatcstr(glsl, "uniform imageCube ");
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE1DARRAY:
-                {
-					bcatcstr(glsl, "uniform image1DArray ");
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2DARRAY:
-                {
-					bcatcstr(glsl, "uniform image2DArray ");
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
-                {
-                    bcatcstr(glsl, "uniform image3DArray ");
-                    break;
-                }
-                case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
-                {
-					bcatcstr(glsl, "uniform imageCubeArray ");
-                    break;
-                }
-            }
+			case RESOURCE_DIMENSION_BUFFER:
+			{
+				bformata(glsl, "uniform %simageBuffer ", imageTypePrefix);
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURE1D:
+			{
+				bformata(glsl, "uniform %simage1D ", imageTypePrefix);
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURE2D:
+			{
+				bformata(glsl, "uniform %simage2D ", imageTypePrefix);
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURE2DMS:
+			{
+				bformata(glsl, "uniform %simage2DMS ", imageTypePrefix);
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURE3D:
+			{
+				bformata(glsl, "uniform %simage3D ", imageTypePrefix);
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURECUBE:
+			{
+				bformata(glsl, "uniform %simageCube ", imageTypePrefix);
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+			{
+				bformata(glsl, "uniform %simage1DArray ", imageTypePrefix);
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+			{
+				bformata(glsl, "uniform %simage2DArray ", imageTypePrefix);
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
+			{
+				bformata(glsl, "uniform %simage3DArray ", imageTypePrefix);
+				break;
+			}
+			case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+			{
+				bformata(glsl, "uniform %simageCubeArray ", imageTypePrefix);
+				break;
+			}
+			}
             TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ";\n");
             break;
@@ -2461,7 +2510,9 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 
 			if(psDecl->sUAV.bCounter)
 			{
-				bformata(glsl, "layout (binding = 1) uniform atomic_uint UAV%d_counter;\n", psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "layout (binding = 1) uniform atomic_uint ");
+				ResourceName(glsl, psContext, RGROUP_UAV, psDecl->asOperands[0].ui32RegisterNumber, 0);
+				bformata(glsl, "_counter; \n");
 			}
 
 			GetConstantBufferFromBindingPoint(RGROUP_UAV, ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
@@ -2474,10 +2525,15 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 		{
 			if(psDecl->sUAV.bCounter)
 			{
-				bformata(glsl, "layout (binding = 1) uniform atomic_uint UAV%d_counter;\n", psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "layout (binding = 1) uniform atomic_uint ");
+				ResourceName(glsl, psContext, RGROUP_UAV, psDecl->asOperands[0].ui32RegisterNumber, 0);
+				bformata(glsl, "_counter; \n");
 			}
 
-			bformata(glsl, "buffer Block%d {\n\tuint UAV%d[];\n};\n", psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32RegisterNumber);
+			bformata(glsl, "buffer Block%d {\n\tuint ", psDecl->asOperands[0].ui32RegisterNumber);
+			ResourceName(glsl, psContext, RGROUP_UAV, psDecl->asOperands[0].ui32RegisterNumber, 0);
+			bcatcstr(glsl, "[];\n};\n");
+
 			break;
 		}
         case OPCODE_DCL_RESOURCE_STRUCTURED:
@@ -2501,9 +2557,9 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 
 			ASSERT(psDecl->asOperands[0].ui32RegisterNumber < MAX_GROUPSHARED);
 
-			bcatcstr(glsl, "shared struct {");
-				bformata(glsl, "float value[%d];", psDecl->sTGSM.ui32Stride/4);
-			bcatcstr(glsl, "}");
+			bcatcstr(glsl, "shared struct {\n");
+				bformata(glsl, "uint value[%d];\n", psDecl->sTGSM.ui32Stride/4);
+			bcatcstr(glsl, "} ");
 			TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
             bformata(glsl, "[%d];\n",
 				psDecl->sTGSM.ui32Count);

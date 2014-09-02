@@ -39,8 +39,8 @@ vec4 Input4;
 vec4 Temp[8];
 ivec4 Temp_int[8];
 uniform struct GlobalsVS_Type {
-	vec4 g_mW2C[4];
-	vec4 vJointMatrix[4 * 48];
+	mat4 g_mW2C;
+	mat4 vJointMatrix[48];
 } GlobalsVS;
 vec4 ImmConstArray [5];
 void main()
@@ -63,112 +63,112 @@ void main()
     Temp[0] = vec4(ImmConst196.w);
     //Instruction 1
     //MOV
-    Temp[1].xyz = vec4(ImmConst196.w).xyz;
+    Temp[1].xyz = vec3(ImmConst196.w);
     //Instruction 2
     //LOOP
-    for(LoopCounter = IntImmConst0.xyzw.y, ZeroBasedCounter = 0;ZeroBasedCounter < IntImmConst0.xyzw.x;LoopCounter += IntImmConst0.xyzw.z, ZeroBasedCounter++){
+    for(LoopCounter = IntImmConst0.y, ZeroBasedCounter = 0;ZeroBasedCounter < IntImmConst0.x;LoopCounter += IntImmConst0.z, ZeroBasedCounter++){
         //Instruction 3
         //DP4
-        Temp[1].w = (vec4(dot(Input3.xyzw, ImmConstArray[1 + LoopCounter].xyzw)).w);
+        Temp[1].w = dot(Input3, ImmConstArray[1 + LoopCounter]);
         //Instruction 4
         //DP4
-        Temp[2].x = (vec4(dot(Input4.xyzw, ImmConstArray[1 + LoopCounter].xyzw)).x);
+        Temp[2].x = dot(Input4, ImmConstArray[1 + LoopCounter]);
         //Instruction 5
         //FRC
-        Temp[2].y = (vec4(fract(Temp[1].w)).y);
+        Temp[2].y = fract(Temp[1].w);
         //Instruction 6
         //MOV
-        Temp[2].y = vec4(-Temp[2].y).y;
+        Temp[2].y = (-Temp[2].y);
         //Instruction 7
         //ADD
-        Temp[1].w = (Temp[1].w + Temp[2].y);
+        Temp[1].w = Temp[1].w + Temp[2].y;
         //Instruction 8
         //MUL
-        Temp[1].w = (Temp[1].w * ImmConst200.x);
+        Temp[1].w = Temp[1].w * ImmConst200.x;
         //Instruction 9
         //ROUND_NI
-        Address.x = (ivec4(floor(Temp[1].w)).x);
+        Address.x = int(floor(Temp[1].w));
         //Instruction 10
         //MOV
-        Temp[3] = vec4(GlobalsVS.vJointMatrix[Address.x].xyzw).xyzw;
+        Temp[3] = GlobalsVS.vJointMatrix[(Address.x) / 4][int(mod(float(Address.x), 4.0))];
         //Instruction 11
         //MOV
-        Temp[4] = vec4(GlobalsVS.vJointMatrix[Address.x].xyzw).xyzw;
+        Temp[4] = GlobalsVS.vJointMatrix[(Address.x) / 4][int(mod(float(Address.x), 4.0))];
         //Instruction 12
         //MOV
-        Temp[5] = vec4(GlobalsVS.vJointMatrix[Address.x].xyzw).xyzw;
+        Temp[5] = GlobalsVS.vJointMatrix[(Address.x) / 4][int(mod(float(Address.x), 4.0))];
         //Instruction 13
         //MOV
-        Temp[6] = vec4(GlobalsVS.vJointMatrix[Address.x].xyzw).xyzw;
+        Temp[6] = GlobalsVS.vJointMatrix[(Address.x) / 4][int(mod(float(Address.x), 4.0))];
         //Instruction 14
         //DP4
-        Temp[7].x = (vec4(dot(Input0.xyzw, Temp[3].xyzw)).x);
+        Temp[7].x = dot(Input0, Temp[3]);
         //Instruction 15
         //DP4
-        Temp[7].y = (vec4(dot(Input0.xyzw, Temp[4].xyzw)).y);
+        Temp[7].y = dot(Input0, Temp[4]);
         //Instruction 16
         //DP4
-        Temp[7].z = (vec4(dot(Input0.xyzw, Temp[5].xyzw)).z);
+        Temp[7].z = dot(Input0, Temp[5]);
         //Instruction 17
         //DP4
-        Temp[7].w = (vec4(dot(Input0.xyzw, Temp[6].xyzw)).w);
+        Temp[7].w = dot(Input0, Temp[6]);
         //Instruction 18
         //MUL
-        Temp[6] = (Temp[2].x * Temp[7].xyzw);
+        Temp[6] = Temp[2].x * Temp[7];
         //Instruction 19
         //ADD
-        Temp[0] = (Temp[0].xyzw + Temp[6].xyzw);
+        Temp[0] = Temp[0] + Temp[6];
         //Instruction 20
         //DP3
-        Temp[3].x = (vec4(dot((Input1.xyzw).xyz, (Temp[3].xyzw).xyz)).x);
+        Temp[3].x = dot(Input1.xyz, Temp[3].xyz);
         //Instruction 21
         //DP3
-        Temp[3].y = (vec4(dot((Input1.xyzw).xyz, (Temp[4].xyzw).xyz)).y);
+        Temp[3].y = dot(Input1.xyz, Temp[4].xyz);
         //Instruction 22
         //DP3
-        Temp[3].z = (vec4(dot((Input1.xyzw).xyz, (Temp[5].xyzw).xyz)).z);
+        Temp[3].z = dot(Input1.xyz, Temp[5].xyz);
         //Instruction 23
         //MUL
-        Temp[2].xyz = (Temp[2].x * Temp[3].xyzw).xyz;
+        Temp[2].xyz = Temp[2].x * Temp[3].xyz;
         //Instruction 24
         //ADD
-        Temp[1].xyz = (Temp[1].xyzw + Temp[2].xyzw).xyz;
+        Temp[1].xyz = Temp[1].xyz + Temp[2].xyz;
         //Instruction 25
     //ENDLOOP
     }
     //Instruction 26
     //DP4
-    Temp[2].x = (vec4(dot(Temp[0].xyzw, GlobalsVS.g_mW2C[0].xyzw)).x);
+    Temp[2].x = dot(Temp[0], GlobalsVS.g_mW2C[0]);
     //Instruction 27
     //DP4
-    Temp[2].y = (vec4(dot(Temp[0].xyzw, GlobalsVS.g_mW2C[1].xyzw)).y);
+    Temp[2].y = dot(Temp[0], GlobalsVS.g_mW2C[1]);
     //Instruction 28
     //DP4
-    Temp[2].z = (vec4(dot(Temp[0].xyzw, GlobalsVS.g_mW2C[2].xyzw)).z);
+    Temp[2].z = dot(Temp[0], GlobalsVS.g_mW2C[2]);
     //Instruction 29
     //DP4
-    Temp[2].w = (vec4(dot(Temp[0].xyzw, GlobalsVS.g_mW2C[3].xyzw)).w);
+    Temp[2].w = dot(Temp[0], GlobalsVS.g_mW2C[3]);
     //Instruction 30
     //MOV
-    Temp[0].xy = vec4(Input2.xyzw).xy;
+    Temp[0].xy = Input2.xy;
     //Instruction 31
     //MOV
-    Temp[0].y = vec4(-Temp[0].y).y;
+    Temp[0].y = (-Temp[0].y);
     //Instruction 32
     //ADD
-    Temp[0].y = (Temp[0].y + ImmConst196.x);
+    Temp[0].y = Temp[0].y + ImmConst196.x;
     //Instruction 33
     //MOV
-    gl_Position = vec4(Temp[2].xyzw).xyzw;
+    gl_Position = Temp[2];
     //Instruction 34
     //MOV
-    TexCoord0.xyz = vec4(Temp[1].xyzw).xyz;
+    TexCoord0.xyz = Temp[1].xyz;
     //Instruction 35
     //MOV
-    TexCoord2.x = vec4(Temp[0].x).x;
+    TexCoord2.x = Temp[0].x;
     //Instruction 36
     //MOV
-    TexCoord2.y = vec4(Temp[0].y).y;
+    TexCoord2.y = Temp[0].y;
     //Instruction 37
     //RET
     return;

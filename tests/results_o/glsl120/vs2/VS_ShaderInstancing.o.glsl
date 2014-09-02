@@ -33,9 +33,9 @@ vec4 Input2;
 vec4 Temp[3];
 ivec4 Temp_int[3];
 uniform struct GlobalsVS_Type {
-	vec4 g_mProj[4];
-	vec4 g_mView[4];
-	vec4 g_mWorld[4];
+	mat4 g_mProj;
+	mat4 g_mView;
+	mat4 g_mWorld;
 	vec4 g_vBoxInstance_Color[120];
 	vec4 g_vBoxInstance_Position[120];
 } GlobalsVS;
@@ -54,92 +54,92 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //FRC
-    Temp[0].x = (vec4(fract(Input2.x)).x);
+    Temp[0].x = fract(Input2.x);
     //Instruction 1
     //ADD
-    Temp[0].x = (-Temp[0].x + Input2.x);
+    Temp[0].x = (-Temp[0].x) + Input2.x;
     //Instruction 2
     //ROUND_NI
-    Address.x = (ivec4(floor(Temp[0].x)).x);
+    Address.x = int(floor(Temp[0].x));
     //Instruction 3
     //MOV
-    Temp[0] = vec4(GlobalsVS.g_vBoxInstance_Position[Address.x].xyzw).xyzw;
+    Temp[0] = GlobalsVS.g_vBoxInstance_Position[Address.x];
     //Instruction 4
     //MAD
-    Temp[0].w = (Temp[0].w * ImmConst12.x + ImmConst12.y);
+    Temp[0].w = Temp[0].w * ImmConst12.x + ImmConst12.y;
     //Instruction 5
     //FRC
-    Temp[0].w = (vec4(fract(Temp[0].w)).w);
+    Temp[0].w = fract(Temp[0].w);
     //Instruction 6
     //MAD
-    Temp[0].w = (Temp[0].w * ImmConst12.z + ImmConst12.w);
+    Temp[0].w = Temp[0].w * ImmConst12.z + ImmConst12.w;
     //Instruction 7
     //SINCOS
-    Temp[1].x = (vec4(sin(Temp[0].w)).x);
-    Temp[1].y = (vec4(cos(Temp[0].w)).y);
+    Temp[1].x = sin(Temp[0].w);
+    Temp[1].y = cos(Temp[0].w);
     //Instruction 8
     //MUL
-    Temp[1].yzw = (Temp[1].xxyy * Input0.xxzx).yzw;
+    Temp[1].yzw = Temp[1].xyy * Input0.xzx;
     //Instruction 9
     //MAD
-    Temp[2].z = (Input0.z * Temp[1].x + -Temp[1].w);
+    Temp[2].z = Input0.z * Temp[1].x + (-Temp[1].w);
     //Instruction 10
     //ADD
-    Temp[2].x = (Temp[1].z + Temp[1].y);
+    Temp[2].x = Temp[1].z + Temp[1].y;
     //Instruction 11
     //MOV
-    Temp[2].y = vec4(Input0.y).y;
+    Temp[2].y = Input0.y;
     //Instruction 12
     //MAD
-    Temp[0].xyz = (vec4(Temp[0].xyzw * ImmConst13.x + Temp[2].xyzw)).xyz;
+    Temp[0].xyz = Temp[0].xyz * ImmConst13.x + Temp[2].xyz;
     //Instruction 13
     //MOV
-    BaseColour = vec4(GlobalsVS.g_vBoxInstance_Color[Address.x].xyzw).xyzw;
+    BaseColour = GlobalsVS.g_vBoxInstance_Color[Address.x];
     //Instruction 14
     //MOV
-    Temp[0].w = vec4(Input0.w).w;
+    Temp[0].w = Input0.w;
     //Instruction 15
     //ADD
-    Temp[0] = (Temp[0].xyzw + ImmConst13.yyyz);
+    Temp[0] = Temp[0] + ImmConst13.yyyz;
     //Instruction 16
     //DP4
-    Temp[1].x = (vec4(dot(Temp[0].xyzw, GlobalsVS.g_mWorld[0].xyzw)).x);
+    Temp[1].x = dot(Temp[0], GlobalsVS.g_mWorld[0]);
     //Instruction 17
     //DP4
-    Temp[1].y = (vec4(dot(Temp[0].xyzw, GlobalsVS.g_mWorld[1].xyzw)).y);
+    Temp[1].y = dot(Temp[0], GlobalsVS.g_mWorld[1]);
     //Instruction 18
     //DP4
-    Temp[1].z = (vec4(dot(Temp[0].xyzw, GlobalsVS.g_mWorld[2].xyzw)).z);
+    Temp[1].z = dot(Temp[0], GlobalsVS.g_mWorld[2]);
     //Instruction 19
     //DP4
-    Temp[1].w = (vec4(dot(Temp[0].xyzw, GlobalsVS.g_mWorld[3].xyzw)).w);
+    Temp[1].w = dot(Temp[0], GlobalsVS.g_mWorld[3]);
     //Instruction 20
     //DP4
-    Temp[0].x = (vec4(dot(Temp[1].xyzw, GlobalsVS.g_mView[0].xyzw)).x);
+    Temp[0].x = dot(Temp[1], GlobalsVS.g_mView[0]);
     //Instruction 21
     //DP4
-    Temp[0].y = (vec4(dot(Temp[1].xyzw, GlobalsVS.g_mView[1].xyzw)).y);
+    Temp[0].y = dot(Temp[1], GlobalsVS.g_mView[1]);
     //Instruction 22
     //DP4
-    Temp[0].z = (vec4(dot(Temp[1].xyzw, GlobalsVS.g_mView[2].xyzw)).z);
+    Temp[0].z = dot(Temp[1], GlobalsVS.g_mView[2]);
     //Instruction 23
     //DP4
-    Temp[0].w = (vec4(dot(Temp[1].xyzw, GlobalsVS.g_mView[3].xyzw)).w);
+    Temp[0].w = dot(Temp[1], GlobalsVS.g_mView[3]);
     //Instruction 24
     //DP4
-    gl_Position.x = (vec4(dot(Temp[0].xyzw, GlobalsVS.g_mProj[0].xyzw)).x);
+    gl_Position.x = dot(Temp[0], GlobalsVS.g_mProj[0]);
     //Instruction 25
     //DP4
-    gl_Position.y = (vec4(dot(Temp[0].xyzw, GlobalsVS.g_mProj[1].xyzw)).y);
+    gl_Position.y = dot(Temp[0], GlobalsVS.g_mProj[1]);
     //Instruction 26
     //DP4
-    gl_Position.z = (vec4(dot(Temp[0].xyzw, GlobalsVS.g_mProj[2].xyzw)).z);
+    gl_Position.z = dot(Temp[0], GlobalsVS.g_mProj[2]);
     //Instruction 27
     //DP4
-    gl_Position.w = (vec4(dot(Temp[0].xyzw, GlobalsVS.g_mProj[3].xyzw)).w);
+    gl_Position.w = dot(Temp[0], GlobalsVS.g_mProj[3]);
     //Instruction 28
     //MOV
-    TexCoord0.xy = vec4(Input1.xyzw).xy;
+    TexCoord0.xy = Input1.xy;
     //Instruction 29
     //RET
     return;

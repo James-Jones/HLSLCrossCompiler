@@ -72,14 +72,14 @@ public:
 		SetFloatArray(gProjection, gChangesEveryFrame.Projection);
 
 		gChangesEveryFrame.Time = gTime;
-		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameVS.World"), 4, gChangesEveryFrame.World);
-		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameVS.View"), 4, gChangesEveryFrame.View);
-		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameVS.Projection"), 4, gChangesEveryFrame.Projection);
+		mExtrudeEffect.SetMat4(std::string("cbChangesEveryFrameVS.World"), 1, gChangesEveryFrame.World);
+		mExtrudeEffect.SetMat4(std::string("cbChangesEveryFrameVS.View"), 1, gChangesEveryFrame.View);
+		mExtrudeEffect.SetMat4(std::string("cbChangesEveryFrameVS.Projection"), 1, gChangesEveryFrame.Projection);
 		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameVS.Time"), 1, &gChangesEveryFrame.Time);
 
-		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameGS.World"), 4, gChangesEveryFrame.World);
-		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameGS.View"), 4, gChangesEveryFrame.View);
-		mExtrudeEffect.SetVec4(std::string("cbChangesEveryFrameGS.Projection"), 4, gChangesEveryFrame.Projection);
+		mExtrudeEffect.SetMat4(std::string("cbChangesEveryFrameGS.World"), 1, gChangesEveryFrame.World);
+		mExtrudeEffect.SetMat4(std::string("cbChangesEveryFrameGS.View"), 1, gChangesEveryFrame.View);
+		mExtrudeEffect.SetMat4(std::string("cbChangesEveryFrameGS.Projection"), 1, gChangesEveryFrame.Projection);
 		mExtrudeEffect.SetFloat(std::string("cbChangesEveryFrameGS.Time"), 1, &gChangesEveryFrame.Time);
 
 		SetFloatArray(vLightDirs, &gConstant.vLightDir[0]);

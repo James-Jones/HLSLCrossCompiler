@@ -1,4 +1,5 @@
 #version 430
+subroutine void SubroutineType();
 #extension GL_ARB_shader_bit_encoding : require
 struct vec1 {
 	float x;
@@ -9,7 +10,6 @@ struct uvec1 {
 struct ivec1 {
 	int x;
 };
-subroutine void SubroutineType();
 buffer Block0 {
 	uint RawRes0[];
 };
@@ -17,7 +17,7 @@ buffer Block1 {
 	uint RawRes1[];
 };
 buffer Block0 {
-	uint UAV0[];
+	uint BufferOut[];
 };
 vec4 Temp[3];
 ivec4 Temp_int[3];
@@ -29,25 +29,25 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //ISHL
-    Temp_int[0].x = int(gl_GlobalInvocationID.x) << int(0x3);
+    Temp[0].x = uintBitsToFloat(gl_GlobalInvocationID.xyzz.x << 3u);
     //Instruction 1
     //LD_RAW
-    Temp_int[0].yz.x = floatBitsToInt(RawRes0[Temp_int[0].x + 0]);
-    Temp_int[0].yz.y = floatBitsToInt(RawRes0[Temp_int[0].x + 1]);
+    Temp[0].yz.x = (RawRes0[ivec4(Temp[0]).x + 0]);
+    Temp[0].yz.y = (RawRes0[ivec4(Temp[0]).x + 1]);
     //Instruction 2
     //LD_RAW
-    Temp_int[1].xy.x = floatBitsToInt(RawRes1[Temp_int[0].x + 0]);
-    Temp_int[1].xy.y = floatBitsToInt(RawRes1[Temp_int[0].x + 1]);
+    Temp[1].xy.x = (RawRes1[ivec4(Temp[0]).x + 0]);
+    Temp[1].xy.y = (RawRes1[ivec4(Temp[0]).x + 1]);
     //Instruction 3
     //IADD
-    Temp_int[2].x = (Temp_int[0].y + Temp_int[1].x);
+    Temp_int[2].x = (floatBitsToInt(Temp[0].y) + floatBitsToInt(Temp[1].x));
     //Instruction 4
     //ADD
-    Temp_int[2].y = floatBitsToInt(intBitsToFloat(Temp_int[0]).z + intBitsToFloat(Temp_int[1]).y);
+    Temp[2].y = (Temp[0].z + Temp[1].y);
     //Instruction 5
     //STORE_RAW
-    UAV0[Temp_int[0].x + 0] = (Temp_int[2].xyxx.x);
-    UAV0[Temp_int[0].x + 1] = (Temp_int[2].xyxx.y);
+    BufferOut[ivec4(Temp[0]).x + 0] = (Temp_int[2].xyxx.x);
+    BufferOut[ivec4(Temp[0]).x + 1] = (Temp_int[2].xyxx.y);
     //Instruction 6
     //RET
     return;
