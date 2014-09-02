@@ -482,7 +482,7 @@ void main()
     //Instruction 135
     //DP3
     Temp[1].y = dot(Temp[2].ywz, Temp[1].xzw);
-    Temp[1].y = clamp(Temp[1], 0.0, 1.0);
+    Temp[1].y = clamp(Temp[1].y, 0.0, 1.0);
     //Instruction 136
     //DP3
     Temp[4].x = dot(Temp[0].xyz, Temp[2].yzw);
@@ -501,11 +501,11 @@ void main()
     //Instruction 141
     //DP3
     Temp[0].x = dot(Temp[4].xzy, Temp[1].xzw);
-    Temp[0].x = clamp(Temp[0], 0.0, 1.0);
+    Temp[0].x = clamp(Temp[0].x, 0.0, 1.0);
     //Instruction 142
     //POW
     Temp[1].x = pow(abs(Temp[0].x), GlobalsPS.g_fSpecularExponent);
-    Temp[1].x = clamp(Temp[1], 0.0, 1.0);
+    Temp[1].x = clamp(Temp[1].x, 0.0, 1.0);
     //Instruction 143
     //MUL
     Temp[4] = Temp[1].x * GlobalsPS.g_materialSpecularColor;

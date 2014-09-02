@@ -1,5 +1,4 @@
-#version 150
-#extension GL_ARB_shader_bit_encoding : require
+#version 330
 struct vec1 {
 	float x;
 };
@@ -9,12 +8,13 @@ struct uvec1 {
 struct ivec1 {
 	int x;
 };
+uniform sampler2D Texture_X_Texture;
 uniform sampler2D Texture;
  in  vec4 VtxGeoOutput0;
 vec4 Input0;
  in  vec4 VtxGeoOutput1;
 vec4 Input1;
-out  vec4 PixOutput0;
+layout(location = 0) out  vec4 PixOutput0;
 #define Output0 PixOutput0
 vec4 Temp[3];
 ivec4 Temp_int[3];
@@ -28,51 +28,43 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //SAMPLE
-    Temp_int[0] = floatBitsToInt(texture(Texture, Input0.yz));
+    Temp[0] = texture(Texture_X_Texture, Input0.yz);
     //Instruction 1
     //MUL
-    Temp_int[1].x = floatBitsToInt(intBitsToFloat(Temp_int[0]).w * Input1.x);
+    Temp[1].x = Temp[0].w * Input1.x;
     //Instruction 2
     //LT
-    Temp_int[1].x = floatBitsToInt(((0.250980)< (intBitsToFloat(Temp_int[1]).x)) ? int(0xFFFFFFFF) : 0);
+    Temp[1].x = uintBitsToFloat((0.250980<Temp[1].x) ? 0xFFFFFFFFu : 0u);
     //Instruction 3
     //AND
-    Temp_int[0] = (Temp_int[0] & Temp_int[1].xxxx);
+    Temp[0] = uintBitsToFloat(floatBitsToUint(Temp[0]) & floatBitsToUint(Temp[1]).xxxx);
     //Instruction 4
     //ADD
-    Temp_int[1].x = floatBitsToInt(-Input1.x + 1.000000);
+    Temp[1].x = (-Input1.x) + 1.000000;
     //Instruction 5
     //SAMPLE
-    Temp_int[2] = floatBitsToInt(texture(Texture, Input0.xz));
+    Temp[2] = texture(Texture_X_Texture, Input0.xz);
     //Instruction 6
     //MUL
-    Temp_int[1].x = floatBitsToInt(intBitsToFloat(Temp_int[1]).x * intBitsToFloat(Temp_int[2]).w);
+    Temp[1].x = Temp[1].x * Temp[2].w;
     //Instruction 7
     //LT
-    Temp_int[1].x = floatBitsToInt(((0.250980)< (intBitsToFloat(Temp_int[1]).x)) ? int(0xFFFFFFFF) : 0);
+    Temp[1].x = uintBitsToFloat((0.250980<Temp[1].x) ? 0xFFFFFFFFu : 0u);
     //Instruction 8
     //MOVC
-    if(ivec4(Temp_int[1].xxxx).x != 0) {
-        Temp_int[0] = Temp_int[2];
-    } else {
-        Temp_int[0] = Temp_int[0];
-    }
+    Temp[0] = (floatBitsToInt(Temp[1]).xxxx.x != 0) ? Temp[2] : Temp[0];
     //Instruction 9
     //SAMPLE
-    Temp_int[1] = floatBitsToInt(texture(Texture, Input1.zw));
+    Temp[1] = texture(Texture_X_Texture, Input1.zw);
     //Instruction 10
     //MUL
-    Temp_int[2].x = floatBitsToInt(intBitsToFloat(Temp_int[1]).w * Input1.y);
+    Temp[2].x = Temp[1].w * Input1.y;
     //Instruction 11
     //LT
-    Temp_int[2].x = floatBitsToInt(((0.250980)< (intBitsToFloat(Temp_int[2]).x)) ? int(0xFFFFFFFF) : 0);
+    Temp[2].x = uintBitsToFloat((0.250980<Temp[2].x) ? 0xFFFFFFFFu : 0u);
     //Instruction 12
     //MOVC
-    if(ivec4(Temp_int[2].xxxx).x != 0) {
-        Output0 = Temp_int[1];
-    } else {
-        Output0 = Temp_int[0];
-    }
+    Output0 = (floatBitsToInt(Temp[2]).xxxx.x != 0) ? Temp[1] : Temp[0];
     //Instruction 13
     //RET
     return;

@@ -1,5 +1,5 @@
 #version 400
-#extension GL_ARB_shader_bit_encoding : require
+subroutine void SubroutineType();
 struct vec1 {
 	float x;
 };
@@ -9,7 +9,6 @@ struct uvec1 {
 struct ivec1 {
 	int x;
 };
-subroutine void SubroutineType();
 layout(location = 0)  in  vec4 dcl_Input0;
 vec4 Input0;
 layout(location = 1)  in  vec4 dcl_Input1;
@@ -44,49 +43,49 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //MOV
-    Output0 = vec4(Input0).xyzw;
+    Output0 = Input0;
     //Instruction 1
     //AND
-    Temp_int[0].x = floatBitsToInt(Input1.x) & int(0x7F800000);
+    Temp[0].x = uintBitsToFloat(floatBitsToUint(Input1).x & 2139095040u);
     //Instruction 2
     //IADD
-    Temp_int[0].x = (Temp_int[0].x + int(0xC1000000));
+    Temp[0].x = intBitsToFloat(floatBitsToInt(Temp[0]).x + int(0xC1000000u));
     //Instruction 3
     //NE
-    Temp_int[0].y = floatBitsToInt(((Input1.x)!= (0.000000)) ? int(0xFFFFFFFF) : 0);
+    Temp[0].y = uintBitsToFloat((Input1.x!=0.000000) ? 0xFFFFFFFFu : 0u);
     //Instruction 4
     //AND
-    Temp_int[0].x = Temp_int[0].y & Temp_int[0].x;
+    Temp[0].x = uintBitsToFloat(floatBitsToUint(Temp[0]).y & floatBitsToUint(Temp[0]).x);
     //Instruction 5
     //ISHR
-    Temp_int[0].x = Temp_int[0].x >> int(0x17);
+    Temp[0].x = intBitsToFloat(floatBitsToInt(Temp[0]).x >> 0x17);
     //Instruction 6
     //ITOF
-    Output1.y = (vec4(Temp_int[0].x).y);
+    Output1.y = float(floatBitsToInt(Temp[0]).x);
     //Instruction 7
     //MUL
-    Temp_int[0].x = floatBitsToInt(Input4.x * 1.442695);
+    Temp[0].x = Input4.x * 1.442695;
     //Instruction 8
     //EXP
-    Output1.z = (vec4(exp2(intBitsToFloat(Temp_int[0]).x)).z);
+    Output1.z = exp2(Temp[0].x);
     //Instruction 9
     //BFI
-    Temp_int[0].x = ivec1(bitfieldInsert(int(0x3F000000),ivec4(Input1).x,int(0x0),int(0x17)) ).x;
+    Temp[0].x = ivec1(bitfieldInsert(0x3F000000,floatBitsToInt(Input1).x,0x0,0x17) ).x;
     //Instruction 10
     //AND
-    Output1.x = Temp_int[0].y & Temp_int[0].x;
+    Output1.x = uintBitsToFloat(floatBitsToUint(Temp[0]).y & floatBitsToUint(Temp[0]).x);
     //Instruction 11
     //EXP
-    Output1.w = (vec4(exp2(Input5.x)).w);
+    Output1.w = exp2(Input5.x);
     //Instruction 12
     //EXP
-    Temp_int[0].x = floatBitsToInt(vec4(exp2(Input3.x)).x);
+    Temp[0].x = exp2(Input3.x);
     //Instruction 13
     //MUL
-    Temp_int[0].x = floatBitsToInt(intBitsToFloat(Temp_int[0]).x * Input2.x);
+    Temp[0].x = Temp[0].x * Input2.x;
     //Instruction 14
     //FTOU
-    Output2.x = int(intBitsToFloat(Temp_int[0].x));
+    Output2.x = uint(Temp[0].x);
     //Instruction 15
     //RET
     //--- Post shader code ---

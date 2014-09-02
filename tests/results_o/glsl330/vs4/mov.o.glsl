@@ -1,5 +1,4 @@
-#version 150
-#extension GL_ARB_shader_bit_encoding : require
+#version 330
 struct vec1 {
 	float x;
 };
@@ -9,7 +8,7 @@ struct uvec1 {
 struct ivec1 {
 	int x;
 };
- in  vec4 dcl_Input0;
+layout(location = 0)  in  vec4 dcl_Input0;
 vec4 Input0;
 #undef Output0
 #define Output0 phase0_Output0
@@ -21,7 +20,7 @@ void main()
     //--- End Early Main ---
     //Instruction 0
     //MOV
-    Output0 = vec4(Input0).xyzw;
+    Output0 = Input0;
     //Instruction 1
     //RET
     //--- Post shader code ---
