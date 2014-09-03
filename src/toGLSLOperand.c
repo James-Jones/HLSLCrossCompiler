@@ -186,6 +186,12 @@ uint32_t GetNumSwizzleElementsWithMask(const Operand *psOperand, uint32_t ui32Co
 	{
 		case OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
 			return 1; // TODO: does mask make any sense here?
+		case OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP:
+		case OPERAND_TYPE_INPUT_THREAD_ID:
+		case OPERAND_TYPE_INPUT_THREAD_GROUP_ID:
+			// Adjust component count and break to more processing
+			((Operand *)psOperand)->iNumComponents = 3;
+			break;
 		case OPERAND_TYPE_IMMEDIATE32:
 		case OPERAND_TYPE_IMMEDIATE64:
 		case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
@@ -207,7 +213,7 @@ uint32_t GetNumSwizzleElementsWithMask(const Operand *psOperand, uint32_t ui32Co
 	}
 
     if(psOperand->iWriteMaskEnabled &&
-       psOperand->iNumComponents == 4)
+       psOperand->iNumComponents != 1)
     {
 		//Component Mask
 		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
@@ -464,7 +470,7 @@ void TranslateOperandSwizzleWithMask(HLSLCrossCompilerContext* psContext, const 
     }
 
     if(psOperand->iWriteMaskEnabled &&
-       psOperand->iNumComponents == 4)
+       psOperand->iNumComponents != 1)
     {
 		//Component Mask
 		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
@@ -1432,17 +1438,17 @@ static void TranslateVariableNameWithMask(HLSLCrossCompilerContext* psContext, c
         }
 		case OPERAND_TYPE_INPUT_THREAD_ID://SV_DispatchThreadID
 		{
-			bcatcstr(glsl, "gl_GlobalInvocationID.xyzz");
+			bcatcstr(glsl, "gl_GlobalInvocationID");
 			break;
 		}
 		case OPERAND_TYPE_INPUT_THREAD_GROUP_ID://SV_GroupThreadID
 		{
-			bcatcstr(glsl, "gl_LocalInvocationID.xyzz");
+			bcatcstr(glsl, "gl_LocalInvocationID");
 			break;
 		}
 		case OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP://SV_GroupID
 		{
-			bcatcstr(glsl, "gl_WorkGroupID.xyzz");
+			bcatcstr(glsl, "gl_WorkGroupID");
 			break;
 		}
 		case OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED://SV_GroupIndex
