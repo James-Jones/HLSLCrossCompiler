@@ -2286,7 +2286,7 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		}
 	}
 
-	if (psContext->psShader->ui32MajorVersion <= 3)
+//	if (psContext->psShader->ui32MajorVersion <= 3)
 	{
 		// First pass, do analysis: deduce the data type based on opcodes, fill out aeTempVecType table
 		// Only ever to int->float promotion (or int->uint), never the other way around
