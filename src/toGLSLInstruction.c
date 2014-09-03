@@ -2286,7 +2286,7 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 		}
 	}
 
-	if (psContext->psShader->ui32MajorVersion <= 3)
+//	if (psContext->psShader->ui32MajorVersion <= 3)
 	{
 		// First pass, do analysis: deduce the data type based on opcodes, fill out aeTempVecType table
 		// Only ever to int->float promotion (or int->uint), never the other way around
@@ -2864,7 +2864,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
 		//destQuotient, destRemainder, src0, src1
 		CallBinaryOp(psContext, "/", psInst, 0, 2, 3, SVT_UINT);
-		CallHelper2UInt(psContext, "mod", psInst, 1, 2, 3, 1);
+		CallBinaryOp(psContext, "%", psInst, 1, 2, 3, SVT_UINT);
 		break;
 	}
 	case OPCODE_DIV:

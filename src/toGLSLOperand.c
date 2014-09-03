@@ -791,8 +791,8 @@ static void printImmediate32(HLSLCrossCompilerContext *psContext, uint32_t value
 	bstring glsl = *psContext->currentGLSLString;
 	int needsParenthesis = 0;
 
-	// Print nan's and inf's as bit patterns.
-	if (eType == SVT_FLOAT && fpcheck(*((float *)(&value))))
+	// Print floats as bit patterns.
+	if (eType == SVT_FLOAT)
 	{
 		bcatcstr(glsl, "intBitsToFloat(");
 		eType = SVT_INT;
