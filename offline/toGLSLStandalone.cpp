@@ -616,7 +616,7 @@ int Run(const char* srcPath, const char* destPath, GLLang language, int flags, c
         {
             //Dump to file
             outputFile = fopen(destPath, "w");
-            fprintf(outputFile, result.sourceCode);
+            fwrite(result.sourceCode, strlen(result.sourceCode), 1, outputFile);
             fclose(outputFile);
         }
 
