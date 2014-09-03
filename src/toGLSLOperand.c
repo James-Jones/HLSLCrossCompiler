@@ -792,7 +792,7 @@ static void printImmediate32(HLSLCrossCompilerContext *psContext, uint32_t value
 	int needsParenthesis = 0;
 
 	// Print floats as bit patterns.
-	if (eType == SVT_FLOAT)
+	if (eType == SVT_FLOAT && psContext->psShader->ui32MajorVersion > 3)
 	{
 		bcatcstr(glsl, "intBitsToFloat(");
 		eType = SVT_INT;
