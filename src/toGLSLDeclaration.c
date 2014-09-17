@@ -303,7 +303,9 @@ const char* GetDeclaredOutputName(const HLSLCrossCompilerContext* psContext,
 	char* cstr;
 	InOutSignature* psOut;
 
-	int foundOutput = GetOutputSignatureFromRegister(psOperand->ui32RegisterNumber,
+	int foundOutput = GetOutputSignatureFromRegister(
+		psContext->currentPhase,
+		psOperand->ui32RegisterNumber,
 		psOperand->ui32CompMask,
 		psContext->psShader->ui32CurrentVertexOutputStream,
 		&psContext->psShader->sInfo,
@@ -658,7 +660,9 @@ void AddBuiltinOutput(HLSLCrossCompilerContext* psContext, const Declaration* ps
     {
         InOutSignature* psSignature = NULL;
 
-        GetOutputSignatureFromRegister(psDecl->asOperands[0].ui32RegisterNumber,
+        GetOutputSignatureFromRegister(
+			psContext->currentPhase,
+			psDecl->asOperands[0].ui32RegisterNumber,
 			psDecl->asOperands[0].ui32CompMask,
 			0,
 			&psShader->sInfo, &psSignature);
@@ -812,7 +816,9 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 
         InOutSignature* psSignature = NULL;
 
-        GetOutputSignatureFromRegister(psDecl->asOperands[0].ui32RegisterNumber,
+        GetOutputSignatureFromRegister(
+			psContext->currentPhase,
+			psDecl->asOperands[0].ui32RegisterNumber,
 			psDecl->asOperands[0].ui32CompMask,
 			psShader->ui32CurrentVertexOutputStream,
 			&psShader->sInfo,
@@ -1005,11 +1011,19 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 
                 ASSERT(psDecl->asOperands[0].ui32RegisterNumber!=0);//Reg 0 should be gl_out[gl_InvocationID].gl_Position.
 
-				if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
-                {
-                    bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
-                }
-				bformata(glsl, "out %s4 %s[];\n", type, OutputName);
+				if(psContext->currentPhase == HS_JOIN_PHASE)
+				{
+					bformata(glsl, "%s4 %s[];\n", type, OutputName);
+				}
+				else
+				{
+					if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
+					{
+						bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
+					}
+
+					bformata(glsl, "out %s4 %s[];\n", type, OutputName);
+				}
 				bformata(glsl, "#define Output%d %s[gl_InvocationID]\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName);
 				break;
 			}
@@ -1061,7 +1075,9 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 			int stream = 0;
 			const char* OutputName = GetDeclaredOutputName(psContext, psShader->eShaderType, psOperand, &stream);
 
-			GetOutputSignatureFromRegister(psOperand->ui32RegisterNumber,
+			GetOutputSignatureFromRegister(
+				psContext->currentPhase,
+				psOperand->ui32RegisterNumber,
 				psOperand->ui32CompMask,
 				0,
 				&psShader->sInfo,

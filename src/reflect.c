@@ -600,26 +600,47 @@ int GetInputSignatureFromRegister(const uint32_t ui32Register, const ShaderInfo*
     return 0;
 }
 
-int GetOutputSignatureFromRegister(const uint32_t ui32Register,
+int GetOutputSignatureFromRegister(const uint32_t currentPhase,
+									const uint32_t ui32Register,
 								   const uint32_t ui32CompMask,
 								   const uint32_t ui32Stream,
 								   ShaderInfo* psShaderInfo,
 								   InOutSignature** ppsOut)
 {
     uint32_t i;
-    const uint32_t ui32NumVars = psShaderInfo->ui32NumOutputSignatures;
 
-    for(i=0; i<ui32NumVars; ++i)
-    {
-        InOutSignature* psOutputSignatures = psShaderInfo->psOutputSignatures;
-        if(ui32Register == psOutputSignatures[i].ui32Register &&
-			(ui32CompMask & psOutputSignatures[i].ui32Mask) &&
-			ui32Stream == psOutputSignatures[i].ui32Stream)
-	    {
-		    *ppsOut = psOutputSignatures+i;
-		    return 1;
-	    }
-    }
+	if(currentPhase == HS_JOIN_PHASE)
+	{
+		const uint32_t ui32NumVars = psShaderInfo->ui32NumPatchConstantSignatures;
+
+		for(i=0; i<ui32NumVars; ++i)
+		{
+			InOutSignature* psOutputSignatures = psShaderInfo->psPatchConstantSignatures;
+			if(ui32Register == psOutputSignatures[i].ui32Register &&
+				(ui32CompMask & psOutputSignatures[i].ui32Mask) &&
+				ui32Stream == psOutputSignatures[i].ui32Stream)
+			{
+				*ppsOut = psOutputSignatures+i;
+				return 1;
+			}
+		}
+	}
+	else
+	{
+		const uint32_t ui32NumVars = psShaderInfo->ui32NumOutputSignatures;
+
+		for(i=0; i<ui32NumVars; ++i)
+		{
+			InOutSignature* psOutputSignatures = psShaderInfo->psOutputSignatures;
+			if(ui32Register == psOutputSignatures[i].ui32Register &&
+				(ui32CompMask & psOutputSignatures[i].ui32Mask) &&
+				ui32Stream == psOutputSignatures[i].ui32Stream)
+			{
+				*ppsOut = psOutputSignatures+i;
+				return 1;
+			}
+		}
+	}
     return 0;
 }
 
