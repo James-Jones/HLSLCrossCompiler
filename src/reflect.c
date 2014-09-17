@@ -900,6 +900,7 @@ void FreeShaderInfo(ShaderInfo* psShaderInfo)
     hlslcc_free(psShaderInfo->psClassTypes);
     hlslcc_free(psShaderInfo->psClassInstances);
     hlslcc_free(psShaderInfo->psOutputSignatures);
+	hlslcc_free(psShaderInfo->psPatchConstantSignatures);
 
     psShaderInfo->ui32NumInputSignatures = 0;
     psShaderInfo->ui32NumResourceBindings = 0;
@@ -907,6 +908,7 @@ void FreeShaderInfo(ShaderInfo* psShaderInfo)
     psShaderInfo->ui32NumClassTypes = 0;
     psShaderInfo->ui32NumClassInstances = 0;
     psShaderInfo->ui32NumOutputSignatures = 0;
+	psShaderInfo->ui32NumPatchConstantSignatures = 0;
 }
 
 typedef struct ConstantTableD3D9_TAG
