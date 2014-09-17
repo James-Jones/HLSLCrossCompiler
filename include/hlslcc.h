@@ -333,6 +333,9 @@ typedef struct ShaderInfo_TAG
     uint32_t ui32NumOutputSignatures;
     InOutSignature* psOutputSignatures;
 
+	uint32_t ui32NumPatchConstantSignatures;
+    InOutSignature* psPatchConstantSignatures;
+
     uint32_t ui32NumResourceBindings;
     ResourceBinding* psResourceBindings;
 
