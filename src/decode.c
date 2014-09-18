@@ -1490,7 +1490,6 @@ const uint32_t* DecodeHullShader(const uint32_t* pui32Tokens, Shader* psShader)
 			else if(psDecl->eOpcode == OPCODE_HS_JOIN_PHASE)
 			{
 				pui32CurrentToken = DecodeShaderPhase(pui32CurrentToken, psShader, HS_JOIN_PHASE);
-				return pui32CurrentToken;
 			}
 			else
 			{
