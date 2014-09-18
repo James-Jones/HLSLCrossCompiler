@@ -1514,6 +1514,11 @@ static void TranslateVariableNameWithMask(HLSLCrossCompilerContext* psContext, c
 			*/
 			break;
 		}
+		case OPERAND_TYPE_INPUT_PATCH_CONSTANT:
+		{
+			bformata(glsl, "myPatchConst%d", psOperand->ui32RegisterNumber);
+			break;
+		}
         default:
         {
             ASSERT(0);

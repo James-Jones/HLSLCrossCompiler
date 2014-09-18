@@ -678,8 +678,11 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
     }
 
     psInst = hlslcc_malloc(sizeof(Instruction) * ui32NumInstructions);
-    psShader->psInst = psInst;
-    psShader->ui32InstCount = ui32NumInstructions;
+	psShader->asPhase[MAIN_PHASE].ui32InstanceCount = 1;
+	psShader->asPhase[MAIN_PHASE].ppsInst = hlslcc_malloc(sizeof(Instruction*));
+	psShader->asPhase[MAIN_PHASE].ppsInst[0] = psInst;
+	psShader->asPhase[MAIN_PHASE].pui32InstCount = hlslcc_malloc(sizeof(uint32_t));
+	psShader->asPhase[MAIN_PHASE].pui32InstCount[0] = ui32NumInstructions;
 
     if(psShader->eShaderType == VERTEX_SHADER)
     {
@@ -691,8 +694,10 @@ Shader* DecodeDX9BC(const uint32_t* pui32Tokens)
     ui32NumDeclarations++;
 
     psDecl = hlslcc_malloc(sizeof(Declaration) * ui32NumDeclarations);
-    psShader->psDecl = psDecl;
-    psShader->ui32DeclCount = ui32NumDeclarations;
+	psShader->asPhase[MAIN_PHASE].ppsDecl = hlslcc_malloc(sizeof(Declaration*));
+	psShader->asPhase[MAIN_PHASE].ppsDecl[0] = psDecl;
+	psShader->asPhase[MAIN_PHASE].pui32DeclCount = hlslcc_malloc(sizeof(uint32_t));
+	psShader->asPhase[MAIN_PHASE].pui32DeclCount[0] = ui32NumDeclarations;
 
     pui32CurrentToken = pui32Tokens + 1;
 

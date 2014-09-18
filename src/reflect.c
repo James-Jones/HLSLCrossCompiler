@@ -609,7 +609,7 @@ int GetOutputSignatureFromRegister(const uint32_t currentPhase,
 {
     uint32_t i;
 
-	if(currentPhase == HS_JOIN_PHASE)
+	if(currentPhase == HS_JOIN_PHASE || currentPhase == HS_FORK_PHASE)
 	{
 		const uint32_t ui32NumVars = psShaderInfo->ui32NumPatchConstantSignatures;
 

@@ -4,6 +4,7 @@
 #include "internal_includes/languages.h"
 #include "bstrlib.h"
 #include "internal_includes/debug.h"
+#include "internal_includes/hlslcc_malloc.h"
 #include <math.h>
 #include <float.h>
 
@@ -1013,7 +1014,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 
 				if(psContext->currentPhase == HS_JOIN_PHASE)
 				{
-					bformata(glsl, "%s4 %s[];\n", type, OutputName);
+					bformata(glsl, "out patch %s4 %s[];\n", type, OutputName);
 				}
 				else
 				{
@@ -2614,29 +2615,30 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 void ConsolidateHullTempVars(Shader* psShader)
 {
     uint32_t i, k;
-    const uint32_t ui32NumDeclLists = 3+psShader->ui32ForkPhaseCount;
-    Declaration* pasDeclArray[3+MAX_FORK_PHASES];
-    uint32_t aui32DeclCounts[3+MAX_FORK_PHASES];
+	uint32_t ui32Phase, ui32Instance;
+	const uint32_t ui32NumDeclLists = psShader->asPhase[HS_FORK_PHASE].ui32InstanceCount +
+		psShader->asPhase[HS_CTRL_POINT_PHASE].ui32InstanceCount +
+		psShader->asPhase[HS_JOIN_PHASE].ui32InstanceCount +
+		psShader->asPhase[HS_GLOBAL_DECL].ui32InstanceCount;
+
+	Declaration** pasDeclArray = hlslcc_malloc(sizeof(Declaration*) * ui32NumDeclLists);
+
+    uint32_t* pui32DeclCounts = hlslcc_malloc(sizeof(uint32_t) * ui32NumDeclLists);
     uint32_t ui32NumTemps = 0;
 
-    i = 0;
-
-    pasDeclArray[i] = psShader->psHSDecl;
-    aui32DeclCounts[i++] = psShader->ui32HSDeclCount;
-
-    pasDeclArray[i] = psShader->psHSControlPointPhaseDecl;
-    aui32DeclCounts[i++] = psShader->ui32HSControlPointDeclCount;
-    for(k=0; k < psShader->ui32ForkPhaseCount; ++k)
-    {
-        pasDeclArray[i] = psShader->apsHSForkPhaseDecl[k];
-        aui32DeclCounts[i++] = psShader->aui32HSForkDeclCount[k];
-    }
-    pasDeclArray[i] = psShader->psHSJoinPhaseDecl;
-    aui32DeclCounts[i++] = psShader->ui32HSJoinDeclCount;
+	i=0;
+	for(ui32Phase = HS_GLOBAL_DECL; ui32Phase < NUM_PHASES; ui32Phase++)
+	{
+		for(ui32Instance = 0; ui32Instance < psShader->asPhase[ui32Phase].ui32InstanceCount; ++ui32Instance)
+		{
+			pasDeclArray[i] = psShader->asPhase[ui32Phase].ppsDecl[ui32Instance];
+			pui32DeclCounts[i++] = psShader->asPhase[ui32Phase].pui32DeclCount[ui32Instance];
+		}
+	}
 
     for(k = 0; k < ui32NumDeclLists; ++k)
     {
-        for(i=0; i < aui32DeclCounts[k]; ++i)
+        for(i=0; i < pui32DeclCounts[k]; ++i)
         {
             Declaration* psDecl = pasDeclArray[k]+i;
  
@@ -2658,7 +2660,7 @@ void ConsolidateHullTempVars(Shader* psShader)
     //declare the max needed amount of temps.
     for(k = 0; k < ui32NumDeclLists; ++k)
     {
-        for(i=0; i < aui32DeclCounts[k]; ++i)
+        for(i=0; i < pui32DeclCounts[k]; ++i)
         {
             Declaration* psDecl = pasDeclArray[k]+i;
  
@@ -2669,5 +2671,8 @@ void ConsolidateHullTempVars(Shader* psShader)
             }
         }
     }
+
+	hlslcc_free(pasDeclArray);
+	hlslcc_free(pui32DeclCounts);
 }
 

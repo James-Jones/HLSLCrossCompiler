@@ -4616,8 +4616,8 @@ int InstructionUsesRegister(const Instruction* psInst, const Operand* psOperand)
 
 void MarkIntegerImmediates(HLSLCrossCompilerContext* psContext)
 {
-	const uint32_t count = psContext->psShader->ui32InstCount;
-	Instruction* psInst = psContext->psShader->psInst;
+	const uint32_t count = psContext->psShader->asPhase[MAIN_PHASE].pui32InstCount[0];
+	Instruction* psInst = psContext->psShader->asPhase[MAIN_PHASE].ppsInst[0];
 	uint32_t i;
 
 	for (i = 0; i < count;)
