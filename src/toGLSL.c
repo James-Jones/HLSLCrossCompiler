@@ -559,7 +559,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 
 						//The minus one here is remove the return statement at end of phases.
 						//This is needed otherwise the for loop will only run once.
-						ASSERT(psShader->sPhase[ui32Phase].ppsInst[ui32Instance]  [psShader->sPhase[ui32Phase].pui32InstCount[ui32Instance]-1].eOpcode == OPCODE_RET);
+						ASSERT(psShader->asPhase[ui32Phase].ppsInst[ui32Instance]  [psShader->asPhase[ui32Phase].pui32InstCount[ui32Instance]-1].eOpcode == OPCODE_RET);
 						for(i=0; i < psShader->asPhase[ui32Phase].pui32InstCount[ui32Instance]-1; ++i)
 						{
 							TranslateInstruction(psContext, psShader->asPhase[ui32Phase].ppsInst[ui32Instance]+i, NULL);
