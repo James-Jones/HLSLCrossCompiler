@@ -371,7 +371,6 @@ static void AddMOVCBinaryOp(HLSLCrossCompilerContext* psContext, const Operand *
 	else
 	{
 		// TODO: We can actually do this in one op using mix().
-		int srcElem = 0;
 		for (destElem = 0; destElem < 4; ++destElem)
 		{
 			int numParenthesis = 0;
@@ -381,7 +380,7 @@ static void AddMOVCBinaryOp(HLSLCrossCompilerContext* psContext, const Operand *
 			AddIndentation(psContext);
 			AddOpAssignToDestWithMask(psContext, pDest, eDestType, 1, "=", &numParenthesis, 1 << destElem);
 			bcatcstr(glsl, "(");
-			TranslateOperandWithMask(psContext, src0, TO_AUTO_BITCAST_TO_INT, 1 << srcElem);
+			TranslateOperandWithMask(psContext, src0, TO_AUTO_BITCAST_TO_INT, 1 << destElem);
 			if (psContext->psShader->ui32MajorVersion < 4)
 			{
 				//cmp opcode uses >= 0
@@ -392,13 +391,11 @@ static void AddMOVCBinaryOp(HLSLCrossCompilerContext* psContext, const Operand *
 				bcatcstr(glsl, " != 0) ? ");
 			}
 
-			TranslateOperandWithMask(psContext, src1, SVTTypeToFlag(eDestType), 1 << srcElem);
+			TranslateOperandWithMask(psContext, src1, SVTTypeToFlag(eDestType), 1 << destElem);
 			bcatcstr(glsl, " : ");
-			TranslateOperandWithMask(psContext, src2, SVTTypeToFlag(eDestType), 1 << srcElem);
+			TranslateOperandWithMask(psContext, src2, SVTTypeToFlag(eDestType), 1 << destElem);
 
 			AddAssignPrologue(psContext, numParenthesis);
-
-			srcElem++;
 		}
 	}
 }
