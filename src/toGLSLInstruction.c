@@ -217,7 +217,9 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
 		TranslateOperand(psContext, &psInst->asOperands[1], typeFlag);
 		bcatcstr(glsl, ", ");
 		TranslateOperand(psContext, &psInst->asOperands[2], typeFlag);
-		bcatcstr(glsl, "))");
+		bcatcstr(glsl, ")");
+		TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+		bcatcstr(glsl, ")");
 		if (!floatResult)
 		{
 			bcatcstr(glsl, " * 0xFFFFFFFFu");
