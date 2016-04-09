@@ -1126,6 +1126,80 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 	}
 }
 
+typedef enum {
+	BINDABLE_UBO,
+	BINDABLE_RESOURCE,
+	BINDABLE_UNORDERED_ACCESS
+} BINDABLE_TYPE;
+
+static void WriteUniformLayout(
+	HLSLCrossCompilerContext* psContext,
+	BINDABLE_TYPE type,
+	uint32_t ui32BindingPoint,
+	bstring glsl)
+{
+	// Write the "layout(...)" decoration that should preceed uniform objects
+	// We have 3 qualifiers we're going to consider:
+	//	"location"
+	//  "binding"
+	//  "set"
+	//
+	// This implementation was intended to support a path from HLSL to SPIR-V (via GLSL).
+	// Since HLSL 5 has no "descriptor set" concept, we're going to assign one based on
+	// the resource type. 
+	// For example, in HLSL we can assign a resource to "register(t8)" or "register(b8)" 
+	// 8 is the binding point, but we need to use different descriptor sets to separate
+	// the texture resources from the buffer resources (etc)
+	//
+	// Note that to maintain backwards compatibility, we follow these rules:
+	//		* when HLSLCC_FLAG_PREFER_BINDINGS is set, we always write a binding, and never a location
+	//		* otherwise, we write bindings for UBO and unordered access buffers, but write a location for resources
+	// The second case is the previous behaviour of this library.
+
+	unsigned preferBindings = (psContext->flags & HLSLCC_FLAG_PREFER_BINDINGS) == HLSLCC_FLAG_PREFER_BINDINGS;
+	preferBindings |= (type == BINDABLE_UBO) || (type == BINDABLE_UNORDERED_ACCESS);
+
+	if (preferBindings && HaveBindingQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
+	{
+		const unsigned assignSet = (psContext->flags & HLSLCC_FLAG_ASSIGN_DESCRIPTOR_SET) == HLSLCC_FLAG_ASSIGN_DESCRIPTOR_SET;
+		if (!assignSet)
+		{
+			// when not assigning a set, we need to shift the binding point to after all constant buffers
+			// (to avoid overlapping)
+			if (type == BINDABLE_RESOURCE)
+				ui32BindingPoint += psContext->psShader->sInfo.ui32NumConstantBuffers;
+		}
+
+		bformata(glsl, "layout(binding = %d", ui32BindingPoint);
+
+		// note, we could set the location, also, if HaveUniformBindingsAndLocations...?
+		if (assignSet) 
+		{
+			unsigned setIndex = 0;
+			switch (type) 
+			{
+			default:
+			case BINDABLE_UBO: setIndex = 0; break;
+			case BINDABLE_RESOURCE: setIndex = 1; break;
+			case BINDABLE_UNORDERED_ACCESS: setIndex = 2; break;
+			}
+			bformata(glsl, ", set = %d", setIndex);
+		}
+
+		bcatcstr(glsl, ") ");
+		return;
+	}
+
+	// If we haven't selected to write a binding, let's write a location. This maintains backward compatibility 
+	if (HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
+	{
+		if (type == BINDABLE_RESOURCE)
+			ui32BindingPoint += psContext->psShader->sInfo.ui32NumConstantBuffers;
+
+		bformata(glsl, "layout(location = %d) ", ui32BindingPoint);
+	}
+}
+
 void DeclareUBOConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui32BindingPoint,
 							ConstantBuffer* psCBuf,
 							bstring glsl)
@@ -1145,9 +1219,7 @@ void DeclareUBOConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui3
 	}
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
-	if (HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
-        bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
-
+	WriteUniformLayout(psContext, BINDABLE_UBO, ui32BindingPoint, glsl);
 	bformata(glsl, "uniform %s {\n ", Name);
 
     for(i=0; i < psCBuf->ui32NumVars; ++i)
@@ -1193,8 +1265,7 @@ void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t u
         &psCBuf->asVars[0].sType);
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
-	if (HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
-        bformata(glsl, "layout(binding = %d) ", ui32BindingPoint);
+	WriteUniformLayout(psContext, BINDABLE_UNORDERED_ACCESS, ui32BindingPoint, glsl);
 
     if(ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
     {
@@ -1997,16 +2068,11 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
         case OPCODE_DCL_RESOURCE:
         {
-			if (HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
-            {
-                // Explicit layout bindings are not currently compatible with combined texture samplers. The layout below assumes there is exactly one GLSL sampler
-                // for each HLSL texture declaration, but when combining textures+samplers, there can be multiple OGL samplers for each HLSL texture declaration.
-                if((psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) != HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS)
-				{      
-					//Constant buffer locations start at 0. Resource locations start at ui32NumConstantBuffers.
-					bformata(glsl, "layout(location = %d) ", 
-						psContext->psShader->sInfo.ui32NumConstantBuffers + psDecl->asOperands[0].ui32RegisterNumber);
-				}
+			// Explicit layout bindings are not currently compatible with combined texture samplers. The layout below assumes there is exactly one GLSL sampler
+			// for each HLSL texture declaration, but when combining textures+samplers, there can be multiple OGL samplers for each HLSL texture declaration.
+			if ((psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) != HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS)
+			{
+				WriteUniformLayout(psContext, BINDABLE_RESOURCE, psDecl->asOperands[0].ui32RegisterNumber, glsl);
             }
 
             switch(psDecl->value.eResourceDimension)

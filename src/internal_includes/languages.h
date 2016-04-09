@@ -86,6 +86,13 @@ static int HaveUniformBindingsAndLocations(const GLLang eLang,const struct GlExt
     return 0;
 }
 
+static int HaveBindingQualifier(const GLLang eLang, const struct GlExtensions *extensions, unsigned int flags)
+{
+	return 
+		(eLang >= LANG_420)
+		|| (extensions && ((GlExtensions*)extensions)->ARB_shading_language_420pack);
+}
+
 static int DualSourceBlendSupported(const GLLang eLang)
 {
     if(eLang >= LANG_330)

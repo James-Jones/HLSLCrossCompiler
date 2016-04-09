@@ -444,6 +444,13 @@ static const unsigned int HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS = 0x400;
 //If set, global uniforms are not stored in a struct.
 static const unsigned int HLSLCC_FLAG_DISABLE_GLOBALS_STRUCT = 0x800;
 
+//If set, always write binding qualifiers for resources, rather than location qualifiers
+static const unsigned int HLSLCC_FLAG_PREFER_BINDINGS = 0x1000;
+
+//If set, bindings for different types of resources assigned to different descriptor sets
+//(eg, in HLSL we can assign a resource to "register(t8)" or "register(b8)" -- they both become binding 8, but in different sets)
+static const unsigned int HLSLCC_FLAG_ASSIGN_DESCRIPTOR_SET = 0x2000;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
