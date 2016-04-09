@@ -101,7 +101,14 @@ void DeclareConstBufferShaderVariable(bstring glsl, const char* Name, const stru
         {
             case SVT_FLOAT:
             {
-                bformata(glsl, "\tmat4 %s", Name);
+				if (psType->Class == SVC_MATRIX_COLUMNS)
+				{
+					bformata(glsl, "\tmat%ix%i %s", psType->Columns, psType->Rows, Name);
+				}
+				else
+				{
+					bformata(glsl, "\tmat%ix%i %s", psType->Rows, psType->Columns, Name);
+				}
                 break;
             }
 			default:
