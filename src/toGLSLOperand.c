@@ -811,7 +811,7 @@ static void printImmediate32(HLSLCrossCompilerContext *psContext, uint32_t value
 	case SVT_INT:
 		// Need special handling for anything >= uint 0x3fffffff
 		if (value > 0x3ffffffe)
-			bformata(glsl, "int(0x%Xu)", value);
+			bformata(glsl, "int(0x%X)", value);
 		else
 			bformata(glsl, "0x%X", value);
 		break;

@@ -217,7 +217,9 @@ static void AddComparision(HLSLCrossCompilerContext* psContext, Instruction* psI
 		TranslateOperand(psContext, &psInst->asOperands[1], typeFlag);
 		bcatcstr(glsl, ", ");
 		TranslateOperand(psContext, &psInst->asOperands[2], typeFlag);
-		bcatcstr(glsl, "))");
+		bcatcstr(glsl, ")");
+		TranslateOperandSwizzle(psContext, &psInst->asOperands[0]);
+		bcatcstr(glsl, ")");
 		if (!floatResult)
 		{
 			bcatcstr(glsl, " * 0xFFFFFFFFu");
@@ -371,7 +373,6 @@ static void AddMOVCBinaryOp(HLSLCrossCompilerContext* psContext, const Operand *
 	else
 	{
 		// TODO: We can actually do this in one op using mix().
-		int srcElem = 0;
 		for (destElem = 0; destElem < 4; ++destElem)
 		{
 			int numParenthesis = 0;
@@ -381,7 +382,7 @@ static void AddMOVCBinaryOp(HLSLCrossCompilerContext* psContext, const Operand *
 			AddIndentation(psContext);
 			AddOpAssignToDestWithMask(psContext, pDest, eDestType, 1, "=", &numParenthesis, 1 << destElem);
 			bcatcstr(glsl, "(");
-			TranslateOperandWithMask(psContext, src0, TO_AUTO_BITCAST_TO_INT, 1 << srcElem);
+			TranslateOperandWithMask(psContext, src0, TO_AUTO_BITCAST_TO_INT, 1 << destElem);
 			if (psContext->psShader->ui32MajorVersion < 4)
 			{
 				//cmp opcode uses >= 0
@@ -392,13 +393,11 @@ static void AddMOVCBinaryOp(HLSLCrossCompilerContext* psContext, const Operand *
 				bcatcstr(glsl, " != 0) ? ");
 			}
 
-			TranslateOperandWithMask(psContext, src1, SVTTypeToFlag(eDestType), 1 << srcElem);
+			TranslateOperandWithMask(psContext, src1, SVTTypeToFlag(eDestType), 1 << destElem);
 			bcatcstr(glsl, " : ");
-			TranslateOperandWithMask(psContext, src2, SVTTypeToFlag(eDestType), 1 << srcElem);
+			TranslateOperandWithMask(psContext, src2, SVTTypeToFlag(eDestType), 1 << destElem);
 
 			AddAssignPrologue(psContext, numParenthesis);
-
-			srcElem++;
 		}
 	}
 }
@@ -2686,15 +2685,16 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
 		AddIndentation(psContext);
 
-		AddAssignToDest(psContext, &psInst->asOperands[0], psInst->eOpcode == OPCODE_FTOU ? SVT_UINT : SVT_INT, srcCount, &numParenthesis);
+		AddAssignToDest(psContext, &psInst->asOperands[0], psInst->eOpcode == OPCODE_FTOU ? SVT_UINT : SVT_INT, srcCount, &numParenthesis);		
 		bcatcstr(glsl, GetConstructorForType(psInst->eOpcode == OPCODE_FTOU ? SVT_UINT : SVT_INT, srcCount == dstCount ? dstCount : 4));
 		bcatcstr(glsl, "("); // 1
 		TranslateOperand(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT);
 		bcatcstr(glsl, ")"); // 1
 		// Add destination writemask if the component counts do not match
 		if (srcCount != dstCount)
-			AddSwizzleUsingElementCount(psContext, dstCount);
+			TranslateOperandSwizzleWithMask(psContext, &psInst->asOperands[0], OPERAND_4_COMPONENT_MASK_ALL);
 		AddAssignPrologue(psContext, numParenthesis);
+		//*/
 		break;
 	}
 
