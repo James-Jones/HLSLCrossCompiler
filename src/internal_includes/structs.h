@@ -157,6 +157,7 @@ enum {MAX_TEMP_VEC4 = 512};
 
 enum {MAX_GROUPSHARED = 8};
 
+#pragma warning(disable:4091) // warning C4091: 'static ': ignored on left of '' when no variable is declared
 static enum {MAX_DX9_IMMCONST = 256};
 
 static const uint32_t MAIN_PHASE = 0;

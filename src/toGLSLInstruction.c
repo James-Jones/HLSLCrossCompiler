@@ -2764,6 +2764,16 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		CallTernaryOp(psContext, "*", "+", psInst, 0, 1, 2, 3, ui32Flags);
 		break;
 	}
+	case OPCODE_UMAD:
+	{
+		uint32_t ui32Flags = TO_FLAG_UNSIGNED_INTEGER;
+#ifdef _DEBUG
+		AddIndentation(psContext);
+		bcatcstr(glsl, "//UMAD\n");
+#endif
+		CallTernaryOp(psContext, "*", "+", psInst, 0, 1, 2, 3, ui32Flags);
+		break;
+	}
 	case OPCODE_DADD:
 	{
 #ifdef _DEBUG
@@ -2851,6 +2861,18 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			eType = SVT_UINT;
 		}
 
+		ASSERT(psInst->asOperands[0].eType == OPERAND_TYPE_NULL);
+
+		CallBinaryOp(psContext, "*", psInst, 1, 2, 3, eType);
+		break;
+	}
+	case OPCODE_UMUL:
+	{
+		SHADER_VARIABLE_TYPE eType = SVT_UINT;
+#ifdef _DEBUG
+		AddIndentation(psContext);
+		bcatcstr(glsl, "//UMUL\n");
+#endif
 		ASSERT(psInst->asOperands[0].eType == OPERAND_TYPE_NULL);
 
 		CallBinaryOp(psContext, "*", psInst, 1, 2, 3, eType);
@@ -3140,6 +3162,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		CallHelper2Int(psContext, "max", psInst, 0, 1, 2, 1);
 		break;
 	}
+	case OPCODE_UMAX:
+	{
+#ifdef _DEBUG
+		AddIndentation(psContext);
+		bcatcstr(glsl, "//UMAX\n");
+#endif
+		CallHelper2UInt(psContext, "max", psInst, 0, 1, 2, 1);
+		break;
+	}
 	case OPCODE_MAX:
 	{
 #ifdef _DEBUG
@@ -3156,6 +3187,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		bcatcstr(glsl, "//IMIN\n");
 #endif
 		CallHelper2Int(psContext, "min", psInst, 0, 1, 2, 1);
+		break;
+	}
+	case OPCODE_UMIN:
+	{
+#ifdef _DEBUG
+		AddIndentation(psContext);
+		bcatcstr(glsl, "//UMIN\n");
+#endif
+		CallHelper2UInt(psContext, "min", psInst, 0, 1, 2, 1);
 		break;
 	}
 	case OPCODE_MIN:
