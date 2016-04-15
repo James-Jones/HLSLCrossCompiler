@@ -207,11 +207,13 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 		}
 		bcatcstr(glsl, "\n");
 	}
-
-	if (SubroutinesSupported(psContext->psShader->eTargetLanguage))
-	{
-		bcatcstr(glsl, "subroutine void SubroutineType();\n");
-	}
+    
+    // DavidJ --    Removed this line. It causes a compile error with the SPIR-V compiler (which doesn't support subroutines)
+    //              It's not clear to me what the intention of this line is.
+	// if (SubroutinesSupported(psContext->psShader->eTargetLanguage))
+	// {
+	// 	bcatcstr(glsl, "subroutine void SubroutineType();\n");
+	// }
 
 	if (psContext->psShader->ui32MajorVersion <= 3)
 	{
