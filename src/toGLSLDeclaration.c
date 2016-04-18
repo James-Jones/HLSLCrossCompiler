@@ -70,6 +70,31 @@ const uint32_t GetTypeElementCount(GLVARTYPE eType)
     }
 }
 
+static int LSBBit(uint32_t value)
+{
+    // Returns the least significant bit set, zero based
+    // Lots of hardware has intructions built-in for this... But for portability,
+    // we're just going to use a general solution. This isn't used by a performance
+    // critical client.
+    // (see: http://stackoverflow.com/questions/757059/position-of-least-significant-bit-that-is-set)
+    const int MultiplyDeBruijnBitPosition[32] = 
+    {
+      0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 
+      31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
+    };
+    int32_t x = (int32_t)value;
+    return MultiplyDeBruijnBitPosition[((uint32_t)((x & -x) * 0x077CB531U)) >> 27];
+}
+
+static int MSBBit(uint32_t x)
+{
+    // Returns the most significant bit set, zero based
+    // Like LSBBit, just using a general method (even though there might be a hardware instruction)
+    int r = 0;
+    while (x >>= 1) r++;
+    return r;
+}
+
 void AddToDx9ImmConstIndexableArray(HLSLCrossCompilerContext* psContext, const Operand* psOperand)
 {
 	bstring* savedStringPtr = psContext->currentGLSLString;
@@ -415,7 +440,7 @@ const char* GetInterpolationString(INTERPOLATION_MODE eMode)
 static void DeclareInput(
     HLSLCrossCompilerContext* psContext,
     const Declaration* psDecl,
-    const char* Interpolation, const char* StorageQualifier, const char* Precision, int iNumComponents, OPERAND_INDEX_DIMENSION eIndexDim, const char* InputName)
+    const char* Interpolation, const char* StorageQualifier, const char* Precision, OPERAND_INDEX_DIMENSION eIndexDim, const char* InputName)
 {
     Shader* psShader = psContext->psShader;
     bstring glsl = *psContext->currentGLSLString;
@@ -461,12 +486,25 @@ static void DeclareInput(
             }
         }
 
+        int highestComponent = MSBBit(psDecl->asOperands[0].ui32CompMask);      // (zero based bit indexes)
+        int lowestComponent = LSBBit(psDecl->asOperands[0].ui32CompMask);
+        int iNumComponents = highestComponent - lowestComponent + 1;
+
 		if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags) ||
 			(psShader->eShaderType == VERTEX_SHADER && HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->flags)))
         {
 			// Skip location if requested by the flags.
 			if (!(psContext->flags & HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS))
-            bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
+            {
+                if (HasInterfaceComponentQualifier(psContext->psShader->eTargetLanguage))
+                {
+                    bformata(glsl, "layout(location = %d, component = %d) ", psDecl->asOperands[0].ui32RegisterNumber, lowestComponent);
+                }
+                else
+                {
+                    bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
+                }
+            }
         }
 
         switch(eIndexDim)
@@ -809,31 +847,6 @@ void AddBuiltinOutput(HLSLCrossCompilerContext* psContext, const Declaration* ps
         psContext->indent--;
         psContext->currentGLSLString = &psContext->glsl;
     }
-}
-
-static int LSBBit(uint32_t value)
-{
-    // Returns the least significant bit set, zero based
-    // Lots of hardware has intructions built-in for this... But for portability,
-    // we're just going to use a general solution. This isn't used by a performance
-    // critical client.
-    // (see: http://stackoverflow.com/questions/757059/position-of-least-significant-bit-that-is-set)
-    const int MultiplyDeBruijnBitPosition[32] = 
-    {
-      0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 
-      31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
-    };
-    int32_t x = (int32_t)value;
-    return MultiplyDeBruijnBitPosition[((uint32_t)((x & -x) * 0x077CB531U)) >> 27];
-}
-
-static int MSBBit(uint32_t x)
-{
-    // Returns the most significant bit set, zero based
-    // Like LSBBit, just using a general method (even though there might be a hardware instruction)
-    int r = 0;
-    while (x >>= 1) r++;
-    return r;
 }
 
 static void WriteOutputFixup(HLSLCrossCompilerContext* psContext, const Operand* psOperand, const char* OutputName)
@@ -1851,7 +1864,6 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
 Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 
 */
-            int iNumComponents = 4;//GetMaxComponentFromComponentMask(psOperand);
 			const char* StorageQualifier = "attribute";
             const char* InputName;
             const char* Precision = "";
@@ -1914,7 +1926,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             }
 
             DeclareInput(psContext, psDecl,
-                "", StorageQualifier, Precision, iNumComponents, (OPERAND_INDEX_DIMENSION)psOperand->iIndexDims, InputName);
+                "", StorageQualifier, Precision, (OPERAND_INDEX_DIMENSION)psOperand->iIndexDims, InputName);
 
             break;
         }
@@ -1941,7 +1953,6 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         case OPCODE_DCL_INPUT_PS:
         {
             const Operand* psOperand = &psDecl->asOperands[0];
-            int iNumComponents = 4;//GetMaxComponentFromComponentMask(psOperand);
 			const char* StorageQualifier = "varying";
             const char* Precision = "";
             const char* InputName = GetDeclaredInputName(psContext, PIXEL_SHADER, psOperand);
@@ -2023,7 +2034,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             }
 
             DeclareInput(psContext, psDecl,
-                Interpolation, StorageQualifier, Precision, iNumComponents, INDEX_1D, InputName);
+                Interpolation, StorageQualifier, Precision, INDEX_1D, InputName);
             
             break;
         }
