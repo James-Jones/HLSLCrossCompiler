@@ -319,6 +319,112 @@ uint32_t GetNumSwizzleElementsWithMask(const Operand *psOperand, uint32_t ui32Co
 	return count;
 }
 
+static uint32_t FindBitsInMask(uint32_t mask, uint32_t result[4])
+{
+    uint32_t outputCount = 0;
+    for (unsigned c=0; c<4; ++c)
+        if (mask & (1<<c))
+            result[outputCount++] = c;
+    return outputCount;
+}
+
+uint32_t GetOrderedSwizzleElements(const Operand *psOperand, uint32_t ui32CompMask, uint32_t result[4])
+{
+    // Following the behaviour of GetNumSwizzleElementsWithMask very closely, this collects
+    // the bits referenced by swizzling, with the correct order.
+    // Swizzling can give us a simple mask,
+    //  (like "vector.xyz")
+    // or, it can give us elements in a specific order
+    //  (like "vector.xyx")
+
+	uint32_t count = 0;
+
+	switch(psOperand->eType)
+	{
+		case OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
+			return 1; // TODO: does mask make any sense here?
+		case OPERAND_TYPE_INPUT_THREAD_ID_IN_GROUP:
+		case OPERAND_TYPE_INPUT_THREAD_ID:
+		case OPERAND_TYPE_INPUT_THREAD_GROUP_ID:
+			// Adjust component count and break to more processing
+			((Operand *)psOperand)->iNumComponents = 3;
+			break;
+		case OPERAND_TYPE_IMMEDIATE32:
+		case OPERAND_TYPE_IMMEDIATE64:
+		case OPERAND_TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+		case OPERAND_TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+		case OPERAND_TYPE_OUTPUT_DEPTH:
+		{
+			// Translate numComponents into bitmask
+			// 1 -> 1, 2 -> 3, 3 -> 7 and 4 -> 15
+			uint32_t compMask = (1 << psOperand->iNumComponents) - 1;
+			
+			compMask &= ui32CompMask;
+			// Calculate bits left in compMask
+			return FindBitsInMask(compMask, result);
+		}
+		default:
+		{
+			break;
+		}
+	}
+
+    if(psOperand->iWriteMaskEnabled &&
+       psOperand->iNumComponents != 1)
+    {
+		//Component Mask
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_MASK_MODE)
+		{
+			uint32_t compMask = psOperand->ui32CompMask;
+			if (compMask == 0)
+				compMask = OPERAND_4_COMPONENT_MASK_ALL;
+			compMask &= ui32CompMask;
+            count = FindBitsInMask(compMask, result);
+		}
+		else
+		//Component Swizzle
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE)
+		{
+			if(psOperand->ui32Swizzle != (NO_SWIZZLE))
+			{
+				uint32_t i;
+				for(i=0; i< 4; ++i)
+				{
+					if ((ui32CompMask & (1 << i)) == 0)
+						continue;
+
+                    ASSERT( psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_X
+                        ||  psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Y
+                        ||  psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_Z
+                        ||  psOperand->aui32Swizzle[i] == OPERAND_4_COMPONENT_W);
+                    result[count++] = psOperand->aui32Swizzle[i];
+				}
+			}
+		}
+		else
+		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+		{
+			if (ui32CompMask & psOperand->aui32Swizzle[0])
+				result[count++] = psOperand->aui32Swizzle[0];
+		}
+
+		//Component Select 1
+	}
+
+    if(!count)
+    {
+		// Translate numComponents into bitmask
+		// 1 -> 1, 2 -> 3, 3 -> 7 and 4 -> 15
+		uint32_t compMask = (1 << psOperand->iNumComponents) - 1;
+
+		compMask &= ui32CompMask;
+		// Calculate bits left in compMask
+		return FindBitsInMask(compMask, result);
+	}
+
+	return count;
+}
+
 void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t count)
 {
 	bstring glsl = *psContext->currentGLSLString;

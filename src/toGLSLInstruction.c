@@ -4572,18 +4572,32 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	}
 	case OPCODE_RESINFO:
 	{
-		uint32_t destElemCount = GetNumSwizzleElements(&psInst->asOperands[0]);
-		uint32_t destElem;
+        uint32_t destSwizzle[4];
+        uint32_t destElemCount = GetOrderedSwizzleElements(&psInst->asOperands[0], OPERAND_4_COMPONENT_MASK_ALL, destSwizzle);
+
+        uint32_t srcSwizzle[4];
+        uint32_t srcElemCount = GetOrderedSwizzleElements(&psInst->asOperands[2], OPERAND_4_COMPONENT_MASK_ALL, srcSwizzle);
+		
+		uint32_t eleIndex;
 #ifdef _DEBUG
 		AddIndentation(psContext);
 		bcatcstr(glsl, "//RESINFO\n");
 #endif
 
-		for (destElem = 0; destElem < destElemCount; ++destElem)
+		for (eleIndex = 0; eleIndex < min(srcElemCount, destElemCount); ++eleIndex)
 		{
-			const char* swizzle[] = { ".x", ".y", ".z", ".w" };
-
-			GetResInfoData(psContext, psInst, psInst->asOperands[2].aui32Swizzle[destElem], destElem);
+            // note --  This doesn't follow the normal pattern for dealing with
+            //          swizzles. We need to take into account the swizzle values
+            //          attached to both and input and output operands, and we need
+            //          to support the different possible modes. The code uses a
+            //          different pattern for other operations... We could refactor
+            //          this path to better match the other code... But it could take
+            //          some work, because single RESINFO instructions can generate multiple
+            //          GLSL expressions.
+			GetResInfoData(
+                psContext, psInst, 
+                srcSwizzle[eleIndex], 
+                destSwizzle[eleIndex]);
 		}
 
 		break;
