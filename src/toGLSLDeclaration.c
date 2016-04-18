@@ -811,79 +811,124 @@ void AddBuiltinOutput(HLSLCrossCompilerContext* psContext, const Declaration* ps
     }
 }
 
+static int LSBBit(uint32_t value)
+{
+    // Returns the least significant bit set, zero based
+    // Lots of hardware has intructions built-in for this... But for portability,
+    // we're just going to use a general solution. This isn't used by a performance
+    // critical client.
+    // (see: http://stackoverflow.com/questions/757059/position-of-least-significant-bit-that-is-set)
+    const int MultiplyDeBruijnBitPosition[32] = 
+    {
+      0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 
+      31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
+    };
+    int32_t x = (int32_t)value;
+    return MultiplyDeBruijnBitPosition[((uint32_t)((x & -x) * 0x077CB531U)) >> 27];
+}
+
+static int MSBBit(uint32_t x)
+{
+    // Returns the most significant bit set, zero based
+    // Like LSBBit, just using a general method (even though there might be a hardware instruction)
+    int r = 0;
+    while (x >>= 1) r++;
+    return r;
+}
+
+static void WriteOutputFixup(HLSLCrossCompilerContext* psContext, const Operand* psOperand, const char* OutputName)
+{
+    // Here, we copy from a temporary buffer (called OutputXX) to 
+    // the actual output variable "OutputName". This allows us to deal with
+    // cases where multiple outputs exist on the same register "location"
+    psContext->havePostShaderCode[psContext->currentPhase] = 1;
+
+	psContext->currentGLSLString = &psContext->postShaderCode[psContext->currentPhase];
+	bstring glsl = *psContext->currentGLSLString;
+
+	bcatcstr(glsl, OutputName);
+	AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psOperand));
+	bformata(glsl, " = Output%d", psOperand->ui32RegisterNumber);
+	TranslateOperandSwizzle(psContext, psOperand);
+	bcatcstr(glsl, ";\n");
+
+	psContext->currentGLSLString = &psContext->glsl;
+	glsl = *psContext->currentGLSLString;
+}
+
 void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDecl)
 {
     bstring glsl = *psContext->currentGLSLString;
     Shader* psShader = psContext->psShader;
 
+    const char* Precision = "";
+    const char* type = "vec";
+
+    const Operand* psOperand = &psDecl->asOperands[0];
+    InOutSignature* psSignature = NULL;
+
+    GetOutputSignatureFromRegister(
+		psContext->currentPhase,
+		psDecl->asOperands[0].ui32RegisterNumber,
+		psDecl->asOperands[0].ui32CompMask,
+		psShader->ui32CurrentVertexOutputStream,
+		&psShader->sInfo,
+		&psSignature);
+
+    switch(psSignature->eComponentType)
+    {
+        case INOUT_COMPONENT_UINT32:
+        {
+            type = "uvec";
+            break;
+        }
+        case INOUT_COMPONENT_SINT32:
+        {
+            type = "ivec";
+            break;
+        }
+        case INOUT_COMPONENT_FLOAT32:
+        {
+            break;
+        }
+    }
+
+    if(HavePrecisionQualifers(psShader->eTargetLanguage))
+    {
+        switch(psOperand->eMinPrecision)
+        {
+            case OPERAND_MIN_PRECISION_DEFAULT:
+            {
+                Precision = "highp";
+                break;
+            }
+            case OPERAND_MIN_PRECISION_FLOAT_16:
+            {
+                Precision = "mediump";
+                break;
+            }
+            case OPERAND_MIN_PRECISION_FLOAT_2_8:
+            {
+                Precision = "lowp";
+                break;
+            }
+            case OPERAND_MIN_PRECISION_SINT_16:
+            {
+                Precision = "mediump";
+                //type = "ivec";
+                break;
+            }
+            case OPERAND_MIN_PRECISION_UINT_16:
+            {
+                Precision = "mediump";
+                //type = "uvec";
+                break;
+            }
+        }
+    }
+
     if(OutputNeedsDeclaring(psContext, &psDecl->asOperands[0], 1))
     {
-        const Operand* psOperand = &psDecl->asOperands[0];
-        const char* Precision = "";
-        const char* type = "vec";
-
-        InOutSignature* psSignature = NULL;
-
-        GetOutputSignatureFromRegister(
-			psContext->currentPhase,
-			psDecl->asOperands[0].ui32RegisterNumber,
-			psDecl->asOperands[0].ui32CompMask,
-			psShader->ui32CurrentVertexOutputStream,
-			&psShader->sInfo,
-			&psSignature);
-
-        switch(psSignature->eComponentType)
-        {
-            case INOUT_COMPONENT_UINT32:
-            {
-                type = "uvec";
-                break;
-            }
-            case INOUT_COMPONENT_SINT32:
-            {
-                type = "ivec";
-                break;
-            }
-            case INOUT_COMPONENT_FLOAT32:
-            {
-                break;
-            }
-        }
-
-        if(HavePrecisionQualifers(psShader->eTargetLanguage))
-        {
-            switch(psOperand->eMinPrecision)
-            {
-                case OPERAND_MIN_PRECISION_DEFAULT:
-                {
-                    Precision = "highp";
-                    break;
-                }
-                case OPERAND_MIN_PRECISION_FLOAT_16:
-                {
-                    Precision = "mediump";
-                    break;
-                }
-                case OPERAND_MIN_PRECISION_FLOAT_2_8:
-                {
-                    Precision = "lowp";
-                    break;
-                }
-                case OPERAND_MIN_PRECISION_SINT_16:
-                {
-                    Precision = "mediump";
-                    //type = "ivec";
-                    break;
-                }
-                case OPERAND_MIN_PRECISION_UINT_16:
-                {
-                    Precision = "mediump";
-                    //type = "uvec";
-                    break;
-                }
-            }
-        }
-
 		switch(psShader->eShaderType)
 		{
 			case PIXEL_SHADER:
@@ -960,7 +1005,13 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 			}
 			case VERTEX_SHADER:
 			{
-				int iNumComponents = 4;//GetMaxComponentFromComponentMask(&psDecl->asOperands[0]);
+				// int iNumComponents = 4;//GetMaxComponentFromComponentMask(&psDecl->asOperands[0]);
+                ASSERT(psDecl->asOperands[0].eSelMode == OPERAND_4_COMPONENT_MASK_MODE);
+                ASSERT(psDecl->asOperands[0].iWriteMaskEnabled && (psDecl->asOperands[0].iNumComponents == 4));
+                int highestComponent = MSBBit(psDecl->asOperands[0].ui32CompMask);      // (zero based bit indexes)
+                int lowestComponent = LSBBit(psDecl->asOperands[0].ui32CompMask);
+                int iNumComponents = highestComponent - lowestComponent + 1;
+
                 const char* Interpolation = "";
 				int stream = 0;
 				const char* OutputName = GetDeclaredOutputName(psContext, VERTEX_SHADER, psOperand, &stream);
@@ -975,8 +1026,21 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 
 				if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
                 {
-					if (!(psContext->flags & HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS))
-                    bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
+					if (!(psContext->flags & HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS)) 
+                    {
+                        // note that we have to write the "component" qualifier for every variable that shares the
+                        // same location (otherwise the glsl compiler will consider the variable to use all 4 components).
+                        // Since we don't know if there will be future variables sharing this location,
+                        // that means we have to write "component" for all variables...
+                        if (HasInterfaceComponentQualifier(psContext->psShader->eTargetLanguage))
+                        {
+                            bformata(glsl, "layout(location = %d, component = %d) ", psDecl->asOperands[0].ui32RegisterNumber, lowestComponent);
+                        }
+                        else 
+                        {
+                            bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
+                        }
+                    }
                 }
 
 				if(InOutSupported(psContext->psShader->eTargetLanguage))
@@ -987,8 +1051,14 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 				{
 					bformata(glsl, "%s varying %s %s%d %s;\n", Interpolation, Precision, type, iNumComponents, OutputName);
 				}
-				bformata(glsl, "#define Output%d %s\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName);
 
+                // We're going to define a special temporary vec4 for this output index.
+                // The values in this temporary will be redirected to the true outputs in a post
+                // shader fixup section.
+                // Note that there may be issues if the types of the overlapping outputs are not the same
+                // (ie, some are float, some are int)
+                bformata(glsl, "%s4 Output%d;\n", type, psDecl->asOperands[0].ui32RegisterNumber);
+                WriteOutputFixup(psContext, psOperand, OutputName);
 				break;
 			}
 			case GEOMETRY_SHADER:
@@ -1077,58 +1147,40 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 
 		if((psContext->flags & (HLSLCC_FLAG_INOUT_SEMANTIC_NAMES|HLSLCC_FLAG_INOUT_APPEND_SEMANTIC_NAMES)) && (psDecl->asOperands[0].eType == OPERAND_TYPE_OUTPUT))
 		{
-			const Operand* psOperand = &psDecl->asOperands[0];
-			InOutSignature* psSignature = NULL;
-			const char* type = "vec";
+            const char* Interpolation = "";
 			int stream = 0;
-			const char* OutputName = GetDeclaredOutputName(psContext, psShader->eShaderType, psOperand, &stream);
+			const char* OutputName = GetDeclaredOutputName(psContext, VERTEX_SHADER, psOperand, &stream);
 
-			GetOutputSignatureFromRegister(
-				psContext->currentPhase,
-				psOperand->ui32RegisterNumber,
-				psOperand->ui32CompMask,
-				0,
-				&psShader->sInfo,
-				&psSignature);
+            if(psContext->psDependencies)
+            {
+                if(psShader->eShaderType == VERTEX_SHADER)
+                {
+                    Interpolation = GetInterpolationString(psContext->psDependencies->aePixelInputInterpolation[psDecl->asOperands[0].ui32RegisterNumber]);
+                }
+            }
+
+            int highestComponent = MSBBit(psDecl->asOperands[0].ui32CompMask);      // (zero based bit indexes)
+            int lowestComponent = LSBBit(psDecl->asOperands[0].ui32CompMask);
+            int iNumComponents = highestComponent - lowestComponent + 1;
 
 			if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
 			{
 				if (!((psShader->eShaderType == VERTEX_SHADER) && (psContext->flags & HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS)))
-				bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
+                {
+                    if (HasInterfaceComponentQualifier(psContext->psShader->eTargetLanguage))
+                    {
+				        bformata(glsl, "layout(location = %d, component = %d) ", psDecl->asOperands[0].ui32RegisterNumber, lowestComponent);
+                    }
+                    else 
+                    {
+                        bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
+                    }
+                }
 			}
 
-			switch(psSignature->eComponentType)
-			{
-				case INOUT_COMPONENT_UINT32:
-				{
-					type = "uvec";
-					break;
-				}
-				case INOUT_COMPONENT_SINT32:
-				{
-					type = "ivec";
-					break;
-				}
-				case INOUT_COMPONENT_FLOAT32:
-				{
-					break;
-				}
-			}
-			bformata(glsl, "out %s4 %s;\n", type, OutputName);
+			bformata(glsl, "%s out %s %s%d %s;\n", Interpolation, Precision, type, iNumComponents, OutputName);
 
-			psContext->havePostShaderCode[psContext->currentPhase] = 1;
-
-			psContext->currentGLSLString = &psContext->postShaderCode[psContext->currentPhase];
-			glsl = *psContext->currentGLSLString;
-
-			bcatcstr(glsl, OutputName);
-			AddSwizzleUsingElementCount(psContext, GetNumSwizzleElements(psOperand));
-			bformata(glsl, " = Output%d", psOperand->ui32RegisterNumber);
-			TranslateOperandSwizzle(psContext, psOperand);
-			bcatcstr(glsl, ";\n");
-
-			psContext->currentGLSLString = &psContext->glsl;
-			glsl = *psContext->currentGLSLString;
+			WriteOutputFixup(psContext, psOperand, OutputName);
 		}
 	}
 }

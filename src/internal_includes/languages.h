@@ -120,6 +120,17 @@ static int HasImageSizeFunction(const GLLang eLang)
     return 0;
 }
 
+static int HasInterfaceComponentQualifier(const GLLang eLang)
+{
+    // Allows for the use of "component" layout qualifier attached
+    // to interface components.
+    if (eLang >= LANG_440)
+    {
+        return 1;
+    }
+    return 0;
+}
+
 static int UseSPIRVNames(const GLLang eLang,const struct GlExtensions *extensions)
 {
 	if(extensions && ((GlExtensions*)extensions)->GL_KHR_vulkan_glsl)
