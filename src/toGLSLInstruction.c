@@ -450,6 +450,24 @@ static int IsOperationCommutative(OPCODE_TYPE eOpCode)
 	};
 }
 
+static void CallUnaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst,
+	int dest, int src0, SHADER_VARIABLE_TYPE eDataType)
+{
+	bstring glsl = *psContext->currentGLSLString;
+	uint32_t src0SwizCount = GetNumSwizzleElements(&psInst->asOperands[src0]);
+	uint32_t dstSwizCount = GetNumSwizzleElements(&psInst->asOperands[dest]);
+	uint32_t destMask = GetOperandWriteMask(&psInst->asOperands[dest]);
+	int needsParenthesis = 0;
+
+	AddIndentation(psContext);
+
+	AddAssignToDest(psContext, &psInst->asOperands[dest], eDataType, dstSwizCount, &needsParenthesis);
+
+	bformata(glsl, " %s ", name);
+	TranslateOperandWithMask(psContext, &psInst->asOperands[src0], SVTTypeToFlag(eDataType), destMask);
+	AddAssignPrologue(psContext, needsParenthesis);
+}
+
 static void CallBinaryOp(HLSLCrossCompilerContext* psContext, const char* name, Instruction* psInst,
 	int dest, int src0, int src1, SHADER_VARIABLE_TYPE eDataType)
 {
@@ -4407,11 +4425,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		bcatcstr(glsl, "//INEG\n");
 #endif
 		//dest = 0 - src0
-		AddIndentation(psContext);
-		TranslateOperand(psContext, &psInst->asOperands[0], TO_FLAG_DESTINATION | TO_FLAG_INTEGER);
-		bcatcstr(glsl, " = 0 - ");
-		TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE | TO_FLAG_INTEGER);
-		bcatcstr(glsl, ";\n");
+        CallUnaryOp(psContext, "0 - ", psInst, 0, 1, SVT_INT);
 		break;
 	}
 	case OPCODE_DERIV_RTX_COARSE:
