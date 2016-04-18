@@ -111,6 +111,15 @@ static int SubroutinesSupported(const GLLang eLang)
     return 0;
 }
 
+static int HasImageSizeFunction(const GLLang eLang)
+{
+    if(eLang >= LANG_430)
+    {
+        return 1;
+    }
+    return 0;
+}
+
 //Before 430, flat/smooth/centroid/noperspective must match
 //between fragment and its previous stage.
 //HLSL bytecode only tells us the interpolation in pixel shader.

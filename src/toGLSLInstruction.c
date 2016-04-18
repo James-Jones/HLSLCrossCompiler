@@ -923,7 +923,6 @@ void GetResInfoData(HLSLCrossCompilerContext* psContext, Instruction* psInst, in
 	bstring glsl = *psContext->currentGLSLString;
 	int numParenthesis = 0;
 	const RESINFO_RETURN_TYPE eResInfoReturnType = psInst->eResInfoReturnType;
-	const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber];
 
 	AddIndentation(psContext);
 	AddOpAssignToDestWithMask(psContext, &psInst->asOperands[0], eResInfoReturnType == RESINFO_INSTRUCTION_RETURN_UINT ? SVT_UINT : SVT_FLOAT, 1, "=", &numParenthesis, 1 << destElem);
@@ -931,6 +930,27 @@ void GetResInfoData(HLSLCrossCompilerContext* psContext, Instruction* psInst, in
 	//[width, height, depth or array size, total-mip-count]
 	if (index < 3)
 	{
+        RESOURCE_DIMENSION eResDim;
+        const char* queryFunction = "textureSize";
+        int includeLODParameter = 1;
+
+        // "UAV" types in HLSL become "image" types in GLSL.
+        // In these cases, we must use "imageSize" rather than "textureSize"
+        // However, this function is only available in GLSL v4.3 or greater
+        // If are compiling to an earlier version of GLSL, and we hit this instruction,
+        // we will probably generate uncompilable GLSL code
+        if (HasImageSizeFunction(psContext->psShader->eTargetLanguage) 
+            && psInst->asOperands[2].eType == OPERAND_TYPE_UNORDERED_ACCESS_VIEW) {
+            ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
+            eResDim = psContext->psShader->aeUAVResourceDims[psInst->asOperands[2].ui32RegisterNumber];
+            queryFunction = "imageSize";
+            includeLODParameter = 0;
+        } else {
+            ASSERT(psInst->asOperands[2].eType == OPERAND_TYPE_RESOURCE);
+            ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
+            eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber];
+        }
+
 		int dim = GetNumTextureDimensions(psContext, eResDim);
 		bcatcstr(glsl, "(");
 		if (dim < (index + 1))
@@ -941,19 +961,21 @@ void GetResInfoData(HLSLCrossCompilerContext* psContext, Instruction* psInst, in
 		{
 			if (eResInfoReturnType == RESINFO_INSTRUCTION_RETURN_UINT)
 			{
-				bformata(glsl, "uvec%d(textureSize(", dim);
+				bformata(glsl, "uvec%d(%s(", dim, queryFunction);
 			}
 			else if (eResInfoReturnType == RESINFO_INSTRUCTION_RETURN_RCPFLOAT)
 			{
-				bformata(glsl, "vec%d(1.0) / vec%d(textureSize(", dim, dim);
+				bformata(glsl, "vec%d(1.0) / vec%d(%s(", dim, dim, queryFunction);
 			}
 			else
 			{
-				bformata(glsl, "vec%d(textureSize(", dim);
+				bformata(glsl, "vec%d(%s(", dim, queryFunction);
 			}
 			TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
-			bcatcstr(glsl, ", ");
-			TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
+            if (includeLODParameter) {
+			    bcatcstr(glsl, ", ");
+			    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
+            }
 			bcatcstr(glsl, "))");
 
 			switch (index)
@@ -974,6 +996,7 @@ void GetResInfoData(HLSLCrossCompilerContext* psContext, Instruction* psInst, in
 	}
 	else
 	{
+        ASSERT(psInst->asOperands[2].eType == OPERAND_TYPE_RESOURCE);
 		if (eResInfoReturnType == RESINFO_INSTRUCTION_RETURN_UINT)
 			bcatcstr(glsl, "uint(");
 		else
@@ -1006,6 +1029,7 @@ static void TranslateTextureSample(HLSLCrossCompilerContext* psContext, Instruct
 
 	uint32_t ui32NumOffsets = 0;
 
+    ASSERT(psInst->asOperands[2].eType == OPERAND_TYPE_RESOURCE);
 	const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber];
 
 	const int iHaveOverloadedTexFuncs = HaveOverloadedTextureFuncs(psContext->psShader->eTargetLanguage);
@@ -3228,6 +3252,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	case OPCODE_GATHER4:
 	{
 		//dest, coords, tex, sampler
+        ASSERT(psInst->asOperands[2].eType == OPERAND_TYPE_RESOURCE);
 		const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber];
 		const int useCombinedTextureSamplers = (psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) ? 1 : 0;
 #ifdef _DEBUG
@@ -3259,7 +3284,8 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	case OPCODE_GATHER4_PO_C:
 	{
 		//dest, coords, offset, tex, sampler, srcReferenceValue
-		const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[3].ui32RegisterNumber];
+		ASSERT(psInst->asOperands[2].eType == OPERAND_TYPE_RESOURCE);
+        const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[3].ui32RegisterNumber];
 		const int useCombinedTextureSamplers = (psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) ? 1 : 0;
 #ifdef _DEBUG
 		AddIndentation(psContext);
@@ -4084,7 +4110,8 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
 		TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
 		bcatcstr(glsl, ",");
-		TranslateTexCoord(psContext,
+		ASSERT(psInst->asOperands[2].eType == OPERAND_TYPE_RESOURCE);
+        TranslateTexCoord(psContext,
 			psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber],
 			&psInst->asOperands[1]);
 		bcatcstr(glsl, ")");
@@ -4549,9 +4576,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	}
 	case OPCODE_RESINFO:
 	{
-
-		const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber];
-		const RESINFO_RETURN_TYPE eResInfoReturnType = psInst->eResInfoReturnType;
 		uint32_t destElemCount = GetNumSwizzleElements(&psInst->asOperands[0]);
 		uint32_t destElem;
 #ifdef _DEBUG

@@ -2591,6 +2591,9 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			}
             TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
             bcatcstr(glsl, ";\n");
+
+            ASSERT(psDecl->asOperands[0].ui32RegisterNumber < MAX_TEXTURES);
+            psShader->aeUAVResourceDims[psDecl->asOperands[0].ui32RegisterNumber] = psDecl->value.eResourceDimension;
             break;
         }
         case OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED:

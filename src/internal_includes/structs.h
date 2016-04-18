@@ -223,6 +223,7 @@ typedef struct Shader_TAG
     int aIndexedInputParents[MAX_SHADER_VEC4_INPUT];
 
     RESOURCE_DIMENSION aeResourceDims[MAX_TEXTURES];
+    RESOURCE_DIMENSION aeUAVResourceDims[MAX_TEXTURES];
 
     int aiInputDeclaredSize[MAX_SHADER_VEC4_INPUT];
 
