@@ -1593,7 +1593,14 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                 }
                 case NAME_INSTANCE_ID:
                 {
-                    AddBuiltinInput(psContext, psDecl, "gl_InstanceID");
+                    if (UseSPIRVNames(psContext->psShader->eTargetLanguage, psContext->psShader->extensions))
+                    {
+                        AddBuiltinInput(psContext, psDecl, "gl_InstanceIndex");
+                    }
+                    else
+                    {
+                        AddBuiltinInput(psContext, psDecl, "gl_InstanceID");
+                    }
                     break;
                 }
                 case NAME_IS_FRONT_FACE:
@@ -1614,7 +1621,14 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                 }
                 case NAME_VERTEX_ID:
                 {
-                    AddBuiltinInput(psContext, psDecl, "gl_VertexID");
+                    if (UseSPIRVNames(psContext->psShader->eTargetLanguage, psContext->psShader->extensions))
+                    {
+                        AddBuiltinInput(psContext, psDecl, "gl_VertexIndex");
+                    }
+                    else
+                    {
+                        AddBuiltinInput(psContext, psDecl, "gl_VertexID");
+                    }
                     break;
                 }
                 case NAME_PRIMITIVE_ID:

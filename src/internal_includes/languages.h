@@ -120,6 +120,15 @@ static int HasImageSizeFunction(const GLLang eLang)
     return 0;
 }
 
+static int UseSPIRVNames(const GLLang eLang,const struct GlExtensions *extensions)
+{
+	if(extensions && ((GlExtensions*)extensions)->GL_KHR_vulkan_glsl)
+    {
+        return 1;
+    }
+    return 0;
+}
+
 //Before 430, flat/smooth/centroid/noperspective must match
 //between fragment and its previous stage.
 //HLSL bytecode only tells us the interpolation in pixel shader.

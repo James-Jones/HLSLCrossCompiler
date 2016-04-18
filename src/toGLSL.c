@@ -494,6 +494,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 			bcatcstr(glsl,"#extension GL_ARB_explicit_uniform_location : require\n");
 		if(extensions->ARB_shading_language_420pack)
 			bcatcstr(glsl,"#extension GL_ARB_shading_language_420pack : require\n");
+        // extension GL_KHR_vulkan_glsl doesn't need to be declared
 	}
 
     ClearDependencyData(psShader->eShaderType, psContext->psDependencies);
