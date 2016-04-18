@@ -3325,6 +3325,8 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	case OPCODE_GATHER4_PO:
 	{
 		//dest, coords, offset, tex, sampler
+        ASSERT(psInst->asOperands[2].eType == OPERAND_TYPE_RESOURCE);
+        const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[3].ui32RegisterNumber];
 		const int useCombinedTextureSamplers = (psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) ? 1 : 0;
 #ifdef _DEBUG
 		AddIndentation(psContext);
@@ -3341,11 +3343,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			bconcat(glsl, TextureSamplerName(&psContext->psShader->sInfo, psInst->asOperands[3].ui32RegisterNumber, psInst->asOperands[4].ui32RegisterNumber, 0));
 
 		bcatcstr(glsl, ", ");
-		//Texture coord cannot be vec4
-		//Determining if it is a vec3 for vec2 yet to be done.
-		psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-		psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-		TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+        TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 
 		bcatcstr(glsl, ", ivec2(");
 		//ivec2 offset
@@ -3364,6 +3362,8 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	case OPCODE_GATHER4_C:
 	{
 		//dest, coords, tex, sampler srcReferenceValue
+        ASSERT(psInst->asOperands[2].eType == OPERAND_TYPE_RESOURCE);
+        const RESOURCE_DIMENSION eResDim = psContext->psShader->aeResourceDims[psInst->asOperands[2].ui32RegisterNumber];
 		const int useCombinedTextureSamplers = (psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) ? 1 : 0;
 #ifdef _DEBUG
 		AddIndentation(psContext);
@@ -3380,11 +3380,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 			bconcat(glsl, TextureSamplerName(&psContext->psShader->sInfo, psInst->asOperands[2].ui32RegisterNumber, psInst->asOperands[3].ui32RegisterNumber, 1));
 
 		bcatcstr(glsl, ", ");
-		//Texture coord cannot be vec4
-		//Determining if it is a vec3 for vec2 yet to be done.
-		psInst->asOperands[1].aui32Swizzle[2] = 0xFFFFFFFF;
-		psInst->asOperands[1].aui32Swizzle[3] = 0xFFFFFFFF;
-		TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_NONE);
+        TranslateTexCoord(psContext, eResDim, &psInst->asOperands[1]);
 
 		bcatcstr(glsl, ", ");
 		TranslateOperand(psContext, &psInst->asOperands[4], TO_FLAG_NONE);
