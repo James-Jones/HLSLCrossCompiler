@@ -1526,7 +1526,22 @@ void TranslateDeclaration(HLSLCrossCompilerContext* psContext, const Declaration
                         Suggests no implicit conversion for bool<->int.
                     */
 
-                    AddBuiltinInput(psContext, psDecl, "int(gl_FrontFacing)");
+                    SHADER_VARIABLE_TYPE eType = GetOperandDataType(psContext, &psDecl->asOperands[0]);
+                    switch (eType)
+                    {
+                    case SVT_INT:
+                        AddBuiltinInput(psContext, psDecl, "int(gl_FrontFacing)");
+                        break;
+                    case SVT_UINT:
+                        AddBuiltinInput(psContext, psDecl, "uint(gl_FrontFacing)");
+                        break;
+                    case SVT_BOOL:
+                        AddBuiltinInput(psContext, psDecl, "bool(gl_FrontFacing)");
+                        break;
+                    default:
+                        AddBuiltinInput(psContext, psDecl, "float(gl_FrontFacing)");
+                        break;
+                    }
                     break;
                 }
                 case NAME_SAMPLE_INDEX:

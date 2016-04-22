@@ -16,7 +16,7 @@
 #include "timer.h"
 
 #if defined(_WIN32)
-#define VALIDATE_OUTPUT
+//#define VALIDATE_OUTPUT
 #endif
 
 #if defined(VALIDATE_OUTPUT)
