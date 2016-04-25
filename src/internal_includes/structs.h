@@ -259,6 +259,8 @@ typedef struct HLSLCrossCompilerContext_TAG
     unsigned int flags;
     Shader* psShader;
     GLSLCrossDependencyData* psDependencies;
+    EvaluateBindingFn pEvaluateBindingFn;
+    void* pEvaluateBindingData;
 } HLSLCrossCompilerContext;
 
 #endif

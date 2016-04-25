@@ -323,6 +323,25 @@ typedef struct TextureSamplerInfo_TAG
     TextureSamplerPair aTextureSamplerPair[MAX_RESOURCE_BINDINGS];
 } TextureSamplerInfo;
 
+typedef enum GLSL_BINDING_FLAGS
+{
+    GLSL_BINDING_TYPE_PUSHCONSTANTS = 1<<0,
+} GLSL_BINDING_FLAGS;
+
+typedef struct GLSLResourceBinding_TAG {
+    uint32_t _locationIndex;
+    uint32_t _bindingIndex;
+    uint32_t _setIndex;
+    uint32_t _flags;        // GLSL_BINDING_FLAGS
+} GLSLResourceBinding;
+
+typedef uint32_t (*EvaluateBindingFn)(
+    void* userData,
+    GLSLResourceBinding* dstBinding, 
+    ResourceBinding* srcResBinding,
+    ConstantBuffer* srcCBBinding,
+    uint32_t bindPoint, uint32_t shaderStage);
+
 typedef struct ShaderInfo_TAG
 {
     uint32_t ui32MajorVersion;
@@ -445,13 +464,6 @@ static const unsigned int HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS = 0x400;
 //If set, global uniforms are not stored in a struct.
 static const unsigned int HLSLCC_FLAG_DISABLE_GLOBALS_STRUCT = 0x800;
 
-//If set, always write binding qualifiers for resources, rather than location qualifiers
-static const unsigned int HLSLCC_FLAG_PREFER_BINDINGS = 0x1000;
-
-//If set, bindings for different types of resources assigned to different descriptor sets
-//(eg, in HLSL we can assign a resource to "register(t8)" or "register(b8)" -- they both become binding 8, but in different sets)
-static const unsigned int HLSLCC_FLAG_ASSIGN_DESCRIPTOR_SET = 0x2000;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -466,14 +478,17 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
                                                      GLLang language,
 													 const GlExtensions *extensions,
                                                      GLSLCrossDependencyData* dependencies,
-                                                     GLSLShader* result
-													 );
+                                                     EvaluateBindingFn evaluateBindingFn,
+                                                     void* evaluateBindingData,
+                                                     GLSLShader* result);
 
 HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
                                                     unsigned int flags,
                                                     GLLang language,
 													const GlExtensions *extensions,
                                                     GLSLCrossDependencyData* dependencies,
+                                                    EvaluateBindingFn evaluateBindingFn,
+                                                    void* evaluateBindingData,
                                                     GLSLShader* result);
 
 HLSLCC_API void HLSLCC_APIENTRY FreeGLSLShader(GLSLShader*);

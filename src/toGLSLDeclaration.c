@@ -1198,16 +1198,11 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 	}
 }
 
-typedef enum {
-	BINDABLE_UBO,
-	BINDABLE_RESOURCE,
-	BINDABLE_UNORDERED_ACCESS
-} BINDABLE_TYPE;
-
 static void WriteUniformLayout(
 	HLSLCrossCompilerContext* psContext,
-	BINDABLE_TYPE type,
-	uint32_t ui32BindingPoint,
+	ResourceBinding* srcResBinding,
+    ConstantBuffer* srcCBBinding,
+    unsigned ui32BindingPoint, unsigned shaderStage,
 	bstring glsl)
 {
 	// Write the "layout(...)" decoration that should preceed uniform objects
@@ -1222,50 +1217,84 @@ static void WriteUniformLayout(
 	// For example, in HLSL we can assign a resource to "register(t8)" or "register(b8)" 
 	// 8 is the binding point, but we need to use different descriptor sets to separate
 	// the texture resources from the buffer resources (etc)
+    //
+    // If the caller has provided a function for evaluating correct bindings, then we
+    // should use that. Otherwise, we have a few built-in rules...
 	//
 	// Note that to maintain backwards compatibility, we follow these rules:
 	//		* when HLSLCC_FLAG_PREFER_BINDINGS is set, we always write a binding, and never a location
 	//		* otherwise, we write bindings for UBO and unordered access buffers, but write a location for resources
 	// The second case is the previous behaviour of this library.
 
-	unsigned preferBindings = (psContext->flags & HLSLCC_FLAG_PREFER_BINDINGS) == HLSLCC_FLAG_PREFER_BINDINGS;
-	preferBindings |= (type == BINDABLE_UBO) || (type == BINDABLE_UNORDERED_ACCESS);
+    if (psContext->pEvaluateBindingFn) {
+        GLSLResourceBinding binding;
+        binding._locationIndex = ~0u;
+        binding._bindingIndex = ~0u;
+        binding._setIndex = ~0u;
+        binding._flags = 0;
+        uint32_t bindingAttempt =
+            (*psContext->pEvaluateBindingFn)(
+                psContext->pEvaluateBindingData,
+                &binding, 
+                srcResBinding, srcCBBinding, 
+                ui32BindingPoint, shaderStage);
+        if (bindingAttempt) {
+            bformata(glsl, "layout(");
+            int needComma = 0;
+
+            if (binding._flags & GLSL_BINDING_TYPE_PUSHCONSTANTS) {
+                bformata(glsl, "push_constant");
+                needComma = 1;
+            }
+
+            if (binding._locationIndex != ~0u) {
+                if (needComma) bformata(glsl, ", ");
+                bformata(glsl, "location = %d", binding._locationIndex);
+                needComma = 1;
+            }
+
+            if (binding._bindingIndex != ~0u) {
+                if (needComma) bformata(glsl, ", ");
+                bformata(glsl, "binding = %d", binding._bindingIndex);
+                needComma = 1;
+            }
+
+            if (binding._setIndex != ~0u) {
+                if (needComma) bformata(glsl, ", ");
+                bformata(glsl, "set = %d", binding._setIndex);
+                needComma = 1;
+            }
+
+            bformata(glsl, ") ");
+            return;
+        }
+    }
+
+    ResourceGroup resGroup = RGROUP_CBUFFER;
+    if (srcResBinding)
+        resGroup = ResourceTypeToResourceGroup(srcResBinding->eType);
+
+	unsigned preferBindings = (resGroup == RGROUP_CBUFFER) || (resGroup == RGROUP_UAV);
 
 	if (preferBindings && HaveBindingQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
 	{
-		const unsigned assignSet = (psContext->flags & HLSLCC_FLAG_ASSIGN_DESCRIPTOR_SET) == HLSLCC_FLAG_ASSIGN_DESCRIPTOR_SET;
+		const unsigned assignSet = 0;
 		if (!assignSet)
 		{
 			// when not assigning a set, we need to shift the binding point to after all constant buffers
 			// (to avoid overlapping)
-			if (type == BINDABLE_RESOURCE)
+			if (resGroup == RGROUP_TEXTURE)
 				ui32BindingPoint += psContext->psShader->sInfo.ui32NumConstantBuffers;
 		}
 
-		bformata(glsl, "layout(binding = %d", ui32BindingPoint);
-
-		// note, we could set the location, also, if HaveUniformBindingsAndLocations...?
-		if (assignSet) 
-		{
-			unsigned setIndex = 0;
-			switch (type) 
-			{
-			default:
-			case BINDABLE_UBO: setIndex = 0; break;
-			case BINDABLE_RESOURCE: setIndex = 1; break;
-			case BINDABLE_UNORDERED_ACCESS: setIndex = 2; break;
-			}
-			bformata(glsl, ", set = %d", setIndex);
-		}
-
-		bcatcstr(glsl, ") ");
+		bformata(glsl, "layout(binding = %d)", ui32BindingPoint);
 		return;
 	}
 
 	// If we haven't selected to write a binding, let's write a location. This maintains backward compatibility 
 	if (HaveUniformBindingsAndLocations(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
 	{
-		if (type == BINDABLE_RESOURCE)
+		if (resGroup == RGROUP_TEXTURE)
 			ui32BindingPoint += psContext->psShader->sInfo.ui32NumConstantBuffers;
 
 		bformata(glsl, "layout(location = %d) ", ui32BindingPoint);
@@ -1291,7 +1320,7 @@ void DeclareUBOConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui3
 	}
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
-	WriteUniformLayout(psContext, BINDABLE_UBO, ui32BindingPoint, glsl);
+	WriteUniformLayout(psContext, NULL, psCBuf, ui32BindingPoint, psContext->psShader->eShaderType, glsl);
 	bformata(glsl, "uniform %s {\n ", Name);
 
     for(i=0; i < psCBuf->ui32NumVars; ++i)
@@ -1337,7 +1366,7 @@ void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t u
         &psCBuf->asVars[0].sType);
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
-	WriteUniformLayout(psContext, BINDABLE_UNORDERED_ACCESS, ui32BindingPoint, glsl);
+	WriteUniformLayout(psContext, NULL, psCBuf, ui32BindingPoint, psContext->psShader->eShaderType, glsl);
 
     if(ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
     {
@@ -2156,7 +2185,9 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			// for each HLSL texture declaration, but when combining textures+samplers, there can be multiple OGL samplers for each HLSL texture declaration.
 			if ((psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) != HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS)
 			{
-				WriteUniformLayout(psContext, BINDABLE_RESOURCE, psDecl->asOperands[0].ui32RegisterNumber, glsl);
+                ResourceBinding* psBinding = 0;
+                int found = GetResourceFromBindingPoint(RGROUP_TEXTURE, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
+				WriteUniformLayout(psContext, psBinding, NULL, psDecl->asOperands[0].ui32RegisterNumber, psContext->psShader->eShaderType, glsl);
             }
 
             switch(psDecl->value.eResourceDimension)

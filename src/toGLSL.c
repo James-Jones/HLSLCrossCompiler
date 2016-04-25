@@ -323,20 +323,25 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
     }
 
     /* For versions which do not support a vec1 (currently all versions) */
-    bcatcstr(glsl,"struct vec1 {\n");
-    bcatcstr(glsl,"\tfloat x;\n");
-    bcatcstr(glsl,"};\n");
+    // DavidJ --    Replacing this with a define.
+    //              Using a struct was causing problems with code like:
+    //                  vec1 value;
+    //                  value = 0.5f;
+    //              Here, the ".x" could be ommitted after "value" because
+    //              both sides are determined to have the same components.
+    //              That's fine with true vectors; but does not produce the
+    //              correct result when using a "struct" to stand in for vec1.
+    //
+    //      Note -- this is still not going to work correctly, because "value.x"
+    //      isn't valid for scalar types in GLSL!
+    bcatcstr(glsl, "#define vec1 float\n");
 
 	if(HaveUVec(psContext->psShader->eTargetLanguage))
 	{
-		bcatcstr(glsl,"struct uvec1 {\n");
-		bcatcstr(glsl,"\tuint x;\n");
-		bcatcstr(glsl,"};\n");
+        bcatcstr(glsl, "#define uvec1 uint\n");
 	}
 
-    bcatcstr(glsl,"struct ivec1 {\n");
-    bcatcstr(glsl,"\tint x;\n");
-    bcatcstr(glsl,"};\n");
+    bcatcstr(glsl, "#define ivec1 int\n");
 
     /*
         OpenGL 4.1 API spec:
@@ -760,6 +765,8 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
     GLLang language,
 	const GlExtensions *extensions,
     GLSLCrossDependencyData* dependencies,
+    EvaluateBindingFn evaluateBindingFn,
+    void* evaluateBindingData,
     GLSLShader* result)
 {
     uint32_t* tokens;
@@ -785,6 +792,8 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
         sContext.psShader = psShader;
         sContext.flags = flags;
         sContext.psDependencies = dependencies;
+        sContext.pEvaluateBindingFn = evaluateBindingFn;
+        sContext.pEvaluateBindingData = evaluateBindingData;
 
         for(i=0; i<NUM_PHASES;++i)
         {
@@ -886,6 +895,8 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
     GLLang language,
 	const GlExtensions *extensions,
     GLSLCrossDependencyData* dependencies,
+    EvaluateBindingFn evaluateBindingFn,
+    void* evaluateBindingData,
     GLSLShader* result)
 {
     FILE* shaderFile;
@@ -914,7 +925,10 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
 
     shader[readLength] = '\0';
 
-    success = TranslateHLSLFromMem(shader, flags, language, extensions, dependencies, result);
+    success = TranslateHLSLFromMem(
+        shader, flags, language, extensions, dependencies, 
+        evaluateBindingFn, evaluateBindingData,
+        result);
 
     hlslcc_free(shader);
 
