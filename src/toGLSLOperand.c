@@ -2,6 +2,7 @@
 #include "internal_includes/toGLSLDeclaration.h"
 #include "bstrlib.h"
 #include "hlslcc.h"
+#include "internal_includes/languages.h"
 #include "internal_includes/debug.h"
 
 #include <float.h>
@@ -1466,7 +1467,14 @@ static void TranslateVariableNameWithMask(HLSLCrossCompilerContext* psContext, c
         }
         case OPERAND_TYPE_SAMPLER:
         {
-            bformata(glsl, "Sampler%d", psOperand->ui32RegisterNumber);
+            if (HaveSeparateTexturesAndSamplers(psContext->psShader->eTargetLanguage, psContext->psShader->extensions)) 
+            {
+                ResourceName(glsl, psContext, RGROUP_SAMPLER, psOperand->ui32RegisterNumber, 0);
+            }
+            else
+            {
+                bformata(glsl, "Sampler%d", psOperand->ui32RegisterNumber);
+            }
 			*pui32IgnoreSwizzle = 1;
             break;
         }

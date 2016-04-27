@@ -77,6 +77,13 @@ void AddIndentation(HLSLCrossCompilerContext* psContext)
     }
 }
 
+void WriteUniformLayout(
+	HLSLCrossCompilerContext* psContext,
+	ResourceBinding* srcResBinding,
+    ConstantBuffer* srcCBBinding,
+    unsigned ui32BindingPoint, unsigned shaderStage,
+	bstring glsl);
+
 void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 {
     bstring glsl = *psContext->currentGLSLString;
@@ -342,6 +349,35 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 	}
 
     bcatcstr(glsl, "#define ivec1 int\n");
+
+    // In HLSL, we can use "Load" on a texture object and access it without a sampler.
+    // For GLSL, we have 2 options:
+    //      * use a gtexture2d/gsampler2d and access with texelFetch
+    //      * use a image2d and access with imageLoad
+    //
+    // If we use imageLoad, we don't need a sampler. This is a closer analogue to HLSL.
+    // If we use gtexture2d, we need to use a sampler. But we can also call other texture
+    // access functions (like texture, textureGather).
+    //
+    // It seems like "images" will be necessary if we need to perform atomic operations on
+    // the data (ie, like RWTextures in HLSL).
+    // But for HLSL "texture" objects, perhaps it's best to just stick with gtexture2d/gsampler2d
+    // objects for consistancy. But, we will need to declare a dummy sampler to use with texelFetch.
+    if (HaveSeparateTexturesAndSamplers(psContext->psShader->eTargetLanguage, psContext->psShader->extensions)) {
+        ResourceBinding resBinding;
+        strcpy(resBinding.Name, "DummySampler");
+        resBinding.eType = RTYPE_SAMPLER;
+        resBinding.ui32BindPoint = 16;
+        resBinding.ui32BindCount = 1;
+        resBinding.ui32Flags = 0;
+        resBinding.eDimension = REFLECT_RESOURCE_DIMENSION_UNKNOWN;
+        resBinding.ui32ReturnType = 0;
+        resBinding.ui32NumSamples = 0;
+        WriteUniformLayout(
+            psContext, &resBinding, NULL, resBinding.ui32BindPoint,
+            psContext->psShader->eShaderType, glsl);
+        bcatcstr(glsl, "uniform sampler DummySampler;\n");
+    }
 
     /*
         OpenGL 4.1 API spec:

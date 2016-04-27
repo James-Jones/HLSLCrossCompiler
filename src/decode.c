@@ -444,6 +444,8 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_SAMPLER:
         {
+            psDecl->ui32NumOperands = 1;
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
         case OPCODE_DCL_INDEX_RANGE:

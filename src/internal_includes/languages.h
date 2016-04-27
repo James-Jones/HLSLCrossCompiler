@@ -93,6 +93,11 @@ static int HaveBindingQualifier(const GLLang eLang, const struct GlExtensions *e
 		|| (extensions && ((GlExtensions*)extensions)->ARB_shading_language_420pack);
 }
 
+static int HaveSeparateTexturesAndSamplers(const GLLang eLang, const struct GlExtensions *extensions)
+{
+    return extensions &&  ((GlExtensions*)extensions)->GL_KHR_vulkan_glsl;
+}
+
 static int DualSourceBlendSupported(const GLLang eLang)
 {
     if(eLang >= LANG_330)

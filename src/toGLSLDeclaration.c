@@ -1198,7 +1198,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 	}
 }
 
-static void WriteUniformLayout(
+void WriteUniformLayout(
 	HLSLCrossCompilerContext* psContext,
 	ResourceBinding* srcResBinding,
     ConstantBuffer* srcCBBinding,
@@ -1600,6 +1600,169 @@ char* GetSamplerType(HLSLCrossCompilerContext* psContext,
 	return "sampler2D";
 }
 
+char* GetTextureType(HLSLCrossCompilerContext* psContext,
+					 const RESOURCE_DIMENSION eDimension,
+					 const uint32_t ui32RegisterNumber)
+{
+    // This is used when GL_KHR_vulkan_glsl is enabled, and allows us to specify
+    // a texture object is in independant from any sampling function (much like the DirectX
+    // method of separating textures and samplers)
+    // Just following the pattern from GetSamplerType very closely
+
+	ResourceBinding* psBinding = 0;
+	RESOURCE_RETURN_TYPE eType = RETURN_TYPE_UNORM;
+	int found;
+	found = GetResourceFromBindingPoint(RGROUP_TEXTURE, ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
+	if(found)
+	{
+		eType = (RESOURCE_RETURN_TYPE)psBinding->ui32ReturnType;
+	}
+	switch(eDimension)
+	{
+		case RESOURCE_DIMENSION_BUFFER:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "itextureBuffer";
+				case RETURN_TYPE_UINT:
+					return "utextureBuffer";
+				default:
+					return "samplerBuffer";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURE1D:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "itexture1D";
+				case RETURN_TYPE_UINT:
+					return "utexture1D";
+				default:
+					return "texture1D";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURE2D:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "itexture2D";
+				case RETURN_TYPE_UINT:
+					return "utexture2D";
+				default:
+					return "texture2D";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURE2DMS:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "itexture2DMS";
+				case RETURN_TYPE_UINT:
+					return "utexture2DMS";
+				default:
+					return "texture2DMS";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURE3D:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "itexture3D";
+				case RETURN_TYPE_UINT:
+					return "utexture3D";
+				default:
+					return "texture3D";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURECUBE:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "itextureCube";
+				case RETURN_TYPE_UINT:
+					return "utextureCube";
+				default:
+					return "textureCube";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "itexture1DArray";
+				case RETURN_TYPE_UINT:
+					return "utexture1DArray";
+				default:
+					return "texture1DArray";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "itexture2DArray";
+				case RETURN_TYPE_UINT:
+					return "utexture2DArray";
+				default:
+					return "texture2DArray";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "itexture2DMSArray";
+				case RETURN_TYPE_UINT:
+					return "utexture2DMSArray";
+				default:
+					return "texture2DMSArray";
+			}
+			break;
+		}
+
+		case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+		{
+			switch(eType)
+			{
+				case RETURN_TYPE_SINT:
+					return "itextureCubeArray";
+				case RETURN_TYPE_UINT:
+					return "utextureCubeArray";
+				default:
+					return "textureCubeArray";
+			}
+			break;
+		}
+	}
+
+	return "texture2D";
+}
+
 static void TranslateResourceTexture(HLSLCrossCompilerContext* psContext, const Declaration* psDecl, uint32_t samplerCanDoShadowCmp)
 {
     bstring glsl = *psContext->currentGLSLString;
@@ -1631,6 +1794,13 @@ static void TranslateResourceTexture(HLSLCrossCompilerContext* psContext, const 
             ConcatTextureSamplerName(glsl, &psShader->sInfo, psDecl->asOperands[0].ui32RegisterNumber, psDecl->ui32SamplerUsed[i], 0);
             bcatcstr(glsl, ";\n");
         }
+    } 
+    else if (HaveSeparateTexturesAndSamplers(psContext->psShader->eTargetLanguage, psContext->psShader->extensions)) 
+    {
+        samplerTypeName = GetTextureType(
+            psContext,
+		    psDecl->value.eResourceDimension,
+		    psDecl->asOperands[0].ui32RegisterNumber);
     }
 
     if(samplerCanDoShadowCmp && psDecl->ui32IsShadowTex)
@@ -2194,9 +2364,18 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             {
                 case RESOURCE_DIMENSION_BUFFER:
                 {
-                    bformata(glsl, "uniform %s ", GetSamplerType(psContext,
+                    const char* samplerTypeName = GetSamplerType(
+                        psContext,
 						RESOURCE_DIMENSION_BUFFER,
-						psDecl->asOperands[0].ui32RegisterNumber));
+						psDecl->asOperands[0].ui32RegisterNumber);
+                    if (HaveSeparateTexturesAndSamplers(psContext->psShader->eTargetLanguage, psContext->psShader->extensions)) 
+                    {
+                        samplerTypeName = GetTextureType(
+                            psContext,
+		                    RESOURCE_DIMENSION_BUFFER,
+		                    psDecl->asOperands[0].ui32RegisterNumber);
+                    }
+                    bformata(glsl, "uniform %s ", samplerTypeName);
                     TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
                     bcatcstr(glsl, ";\n");
                     break;
@@ -2593,6 +2772,16 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
 		case OPCODE_DCL_SAMPLER:
 		{
+            if ((psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) != HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS)
+			{
+                ResourceBinding* psBinding = 0;
+                int found = GetResourceFromBindingPoint(RGROUP_SAMPLER, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
+				WriteUniformLayout(psContext, psBinding, NULL, psDecl->asOperands[0].ui32RegisterNumber, psContext->psShader->eShaderType, glsl);
+
+                bformata(glsl, "uniform sampler ");
+                TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+                bcatcstr(glsl, ";\n");
+            }
 			break;
 		}
         case OPCODE_DCL_HS_MAX_TESSFACTOR:
