@@ -1203,6 +1203,7 @@ void WriteUniformLayout(
 	ResourceBinding* srcResBinding,
     ConstantBuffer* srcCBBinding,
     unsigned ui32BindingPoint, unsigned shaderStage,
+    const char* extraLayoutQualifiers,
 	bstring glsl)
 {
 	// Write the "layout(...)" decoration that should preceed uniform objects
@@ -1239,33 +1240,39 @@ void WriteUniformLayout(
                 srcResBinding, srcCBBinding, 
                 ui32BindingPoint, shaderStage);
         if (bindingAttempt) {
-            bformata(glsl, "layout(");
+            bcatcstr(glsl, "layout(");
             int needComma = 0;
 
             if (binding._flags & GLSL_BINDING_TYPE_PUSHCONSTANTS) {
-                bformata(glsl, "push_constant");
+                bcatcstr(glsl, "push_constant");
                 needComma = 1;
             }
 
             if (binding._locationIndex != ~0u) {
-                if (needComma) bformata(glsl, ", ");
+                if (needComma) bcatcstr(glsl, ", ");
                 bformata(glsl, "location = %d", binding._locationIndex);
                 needComma = 1;
             }
 
             if (binding._bindingIndex != ~0u) {
-                if (needComma) bformata(glsl, ", ");
+                if (needComma) bcatcstr(glsl, ", ");
                 bformata(glsl, "binding = %d", binding._bindingIndex);
                 needComma = 1;
             }
 
             if (binding._setIndex != ~0u) {
-                if (needComma) bformata(glsl, ", ");
+                if (needComma) bcatcstr(glsl, ", ");
                 bformata(glsl, "set = %d", binding._setIndex);
                 needComma = 1;
             }
 
-            bformata(glsl, ") ");
+            if (extraLayoutQualifiers != NULL && extraLayoutQualifiers[0]) {
+                if (needComma) bcatcstr(glsl, ", ");
+                bcatcstr(glsl, extraLayoutQualifiers);
+                needComma = 1;
+            }
+
+            bcatcstr(glsl, ") ");
             return;
         }
     }
@@ -1287,7 +1294,14 @@ void WriteUniformLayout(
 				ui32BindingPoint += psContext->psShader->sInfo.ui32NumConstantBuffers;
 		}
 
-		bformata(glsl, "layout(binding = %d)", ui32BindingPoint);
+		bformata(glsl, "layout(binding = %d", ui32BindingPoint);
+
+        if (extraLayoutQualifiers != NULL && extraLayoutQualifiers[0]) {
+            bcatcstr(glsl, ", ");
+            bcatcstr(glsl, extraLayoutQualifiers);
+        }
+        bcatcstr(glsl, ") ");
+
 		return;
 	}
 
@@ -1297,7 +1311,13 @@ void WriteUniformLayout(
 		if (resGroup == RGROUP_TEXTURE)
 			ui32BindingPoint += psContext->psShader->sInfo.ui32NumConstantBuffers;
 
-		bformata(glsl, "layout(location = %d) ", ui32BindingPoint);
+		bformata(glsl, "layout(location = %d", ui32BindingPoint);
+
+        if (extraLayoutQualifiers != NULL && extraLayoutQualifiers[0]) {
+            bcatcstr(glsl, ", ");
+            bcatcstr(glsl, extraLayoutQualifiers);
+        }
+        bcatcstr(glsl, ") ");
 	}
 }
 
@@ -1320,7 +1340,7 @@ void DeclareUBOConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui3
 	}
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
-	WriteUniformLayout(psContext, NULL, psCBuf, ui32BindingPoint, psContext->psShader->eShaderType, glsl);
+	WriteUniformLayout(psContext, NULL, psCBuf, ui32BindingPoint, psContext->psShader->eShaderType, NULL, glsl);
 	bformata(glsl, "uniform %s {\n ", Name);
 
     for(i=0; i < psCBuf->ui32NumVars; ++i)
@@ -1366,7 +1386,7 @@ void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t u
         &psCBuf->asVars[0].sType);
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
-	WriteUniformLayout(psContext, NULL, psCBuf, ui32BindingPoint, psContext->psShader->eShaderType, glsl);
+	WriteUniformLayout(psContext, NULL, psCBuf, ui32BindingPoint, psContext->psShader->eShaderType, NULL, glsl);
 
     if(ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
     {
@@ -2357,7 +2377,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			{
                 ResourceBinding* psBinding = 0;
                 int found = GetResourceFromBindingPoint(RGROUP_TEXTURE, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
-				WriteUniformLayout(psContext, psBinding, NULL, psDecl->asOperands[0].ui32RegisterNumber, psContext->psShader->eShaderType, glsl);
+				WriteUniformLayout(psContext, psBinding, NULL, psDecl->asOperands[0].ui32RegisterNumber, psContext->psShader->eShaderType, NULL, glsl);
             }
 
             switch(psDecl->value.eResourceDimension)
@@ -2776,7 +2796,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			{
                 ResourceBinding* psBinding = 0;
                 int found = GetResourceFromBindingPoint(RGROUP_SAMPLER, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
-				WriteUniformLayout(psContext, psBinding, NULL, psDecl->asOperands[0].ui32RegisterNumber, psContext->psShader->eShaderType, glsl);
+				WriteUniformLayout(psContext, psBinding, NULL, psDecl->asOperands[0].ui32RegisterNumber, psContext->psShader->eShaderType, NULL, glsl);
 
                 bformata(glsl, "uniform sampler ");
                 TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
@@ -2793,6 +2813,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         {
 			// non-float images need either 'i' or 'u' prefix.
 			char imageTypePrefix[2] = { 0, 0 };
+            char* extraLayoutQualifiers = "";
             if(psDecl->sUAV.ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
             {
                 bcatcstr(glsl, "coherent ");
@@ -2812,26 +2833,32 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				switch(psDecl->sUAV.Type)
 				{
 				case RETURN_TYPE_FLOAT:
-					bcatcstr(glsl, "layout(rgba32f) ");
+					extraLayoutQualifiers = "rgba32f";
 					break;
 				case RETURN_TYPE_UNORM:
-					bcatcstr(glsl, "layout(rgba8) ");
+					extraLayoutQualifiers = "rgba8";
 					break;
 				case RETURN_TYPE_SNORM:
-					bcatcstr(glsl, "layout(rgba8_snorm) ");
+					extraLayoutQualifiers = "rgba8_snorm";
 					break;
 				case RETURN_TYPE_UINT:
-					bcatcstr(glsl, "layout(rgba32ui) ");
+					extraLayoutQualifiers = "rgba32ui";
 					imageTypePrefix[0] = 'u';
 					break;
 				case RETURN_TYPE_SINT:
-					bcatcstr(glsl, "layout(rgba32i) ");
+					extraLayoutQualifiers = "rgba32i";
 					imageTypePrefix[0] = 'i';
 					break;
 				default:
 					ASSERT(0);
 				}
 			}
+
+            {
+                ResourceBinding* psBinding = 0;
+                int found = GetResourceFromBindingPoint(RGROUP_UAV, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
+				WriteUniformLayout(psContext, psBinding, NULL, psDecl->asOperands[0].ui32RegisterNumber, psContext->psShader->eShaderType, extraLayoutQualifiers, glsl);
+            }
 
             switch(psDecl->value.eResourceDimension)
             {
