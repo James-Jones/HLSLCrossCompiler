@@ -1354,7 +1354,7 @@ void DeclareUBOConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui3
 }
 
 void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t ui32BindingPoint,
-							ConstantBuffer* psCBuf, const Operand* psOperand,
+							ConstantBuffer* psCBuf, ResourceBinding* pResourceBinding, const Operand* psOperand,
 							const uint32_t ui32GloballyCoherentAccess,
 							const ResourceType eResourceType,
 							bstring glsl)
@@ -1386,7 +1386,7 @@ void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t u
         &psCBuf->asVars[0].sType);
 
     /* [layout (location = X)] uniform vec4 HLSLConstantBufferName[numConsts]; */
-	WriteUniformLayout(psContext, NULL, psCBuf, ui32BindingPoint, psContext->psShader->eShaderType, NULL, glsl);
+	WriteUniformLayout(psContext, pResourceBinding, psCBuf, ui32BindingPoint, psContext->psShader->eShaderType, NULL, glsl);
 
     if(ui32GloballyCoherentAccess & GLOBALLY_COHERENT_ACCESS)
     {
@@ -2924,6 +2924,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         {
 			const uint32_t ui32BindingPoint = psDecl->asOperands[0].aui32ArraySizes[0];
 			ConstantBuffer* psCBuf = NULL;
+            ResourceBinding* pResBinding = NULL;
 
 			if(psDecl->sUAV.bCounter)
 			{
@@ -2933,8 +2934,9 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			}
 
 			GetConstantBufferFromBindingPoint(RGROUP_UAV, ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
+            GetResourceFromBindingPoint(RGROUP_UAV, ui32BindingPoint, &psContext->psShader->sInfo, &pResBinding);
 
-			DeclareBufferVariable(psContext, ui32BindingPoint, psCBuf, &psDecl->asOperands[0], 
+			DeclareBufferVariable(psContext, ui32BindingPoint, psCBuf, pResBinding, &psDecl->asOperands[0], 
 				psDecl->sUAV.ui32GloballyCoherentAccess, RTYPE_UAV_RWSTRUCTURED, glsl);
             break;
         }
@@ -2956,10 +2958,12 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         case OPCODE_DCL_RESOURCE_STRUCTURED:
         {
 			ConstantBuffer* psCBuf = NULL;
+            ResourceBinding* pResBinding = NULL;
 
 			GetConstantBufferFromBindingPoint(RGROUP_TEXTURE, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+            GetResourceFromBindingPoint(RGROUP_UAV, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &pResBinding);
 
-			DeclareBufferVariable(psContext, psDecl->asOperands[0].ui32RegisterNumber, psCBuf, &psDecl->asOperands[0], 
+			DeclareBufferVariable(psContext, psDecl->asOperands[0].ui32RegisterNumber, psCBuf, pResBinding, &psDecl->asOperands[0], 
 				0, RTYPE_STRUCTURED, glsl);
             break;
         }
