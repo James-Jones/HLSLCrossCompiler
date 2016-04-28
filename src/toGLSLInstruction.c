@@ -967,6 +967,7 @@ void GetResInfoData(HLSLCrossCompilerContext* psContext, Instruction* psInst, in
         RESOURCE_DIMENSION eResDim;
         const char* queryFunction = "textureSize";
         int includeLODParameter = 1;
+        int isUAV = 0;
 
         // "UAV" types in HLSL become "image" types in GLSL.
         // In these cases, we must use "imageSize" rather than "textureSize"
@@ -979,6 +980,7 @@ void GetResInfoData(HLSLCrossCompilerContext* psContext, Instruction* psInst, in
             eResDim = psContext->psShader->aeUAVResourceDims[psInst->asOperands[2].ui32RegisterNumber];
             queryFunction = "imageSize";
             includeLODParameter = 0;
+            isUAV = 1;
         } else {
             ASSERT(psInst->asOperands[2].eType == OPERAND_TYPE_RESOURCE);
             ASSERT(psInst->asOperands[2].ui32RegisterNumber < MAX_TEXTURES);
@@ -1005,7 +1007,16 @@ void GetResInfoData(HLSLCrossCompilerContext* psContext, Instruction* psInst, in
 			{
 				bformata(glsl, "vec%d(%s(", dim, queryFunction);
 			}
-			TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+
+            // For "texture" types, we still need to write the sampler expression
+            // This will expand to something like sampler2d(textureName, DummySampler) when using 
+            // GL_KHR_vulkan_glsl.
+            if (!isUAV) {
+                WriteSamplerExpression(psContext, psInst->asOperands[2].ui32RegisterNumber, ~0u, 0);
+            } else {
+			    TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+            }
+
             if (includeLODParameter) {
 			    bcatcstr(glsl, ", ");
 			    TranslateOperand(psContext, &psInst->asOperands[1], TO_FLAG_INTEGER);
