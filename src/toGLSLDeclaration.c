@@ -1378,7 +1378,7 @@ void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t u
 	}
 	else
 	{
-		ResourceName(StructName, psContext, RGROUP_UAV, psOperand->ui32RegisterNumber, 0);
+        bformata(StructName, "StorageBuffer%d", psOperand->ui32RegisterNumber);
 	}
 
     PreDeclareStructType(glsl,
@@ -1398,7 +1398,7 @@ void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t u
 		bcatcstr(glsl, "readonly ");
 	}
 
-    bformata(glsl, "buffer Block%d {\n", psOperand->ui32RegisterNumber);
+    bformata(glsl, "buffer %s {\n", psCBuf->Name);
 
 	DeclareConstBufferShaderVariable(glsl,
 	bstr2cstr(StructName, '\0'),

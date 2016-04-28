@@ -1047,7 +1047,7 @@ void GetResInfoData(HLSLCrossCompilerContext* psContext, Instruction* psInst, in
 		else
 			bcatcstr(glsl, "float(");
 		bcatcstr(glsl, "textureQueryLevels(");
-		TranslateOperand(psContext, &psInst->asOperands[2], TO_FLAG_NONE);
+        WriteSamplerExpression(psContext, psInst->asOperands[2].ui32RegisterNumber, ~0u, 0);
 		bcatcstr(glsl, "))");
 	}
 	AddAssignPrologue(psContext, numParenthesis);
@@ -1439,7 +1439,7 @@ static void TranslateShaderStorageStore(HLSLCrossCompilerContext* psContext, Ins
 			}
 			else
 			{
-				TranslateOperand(psContext, psDest, TO_FLAG_DESTINATION | TO_FLAG_NAME_ONLY);
+                bformata(glsl, "StorageBuffer%d", psDest->ui32RegisterNumber);
 			}
 			bformata(glsl, "[");
 			if (structured) //Dest address and dest byte offset
@@ -1640,7 +1640,7 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 				}
 				if (psSrc->eType == OPERAND_TYPE_UNORDERED_ACCESS_VIEW)
 				{
-					bformata(glsl, "%s[", psCBuf->Name);
+                    bformata(glsl, "StorageBuffer%d[", psSrc->ui32RegisterNumber);
 					TranslateOperand(psContext, psSrcAddr, TO_FLAG_INTEGER);
 					bcatcstr(glsl, "]");
 					if (strcmp(psVar->Name, "$Element") != 0)
