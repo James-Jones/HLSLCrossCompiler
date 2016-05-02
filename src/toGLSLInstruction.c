@@ -2769,7 +2769,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		bcatcstr(glsl, ")"); // 1
 
         // this seems like the only reliable way to catch every swizzling case ---
-        AddSwizzleUsingOrderedElementsDstMask(psContext, &psInst->asOperands[1], &psInst->asOperands[0]); 
+        //      (note that this is using the swizzle on the write element, because we took care of the swizzle
+        //      on operands[1] in the translate operand call)
+        AddSwizzleUsingOrderedElements(psContext, &psInst->asOperands[0], OPERAND_4_COMPONENT_MASK_ALL); 
 		AddAssignPrologue(psContext, numParenthesis);
 		//*/
 		break;
@@ -2813,7 +2815,9 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		bcatcstr(glsl, ")"); // 1
 
         // this seems like the only reliable way to catch every swizzling case ---
-        AddSwizzleUsingOrderedElementsDstMask(psContext, &psInst->asOperands[1], &psInst->asOperands[0]); 
+        //      (note that this is using the swizzle on the write element, because we took care of the swizzle
+        //      on operands[1] in the translate operand call)
+        AddSwizzleUsingOrderedElements(psContext, &psInst->asOperands[0], OPERAND_4_COMPONENT_MASK_ALL); 
 		AddAssignPrologue(psContext, numParenthesis);
 		break;
 	}
