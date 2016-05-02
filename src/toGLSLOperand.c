@@ -454,6 +454,53 @@ void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t c
 	}
 }
 
+void AddSwizzleUsingOrderedElements(HLSLCrossCompilerContext* psContext, const Operand *psOperand, uint32_t ui32CompMask)
+{
+    bstring glsl = *psContext->currentGLSLString;
+    uint32_t elements[4];
+    uint32_t count = GetOrderedSwizzleElements(psOperand, ui32CompMask, elements);
+    ASSERT(count!=0);
+
+    bcatcstr(glsl, ".");
+    const char* eles[] = { "x", "y", "z", "w" };
+    for (unsigned c=0; c<count; ++c) {
+        ASSERT(elements[c] < 4);
+        bcatcstr(glsl, eles[elements[c]]);
+    }
+}
+
+void AddSwizzleUsingOrderedElementsDstMask(
+    HLSLCrossCompilerContext* psContext, 
+    const Operand *psSrcOperand, const Operand *psMaskingOperand)
+{
+    bstring glsl = *psContext->currentGLSLString;
+    const char* eles[] = { "x", "y", "z", "w" };
+
+    uint32_t srcElements[4];
+    uint32_t srcCount = GetOrderedSwizzleElements(psSrcOperand, OPERAND_4_COMPONENT_MASK_ALL, srcElements);
+    ASSERT(srcCount!=0);
+
+    uint32_t dstElements[4];
+    uint32_t dstCount = GetOrderedSwizzleElements(psMaskingOperand, OPERAND_4_COMPONENT_MASK_ALL, dstElements);
+    ASSERT(dstCount!=0);
+
+    // We want to write only those components that properly overlap with the destination operand.
+    // It appears that if we have a situation like:
+    //      value0.zw = value1.xy;
+    //
+    // Then psSrcOperand will have the swizzle "xxxy"
+    // and psMaskingOperand will have the swizzle "zw"
+
+    bcatcstr(glsl, ".");
+
+    // (for scalar src values, we just smear across the scalar value)
+    for (unsigned c=0; c<dstCount; ++c) {
+        ASSERT(dstElements[c] < 4);
+        ASSERT(srcElements[min(dstElements[c], srcCount-1)] < 4);
+        bcatcstr(glsl, eles[srcElements[min(dstElements[c], srcCount-1)]]);
+    }
+}
+
 static uint32_t ConvertOperandSwizzleToComponentMask(const Operand* psOperand)
 {
     uint32_t mask = 0;

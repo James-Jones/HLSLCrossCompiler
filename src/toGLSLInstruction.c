@@ -2745,7 +2745,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	case OPCODE_FTOI:
 	case OPCODE_FTOU:
 	{
-		uint32_t dstCount = GetNumSwizzleElements(&psInst->asOperands[0]);
 		uint32_t srcCount = GetNumSwizzleElements(&psInst->asOperands[1]);
 		uint32_t ui32DstFlags = TO_FLAG_DESTINATION;
 		const SHADER_VARIABLE_TYPE eSrcType = GetOperandDataType(psContext, &psInst->asOperands[1]);
@@ -2762,13 +2761,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		AddIndentation(psContext);
 
 		AddAssignToDest(psContext, &psInst->asOperands[0], psInst->eOpcode == OPCODE_FTOU ? SVT_UINT : SVT_INT, srcCount, &numParenthesis);		
-		bcatcstr(glsl, GetConstructorForType(psInst->eOpcode == OPCODE_FTOU ? SVT_UINT : SVT_INT, srcCount == dstCount ? dstCount : 4));
+		bcatcstr(glsl, GetConstructorForType(psInst->eOpcode == OPCODE_FTOU ? SVT_UINT : SVT_INT, 4));
 		bcatcstr(glsl, "("); // 1
 		TranslateOperand(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT);
+        // we have to smear out the scalars here...
+        if (srcCount == 1) bcatcstr(glsl, ".xxxx");
 		bcatcstr(glsl, ")"); // 1
-		// Add destination writemask if the component counts do not match
-		if (srcCount != dstCount)
-			TranslateOperandSwizzleWithMask(psContext, &psInst->asOperands[0], OPERAND_4_COMPONENT_MASK_ALL);
+
+        // this seems like the only reliable way to catch every swizzling case ---
+        AddSwizzleUsingOrderedElementsDstMask(psContext, &psInst->asOperands[1], &psInst->asOperands[0]); 
 		AddAssignPrologue(psContext, numParenthesis);
 		//*/
 		break;
@@ -2789,7 +2790,6 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	{
 		const SHADER_VARIABLE_TYPE eDestType = GetOperandDataType(psContext, &psInst->asOperands[0]);
 		const SHADER_VARIABLE_TYPE eSrcType = GetOperandDataType(psContext, &psInst->asOperands[1]);
-		uint32_t dstCount = GetNumSwizzleElements(&psInst->asOperands[0]);
 		uint32_t srcCount = GetNumSwizzleElements(&psInst->asOperands[1]);
 
 #ifdef _DEBUG
@@ -2805,13 +2805,15 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 #endif
 		AddIndentation(psContext);
 		AddAssignToDest(psContext, &psInst->asOperands[0], SVT_FLOAT, srcCount, &numParenthesis);
-		bcatcstr(glsl, GetConstructorForType(SVT_FLOAT, srcCount == dstCount ? dstCount : 4));
+		bcatcstr(glsl, GetConstructorForType(SVT_FLOAT, 4));
 		bcatcstr(glsl, "("); // 1
 		TranslateOperand(psContext, &psInst->asOperands[1], psInst->eOpcode == OPCODE_UTOF ? TO_AUTO_BITCAST_TO_UINT : TO_AUTO_BITCAST_TO_INT);
+        // we have to smear out the scalars here...
+        if (srcCount == 1) bcatcstr(glsl, ".xxxx");
 		bcatcstr(glsl, ")"); // 1
-		// Add destination writemask if the component counts do not match
-		if (srcCount != dstCount)
-			AddSwizzleUsingElementCount(psContext, dstCount);
+
+        // this seems like the only reliable way to catch every swizzling case ---
+        AddSwizzleUsingOrderedElementsDstMask(psContext, &psInst->asOperands[1], &psInst->asOperands[0]); 
 		AddAssignPrologue(psContext, numParenthesis);
 		break;
 	}
@@ -4606,7 +4608,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
             //          GLSL expressions.
 			GetResInfoData(
                 psContext, psInst, 
-                srcSwizzle[eleIndex], 
+                srcSwizzle[min(destSwizzle[eleIndex], srcElemCount-1)],     // (min causes a smear for scalar types)
                 destSwizzle[eleIndex]);
 		}
 
