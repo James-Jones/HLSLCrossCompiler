@@ -2961,7 +2961,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             ResourceBinding* pResBinding = NULL;
 
 			GetConstantBufferFromBindingPoint(RGROUP_TEXTURE, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
-            GetResourceFromBindingPoint(RGROUP_UAV, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &pResBinding);
+            GetResourceFromBindingPoint(RGROUP_TEXTURE, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &pResBinding);
 
 			DeclareBufferVariable(psContext, psDecl->asOperands[0].ui32RegisterNumber, psCBuf, pResBinding, &psDecl->asOperands[0], 
 				0, RTYPE_STRUCTURED, glsl);
