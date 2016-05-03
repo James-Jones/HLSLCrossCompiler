@@ -2380,6 +2380,10 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 				WriteUniformLayout(psContext, psBinding, NULL, psDecl->asOperands[0].ui32RegisterNumber, psContext->psShader->eShaderType, NULL, glsl);
             }
 
+            int canDoShadowCmp = 1;
+            if (HaveSeparateTexturesAndSamplers(psContext->psShader->eTargetLanguage, psContext->psShader->extensions))
+                canDoShadowCmp = 0;
+
             switch(psDecl->value.eResourceDimension)
             {
                 case RESOURCE_DIMENSION_BUFFER:
@@ -2402,12 +2406,12 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
                 case RESOURCE_DIMENSION_TEXTURE1D:
                 {
-                    TranslateResourceTexture(psContext, psDecl, 1);
+                    TranslateResourceTexture(psContext, psDecl, canDoShadowCmp);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2D:
                 {
-                    TranslateResourceTexture(psContext, psDecl, 1);
+                    TranslateResourceTexture(psContext, psDecl, canDoShadowCmp);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DMS:
@@ -2422,17 +2426,17 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBE:
                 {
-                    TranslateResourceTexture(psContext, psDecl, 1);
+                    TranslateResourceTexture(psContext, psDecl, canDoShadowCmp);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE1DARRAY:
                 {
-                    TranslateResourceTexture(psContext, psDecl, 1);
+                    TranslateResourceTexture(psContext, psDecl, canDoShadowCmp);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DARRAY:
                 {
-                    TranslateResourceTexture(psContext, psDecl, 1);
+                    TranslateResourceTexture(psContext, psDecl, canDoShadowCmp);
                     break;
                 }
                 case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
@@ -2442,7 +2446,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 }
                 case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
                 {
-                    TranslateResourceTexture(psContext, psDecl, 1);
+                    TranslateResourceTexture(psContext, psDecl, canDoShadowCmp);
                     break;
                 }
             }
@@ -2798,7 +2802,11 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
                 int found = GetResourceFromBindingPoint(RGROUP_SAMPLER, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
 				WriteUniformLayout(psContext, psBinding, NULL, psDecl->asOperands[0].ui32RegisterNumber, psContext->psShader->eShaderType, NULL, glsl);
 
-                bformata(glsl, "uniform sampler ");
+                if (psBinding->ui32Flags & REFLECT_RESOURCE_FLAGS_COMPARISON_SAMPLER) {
+                    bformata(glsl, "uniform samplerShadow ");
+                } else {
+                    bformata(glsl, "uniform sampler ");
+                }
                 TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
                 bcatcstr(glsl, ";\n");
             }

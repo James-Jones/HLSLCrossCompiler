@@ -382,7 +382,7 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
     // objects for consistancy. But, we will need to declare a dummy sampler to use with texelFetch.
     if (HaveSeparateTexturesAndSamplers(psContext->psShader->eTargetLanguage, psContext->psShader->extensions)) {
         ResourceBinding resBinding;
-        strcpy(resBinding.Name, "DummySampler");
+        strcpy(resBinding.Name, "hlslcc_DummySampler");
         resBinding.eType = RTYPE_SAMPLER;
         resBinding.ui32BindPoint = 16;
         resBinding.ui32BindCount = 1;
@@ -393,7 +393,7 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
         WriteUniformLayout(
             psContext, &resBinding, NULL, resBinding.ui32BindPoint,
             psContext->psShader->eShaderType, glsl);
-        bcatcstr(glsl, "uniform sampler DummySampler;\n");
+        bcatcstr(glsl, "uniform sampler hlslcc_DummySampler;\n");
     }
 
     /*
