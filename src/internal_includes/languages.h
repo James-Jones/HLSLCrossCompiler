@@ -98,6 +98,13 @@ static int HaveSeparateTexturesAndSamplers(const GLLang eLang, const struct GlEx
     return extensions &&  ((GlExtensions*)extensions)->GL_KHR_vulkan_glsl;
 }
 
+static int HaveScalarSwizzle(const GLLang eLang, const struct GlExtensions *extensions)
+{
+    return 
+		(eLang >= LANG_420)
+		|| (extensions && ((GlExtensions*)extensions)->ARB_shading_language_420pack);
+}
+
 static int DualSourceBlendSupported(const GLLang eLang)
 {
     if(eLang >= LANG_330)

@@ -339,16 +339,33 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
     //              That's fine with true vectors; but does not produce the
     //              correct result when using a "struct" to stand in for vec1.
     //
-    //      Note -- this is still not going to work correctly, because "value.x"
-    //      isn't valid for scalar types in GLSL!
-    bcatcstr(glsl, "#define vec1 float\n");
-
-	if(HaveUVec(psContext->psShader->eTargetLanguage))
-	{
-        bcatcstr(glsl, "#define uvec1 uint\n");
-	}
-
-    bcatcstr(glsl, "#define ivec1 int\n");
+    //      Note -- this requires GLSL 4.20 or ARB_shading_language_420pack to work
+    //              correctly. When targetting older versions of OpenGL, some input
+    //              HLSL code will generate incorrect results.
+    if (HaveScalarSwizzle(psContext->psShader->eTargetLanguage, psContext->psShader->extensions)) 
+    {
+        bcatcstr(glsl, "#define vec1 float\n");
+	    if(HaveUVec(psContext->psShader->eTargetLanguage))
+            bcatcstr(glsl, "#define uvec1 uint\n");
+        bcatcstr(glsl, "#define ivec1 int\n");
+    } 
+    else 
+    {
+        bcatcstr(glsl,"struct vec1 {\n");
+        bcatcstr(glsl,"\tfloat x;\n");
+        bcatcstr(glsl,"};\n");
+ 
+        if(HaveUVec(psContext->psShader->eTargetLanguage))
+        {
+            bcatcstr(glsl,"struct uvec1 {\n");
+            bcatcstr(glsl,"\tuint x;\n");
+            bcatcstr(glsl,"};\n");
+        }
+ 
+        bcatcstr(glsl,"struct ivec1 {\n");
+        bcatcstr(glsl,"\tint x;\n");
+        bcatcstr(glsl,"};\n");
+    }
 
     // In HLSL, we can use "Load" on a texture object and access it without a sampler.
     // For GLSL, we have 2 options:
