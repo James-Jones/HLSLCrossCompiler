@@ -2332,8 +2332,13 @@ static void SetCBOperandComponents(HLSLCrossCompilerContext *psContext, Operand 
 	GetConstantBufferFromBindingPoint(RGROUP_CBUFFER, psOperand->aui32ArraySizes[0], &psContext->psShader->sInfo, &psCBuf);
 	GetShaderVarFromOffset(psOperand->aui32ArraySizes[1], psOperand->aui32Swizzle, psCBuf, &psVarType, &index, &rebase);
 
-	if (psVarType->Class == SVC_SCALAR)
-		psOperand->iNumComponents = 1;
+    // DavidJ --    Disabled this. It's causing problems with swizzling sometimes because
+    //              we can't distinguish between operands with swizzle settings and those
+    //              wihtout.
+    //              It's not clear what the intended reason for it... So might be best
+    //              just to get rid of it.
+	// if (psVarType->Class == SVC_SCALAR)
+	// 	psOperand->iNumComponents = 1;
 
 }
 

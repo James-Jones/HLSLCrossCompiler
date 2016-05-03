@@ -323,7 +323,7 @@ uint32_t GetNumSwizzleElementsWithMask(const Operand *psOperand, uint32_t ui32Co
 static uint32_t FindBitsInMask(uint32_t mask, uint32_t result[4])
 {
     uint32_t outputCount = 0;
-    for (unsigned c=0; c<4; ++c)
+    for (uint32_t c=0; c<4; ++c)
         if (mask & (1<<c))
             result[outputCount++] = c;
     return outputCount;
@@ -403,24 +403,21 @@ uint32_t GetOrderedSwizzleElements(const Operand *psOperand, uint32_t ui32CompMa
 			}
 		}
 		else
-		if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
-		{
-			if (ui32CompMask & psOperand->aui32Swizzle[0])
-				result[count++] = psOperand->aui32Swizzle[0];
-		}
-
 		//Component Select 1
+        if(psOperand->eSelMode == OPERAND_4_COMPONENT_SELECT_1_MODE)
+		{
+            // (comp mask should be ignored in this case)
+			result[count++] = psOperand->aui32Swizzle[0];
+		}
 	}
 
     if(!count)
     {
-		// Translate numComponents into bitmask
-		// 1 -> 1, 2 -> 3, 3 -> 7 and 4 -> 15
-		uint32_t compMask = (1 << psOperand->iNumComponents) - 1;
-
-		compMask &= ui32CompMask;
-		// Calculate bits left in compMask
-		return FindBitsInMask(compMask, result);
+        for (uint32_t c=0; c<4; ++c) {
+            if (ui32CompMask & (1<<c)) {
+                result[count++] = min(c, (uint32_t)(psOperand->iNumComponents-1));
+            }
+        }
 	}
 
 	return count;
@@ -1347,6 +1344,110 @@ static void TranslateVariableNameWithMask(HLSLCrossCompilerContext* psContext, c
 
             if((ui32TOFlag & TO_FLAG_DECLARATION_NAME) != TO_FLAG_DECLARATION_NAME)
             {
+                // Sometimes a single instruction will use values from multiple constant buffer variables.
+                // So, for example, a constant buffer might look like this:
+                //      cbuffer Buffer { float3 Vector; float Scalar; }
+                // Now consider the following statement:
+                //      variable = float4(Vector, Scalar);
+                // Because Vector and Scalar are contiguous and aligned as a 4d vector in the constant buffer,
+                // the statement can become a single 4d vector load in the HLSL bytecode. In order to generate
+                // correct GLSL, we must handle these cases.
+
+                const uint32_t useNewPath = 
+                       psCBuf 
+                    && (psOperand->psSubOperand[0] == NULL) 
+                    && (psOperand->psSubOperand[1] == NULL) && (index == -1);
+                if (useNewPath) {
+                    uint32_t opSwizzle[4];
+                    uint32_t eleCount = GetOrderedSwizzleElements(psOperand, ui32CompMask, opSwizzle);
+                    ASSERT(eleCount > 0);
+
+                    // For each separate element, find the cbuffer element that matches
+                    ShaderVarType* vars[4];
+                    uint32_t indices[4];
+                    uint32_t rebases[4];
+                    for (uint32_t c=0; c<eleCount; ++c) {
+                        vars[c] = NULL;
+                        indices[c] = -1;
+                        rebases[c] = 0;
+                        GetShaderVarFromOffset(
+                            psOperand->aui32ArraySizes[1], &opSwizzle[c],
+                            psCBuf, &vars[c], &indices[c], &rebases[c]);
+                    }
+
+                    // We should expect that the Type of each variable is the same.
+                    uint32_t needConstructorExpression = 0;
+                    for (uint32_t c=1; c<eleCount; ++c) {
+                        ASSERT(vars[c] != NULL);
+                        ASSERT(vars[c]->Type == vars[0]->Type);
+
+                        needConstructorExpression = vars[c] != vars[0];
+                    }
+
+                    // In cases where we're stitching together elements from multiple
+                    // variables, we need to use "constructor" syntax. But we can skip
+                    // in this the more common case where just a single variable is used.
+                    if (needConstructorExpression) {
+                        const char* constructor = GetConstructorForType(vars[0]->Type, eleCount);
+                        bformata(glsl, "%s(", constructor);
+                    }
+
+                    int pendingComma = 0;
+                    for (uint32_t c=0; c<eleCount;) {
+                        uint32_t end = c+1;
+                        while (end < eleCount && vars[end] == vars[c]) ++end;
+
+                        if (pendingComma) {
+                            ASSERT(needConstructorExpression);
+                            bcatcstr(glsl, ", ");
+                        }
+
+                        // Write the variable name, plus the swizzle sequence.
+                        // Let's skip the swizzle in the case of scalars (unless
+                        // they are smeared out over multiple elements)
+                        bcatcstr(glsl, vars[c]->FullName);
+
+                        if(indices[c] != -1)
+                        {
+					        if ((vars[c]->Class == SVC_MATRIX_COLUMNS || vars[c]->Class == SVC_MATRIX_ROWS) && (vars[c]->Elements > 1))
+					        {
+						        // Special handling for matrix arrays, open them up into vec4's
+						        size_t matidx = indices[c] / 4;
+						        size_t rowidx = indices[c] - (matidx*4);
+						        bformata(glsl, "[%d][%d]", matidx, rowidx);
+					        }
+					        else
+					        {
+						        bformata(glsl, "[%d]", indices[c]);
+					        }
+                        }
+
+                        if (vars[c]->Class == SVC_SCALAR && end == c+1) {
+                            for (uint32_t c2=c; c2<end; ++c2) {
+                                ASSERT((opSwizzle[c2] - (rebases[c2]>>2))==0);
+                            }
+                        } else {
+                            bcatcstr(glsl, ".");
+                            const char* postfixes[4] = {"x", "y", "z", "w"};
+                            for (uint32_t c2=c; c2<end; ++c2) {
+                                bcatcstr(glsl, postfixes[min(opSwizzle[c2] - (rebases[c2]>>2), 3)]);
+                            }
+                        }
+
+                        c = end;
+                        pendingComma = 1;
+                    }
+
+                    if (needConstructorExpression) {
+                        bcatcstr(glsl, ")");
+                    }
+
+                    // if (!needConstructorExpression && vars[0]->Class == SVC_SCALAR) {
+                        *pui32IgnoreSwizzle = 1;
+                    // }
+                    break;
+                }
+
                 //Work out the variable name. Don't apply swizzle to that variable yet.
 				int32_t rebase = 0;
 
