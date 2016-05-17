@@ -82,6 +82,7 @@ void WriteUniformLayout(
 	ResourceBinding* srcResBinding,
     ConstantBuffer* srcCBBinding,
     unsigned ui32BindingPoint, unsigned shaderStage,
+    const char* extraLayoutQualifiers,
 	bstring glsl);
 
 void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
@@ -392,7 +393,7 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
         resBinding.ui32NumSamples = 0;
         WriteUniformLayout(
             psContext, &resBinding, NULL, resBinding.ui32BindPoint,
-            psContext->psShader->eShaderType, glsl);
+            psContext->psShader->eShaderType, NULL, glsl);
         bcatcstr(glsl, "uniform sampler hlslcc_DummySampler;\n");
     }
 
