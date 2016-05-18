@@ -2533,6 +2533,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			}
 
 			GetConstantBufferFromBindingPoint(RGROUP_UAV, ui32BindingPoint, &psContext->psShader->sInfo, &psCBuf);
+			psCBuf->iUnsized = 1;
 
 			DeclareBufferVariable(psContext, ui32BindingPoint, psCBuf, &psDecl->asOperands[0], 
 				psDecl->sUAV.ui32GloballyCoherentAccess, RTYPE_UAV_RWSTRUCTURED, glsl);
@@ -2558,6 +2559,7 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
 			ConstantBuffer* psCBuf = NULL;
 
 			GetConstantBufferFromBindingPoint(RGROUP_TEXTURE, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+			psCBuf->iUnsized = 1;
 
 			DeclareBufferVariable(psContext, psDecl->asOperands[0].ui32RegisterNumber, psCBuf, &psDecl->asOperands[0], 
 				0, RTYPE_STRUCTURED, glsl);

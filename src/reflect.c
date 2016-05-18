@@ -362,6 +362,8 @@ static const uint32_t* ReadConstantBuffer(ShaderInfo* psShaderInfo,
         ui32BufferType = *pui32Tokens++;
     }
 
+	psBuffer->iUnsized = 0;
+
     return pui32Tokens;
 }
 
@@ -779,6 +781,12 @@ int GetShaderVarFromOffset(const uint32_t ui32Vec4Offset,
 
     const uint32_t ui32NumVars = psCBuf->ui32NumVars;
 
+	if(psCBuf->iUnsized && ui32NumVars == 1 && psCBuf->asVars[0].sType.Class != SVC_STRUCT)
+	{
+		ppsShaderVar[0] = &psCBuf->asVars[0].sType;
+		return 1;
+	}
+
     for(i=0; i<ui32NumVars; ++i)
     {
 		if(psCBuf->asVars[i].sType.Class == SVC_STRUCT)
@@ -1175,4 +1183,5 @@ void LoadD3D9ConstantTable(const char* data,
 		}
     }
     psConstantBuffer->ui32TotalSizeInBytes = ui32ConstantBufferSize;
+	psConstantBuffer->iUnsized = 0;
 }

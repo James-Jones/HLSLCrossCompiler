@@ -272,6 +272,8 @@ typedef struct ConstantBuffer_TAG
     ShaderVar* asVars;
 
     uint32_t ui32TotalSizeInBytes;
+
+	int iUnsized;
 } ConstantBuffer;
 
 typedef struct ClassType_TAG

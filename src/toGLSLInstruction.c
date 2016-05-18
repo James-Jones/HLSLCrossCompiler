@@ -1701,6 +1701,7 @@ void TranslateAtomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	Operand* destAddr = 0;
 	Operand* src = 0;
 	Operand* compare = 0;
+	int destAddressIn32bits = 0;
 
 	switch (psInst->eOpcode)
 	{
@@ -1950,6 +1951,10 @@ void TranslateAtomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
 	AddIndentation(psContext);
 
+	//LookupStructuredVar expectes byte address so it can handle ld_structured et al.
+	//atomic_imin address is in units of 32-bit
+	destAddressIn32bits = ((int*)destAddr->afImmediates)[0];
+	((int*)destAddr->afImmediates)[0] *= 4;
 	psVarType = LookupStructuredVar(psContext, dest, destAddr, 0);
 	if (psVarType->Type == SVT_UINT)
 	{
@@ -1967,7 +1972,7 @@ void TranslateAtomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	bcatcstr(glsl, func);
 	bformata(glsl, "(");
 	ResourceName(glsl, psContext, RGROUP_UAV, dest->ui32RegisterNumber, 0);
-	bformata(glsl, "[0]");
+	bformata(glsl, "[%d]", destAddressIn32bits);
 	if (strcmp(psVarType->Name, "$Element") != 0)
 	{
 		bformata(glsl, ".%s", psVarType->Name);
