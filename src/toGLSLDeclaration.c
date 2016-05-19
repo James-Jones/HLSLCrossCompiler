@@ -1312,6 +1312,21 @@ void WriteUniformLayout(
 	}
 }
 
+static void InsertUBOInstName(ShaderVarType* dst, const char uboInstName[])
+{
+    uint32_t i;
+    size_t len = strlen(uboInstName);
+    size_t dstLen = strlen(dst->FullName);
+    char* insert = dst->FullName;
+
+    memmove_s(insert+len+1, MAX_REFLECT_STRING_LENGTH, insert, dstLen+1);
+    memcpy(insert, uboInstName, len);
+    insert[len] = '.';
+
+    for (i=0; i<dst->MemberCount; ++i)
+        InsertUBOInstName(&dst->Members[i], uboInstName);
+}
+
 void DeclareUBOConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui32BindingPoint,
 							ConstantBuffer* psCBuf,
 							bstring glsl)
@@ -1340,8 +1355,26 @@ void DeclareUBOConstants(HLSLCrossCompilerContext* psContext, const uint32_t ui3
 			psCBuf->asVars[i].Name,
             &psCBuf->asVars[i].sType, 0);
     }
-                
-    bcatcstr(glsl, "};\n");
+
+    // When GL_KHR_vulkan_glsl is enabled, always use an "instance" name for cbuffers
+    // This is required when using the layout(push_constant) qualifier. But at this point, 
+    // we can't easily see what binding was used. So we just use an instance name for all
+    // cbuffers.
+    uint32_t useUBOInstName = 
+        psContext->psShader->extensions &&  ((GlExtensions*)psContext->psShader->extensions)->GL_KHR_vulkan_glsl;
+
+    if (useUBOInstName) {
+        char instName[MAX_REFLECT_STRING_LENGTH];
+        strcpy_s(instName, MAX_REFLECT_STRING_LENGTH, Name);
+        strcat_s(instName, MAX_REFLECT_STRING_LENGTH, "_inst");
+        for(i=0; i < psCBuf->ui32NumVars; ++i)
+        {
+            InsertUBOInstName(&psCBuf->asVars[i].sType, instName);
+        }
+        bformata(glsl, "} %s;\n", instName);
+    } else {
+        bcatcstr(glsl, "};\n");
+    }
 }
 
 void DeclareBufferVariable(HLSLCrossCompilerContext* psContext, const uint32_t ui32BindingPoint,
