@@ -1550,8 +1550,13 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 			else
 			{
 				ConstantBuffer *psCBuf = NULL;
+				ResourceGroup eGroup = RGROUP_UAV;
+				if(OPERAND_TYPE_RESOURCE == psSrc->eType)
+				{
+					eGroup = RGROUP_TEXTURE;
+				}
 				psVar = LookupStructuredVar(psContext, psSrc, psSrcByteOff, psSrc->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE ? psSrc->aui32Swizzle[component] : component);
-				GetConstantBufferFromBindingPoint(RGROUP_UAV, psSrc->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+				GetConstantBufferFromBindingPoint(eGroup, psSrc->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
 
 				if (psVar->Type == SVT_FLOAT)
 				{
@@ -1576,11 +1581,30 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 				}
 				else
 				{
+					int byteOffset = ((int*)psSrcByteOff->afImmediates)[0] + 4 * component;
+					int vec4Offset = byteOffset/16;
+
 					bformata(glsl, "StructuredRes%d[", psSrc->ui32RegisterNumber);
 					TranslateOperand(psContext, psSrcAddr, TO_FLAG_INTEGER);
 					bcatcstr(glsl, "].");
 
-					bcatcstr(glsl, psVar->Name);
+					//StructuredBuffer<float4x4> WorldTransformData;
+					//Becomes cbuf = WorldTransformData and var = $Element.
+					if (strcmp(psVar->Name, "$Element") != 0)
+					{
+						bcatcstr(glsl, psVar->Name);
+					}
+					else
+					{
+						bcatcstr(glsl, psCBuf->Name);
+					}
+
+					//Select component of matrix.
+					if(psVar->Class == SVC_MATRIX_COLUMNS || psVar->Class == SVC_MATRIX_ROWS)
+					{
+						const char* swizzleString[] = { ".x", ".y", ".z", ".w" };
+						bformata(glsl, "[%d]%s", vec4Offset, swizzleString[component]);
+					}
 				}
 
 				if (addedBitcast)
