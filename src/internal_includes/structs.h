@@ -157,6 +157,7 @@ enum {MAX_TEMP_VEC4 = 512};
 
 enum {MAX_GROUPSHARED = 8};
 
+#pragma warning(disable:4091) // warning C4091: 'static ': ignored on left of '' when no variable is declared
 static enum {MAX_DX9_IMMCONST = 256};
 
 static const uint32_t MAIN_PHASE = 0;
@@ -222,6 +223,7 @@ typedef struct Shader_TAG
     int aIndexedInputParents[MAX_SHADER_VEC4_INPUT];
 
     RESOURCE_DIMENSION aeResourceDims[MAX_TEXTURES];
+    RESOURCE_DIMENSION aeUAVResourceDims[MAX_TEXTURES];
 
     int aiInputDeclaredSize[MAX_SHADER_VEC4_INPUT];
 
@@ -257,6 +259,8 @@ typedef struct HLSLCrossCompilerContext_TAG
     unsigned int flags;
     Shader* psShader;
     GLSLCrossDependencyData* psDependencies;
+    EvaluateBindingFn pEvaluateBindingFn;
+    void* pEvaluateBindingData;
 } HLSLCrossCompilerContext;
 
 #endif

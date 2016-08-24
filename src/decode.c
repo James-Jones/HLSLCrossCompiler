@@ -444,6 +444,8 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_SAMPLER:
         {
+            psDecl->ui32NumOperands = 1;
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
         case OPCODE_DCL_INDEX_RANGE:
@@ -1023,8 +1025,10 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 				//Intentional fall-through
 			}
         case OPCODE_IMIN:
+		case OPCODE_UMIN:
 		case OPCODE_MIN:
 		case OPCODE_IMAX:
+		case OPCODE_UMAX:
 		case OPCODE_MAX:
 		case OPCODE_MUL:
 		case OPCODE_DIV:
@@ -1078,6 +1082,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_MAD:
         case OPCODE_MOVC:
 		case OPCODE_IMAD:
+		case OPCODE_UMAD:
 		case OPCODE_UDIV:
         case OPCODE_LOD:
         case OPCODE_SAMPLE:
@@ -1098,10 +1103,11 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_DMOVC:
         case OPCODE_DFMA:
 		case OPCODE_IMUL:
+		case OPCODE_UMUL:
 		{
             psInst->ui32NumOperands = 4;
 
-			if(eOpcode == OPCODE_IMUL)
+			if(eOpcode == OPCODE_IMUL || eOpcode == OPCODE_UMUL)
 			{
 				psInst->ui32FirstSrc = 2;
 			}

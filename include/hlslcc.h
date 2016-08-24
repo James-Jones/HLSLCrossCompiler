@@ -39,6 +39,7 @@ typedef struct {
 	uint32_t ARB_explicit_attrib_location : 1;
 	uint32_t ARB_explicit_uniform_location : 1;
 	uint32_t ARB_shading_language_420pack : 1;
+    uint32_t GL_KHR_vulkan_glsl : 1;
 }GlExtensions;
 
 enum {MAX_SHADER_VEC4_OUTPUT = 512};
@@ -158,6 +159,11 @@ typedef enum REFLECT_RESOURCE_DIMENSION
     REFLECT_RESOURCE_DIMENSION_TEXTURECUBEARRAY = 10,
     REFLECT_RESOURCE_DIMENSION_BUFFEREX = 11,
 } REFLECT_RESOURCE_DIMENSION;
+
+typedef enum REFLECT_RESOURCE_FLAGS
+{
+    REFLECT_RESOURCE_FLAGS_COMPARISON_SAMPLER = 0x2,
+} REFLECT_RESOURCE_FLAGS;
 
 typedef struct ResourceBinding_TAG
 {
@@ -322,6 +328,25 @@ typedef struct TextureSamplerInfo_TAG
     TextureSamplerPair aTextureSamplerPair[MAX_RESOURCE_BINDINGS];
 } TextureSamplerInfo;
 
+typedef enum GLSL_BINDING_FLAGS
+{
+    GLSL_BINDING_TYPE_PUSHCONSTANTS = 1<<0,
+} GLSL_BINDING_FLAGS;
+
+typedef struct GLSLResourceBinding_TAG {
+    uint32_t _locationIndex;
+    uint32_t _bindingIndex;
+    uint32_t _setIndex;
+    uint32_t _flags;        // GLSL_BINDING_FLAGS
+} GLSLResourceBinding;
+
+typedef uint32_t (*EvaluateBindingFn)(
+    void* userData,
+    GLSLResourceBinding* dstBinding, 
+    ResourceBinding* srcResBinding,
+    ConstantBuffer* srcCBBinding,
+    uint32_t bindPoint, uint32_t shaderStage);
+
 typedef struct ShaderInfo_TAG
 {
     uint32_t ui32MajorVersion;
@@ -458,14 +483,17 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
                                                      GLLang language,
 													 const GlExtensions *extensions,
                                                      GLSLCrossDependencyData* dependencies,
-                                                     GLSLShader* result
-													 );
+                                                     EvaluateBindingFn evaluateBindingFn,
+                                                     void* evaluateBindingData,
+                                                     GLSLShader* result);
 
 HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
                                                     unsigned int flags,
                                                     GLLang language,
 													const GlExtensions *extensions,
                                                     GLSLCrossDependencyData* dependencies,
+                                                    EvaluateBindingFn evaluateBindingFn,
+                                                    void* evaluateBindingData,
                                                     GLSLShader* result);
 
 HLSLCC_API void HLSLCC_APIENTRY FreeGLSLShader(GLSLShader*);

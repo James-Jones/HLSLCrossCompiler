@@ -77,6 +77,14 @@ void AddIndentation(HLSLCrossCompilerContext* psContext)
     }
 }
 
+void WriteUniformLayout(
+	HLSLCrossCompilerContext* psContext,
+	ResourceBinding* srcResBinding,
+    ConstantBuffer* srcCBBinding,
+    unsigned ui32BindingPoint, unsigned shaderStage,
+    const char* extraLayoutQualifiers,
+	bstring glsl);
+
 void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 {
     bstring glsl = *psContext->currentGLSLString;
@@ -207,11 +215,13 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 		}
 		bcatcstr(glsl, "\n");
 	}
-
-	if (SubroutinesSupported(psContext->psShader->eTargetLanguage))
-	{
-		bcatcstr(glsl, "subroutine void SubroutineType();\n");
-	}
+    
+    // DavidJ --    Removed this line. It causes a compile error with the SPIR-V compiler (which doesn't support subroutines)
+    //              It's not clear to me what the intention of this line is.
+	// if (SubroutinesSupported(psContext->psShader->eTargetLanguage))
+	// {
+	// 	bcatcstr(glsl, "subroutine void SubroutineType();\n");
+	// }
 
 	if (psContext->psShader->ui32MajorVersion <= 3)
 	{
@@ -321,20 +331,71 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
     }
 
     /* For versions which do not support a vec1 (currently all versions) */
-    bcatcstr(glsl,"struct vec1 {\n");
-    bcatcstr(glsl,"\tfloat x;\n");
-    bcatcstr(glsl,"};\n");
+    // DavidJ --    Replacing this with a define.
+    //              Using a struct was causing problems with code like:
+    //                  vec1 value;
+    //                  value = 0.5f;
+    //              Here, the ".x" could be ommitted after "value" because
+    //              both sides are determined to have the same components.
+    //              That's fine with true vectors; but does not produce the
+    //              correct result when using a "struct" to stand in for vec1.
+    //
+    //      Note -- this requires GLSL 4.20 or ARB_shading_language_420pack to work
+    //              correctly. When targetting older versions of OpenGL, some input
+    //              HLSL code will generate incorrect results.
+    if (HaveScalarSwizzle(psContext->psShader->eTargetLanguage, psContext->psShader->extensions)) 
+    {
+        bcatcstr(glsl, "#define vec1 float\n");
+	    if(HaveUVec(psContext->psShader->eTargetLanguage))
+            bcatcstr(glsl, "#define uvec1 uint\n");
+        bcatcstr(glsl, "#define ivec1 int\n");
+    } 
+    else 
+    {
+        bcatcstr(glsl,"struct vec1 {\n");
+        bcatcstr(glsl,"\tfloat x;\n");
+        bcatcstr(glsl,"};\n");
+ 
+        if(HaveUVec(psContext->psShader->eTargetLanguage))
+        {
+            bcatcstr(glsl,"struct uvec1 {\n");
+            bcatcstr(glsl,"\tuint x;\n");
+            bcatcstr(glsl,"};\n");
+        }
+ 
+        bcatcstr(glsl,"struct ivec1 {\n");
+        bcatcstr(glsl,"\tint x;\n");
+        bcatcstr(glsl,"};\n");
+    }
 
-	if(HaveUVec(psContext->psShader->eTargetLanguage))
-	{
-		bcatcstr(glsl,"struct uvec1 {\n");
-		bcatcstr(glsl,"\tuint x;\n");
-		bcatcstr(glsl,"};\n");
-	}
-
-    bcatcstr(glsl,"struct ivec1 {\n");
-    bcatcstr(glsl,"\tint x;\n");
-    bcatcstr(glsl,"};\n");
+    // In HLSL, we can use "Load" on a texture object and access it without a sampler.
+    // For GLSL, we have 2 options:
+    //      * use a gtexture2d/gsampler2d and access with texelFetch
+    //      * use a image2d and access with imageLoad
+    //
+    // If we use imageLoad, we don't need a sampler. This is a closer analogue to HLSL.
+    // If we use gtexture2d, we need to use a sampler. But we can also call other texture
+    // access functions (like texture, textureGather).
+    //
+    // It seems like "images" will be necessary if we need to perform atomic operations on
+    // the data (ie, like RWTextures in HLSL).
+    // But for HLSL "texture" objects, perhaps it's best to just stick with gtexture2d/gsampler2d
+    // objects for consistancy. But, we will need to declare a dummy sampler to use with texelFetch.
+    if (HaveSeparateTexturesAndSamplers(psContext->psShader->eTargetLanguage, psContext->psShader->extensions)) {
+        ResourceBinding resBinding;
+        strcpy(resBinding.Name, "hlslcc_DummySampler");
+        resBinding.eType = RTYPE_SAMPLER;
+        resBinding.ui32BindPoint = 16;
+        resBinding.ui32BindCount = 1;
+        resBinding.ui32Flags = 0;
+        resBinding.eDimension = REFLECT_RESOURCE_DIMENSION_UNKNOWN;
+        resBinding.ui32ReturnType = 0;
+        resBinding.ui32NumSamples = 0;
+        WriteUniformLayout(
+            psContext, &resBinding, NULL, resBinding.ui32BindPoint,
+            psContext->psShader->eShaderType, NULL, glsl);
+        bcatcstr(glsl, "uniform sampler hlslcc_DummySampler;\n");
+    }
 
     /*
         OpenGL 4.1 API spec:
@@ -492,6 +553,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 			bcatcstr(glsl,"#extension GL_ARB_explicit_uniform_location : require\n");
 		if(extensions->ARB_shading_language_420pack)
 			bcatcstr(glsl,"#extension GL_ARB_shading_language_420pack : require\n");
+        // extension GL_KHR_vulkan_glsl doesn't need to be declared
 	}
 
     ClearDependencyData(psShader->eShaderType, psContext->psDependencies);
@@ -757,6 +819,8 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
     GLLang language,
 	const GlExtensions *extensions,
     GLSLCrossDependencyData* dependencies,
+    EvaluateBindingFn evaluateBindingFn,
+    void* evaluateBindingData,
     GLSLShader* result)
 {
     uint32_t* tokens;
@@ -782,6 +846,8 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
         sContext.psShader = psShader;
         sContext.flags = flags;
         sContext.psDependencies = dependencies;
+        sContext.pEvaluateBindingFn = evaluateBindingFn;
+        sContext.pEvaluateBindingData = evaluateBindingData;
 
         for(i=0; i<NUM_PHASES;++i)
         {
@@ -883,6 +949,8 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
     GLLang language,
 	const GlExtensions *extensions,
     GLSLCrossDependencyData* dependencies,
+    EvaluateBindingFn evaluateBindingFn,
+    void* evaluateBindingData,
     GLSLShader* result)
 {
     FILE* shaderFile;
@@ -911,7 +979,10 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
 
     shader[readLength] = '\0';
 
-    success = TranslateHLSLFromMem(shader, flags, language, extensions, dependencies, result);
+    success = TranslateHLSLFromMem(
+        shader, flags, language, extensions, dependencies, 
+        evaluateBindingFn, evaluateBindingData,
+        result);
 
     hlslcc_free(shader);
 

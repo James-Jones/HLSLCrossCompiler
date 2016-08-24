@@ -740,25 +740,23 @@ static int IsOffsetInType(ShaderVarType* psType,
 		{
 			pi32Index[0] = (offsetToFind - thisOffset) / 16;
 		}
-		else if(psType->Class == SVC_VECTOR && psType->Columns > 1)
-		{
-			//Check for vector starting at a non-vec4 offset.
+		
+		//Check for vector starting at a non-vec4 offset.
 
-			// cbuffer $Globals
-			// {
-			//
-			//   float angle;                       // Offset:    0 Size:     4
-			//   float2 angle2;                     // Offset:    4 Size:     8
-			//
-			// }
+		// cbuffer $Globals
+		// {
+		//
+		//   float angle;                       // Offset:    0 Size:     4
+		//   float2 angle2;                     // Offset:    4 Size:     8
+		//
+		// }
 
-			//cb0[0].x = angle
-			//cb0[0].yzyy = angle2.xyxx
+		//cb0[0].x = angle
+		//cb0[0].yzyy = angle2.xyxx
 
-			//Rebase angle2 so that .y maps to .x, .z maps to .y
+		//Rebase angle2 so that .y maps to .x, .z maps to .y
 
-			pi32Rebase[0] = thisOffset % 16;
-		}
+		pi32Rebase[0] = thisOffset % 16;
 
 		return 1;
 	}
