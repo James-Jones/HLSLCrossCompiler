@@ -514,7 +514,7 @@ static void DeclareInput(
         {
             case INDEX_2D:
             {
-				if(psShader->eShaderType == HULL_SHADER)
+				if ((psShader->eShaderType == HULL_SHADER) || (psShader->eShaderType == DOMAIN_SHADER))
 				{
 					if(iNumComponents == 1)
 					{
@@ -1136,13 +1136,17 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 			}
 			case DOMAIN_SHADER:
 			{
+				int highestComponent = MSBBit(psDecl->asOperands[0].ui32CompMask);      // (zero based bit indexes)
+				int lowestComponent = LSBBit(psDecl->asOperands[0].ui32CompMask);
+				int iNumComponents = highestComponent - lowestComponent + 1;
+
 				int stream = 0;
 				const char* OutputName = GetDeclaredOutputName(psContext, DOMAIN_SHADER, psOperand, &stream);
 				if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags))
                 {
                     bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
                 }
-				bformata(glsl, "out %s4 %s;\n", type, OutputName);
+				bformata(glsl, "out %s%d %s;\n", type, iNumComponents, OutputName);
 				bformata(glsl, "#define Output%d %s\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName);
 				break;
 			}
