@@ -1627,8 +1627,13 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 			else
 			{
 				ConstantBuffer *psCBuf = NULL;
+				ResourceGroup eGroup = RGROUP_UAV;
+				if(OPERAND_TYPE_RESOURCE == psSrc->eType)
+				{
+					eGroup = RGROUP_TEXTURE;
+				}
 				psVar = LookupStructuredVar(psContext, psSrc, psSrcByteOff, psSrc->eSelMode == OPERAND_4_COMPONENT_SWIZZLE_MODE ? psSrc->aui32Swizzle[component] : component);
-				GetConstantBufferFromBindingPoint(RGROUP_UAV, psSrc->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
+				GetConstantBufferFromBindingPoint(eGroup, psSrc->ui32RegisterNumber, &psContext->psShader->sInfo, &psCBuf);
 
 				if (psVar->Type == SVT_FLOAT)
 				{
@@ -1653,11 +1658,30 @@ static void TranslateShaderStorageLoad(HLSLCrossCompilerContext* psContext, Inst
 				}
 				else
 				{
+					int byteOffset = ((int*)psSrcByteOff->afImmediates)[0] + 4 * component;
+					int vec4Offset = byteOffset/16;
+
 					bformata(glsl, "StructuredRes%d[", psSrc->ui32RegisterNumber);
 					TranslateOperand(psContext, psSrcAddr, TO_FLAG_INTEGER);
 					bcatcstr(glsl, "].");
 
-					bcatcstr(glsl, psVar->Name);
+					//StructuredBuffer<float4x4> WorldTransformData;
+					//Becomes cbuf = WorldTransformData and var = $Element.
+					if (strcmp(psVar->Name, "$Element") != 0)
+					{
+						bcatcstr(glsl, psVar->Name);
+					}
+					else
+					{
+						bcatcstr(glsl, psCBuf->Name);
+					}
+
+					//Select component of matrix.
+					if(psVar->Class == SVC_MATRIX_COLUMNS || psVar->Class == SVC_MATRIX_ROWS)
+					{
+						const char* swizzleString[] = { ".x", ".y", ".z", ".w" };
+						bformata(glsl, "[%d]%s", vec4Offset, swizzleString[component]);
+					}
 				}
 
 				if (addedBitcast)
@@ -1778,6 +1802,7 @@ void TranslateAtomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	Operand* destAddr = 0;
 	Operand* src = 0;
 	Operand* compare = 0;
+	int destAddressIn32bits = 0;
 
 	switch (psInst->eOpcode)
 	{
@@ -2027,6 +2052,10 @@ void TranslateAtomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIn
 
 	AddIndentation(psContext);
 
+	//LookupStructuredVar expectes byte address so it can handle ld_structured et al.
+	//atomic_imin address is in units of 32-bit
+	destAddressIn32bits = ((int*)destAddr->afImmediates)[0];
+	((int*)destAddr->afImmediates)[0] *= 4;
 	psVarType = LookupStructuredVar(psContext, dest, destAddr, 0);
 	if (psVarType->Type == SVT_UINT)
 	{
@@ -2044,7 +2073,7 @@ void TranslateAtomicMemOp(HLSLCrossCompilerContext* psContext, Instruction* psIn
 	bcatcstr(glsl, func);
 	bformata(glsl, "(");
 	ResourceName(glsl, psContext, RGROUP_UAV, dest->ui32RegisterNumber, 0);
-	bformata(glsl, "[0]");
+	bformata(glsl, "[%d]", destAddressIn32bits);
 	if (strcmp(psVarType->Name, "$Element") != 0)
 	{
 		bformata(glsl, ".%s", psVarType->Name);
