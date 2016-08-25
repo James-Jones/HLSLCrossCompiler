@@ -269,6 +269,12 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 		psOperand->aeDataType[0] = SVT_UINT;
 	}
 
+	if (psOperand->eType == OPERAND_TYPE_INPUT_FORK_INSTANCE_ID)
+	{
+		eNumComponents = OPERAND_1_COMPONENT;
+		psOperand->aeDataType[0] = SVT_INT;
+	}
+
     switch(eNumComponents)
     {
         case OPERAND_1_COMPONENT:

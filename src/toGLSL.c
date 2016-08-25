@@ -627,7 +627,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 							TranslateInstruction(psContext, psShader->asPhase[ui32Phase].ppsInst[ui32Instance]+i, NULL);
 						}
 
-					if(haveInstancedForkPhase)
+					if(haveInstancedForkPhase||(ui32Phase==HS_CTRL_POINT_PHASE))
 					{
 						psContext->indent--;
 						AddIndentation(psContext);

@@ -2381,7 +2381,7 @@ void SetDataTypes(HLSLCrossCompilerContext* psContext, Instruction* psInst, cons
 
 	SHADER_VARIABLE_TYPE aeTempVecType[MAX_TEMP_VEC4 * 4];
 
-	if (psContext->psShader->ui32MajorVersion <= 3)
+	if ((psContext->psShader->ui32MajorVersion <= 3) || (psContext->psShader->eShaderType==HULL_SHADER))
 	{
 		for (i = 0; i < MAX_TEMP_VEC4 * 4; ++i)
 		{

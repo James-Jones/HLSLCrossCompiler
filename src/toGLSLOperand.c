@@ -1970,6 +1970,10 @@ SHADER_VARIABLE_TYPE GetOperandDataTypeEx(HLSLCrossCompilerContext* psContext, c
 		{
 			return SVT_INT;
 		}
+		case OPERAND_TYPE_INPUT_FORK_INSTANCE_ID:
+		{
+			return SVT_INT;
+		}
 		default:
 		{
 			return SVT_FLOAT;
