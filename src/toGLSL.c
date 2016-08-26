@@ -681,6 +681,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 					bformata(glsl, "  %s%d();\n", asPhaseFuncNames[HS_CTRL_POINT_PHASE], ui32Instance);
 				}
 			}
+			bcatcstr(glsl, "  barrier();\n");
 
 			bcatcstr(glsl, "  if (gl_InvocationID == 0) {\n"); //all other phase should be called once
 			ui32PhaseFuncCallOrder[0] = HS_FORK_PHASE;
@@ -699,7 +700,6 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 							(ui32Instance + 1 < psShader->asPhase[HS_FORK_PHASE].ui32InstanceCount))
 						{
 							AddIndentation(psContext);
-							bcatcstr(glsl, "    barrier();\n");
 						}
 					}
 				}
