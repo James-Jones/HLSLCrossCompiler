@@ -584,15 +584,25 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 		asPhaseFuncNames[HS_JOIN_PHASE] = "join_phase";
 
         ConsolidateHullTempVars(psShader);
+		int ControlPointCountValue = 1;
 
 		for(i=0; i < psShader->asPhase[HS_GLOBAL_DECL].pui32DeclCount[0]; ++i)
         {
-			TranslateDeclaration(psContext, psShader->asPhase[HS_GLOBAL_DECL].ppsDecl[0]+i);
+			Declaration* ppsDecl = psShader->asPhase[HS_GLOBAL_DECL].ppsDecl[0] + i;
+			TranslateDeclaration(psContext, ppsDecl);
+			if (ppsDecl->eOpcode == OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT) ControlPointCountValue = ppsDecl->value.ui32MaxOutputVertexCount;
         }
 
 		for(ui32Phase=HS_CTRL_POINT_PHASE; ui32Phase<NUM_PHASES; ui32Phase++)
 		{
 			psContext->currentPhase = ui32Phase;
+			int DummyControlPointPhase = (ui32Phase == HS_CTRL_POINT_PHASE) && (psShader->asPhase[HS_CTRL_POINT_PHASE].ui32InstanceCount == 0);
+
+			if (DummyControlPointPhase)
+			{
+				TranslateDeclaration_HS_NoControlPointStage(psContext);
+			}
+
 			for(ui32Instance = 0; ui32Instance < psShader->asPhase[ui32Phase].ui32InstanceCount; ++ui32Instance)
 			{
 				isCurrentForkPhasedInstanced = 0; //reset for each fork phase for cases we don't have a fork phase instance count opcode.
@@ -669,9 +679,30 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
             AddIndentation(psContext);
             bcatcstr(glsl, "//--- End Early Main ---\n");
 #endif
-			if (psShader->asPhase[HS_CTRL_POINT_PHASE].ui32InstanceCount == 0) //empty HS_CTRL_POINT_PHASE case workaround
-			{
+			if (psShader->asPhase[HS_CTRL_POINT_PHASE].ui32InstanceCount == 0)
+			{   //copying control points data for empty control point phase
 				bcatcstr(glsl, "  gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;\n");
+				bcatcstr(glsl, "  gl_out[gl_InvocationID].gl_PointSize = gl_in[gl_InvocationID].gl_PointSize;\n");
+				//bcatcstr(glsl, "  gl_out[gl_InvocationID].gl_ClipDistance[] = gl_in[gl_InvocationID].gl_ClipDistance[];\n"); todoooo copy all gl_ClipDistance
+				for (uint32_t outI = 0; outI < psShader->sInfo.ui32NumOutputSignatures; outI++)
+				{
+					InOutSignature outSeg = psShader->sInfo.psOutputSignatures[outI];
+					if (outSeg.eSystemValueType != NAME_UNDEFINED) continue;
+					InOutSignature inSeg;
+					int inIndex = -1;
+					for (uint32_t inI = 0; inI < psShader->sInfo.ui32NumInputSignatures; inI++)
+					{
+						inSeg = psShader->sInfo.psInputSignatures[inI];
+						if (inSeg.eSystemValueType != NAME_UNDEFINED) continue;
+						if (inSeg.ui32Register == outSeg.ui32Register)
+						{
+							inIndex = inI;
+							break;
+						}
+					}
+					if (inIndex < 0) continue;
+					bformata(glsl, "  %s%d[gl_InvocationID] = %s%d[gl_InvocationID];\n", outSeg.SemanticName, outSeg.ui32SemanticIndex, inSeg.SemanticName, inSeg.ui32SemanticIndex);
+				}
 			}
 			else
 			{
@@ -682,8 +713,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 				}
 			}
 			bcatcstr(glsl, "  barrier();\n");
-
-			bcatcstr(glsl, "  if (gl_InvocationID == 0) {\n"); //all other phase should be called once
+			bformata(glsl, "  if (gl_InvocationID == %d) {\n", ControlPointCountValue-1); //all other phases should be called once
 			ui32PhaseFuncCallOrder[0] = HS_FORK_PHASE;
 			ui32PhaseFuncCallOrder[1] = HS_JOIN_PHASE;
 			for (ui32PhaseCallIndex = 0; ui32PhaseCallIndex < 2; ui32PhaseCallIndex++)

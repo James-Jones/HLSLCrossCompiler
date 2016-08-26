@@ -1118,6 +1118,10 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 
                 ASSERT(psDecl->asOperands[0].ui32RegisterNumber!=0);//Reg 0 should be gl_out[gl_InvocationID].gl_Position.
 
+				int highestComponent = MSBBit(psDecl->asOperands[0].ui32CompMask);      // (zero based bit indexes)
+				int lowestComponent = LSBBit(psDecl->asOperands[0].ui32CompMask);
+				int iNumComponents = highestComponent - lowestComponent + 1;
+
 				if(psContext->currentPhase == HS_JOIN_PHASE)
 				{
 					bformata(glsl, "out patch %s4 %s[];\n", type, OutputName);
@@ -1129,7 +1133,7 @@ void AddUserOutput(HLSLCrossCompilerContext* psContext, const Declaration* psDec
 						bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
 					}
 
-					bformata(glsl, "out %s4 %s[];\n", type, OutputName);
+					bformata(glsl, "out %s%d %s[];\n", type, iNumComponents, OutputName);
 				}
 				bformata(glsl, "#define Output%d %s[gl_InvocationID]\n", psDecl->asOperands[0].ui32RegisterNumber, OutputName);
 				break;
@@ -3091,6 +3095,41 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
             break;
         }
     }
+}
+
+void TranslateDeclSignatureFmt(HLSLCrossCompilerContext* psContext, char* fmt, InOutSignature sig)
+{
+	bstring glsl = psContext->glsl;
+	char* chVec;
+	switch (sig.eComponentType) {
+		case INOUT_COMPONENT_FLOAT32:{
+			chVec = "vec";
+			break;
+		}
+		case INOUT_COMPONENT_SINT32: {
+			chVec = "ivec";
+			break;
+		}
+		case INOUT_COMPONENT_UINT32: {
+			chVec = "uvec";
+			break;
+		}
+	}
+	bformata(glsl, fmt, chVec, GetNumberBitsSet(sig.ui32Mask), sig.SemanticName, sig.ui32SemanticIndex);
+}
+
+void TranslateDeclaration_HS_NoControlPointStage(HLSLCrossCompilerContext* psContext)
+{
+	Shader* sh = psContext->psShader;
+	bstring glsl = psContext->glsl;
+	for (uint32_t i = 0; i < sh->sInfo.ui32NumInputSignatures; i++){
+		if (sh->sInfo.psInputSignatures[i].eSystemValueType != NAME_UNDEFINED) continue;
+		TranslateDeclSignatureFmt(psContext, "in %s%d %s%d[];\n", sh->sInfo.psInputSignatures[i]);
+	}
+	for (uint32_t i = 0; i < sh->sInfo.ui32NumOutputSignatures; i++){
+		if (sh->sInfo.psOutputSignatures[i].eSystemValueType != NAME_UNDEFINED) continue;
+		TranslateDeclSignatureFmt(psContext, "out %s%d %s%d[];\n", sh->sInfo.psOutputSignatures[i]);
+	}
 }
 
 //Convert from per-phase temps to global temps for GLSL.

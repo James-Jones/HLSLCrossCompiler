@@ -161,7 +161,7 @@ uint32_t IsSwizzleReplicated(const Operand* psOperand)
 	return 0;
 }
 
-static uint32_t GetNumberBitsSet(uint32_t a)
+uint32_t GetNumberBitsSet(uint32_t a)
 {
 	// Calculate number of bits in a
 	// Taken from https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSet64

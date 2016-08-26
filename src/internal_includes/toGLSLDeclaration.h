@@ -12,5 +12,6 @@ const char* GetDeclaredOutputName(const HLSLCrossCompilerContext* psContext, con
 //Each phase has its own temps.
 //Convert to global temps for GLSL.
 void ConsolidateHullTempVars(Shader* psShader);
+void TranslateDeclaration_HS_NoControlPointStage(HLSLCrossCompilerContext* psContext);
 
 #endif
