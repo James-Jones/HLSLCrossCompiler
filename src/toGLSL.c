@@ -669,30 +669,42 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
             AddIndentation(psContext);
             bcatcstr(glsl, "//--- End Early Main ---\n");
 #endif
-
-			ui32PhaseFuncCallOrder[0] = HS_CTRL_POINT_PHASE;
-			ui32PhaseFuncCallOrder[1] = HS_FORK_PHASE;
-			ui32PhaseFuncCallOrder[2] = HS_JOIN_PHASE;
-
-			for(ui32PhaseCallIndex=0; ui32PhaseCallIndex<3; ui32PhaseCallIndex++)
+			if (psShader->asPhase[HS_CTRL_POINT_PHASE].ui32InstanceCount == 0) //empty HS_CTRL_POINT_PHASE case workaround
 			{
-				ui32Phase = ui32PhaseFuncCallOrder[ui32PhaseCallIndex];
-				for(ui32Instance = 0; ui32Instance < psShader->asPhase[ui32Phase].ui32InstanceCount; ++ui32Instance)
+				bcatcstr(glsl, "  gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;\n");
+			}
+			else
+			{
+				for (ui32Instance = 0; ui32Instance < psShader->asPhase[HS_CTRL_POINT_PHASE].ui32InstanceCount; ++ui32Instance)
 				{
 					AddIndentation(psContext);
-					bformata(glsl, "%s%d();\n", asPhaseFuncNames[ui32Phase], ui32Instance);
+					bformata(glsl, "  %s%d();\n", asPhaseFuncNames[HS_CTRL_POINT_PHASE], ui32Instance);
+				}
+			}
 
-					if(ui32Phase == HS_FORK_PHASE)
+			bcatcstr(glsl, "  if (gl_InvocationID == 0) {\n"); //all other phase should be called once
+			ui32PhaseFuncCallOrder[0] = HS_FORK_PHASE;
+			ui32PhaseFuncCallOrder[1] = HS_JOIN_PHASE;
+			for (ui32PhaseCallIndex = 0; ui32PhaseCallIndex < 2; ui32PhaseCallIndex++)
+			{
+				ui32Phase = ui32PhaseFuncCallOrder[ui32PhaseCallIndex];
+				for (ui32Instance = 0; ui32Instance < psShader->asPhase[ui32Phase].ui32InstanceCount; ++ui32Instance)
+				{
+					AddIndentation(psContext);
+					bformata(glsl, "    %s%d();\n", asPhaseFuncNames[ui32Phase], ui32Instance);
+
+					if (ui32Phase == HS_FORK_PHASE)
 					{
-						if(psShader->asPhase[HS_JOIN_PHASE].ui32InstanceCount ||
-							(ui32Instance+1 < psShader->asPhase[HS_FORK_PHASE].ui32InstanceCount))
+						if (psShader->asPhase[HS_JOIN_PHASE].ui32InstanceCount ||
+							(ui32Instance + 1 < psShader->asPhase[HS_FORK_PHASE].ui32InstanceCount))
 						{
 							AddIndentation(psContext);
-							bcatcstr(glsl, "barrier();\n");
+							bcatcstr(glsl, "    barrier();\n");
 						}
 					}
 				}
 			}
+			if (ui32Phase>HS_CTRL_POINT_PHASE) bcatcstr(glsl, "  }\n");
 
             psContext->indent--;
 
