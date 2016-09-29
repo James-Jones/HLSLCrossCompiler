@@ -2868,19 +2868,23 @@ Would generate a vec2 and a vec3. We discard the second one making .z invalid!
         }
 		case OPCODE_DCL_SAMPLER:
 		{
-            if ((psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) != HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS)
-			{
-                ResourceBinding* psBinding = 0;
-                int found = GetResourceFromBindingPoint(RGROUP_SAMPLER, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
-				WriteUniformLayout(psContext, psBinding, NULL, psDecl->asOperands[0].ui32RegisterNumber, psContext->psShader->eShaderType, NULL, glsl);
+            if ((psContext->flags & HLSLCC_FLAG_DISABLE_VULKAN_DUMMIES) != HLSLCC_FLAG_DISABLE_VULKAN_DUMMIES)
+            {
+                if ((psContext->flags & HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS) != HLSLCC_FLAG_COMBINE_TEXTURE_SAMPLERS)
+                {
+                    ResourceBinding* psBinding = 0;
+                    int found = GetResourceFromBindingPoint(RGROUP_SAMPLER, psDecl->asOperands[0].ui32RegisterNumber, &psContext->psShader->sInfo, &psBinding);
+                    WriteUniformLayout(psContext, psBinding, NULL, psDecl->asOperands[0].ui32RegisterNumber, psContext->psShader->eShaderType, NULL, glsl);
 
-                if (psBinding->ui32Flags & REFLECT_RESOURCE_FLAGS_COMPARISON_SAMPLER) {
-                    bformata(glsl, "uniform samplerShadow ");
-                } else {
-                    bformata(glsl, "uniform sampler ");
+                    if (psBinding->ui32Flags & REFLECT_RESOURCE_FLAGS_COMPARISON_SAMPLER) {
+                        bformata(glsl, "uniform samplerShadow ");
+                    }
+                    else {
+                        bformata(glsl, "uniform sampler ");
+                    }
+                    TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
+                    bcatcstr(glsl, ";\n");
                 }
-                TranslateOperand(psContext, &psDecl->asOperands[0], TO_FLAG_NONE);
-                bcatcstr(glsl, ";\n");
             }
 			break;
 		}

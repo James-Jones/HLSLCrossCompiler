@@ -471,6 +471,9 @@ static const unsigned int HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS = 0x400;
 //If set, global uniforms are not stored in a struct.
 static const unsigned int HLSLCC_FLAG_DISABLE_GLOBALS_STRUCT = 0x800;
 
+//If set, no dummy materials will generated for Vulkan
+static const unsigned int HLSLCC_FLAG_DISABLE_VULKAN_DUMMIES = 0x1000;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
