@@ -477,6 +477,7 @@ static void DeclareInput(
 				}
 			}
 		}
+		else psSignature = NULL;
 
         if(psContext->psDependencies)
         {
@@ -487,11 +488,18 @@ static void DeclareInput(
         }
 
         if (!psDecl->asOperands[0].iNumComponents)
-            return;
-        
-        int highestComponent = MSBBit(psDecl->asOperands[0].ui32CompMask);      // (zero based bit indexes)
-        int lowestComponent = LSBBit(psDecl->asOperands[0].ui32CompMask);
-        int iNumComponents = highestComponent - lowestComponent + 1;
+			return;
+
+		int lowestComponent = 0;
+		int iNumComponents = 0;
+		if (psSignature) {
+			iNumComponents = MSBBit(psSignature->ui32Mask) + 1;
+		} else {
+			int highestComponent = MSBBit(psDecl->asOperands[0].ui32CompMask);      // (zero based bit indexes)
+			lowestComponent = LSBBit(psDecl->asOperands[0].ui32CompMask);
+			iNumComponents = highestComponent - lowestComponent + 1;
+		}
+        //int iNumComponents = highestComponent - lowestComponent + 1;
 
 		if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags) ||
 			(psShader->eShaderType == VERTEX_SHADER && HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->flags)))
