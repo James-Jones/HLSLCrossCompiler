@@ -1140,12 +1140,19 @@ static void TranslateVariableNameWithMask(HLSLCrossCompilerContext* psContext, c
                             if(ui32TOFlag & TO_FLAG_DECLARATION_NAME)
                             {
                                 const char* name = GetDeclaredInputName(psContext, psContext->psShader->eShaderType, psOperand);
-								bcatcstr(glsl, name);
+                                bcatcstr(glsl, name);
                             }
-							else
-							{
-								bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
-							}
+                            else
+                            {
+                                const uint32_t ui32Register = psOperand->aui32ArraySizes[psOperand->iIndexDims - 1];
+                                InOutSignature* psIn;
+                                GetInputSignatureFromRegister(ui32Register, &psContext->psShader->sInfo, &psIn);
+                                if ((psIn->ui32Mask == 1) && (psOperand->iNumComponents > 1)) {
+                                    bformata(glsl, "vec%d(Input%d.x)", requestedComponents, psOperand->ui32RegisterNumber);
+                                    pui32IgnoreSwizzle[0] = 1;
+                                } else
+                                    bformata(glsl, "Input%d", psOperand->ui32RegisterNumber);
+                            }
                         }
                     }
                     break;
