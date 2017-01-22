@@ -9,7 +9,7 @@
 #include "internal_includes/hlslcc_malloc.h"
 
 #define FOURCC(a, b, c, d) ((uint32_t)(uint8_t)(a) | ((uint32_t)(uint8_t)(b) << 8) | ((uint32_t)(uint8_t)(c) << 16) | ((uint32_t)(uint8_t)(d) << 24 ))
-static enum {FOURCC_CTAB = FOURCC('C', 'T', 'A', 'B')}; //Constant table
+enum {FOURCC_CTAB = FOURCC('C', 'T', 'A', 'B')}; //Constant table
 
 #ifdef _DEBUG
 static uint64_t operandID = 0;

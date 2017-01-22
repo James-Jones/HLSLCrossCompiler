@@ -157,14 +157,14 @@ enum {MAX_TEMP_VEC4 = 512};
 
 enum {MAX_GROUPSHARED = 8};
 
-static enum {MAX_DX9_IMMCONST = 256};
+enum {MAX_DX9_IMMCONST = 256};
 
 static const uint32_t MAIN_PHASE = 0;
 static const uint32_t HS_GLOBAL_DECL = 1;
 static const uint32_t HS_CTRL_POINT_PHASE = 2;
 static const uint32_t HS_FORK_PHASE = 3;
 static const uint32_t HS_JOIN_PHASE = 4;
-static enum{ NUM_PHASES = 5};
+enum{ NUM_PHASES = 5};
 
 typedef struct ShaderPhase_TAG
 {
