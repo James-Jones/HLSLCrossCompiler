@@ -1147,7 +1147,7 @@ static void TranslateVariableNameWithMask(HLSLCrossCompilerContext* psContext, c
                                 const uint32_t ui32Register = psOperand->aui32ArraySizes[psOperand->iIndexDims - 1];
                                 InOutSignature* psIn;
                                 GetInputSignatureFromRegister(ui32Register, &psContext->psShader->sInfo, &psIn);
-                                if ((psIn->ui32Mask == 1) && (psOperand->iNumComponents > 1)) {
+                                if ((psIn->ui32Mask == 1) && (requestedComponents > 1)) {
                                     bformata(glsl, "vec%d(Input%d.x)", requestedComponents, psOperand->ui32RegisterNumber);
                                     pui32IgnoreSwizzle[0] = 1;
                                 } else
@@ -1391,6 +1391,23 @@ static void TranslateVariableNameWithMask(HLSLCrossCompilerContext* psContext, c
                         needConstructorExpression = vars[c] != vars[0];
                     }
 
+					// For scalar types we should user constructor, because swizzling not allowed for scalar values
+                    uint32_t isScalarValue = 0;
+                    if (needConstructorExpression == 0)
+                    {
+                        if ((eleCount > 1) && (psOperand->ui32Swizzle == XXXX_SWIZZLE)) {
+                            isScalarValue = 1;
+                            for (uint32_t c = 0; c < eleCount; ++c) {
+                                if (psOperand->aui32Swizzle[c] != OPERAND_4_COMPONENT_X){
+                                    isScalarValue = 0;
+                                    break;
+                                }
+                            }
+                        }
+                        if (isScalarValue) needConstructorExpression = 1;
+                    }
+
+
                     // In cases where we're stitching together elements from multiple
                     // variables, we need to use "constructor" syntax. But we can skip
                     // in this the more common case where just a single variable is used.
@@ -1399,50 +1416,54 @@ static void TranslateVariableNameWithMask(HLSLCrossCompilerContext* psContext, c
                         bformata(glsl, "%s(", constructor);
                     }
 
-                    int pendingComma = 0;
-                    for (uint32_t c=0; c<eleCount;) {
-                        uint32_t end = c+1;
-                        while (end < eleCount && vars[end] == vars[c]) ++end;
+                    if (isScalarValue) {
+                        bcatcstr(glsl, vars[0]->FullName);
+                    } else {
+                        int pendingComma = 0;
+                        for (uint32_t c=0; c<eleCount;) {
+                            uint32_t end = c+1;
+                            while (end < eleCount && vars[end] == vars[c]) ++end;
 
-                        if (pendingComma) {
-                            ASSERT(needConstructorExpression);
-                            bcatcstr(glsl, ", ");
-                        }
-
-                        // Write the variable name, plus the swizzle sequence.
-                        // Let's skip the swizzle in the case of scalars (unless
-                        // they are smeared out over multiple elements)
-                        bcatcstr(glsl, vars[c]->FullName);
-
-                        if(indices[c] != -1)
-                        {
-					        if ((vars[c]->Class == SVC_MATRIX_COLUMNS || vars[c]->Class == SVC_MATRIX_ROWS) && (vars[c]->Elements > 1))
-					        {
-						        // Special handling for matrix arrays, open them up into vec4's
-						        size_t matidx = indices[c] / 4;
-						        size_t rowidx = indices[c] - (matidx*4);
-						        bformata(glsl, "[%d][%d]", matidx, rowidx);
-					        }
-					        else
-					        {
-						        bformata(glsl, "[%d]", indices[c]);
-					        }
-                        }
-
-                        if (vars[c]->Class == SVC_SCALAR && end == c+1) {
-                            for (uint32_t c2=c; c2<end; ++c2) {
-                                ASSERT((opSwizzle[c2] - (rebases[c2]>>2))==0);
+                            if (pendingComma) {
+                                ASSERT(needConstructorExpression);
+                                bcatcstr(glsl, ", ");
                             }
-                        } else {
-                            bcatcstr(glsl, ".");
-                            const char* postfixes[4] = {"x", "y", "z", "w"};
-                            for (uint32_t c2=c; c2<end; ++c2) {
-                                bcatcstr(glsl, postfixes[min(opSwizzle[c2] - (rebases[c2]>>2), 3)]);
-                            }
-                        }
 
-                        c = end;
-                        pendingComma = 1;
+                            // Write the variable name, plus the swizzle sequence.
+                            // Let's skip the swizzle in the case of scalars (unless
+                            // they are smeared out over multiple elements)
+                            bcatcstr(glsl, vars[c]->FullName);
+
+                            if(indices[c] != -1)
+                            {
+					            if ((vars[c]->Class == SVC_MATRIX_COLUMNS || vars[c]->Class == SVC_MATRIX_ROWS) && (vars[c]->Elements > 1))
+					            {
+						            // Special handling for matrix arrays, open them up into vec4's
+						            size_t matidx = indices[c] / 4;
+						            size_t rowidx = indices[c] - (matidx*4);
+						            bformata(glsl, "[%d][%d]", matidx, rowidx);
+					            }
+					            else
+					            {
+						            bformata(glsl, "[%d]", indices[c]);
+					            }
+                            }
+
+                            if (vars[c]->Class == SVC_SCALAR && end == c+1) {
+                                for (uint32_t c2=c; c2<end; ++c2) {
+                                    ASSERT((opSwizzle[c2] - (rebases[c2]>>2))==0);
+                                }
+                            } else {
+                                bcatcstr(glsl, ".");
+                                const char* postfixes[4] = {"x", "y", "z", "w"};
+                                for (uint32_t c2=c; c2<end; ++c2) {
+                                    bcatcstr(glsl, postfixes[min(opSwizzle[c2] - (rebases[c2]>>2), 3)]);
+                                }
+                            }
+
+                            c = end;
+                            pendingComma = 1;
+                        }
                     }
 
                     if (needConstructorExpression) {
