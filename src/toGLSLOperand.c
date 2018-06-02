@@ -1146,7 +1146,7 @@ static void TranslateVariableNameWithMask(HLSLCrossCompilerContext* psContext, c
                             {
                                 const uint32_t ui32Register = psOperand->aui32ArraySizes[psOperand->iIndexDims - 1];
                                 InOutSignature* psIn;
-                                GetInputSignatureFromRegister(ui32Register, &psContext->psShader->sInfo, &psIn);
+                                GetInputSignatureFromRegister(ui32Register, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psIn);
                                 if ((psIn->ui32Mask == 1) && (requestedComponents > 1)) {
                                     bformata(glsl, "vec%d(Input%d.x)", requestedComponents, psOperand->ui32RegisterNumber);
                                     pui32IgnoreSwizzle[0] = 1;
@@ -1933,7 +1933,7 @@ SHADER_VARIABLE_TYPE GetOperandDataTypeEx(HLSLCrossCompilerContext* psContext, c
 				return SVT_INT;
 			}
 
-			if(GetInputSignatureFromRegister(ui32Register, &psContext->psShader->sInfo, &psIn))
+            if (GetInputSignatureFromRegister(ui32Register, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psIn))
 			{
 				if( psIn->eComponentType == INOUT_COMPONENT_UINT32)
 				{

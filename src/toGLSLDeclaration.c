@@ -280,7 +280,7 @@ const char* GetDeclaredInputName(const HLSLCrossCompilerContext* psContext, cons
 	bstring inputName;
 	char* cstr;
 	InOutSignature* psIn;
-	int found = GetInputSignatureFromRegister(psOperand->ui32RegisterNumber, &psContext->psShader->sInfo, &psIn);
+    int found = GetInputSignatureFromRegister(psOperand->ui32RegisterNumber, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psIn);
 
 	if((psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES) && found)
 	{
@@ -449,158 +449,164 @@ static void DeclareInput(
 	if(psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber] == -1)
 		return;
 
-    if(psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] == 0)
-    {
-        const char* vecType = "vec";
-        const char* scalarType = "float";
-        InOutSignature* psSignature = NULL;
+    int registerNotDeclared = psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] == 0;
 
-        if( GetInputSignatureFromRegister(psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psSignature) )
+    const char* vecType = "vec";
+    const char* scalarType = "float";
+    InOutSignature* psSignature = NULL;
+
+    if (GetInputSignatureFromRegister(psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32CompMask, &psShader->sInfo, &psSignature))
+	{
+		switch(psSignature->eComponentType)
 		{
-			switch(psSignature->eComponentType)
+			case INOUT_COMPONENT_UINT32:
 			{
-				case INOUT_COMPONENT_UINT32:
-				{
-					vecType = "uvec";
-					scalarType = "uint";
-					break;
-				}
-				case INOUT_COMPONENT_SINT32:
-				{
-					vecType = "ivec";
-					scalarType = "int";
-					break;
-				}
-				case INOUT_COMPONENT_FLOAT32:
-				{
-					break;
-				}
+				vecType = "uvec";
+				scalarType = "uint";
+				break;
+			}
+			case INOUT_COMPONENT_SINT32:
+			{
+				vecType = "ivec";
+				scalarType = "int";
+				break;
+			}
+			case INOUT_COMPONENT_FLOAT32:
+			{
+				break;
 			}
 		}
-		else psSignature = NULL;
+	}
+	else psSignature = NULL;
 
-        if(psContext->psDependencies)
+    if(psContext->psDependencies)
+    {
+        if(psShader->eShaderType == PIXEL_SHADER)
         {
-            if(psShader->eShaderType == PIXEL_SHADER)
+            psContext->psDependencies->aePixelInputInterpolation[psDecl->asOperands[0].ui32RegisterNumber] = psDecl->value.eInterpolation;
+        }
+    }
+
+    if (!psDecl->asOperands[0].iNumComponents)
+		return;
+
+	int lowestComponent = 0;
+	int iNumComponents = 0;
+	if (psSignature) {
+        int highestComponent = MSBBit(psSignature->ui32Mask);
+        lowestComponent = LSBBit(psSignature->ui32Mask);
+        iNumComponents = highestComponent - lowestComponent + 1;
+	} else {
+		int highestComponent = MSBBit(psDecl->asOperands[0].ui32CompMask);      // (zero based bit indexes)
+		lowestComponent = LSBBit(psDecl->asOperands[0].ui32CompMask);
+		iNumComponents = highestComponent - lowestComponent + 1;
+	}
+    //int iNumComponents = highestComponent - lowestComponent + 1;
+
+	if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags) ||
+		(psShader->eShaderType == VERTEX_SHADER && HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->flags)))
+    {
+		// Skip location if requested by the flags.
+		if (!(psContext->flags & HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS))
+        {
+            if (HasInterfaceComponentQualifier(psContext->psShader->eTargetLanguage))
             {
-                psContext->psDependencies->aePixelInputInterpolation[psDecl->asOperands[0].ui32RegisterNumber] = psDecl->value.eInterpolation;
+                bformata(glsl, "layout(location = %d, component = %d) ", psDecl->asOperands[0].ui32RegisterNumber, lowestComponent);
+            }
+            else
+            {
+                bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
             }
         }
+    }
 
-        if (!psDecl->asOperands[0].iNumComponents)
-			return;
-
-		int lowestComponent = 0;
-		int iNumComponents = 0;
-		if (psSignature) {
-			iNumComponents = MSBBit(psSignature->ui32Mask) + 1;
-		} else {
-			int highestComponent = MSBBit(psDecl->asOperands[0].ui32CompMask);      // (zero based bit indexes)
-			lowestComponent = LSBBit(psDecl->asOperands[0].ui32CompMask);
-			iNumComponents = highestComponent - lowestComponent + 1;
-		}
-        //int iNumComponents = highestComponent - lowestComponent + 1;
-
-		if (HaveInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->psShader->extensions, psContext->flags) ||
-			(psShader->eShaderType == VERTEX_SHADER && HaveLimitedInOutLocationQualifier(psContext->psShader->eTargetLanguage, psContext->flags)))
+    switch(eIndexDim)
+    {
+        case INDEX_2D:
         {
-			// Skip location if requested by the flags.
-			if (!(psContext->flags & HLSLCC_FLAG_DISABLE_EXPLICIT_LOCATIONS))
-            {
-                if (HasInterfaceComponentQualifier(psContext->psShader->eTargetLanguage))
-                {
-                    bformata(glsl, "layout(location = %d, component = %d) ", psDecl->asOperands[0].ui32RegisterNumber, lowestComponent);
-                }
-                else
-                {
-                    bformata(glsl, "layout(location = %d) ", psDecl->asOperands[0].ui32RegisterNumber);
-                }
-            }
-        }
-
-        switch(eIndexDim)
-        {
-            case INDEX_2D:
-            {
-				if ((psShader->eShaderType == HULL_SHADER) || (psShader->eShaderType == DOMAIN_SHADER))
+			if ((psShader->eShaderType == HULL_SHADER) || (psShader->eShaderType == DOMAIN_SHADER))
+			{
+				if(iNumComponents == 1)
 				{
-					if(iNumComponents == 1)
-					{
-						const uint32_t regNum =  psDecl->asOperands[0].ui32RegisterNumber;
-						const uint32_t arraySize = psDecl->asOperands[0].aui32ArraySizes[0];
+					const uint32_t regNum =  psDecl->asOperands[0].ui32RegisterNumber;
+					const uint32_t arraySize = psDecl->asOperands[0].aui32ArraySizes[0];
 
-						psContext->psShader->abScalarInput[psDecl->asOperands[0].ui32RegisterNumber] = -1;
+					psContext->psShader->abScalarInput[psDecl->asOperands[0].ui32RegisterNumber] = -1;
 
-						bformata(glsl, "%s %s %s %s [gl_MaxPatchVertices];\n", StorageQualifier, Precision, scalarType, InputName);
+                    if (registerNotDeclared)
+                        bformata(glsl, "%s1 Input%d;\n", vecType, psDecl->asOperands[0].ui32RegisterNumber);
 
-						bformata(glsl, "%s1 Input%d;\n", vecType, psDecl->asOperands[0].ui32RegisterNumber);
+					bformata(glsl, "%s %s %s %s [gl_MaxPatchVertices];\n", StorageQualifier, Precision, scalarType, InputName);
 
-						psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = arraySize;
-					}
-					else
-					{
-						bformata(glsl, "%s %s %s%d %s [gl_MaxPatchVertices];\n", StorageQualifier, Precision, vecType, iNumComponents, InputName);
-
-						bformata(glsl, "%s%d Input%d[gl_MaxPatchVertices];\n", vecType, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
-
-						psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = psDecl->asOperands[0].aui32ArraySizes[0];
-					}
+					psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = arraySize;
 				}
 				else
-                if(iNumComponents == 1)
-                {
-				    const uint32_t regNum =  psDecl->asOperands[0].ui32RegisterNumber;
-				    const uint32_t arraySize = psDecl->asOperands[0].aui32ArraySizes[0];
+				{
+                    if (registerNotDeclared)
+                        bformata(glsl, "%s%d Input%d[gl_MaxPatchVertices];\n", vecType, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
 
-				    psContext->psShader->abScalarInput[psDecl->asOperands[0].ui32RegisterNumber] = -1;
+					bformata(glsl, "%s %s %s%d %s [gl_MaxPatchVertices];\n", StorageQualifier, Precision, vecType, iNumComponents, InputName);
 
-					bformata(glsl, "%s %s %s %s [%d];\n", StorageQualifier, Precision, scalarType, InputName,
-						arraySize);
+					psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = psDecl->asOperands[0].aui32ArraySizes[0];
+				}
+			}
+			else
+            if(iNumComponents == 1)
+            {
+				const uint32_t regNum =  psDecl->asOperands[0].ui32RegisterNumber;
+				const uint32_t arraySize = psDecl->asOperands[0].aui32ArraySizes[0];
 
+				psContext->psShader->abScalarInput[psDecl->asOperands[0].ui32RegisterNumber] = -1;
+
+                if (registerNotDeclared)
                     bformata(glsl, "%s1 Input%d[%d];\n", vecType, psDecl->asOperands[0].ui32RegisterNumber, arraySize);
 
-                    psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = arraySize;
-                }
-                else
-                {
-					bformata(glsl, "%s %s %s%d %s [%d];\n", StorageQualifier, Precision, vecType, iNumComponents, InputName,
-						psDecl->asOperands[0].aui32ArraySizes[0]);
+				bformata(glsl, "%s %s %s %s [%d];\n", StorageQualifier, Precision, scalarType, InputName,
+					arraySize);
 
-                    bformata(glsl, "%s%d Input%d[%d];\n", vecType, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber,
-                        psDecl->asOperands[0].aui32ArraySizes[0]);
-
-                    psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = psDecl->asOperands[0].aui32ArraySizes[0];
-                }
-                break;
+                psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = arraySize;
             }
-            default:
+            else
             {
-
-				if(psDecl->asOperands[0].eType == OPERAND_TYPE_SPECIAL_TEXCOORD)
-				{
-					InputName = "TexCoord";
-				}
-				
-                if(psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber] > 0)
-                {
-					bformata(glsl, "%s %s %s %s%d %s", Interpolation, StorageQualifier, Precision, vecType, iNumComponents, InputName);
-                    bformata(glsl, "[%d];\n", psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber]);
-
+                if (registerNotDeclared)
                     bformata(glsl, "%s%d Input%d[%d];\n", vecType, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber,
-                        psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber]);
+                    psDecl->asOperands[0].aui32ArraySizes[0]);
 
+				bformata(glsl, "%s %s %s%d %s [%d];\n", StorageQualifier, Precision, vecType, iNumComponents, InputName,
+					psDecl->asOperands[0].aui32ArraySizes[0]);
 
-                    psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber];
-                }
-                else
-                {
-					bformata(glsl, "%s %s %s %s%d %s;\n", Interpolation, StorageQualifier, Precision, vecType, iNumComponents, InputName);
-                    bformata(glsl, "%s%d Input%d;\n", vecType, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber);
-
-                    psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = -1;
-                }
-                break;
+                psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = psDecl->asOperands[0].aui32ArraySizes[0];
             }
+            break;
+        }
+        default:
+        {
+
+			if(psDecl->asOperands[0].eType == OPERAND_TYPE_SPECIAL_TEXCOORD)
+			{
+				InputName = "TexCoord";
+			}
+				
+            if(psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber] > 0)
+            {
+                if (registerNotDeclared)
+                    bformata(glsl, "%s%d Input%d[%d];\n", vecType, iNumComponents, psDecl->asOperands[0].ui32RegisterNumber,
+                                psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber]);
+
+				bformata(glsl, "%s %s %s %s%d %s", Interpolation, StorageQualifier, Precision, vecType, iNumComponents, InputName);
+                bformata(glsl, "[%d];\n", psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber]);
+
+                psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = psShader->aIndexedInput[psDecl->asOperands[0].ui32RegisterNumber];
+            }
+            else
+            {
+                if (registerNotDeclared)
+                    bformata(glsl, "%s4 Input%d;\n", vecType, psDecl->asOperands[0].ui32RegisterNumber);
+				bformata(glsl, "%s %s %s %s%d %s;\n", Interpolation, StorageQualifier, Precision, vecType, iNumComponents, InputName);
+
+                psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = -1;
+            }
+            break;
         }
     }
 
@@ -611,8 +617,24 @@ static void DeclareInput(
 
         if(psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] == -1) //Not an array
         {
+            uint32_t mask32;
+            if (psSignature)
+                mask32 = psSignature->ui32Mask;
+            else
+                mask32 = psDecl->asOperands[0].ui32CompMask;
+            char maskDest[6] = { 0 };
+            int maskpos = 0;
+            maskDest[maskpos++] = '.';
+            if (mask32 & OPERAND_4_COMPONENT_MASK_X) maskDest[maskpos++] = 'x';
+            if (mask32 & OPERAND_4_COMPONENT_MASK_Y) maskDest[maskpos++] = 'y';
+            if (mask32 & OPERAND_4_COMPONENT_MASK_Z) maskDest[maskpos++] = 'z';
+            if (mask32 & OPERAND_4_COMPONENT_MASK_W) maskDest[maskpos++] = 'w';
+
+            char maskSrc[6] = { '.', 'x', 'y', 'z', 'w', 0 };
+            maskSrc[iNumComponents+1] = 0;
+
             AddIndentation(psContext);
-			bformata(psContext->earlyMain, "Input%d = %s;\n", psDecl->asOperands[0].ui32RegisterNumber, InputName);
+            bformata(psContext->earlyMain, "Input%d%s = %s%s;\n", psDecl->asOperands[0].ui32RegisterNumber, &maskDest[0], InputName, &maskSrc[0]);
         }
         else
         {
