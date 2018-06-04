@@ -280,7 +280,7 @@ const char* GetDeclaredInputName(const HLSLCrossCompilerContext* psContext, cons
 	bstring inputName;
 	char* cstr;
 	InOutSignature* psIn;
-    int found = GetInputSignatureFromRegister(psOperand->ui32RegisterNumber, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psIn);
+    int found = GetInputSignatureFromRegister(psOperand->ui32RegisterNumber, psOperand->eSelMode, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psIn);
 
 	if((psContext->flags & HLSLCC_FLAG_INOUT_SEMANTIC_NAMES) && found)
 	{
@@ -455,7 +455,7 @@ static void DeclareInput(
     const char* scalarType = "float";
     InOutSignature* psSignature = NULL;
 
-    if (GetInputSignatureFromRegister(psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].ui32CompMask, &psShader->sInfo, &psSignature))
+    if (GetInputSignatureFromRegister(psDecl->asOperands[0].ui32RegisterNumber, psDecl->asOperands[0].eSelMode, psDecl->asOperands[0].ui32CompMask, &psShader->sInfo, &psSignature))
 	{
 		switch(psSignature->eComponentType)
 		{

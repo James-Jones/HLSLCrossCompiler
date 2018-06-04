@@ -11,7 +11,7 @@ void GetConstantBufferFromBindingPoint(const ResourceGroup eGroup, const uint32_
 
 int GetInterfaceVarFromOffset(uint32_t ui32Offset, ShaderInfo* psShaderInfo, ShaderVar** ppsShaderVar);
 
-int GetInputSignatureFromRegister(const uint32_t ui32Register, const uint32_t ui32CompMask, const ShaderInfo* psShaderInfo, InOutSignature** ppsOut);
+int GetInputSignatureFromRegister(const uint32_t ui32Register, const int eSelMode, uint32_t ui32CompMask, const ShaderInfo* psShaderInfo, InOutSignature** ppsOut);
 int GetOutputSignatureFromRegister(const uint32_t currentPhase,
 								   const uint32_t ui32Register,
 								   const uint32_t ui32Stream,

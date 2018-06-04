@@ -1146,7 +1146,7 @@ static void TranslateVariableNameWithMask(HLSLCrossCompilerContext* psContext, c
                             {
                                 const uint32_t ui32Register = psOperand->aui32ArraySizes[psOperand->iIndexDims - 1];
                                 InOutSignature* psIn;
-                                GetInputSignatureFromRegister(ui32Register, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psIn);
+                                GetInputSignatureFromRegister(ui32Register, psOperand->eSelMode, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psIn);
                                 if ((psIn->ui32Mask == 1) && (requestedComponents > 1)) {
                                     bformata(glsl, "vec%d(Input%d.x)", requestedComponents, psOperand->ui32RegisterNumber);
                                     pui32IgnoreSwizzle[0] = 1;
@@ -1933,7 +1933,7 @@ SHADER_VARIABLE_TYPE GetOperandDataTypeEx(HLSLCrossCompilerContext* psContext, c
 				return SVT_INT;
 			}
 
-            if (GetInputSignatureFromRegister(ui32Register, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psIn))
+            if (GetInputSignatureFromRegister(ui32Register, psOperand->eSelMode, psOperand->ui32CompMask, &psContext->psShader->sInfo, &psIn))
 			{
 				if( psIn->eComponentType == INOUT_COMPONENT_UINT32)
 				{
@@ -2026,13 +2026,13 @@ void TranslateOperandWithMask(HLSLCrossCompilerContext* psContext, const Operand
 	{
 		ui32TOFlag &= ~(TO_AUTO_BITCAST_TO_FLOAT|TO_AUTO_BITCAST_TO_INT|TO_AUTO_BITCAST_TO_UINT);
 	}
-
+    
     if(ui32TOFlag & TO_FLAG_NAME_ONLY)
     {
         TranslateVariableName(psContext, psOperand, ui32TOFlag, &ui32IgnoreSwizzle);
         return;
     }
-
+    
     switch(psOperand->eModifier)
     {
         case OPERAND_MODIFIER_NONE:
@@ -2057,12 +2057,12 @@ void TranslateOperandWithMask(HLSLCrossCompilerContext* psContext, const Operand
     }
 
     TranslateVariableNameWithMask(psContext, psOperand, ui32TOFlag, &ui32IgnoreSwizzle, ui32ComponentMask);
-
+    
     if(!ui32IgnoreSwizzle)
     {
         TranslateOperandSwizzleWithMask(psContext, psOperand, ui32ComponentMask);
     }
-
+    
     switch(psOperand->eModifier)
     {
         case OPERAND_MODIFIER_NONE:

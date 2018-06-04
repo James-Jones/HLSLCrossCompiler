@@ -640,6 +640,10 @@ int Run(const char* srcPath, const char* destPath, GLLang language, int flags, c
 
         FreeGLSLShader(&result);
     }
+    else
+    {
+        printf("HLSLcc failed\n");
+    }
 
     return compiledOK;
 }
