@@ -1393,6 +1393,16 @@ static void TranslateVariableNameWithMask(HLSLCrossCompilerContext* psContext, c
 
 					// For scalar types we should user constructor, because swizzling not allowed for scalar values
                     uint32_t isScalarValue = 0;
+                    if (vars[0]->Class == SVC_SCALAR){
+                        isScalarValue = 1;
+                        for (uint32_t c = 1; c<eleCount; ++c) {
+                            if (vars[0] != vars[c]) {
+                                isScalarValue = 0;
+                                break;
+                            }
+                        }
+                    }
+
                     if (needConstructorExpression == 0)
                     {
                         if ((eleCount > 1) && (psOperand->ui32Swizzle == XXXX_SWIZZLE)) {

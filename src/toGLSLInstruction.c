@@ -2801,7 +2801,7 @@ void TranslateInstruction(HLSLCrossCompilerContext* psContext, Instruction* psIn
 		bcatcstr(glsl, "("); // 1
 		TranslateOperand(psContext, &psInst->asOperands[1], TO_AUTO_BITCAST_TO_FLOAT);
         // we have to smear out the scalars here...
-        if (srcCount == 1) bcatcstr(glsl, ".xxxx");
+        //if (srcCount == 1) bcatcstr(glsl, ".xxxx");
 		bcatcstr(glsl, ")"); // 1
 
         // this seems like the only reliable way to catch every swizzling case ---
