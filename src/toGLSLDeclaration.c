@@ -602,7 +602,10 @@ static void DeclareInput(
             {
                 if (registerNotDeclared)
                     bformata(glsl, "%s4 Input%d;\n", vecType, psDecl->asOperands[0].ui32RegisterNumber);
-				bformata(glsl, "%s %s %s %s%d %s;\n", Interpolation, StorageQualifier, Precision, vecType, iNumComponents, InputName);
+                if ((lowestComponent == 0) && (iNumComponents == 1))
+                    bformata(glsl, "%s %s %s %s %s;\n", Interpolation, StorageQualifier, Precision, scalarType, InputName);
+                else
+				    bformata(glsl, "%s %s %s %s%d %s;\n", Interpolation, StorageQualifier, Precision, vecType, iNumComponents, InputName);
 
                 psShader->aiInputDeclaredSize[psDecl->asOperands[0].ui32RegisterNumber] = -1;
             }
@@ -631,7 +634,10 @@ static void DeclareInput(
             if (mask32 & OPERAND_4_COMPONENT_MASK_W) maskDest[maskpos++] = 'w';
 
             char maskSrc[6] = { '.', 'x', 'y', 'z', 'w', 0 };
-            maskSrc[iNumComponents+1] = 0;
+            if ((lowestComponent == 0) && (iNumComponents == 1))
+                maskSrc[0] = 0;
+            else
+                maskSrc[iNumComponents+1] = 0;
 
             AddIndentation(psContext);
             bformata(psContext->earlyMain, "Input%d%s = %s%s;\n", psDecl->asOperands[0].ui32RegisterNumber, &maskDest[0], InputName, &maskSrc[0]);
