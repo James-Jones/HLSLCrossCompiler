@@ -602,7 +602,7 @@ static void DeclareInput(
             {
                 if (registerNotDeclared)
                     bformata(glsl, "%s4 Input%d;\n", vecType, psDecl->asOperands[0].ui32RegisterNumber);
-                if ((lowestComponent == 0) && (iNumComponents == 1))
+                if ((lowestComponent == 0) && (iNumComponents == 1) && (psShader->eShaderType == VERTEX_SHADER))
                     bformata(glsl, "%s %s %s %s %s;\n", Interpolation, StorageQualifier, Precision, scalarType, InputName);
                 else
 				    bformata(glsl, "%s %s %s %s%d %s;\n", Interpolation, StorageQualifier, Precision, vecType, iNumComponents, InputName);
@@ -634,7 +634,7 @@ static void DeclareInput(
             if (mask32 & OPERAND_4_COMPONENT_MASK_W) maskDest[maskpos++] = 'w';
 
             char maskSrc[6] = { '.', 'x', 'y', 'z', 'w', 0 };
-            if ((lowestComponent == 0) && (iNumComponents == 1))
+            if ((lowestComponent == 0) && (iNumComponents == 1) && (psShader->eShaderType == VERTEX_SHADER))
                 maskSrc[0] = 0;
             else
                 maskSrc[iNumComponents+1] = 0;
