@@ -77,6 +77,14 @@ void AddIndentation(HLSLCrossCompilerContext* psContext)
     }
 }
 
+void WriteUniformLayout(
+	HLSLCrossCompilerContext* psContext,
+	ResourceBinding* srcResBinding,
+    ConstantBuffer* srcCBBinding,
+    unsigned ui32BindingPoint, unsigned shaderStage,
+    const char* extraLayoutQualifiers,
+	bstring glsl);
+
 void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 {
     bstring glsl = *psContext->currentGLSLString;
@@ -207,11 +215,13 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
 		}
 		bcatcstr(glsl, "\n");
 	}
-
-	if (SubroutinesSupported(psContext->psShader->eTargetLanguage))
-	{
-		bcatcstr(glsl, "subroutine void SubroutineType();\n");
-	}
+    
+    // DavidJ --    Removed this line. It causes a compile error with the SPIR-V compiler (which doesn't support subroutines)
+    //              It's not clear to me what the intention of this line is.
+	// if (SubroutinesSupported(psContext->psShader->eTargetLanguage))
+	// {
+	// 	bcatcstr(glsl, "subroutine void SubroutineType();\n");
+	// }
 
 	if (psContext->psShader->ui32MajorVersion <= 3)
 	{
@@ -321,20 +331,71 @@ void AddVersionDependentCode(HLSLCrossCompilerContext* psContext)
     }
 
     /* For versions which do not support a vec1 (currently all versions) */
-    bcatcstr(glsl,"struct vec1 {\n");
-    bcatcstr(glsl,"\tfloat x;\n");
-    bcatcstr(glsl,"};\n");
+    // DavidJ --    Replacing this with a define.
+    //              Using a struct was causing problems with code like:
+    //                  vec1 value;
+    //                  value = 0.5f;
+    //              Here, the ".x" could be ommitted after "value" because
+    //              both sides are determined to have the same components.
+    //              That's fine with true vectors; but does not produce the
+    //              correct result when using a "struct" to stand in for vec1.
+    //
+    //      Note -- this requires GLSL 4.20 or ARB_shading_language_420pack to work
+    //              correctly. When targetting older versions of OpenGL, some input
+    //              HLSL code will generate incorrect results.
+    if (HaveScalarSwizzle(psContext->psShader->eTargetLanguage, psContext->psShader->extensions)) 
+    {
+        bcatcstr(glsl, "#define vec1 float\n");
+	    if(HaveUVec(psContext->psShader->eTargetLanguage))
+            bcatcstr(glsl, "#define uvec1 uint\n");
+        bcatcstr(glsl, "#define ivec1 int\n");
+    } 
+    else 
+    {
+        bcatcstr(glsl,"struct vec1 {\n");
+        bcatcstr(glsl,"\tfloat x;\n");
+        bcatcstr(glsl,"};\n");
+ 
+        if(HaveUVec(psContext->psShader->eTargetLanguage))
+        {
+            bcatcstr(glsl,"struct uvec1 {\n");
+            bcatcstr(glsl,"\tuint x;\n");
+            bcatcstr(glsl,"};\n");
+        }
+ 
+        bcatcstr(glsl,"struct ivec1 {\n");
+        bcatcstr(glsl,"\tint x;\n");
+        bcatcstr(glsl,"};\n");
+    }
 
-	if(HaveUVec(psContext->psShader->eTargetLanguage))
-	{
-		bcatcstr(glsl,"struct uvec1 {\n");
-		bcatcstr(glsl,"\tuint x;\n");
-		bcatcstr(glsl,"};\n");
-	}
-
-    bcatcstr(glsl,"struct ivec1 {\n");
-    bcatcstr(glsl,"\tint x;\n");
-    bcatcstr(glsl,"};\n");
+    // In HLSL, we can use "Load" on a texture object and access it without a sampler.
+    // For GLSL, we have 2 options:
+    //      * use a gtexture2d/gsampler2d and access with texelFetch
+    //      * use a image2d and access with imageLoad
+    //
+    // If we use imageLoad, we don't need a sampler. This is a closer analogue to HLSL.
+    // If we use gtexture2d, we need to use a sampler. But we can also call other texture
+    // access functions (like texture, textureGather).
+    //
+    // It seems like "images" will be necessary if we need to perform atomic operations on
+    // the data (ie, like RWTextures in HLSL).
+    // But for HLSL "texture" objects, perhaps it's best to just stick with gtexture2d/gsampler2d
+    // objects for consistancy. But, we will need to declare a dummy sampler to use with texelFetch.
+    if (HaveSeparateTexturesAndSamplers(psContext->psShader->eTargetLanguage, psContext->psShader->extensions)) {
+        ResourceBinding resBinding;
+        strcpy(resBinding.Name, "hlslcc_DummySampler");
+        resBinding.eType = RTYPE_SAMPLER;
+        resBinding.ui32BindPoint = 16;
+        resBinding.ui32BindCount = 1;
+        resBinding.ui32Flags = 0;
+        resBinding.eDimension = REFLECT_RESOURCE_DIMENSION_UNKNOWN;
+        resBinding.ui32ReturnType = 0;
+        resBinding.ui32NumSamples = 0;
+        WriteUniformLayout(
+            psContext, &resBinding, NULL, resBinding.ui32BindPoint,
+            psContext->psShader->eShaderType, NULL, glsl);
+        bcatcstr(glsl, "uniform sampler hlslcc_DummySampler;\n");
+    }
 
     /*
         OpenGL 4.1 API spec:
@@ -492,6 +553,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 			bcatcstr(glsl,"#extension GL_ARB_explicit_uniform_location : require\n");
 		if(extensions->ARB_shading_language_420pack)
 			bcatcstr(glsl,"#extension GL_ARB_shading_language_420pack : require\n");
+        // extension GL_KHR_vulkan_glsl doesn't need to be declared
 	}
 
     ClearDependencyData(psShader->eShaderType, psContext->psDependencies);
@@ -522,15 +584,25 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 		asPhaseFuncNames[HS_JOIN_PHASE] = "join_phase";
 
         ConsolidateHullTempVars(psShader);
+		int ControlPointCountValue = 1;
 
 		for(i=0; i < psShader->asPhase[HS_GLOBAL_DECL].pui32DeclCount[0]; ++i)
         {
-			TranslateDeclaration(psContext, psShader->asPhase[HS_GLOBAL_DECL].ppsDecl[0]+i);
+			Declaration* ppsDecl = psShader->asPhase[HS_GLOBAL_DECL].ppsDecl[0] + i;
+			TranslateDeclaration(psContext, ppsDecl);
+			if (ppsDecl->eOpcode == OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT) ControlPointCountValue = ppsDecl->value.ui32MaxOutputVertexCount;
         }
 
 		for(ui32Phase=HS_CTRL_POINT_PHASE; ui32Phase<NUM_PHASES; ui32Phase++)
 		{
 			psContext->currentPhase = ui32Phase;
+			int DummyControlPointPhase = (ui32Phase == HS_CTRL_POINT_PHASE) && (psShader->asPhase[HS_CTRL_POINT_PHASE].ui32InstanceCount == 0);
+
+			if (DummyControlPointPhase)
+			{
+				TranslateDeclaration_HS_NoControlPointStage(psContext);
+			}
+
 			for(ui32Instance = 0; ui32Instance < psShader->asPhase[ui32Phase].ui32InstanceCount; ++ui32Instance)
 			{
 				isCurrentForkPhasedInstanced = 0; //reset for each fork phase for cases we don't have a fork phase instance count opcode.
@@ -565,7 +637,7 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
 							TranslateInstruction(psContext, psShader->asPhase[ui32Phase].ppsInst[ui32Instance]+i, NULL);
 						}
 
-					if(haveInstancedForkPhase)
+					if(haveInstancedForkPhase||(ui32Phase==HS_CTRL_POINT_PHASE))
 					{
 						psContext->indent--;
 						AddIndentation(psContext);
@@ -607,30 +679,62 @@ void TranslateToGLSL(HLSLCrossCompilerContext* psContext, GLLang* planguage,cons
             AddIndentation(psContext);
             bcatcstr(glsl, "//--- End Early Main ---\n");
 #endif
-
-			ui32PhaseFuncCallOrder[0] = HS_CTRL_POINT_PHASE;
-			ui32PhaseFuncCallOrder[1] = HS_FORK_PHASE;
-			ui32PhaseFuncCallOrder[2] = HS_JOIN_PHASE;
-
-			for(ui32PhaseCallIndex=0; ui32PhaseCallIndex<3; ui32PhaseCallIndex++)
+			if (psShader->asPhase[HS_CTRL_POINT_PHASE].ui32InstanceCount == 0)
+			{   //copying control points data for empty control point phase
+				bcatcstr(glsl, "  gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;\n");
+				bcatcstr(glsl, "  gl_out[gl_InvocationID].gl_PointSize = gl_in[gl_InvocationID].gl_PointSize;\n");
+				//bcatcstr(glsl, "  gl_out[gl_InvocationID].gl_ClipDistance[] = gl_in[gl_InvocationID].gl_ClipDistance[];\n"); todoooo copy all gl_ClipDistance
+				for (uint32_t outI = 0; outI < psShader->sInfo.ui32NumOutputSignatures; outI++)
+				{
+					InOutSignature outSeg = psShader->sInfo.psOutputSignatures[outI];
+					if (outSeg.eSystemValueType != NAME_UNDEFINED) continue;
+					InOutSignature inSeg;
+					int inIndex = -1;
+					for (uint32_t inI = 0; inI < psShader->sInfo.ui32NumInputSignatures; inI++)
+					{
+						inSeg = psShader->sInfo.psInputSignatures[inI];
+						if (inSeg.eSystemValueType != NAME_UNDEFINED) continue;
+						if (inSeg.ui32Register == outSeg.ui32Register)
+						{
+							inIndex = inI;
+							break;
+						}
+					}
+					if (inIndex < 0) continue;
+					bformata(glsl, "  %s%d[gl_InvocationID] = %s%d[gl_InvocationID];\n", outSeg.SemanticName, outSeg.ui32SemanticIndex, inSeg.SemanticName, inSeg.ui32SemanticIndex);
+				}
+			}
+			else
 			{
-				ui32Phase = ui32PhaseFuncCallOrder[ui32PhaseCallIndex];
-				for(ui32Instance = 0; ui32Instance < psShader->asPhase[ui32Phase].ui32InstanceCount; ++ui32Instance)
+				for (ui32Instance = 0; ui32Instance < psShader->asPhase[HS_CTRL_POINT_PHASE].ui32InstanceCount; ++ui32Instance)
 				{
 					AddIndentation(psContext);
-					bformata(glsl, "%s%d();\n", asPhaseFuncNames[ui32Phase], ui32Instance);
+					bformata(glsl, "  %s%d();\n", asPhaseFuncNames[HS_CTRL_POINT_PHASE], ui32Instance);
+				}
+			}
+			bcatcstr(glsl, "  barrier();\n");
+			bformata(glsl, "  if (gl_InvocationID == %d) {\n", ControlPointCountValue-1); //all other phases should be called once
+			ui32PhaseFuncCallOrder[0] = HS_FORK_PHASE;
+			ui32PhaseFuncCallOrder[1] = HS_JOIN_PHASE;
+			for (ui32PhaseCallIndex = 0; ui32PhaseCallIndex < 2; ui32PhaseCallIndex++)
+			{
+				ui32Phase = ui32PhaseFuncCallOrder[ui32PhaseCallIndex];
+				for (ui32Instance = 0; ui32Instance < psShader->asPhase[ui32Phase].ui32InstanceCount; ++ui32Instance)
+				{
+					AddIndentation(psContext);
+					bformata(glsl, "    %s%d();\n", asPhaseFuncNames[ui32Phase], ui32Instance);
 
-					if(ui32Phase == HS_FORK_PHASE)
+					if (ui32Phase == HS_FORK_PHASE)
 					{
-						if(psShader->asPhase[HS_JOIN_PHASE].ui32InstanceCount ||
-							(ui32Instance+1 < psShader->asPhase[HS_FORK_PHASE].ui32InstanceCount))
+						if (psShader->asPhase[HS_JOIN_PHASE].ui32InstanceCount ||
+							(ui32Instance + 1 < psShader->asPhase[HS_FORK_PHASE].ui32InstanceCount))
 						{
 							AddIndentation(psContext);
-							bcatcstr(glsl, "barrier();\n");
 						}
 					}
 				}
 			}
+			if (ui32Phase>HS_CTRL_POINT_PHASE) bcatcstr(glsl, "  }\n");
 
             psContext->indent--;
 
@@ -757,6 +861,8 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
     GLLang language,
 	const GlExtensions *extensions,
     GLSLCrossDependencyData* dependencies,
+    EvaluateBindingFn evaluateBindingFn,
+    void* evaluateBindingData,
     GLSLShader* result)
 {
     uint32_t* tokens;
@@ -782,6 +888,8 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromMem(const char* shader,
         sContext.psShader = psShader;
         sContext.flags = flags;
         sContext.psDependencies = dependencies;
+        sContext.pEvaluateBindingFn = evaluateBindingFn;
+        sContext.pEvaluateBindingData = evaluateBindingData;
 
         for(i=0; i<NUM_PHASES;++i)
         {
@@ -883,6 +991,8 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
     GLLang language,
 	const GlExtensions *extensions,
     GLSLCrossDependencyData* dependencies,
+    EvaluateBindingFn evaluateBindingFn,
+    void* evaluateBindingData,
     GLSLShader* result)
 {
     FILE* shaderFile;
@@ -911,7 +1021,10 @@ HLSLCC_API int HLSLCC_APIENTRY TranslateHLSLFromFile(const char* filename,
 
     shader[readLength] = '\0';
 
-    success = TranslateHLSLFromMem(shader, flags, language, extensions, dependencies, result);
+    success = TranslateHLSLFromMem(
+        shader, flags, language, extensions, dependencies, 
+        evaluateBindingFn, evaluateBindingData,
+        result);
 
     hlslcc_free(shader);
 

@@ -35,9 +35,13 @@ void TranslateOperandIndexMAD(HLSLCrossCompilerContext* psContext, const Operand
 void TranslateOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
 void TranslateOperandSwizzleWithMask(HLSLCrossCompilerContext* psContext, const Operand* psOperand, uint32_t ui32ComponentMask);
 
+uint32_t GetNumberBitsSet(uint32_t a);
 uint32_t GetNumSwizzleElements(const Operand* psOperand);
 uint32_t GetNumSwizzleElementsWithMask(const Operand *psOperand, uint32_t ui32CompMask);
+uint32_t GetOrderedSwizzleElements(const Operand *psOperand, uint32_t ui32CompMask, uint32_t result[4]);
 void AddSwizzleUsingElementCount(HLSLCrossCompilerContext* psContext, uint32_t count);
+void AddSwizzleUsingOrderedElements(HLSLCrossCompilerContext* psContext, const Operand *psOperand, uint32_t ui32CompMask);
+void AddSwizzleUsingOrderedElementsDstMask(HLSLCrossCompilerContext* psContext, const Operand *psSrcOperand, const Operand *psMaskingOperand);
 int GetFirstOperandSwizzle(HLSLCrossCompilerContext* psContext, const Operand* psOperand);
 uint32_t IsSwizzleReplicated(const Operand* psOperand);
 

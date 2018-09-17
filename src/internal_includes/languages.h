@@ -86,6 +86,25 @@ static int HaveUniformBindingsAndLocations(const GLLang eLang,const struct GlExt
     return 0;
 }
 
+static int HaveBindingQualifier(const GLLang eLang, const struct GlExtensions *extensions, unsigned int flags)
+{
+	return 
+		(eLang >= LANG_420)
+		|| (extensions && ((GlExtensions*)extensions)->ARB_shading_language_420pack);
+}
+
+static int HaveSeparateTexturesAndSamplers(const GLLang eLang, const struct GlExtensions *extensions)
+{
+    return extensions &&  ((GlExtensions*)extensions)->GL_KHR_vulkan_glsl;
+}
+
+static int HaveScalarSwizzle(const GLLang eLang, const struct GlExtensions *extensions)
+{
+    return 
+		(eLang >= LANG_420)
+		|| (extensions && ((GlExtensions*)extensions)->ARB_shading_language_420pack);
+}
+
 static int DualSourceBlendSupported(const GLLang eLang)
 {
     if(eLang >= LANG_330)
@@ -98,6 +117,35 @@ static int DualSourceBlendSupported(const GLLang eLang)
 static int SubroutinesSupported(const GLLang eLang)
 {
     if(eLang >= LANG_400)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+static int HasImageSizeFunction(const GLLang eLang)
+{
+    if(eLang >= LANG_430)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+static int HasInterfaceComponentQualifier(const GLLang eLang)
+{
+    // Allows for the use of "component" layout qualifier attached
+    // to interface components.
+    if (eLang >= LANG_440)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+static int UseSPIRVNames(const GLLang eLang,const struct GlExtensions *extensions)
+{
+	if(extensions && ((GlExtensions*)extensions)->GL_KHR_vulkan_glsl)
     {
         return 1;
     }

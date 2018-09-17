@@ -10,18 +10,18 @@
 #include "internal_includes/toGLSLOperand.h"
 
 #define FOURCC(a, b, c, d) ((uint32_t)(uint8_t)(a) | ((uint32_t)(uint8_t)(b) << 8) | ((uint32_t)(uint8_t)(c) << 16) | ((uint32_t)(uint8_t)(d) << 24 ))
-static enum {FOURCC_DXBC = FOURCC('D', 'X', 'B', 'C')}; //DirectX byte code
-static enum {FOURCC_SHDR = FOURCC('S', 'H', 'D', 'R')}; //Shader model 4 code
-static enum {FOURCC_SHEX = FOURCC('S', 'H', 'E', 'X')}; //Shader model 5 code
-static enum {FOURCC_RDEF = FOURCC('R', 'D', 'E', 'F')}; //Resource definition (e.g. constant buffers)
-static enum {FOURCC_ISGN = FOURCC('I', 'S', 'G', 'N')}; //Input signature
-static enum {FOURCC_IFCE = FOURCC('I', 'F', 'C', 'E')}; //Interface (for dynamic linking)
-static enum {FOURCC_OSGN = FOURCC('O', 'S', 'G', 'N')}; //Output signature
-static enum {FOURCC_PSGN = FOURCC('P', 'C', 'S', 'G')}; //Patch-constant signature
+enum {FOURCC_DXBC = FOURCC('D', 'X', 'B', 'C')}; //DirectX byte code
+enum {FOURCC_SHDR = FOURCC('S', 'H', 'D', 'R')}; //Shader model 4 code
+enum {FOURCC_SHEX = FOURCC('S', 'H', 'E', 'X')}; //Shader model 5 code
+enum {FOURCC_RDEF = FOURCC('R', 'D', 'E', 'F')}; //Resource definition (e.g. constant buffers)
+enum {FOURCC_ISGN = FOURCC('I', 'S', 'G', 'N')}; //Input signature
+enum {FOURCC_IFCE = FOURCC('I', 'F', 'C', 'E')}; //Interface (for dynamic linking)
+enum {FOURCC_OSGN = FOURCC('O', 'S', 'G', 'N')}; //Output signature
+enum {FOURCC_PSGN = FOURCC('P', 'C', 'S', 'G')}; //Patch-constant signature
 
-static enum {FOURCC_ISG1 = FOURCC('I', 'S', 'G', '1')}; //Input signature with Stream and MinPrecision
-static enum {FOURCC_OSG1 = FOURCC('O', 'S', 'G', '1')}; //Output signature with Stream and MinPrecision
-static enum {FOURCC_OSG5 = FOURCC('O', 'S', 'G', '5')}; //Output signature with Stream
+enum {FOURCC_ISG1 = FOURCC('I', 'S', 'G', '1')}; //Input signature with Stream and MinPrecision
+enum {FOURCC_OSG1 = FOURCC('O', 'S', 'G', '1')}; //Output signature with Stream and MinPrecision
+enum {FOURCC_OSG5 = FOURCC('O', 'S', 'G', '5')}; //Output signature with Stream
 
 typedef struct DXBCContainerHeaderTAG
 {
@@ -269,6 +269,12 @@ uint32_t DecodeOperand (const uint32_t *pui32Tokens, Operand* psOperand)
 		psOperand->aeDataType[0] = SVT_UINT;
 	}
 
+	if (psOperand->eType == OPERAND_TYPE_INPUT_FORK_INSTANCE_ID)
+	{
+		eNumComponents = OPERAND_1_COMPONENT;
+		psOperand->aeDataType[0] = SVT_INT;
+	}
+
     switch(eNumComponents)
     {
         case OPERAND_1_COMPONENT:
@@ -444,6 +450,8 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
         }
         case OPCODE_DCL_SAMPLER:
         {
+            psDecl->ui32NumOperands = 1;
+            DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
             break;
         }
         case OPCODE_DCL_INDEX_RANGE:
@@ -1023,8 +1031,10 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 				//Intentional fall-through
 			}
         case OPCODE_IMIN:
+		case OPCODE_UMIN:
 		case OPCODE_MIN:
 		case OPCODE_IMAX:
+		case OPCODE_UMAX:
 		case OPCODE_MAX:
 		case OPCODE_MUL:
 		case OPCODE_DIV:
@@ -1078,6 +1088,7 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
 		case OPCODE_MAD:
         case OPCODE_MOVC:
 		case OPCODE_IMAD:
+		case OPCODE_UMAD:
 		case OPCODE_UDIV:
         case OPCODE_LOD:
         case OPCODE_SAMPLE:
@@ -1098,10 +1109,11 @@ const uint32_t* DeocdeInstruction(const uint32_t* pui32Token, Instruction* psIns
         case OPCODE_DMOVC:
         case OPCODE_DFMA:
 		case OPCODE_IMUL:
+		case OPCODE_UMUL:
 		{
             psInst->ui32NumOperands = 4;
 
-			if(eOpcode == OPCODE_IMUL)
+			if(eOpcode == OPCODE_IMUL || eOpcode == OPCODE_UMUL)
 			{
 				psInst->ui32FirstSrc = 2;
 			}
