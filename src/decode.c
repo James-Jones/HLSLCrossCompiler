@@ -745,20 +745,21 @@ const uint32_t* DecodeDeclaration(Shader* psShader, const uint32_t* pui32Token, 
 			psDecl->sUAV.ui32BufferSize = 0;
             DecodeOperand(pui32Token+ui32OperandOffset, &psDecl->asOperands[0]);
 			
-            GetResourceFromBindingPoint(RGROUP_UAV, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding);
-
-            GetConstantBufferFromBindingPoint(RGROUP_UAV, psBinding->ui32BindPoint, &psShader->sInfo, &psBuffer);
-            psDecl->sUAV.ui32BufferSize = psBuffer->ui32TotalSizeInBytes;
-			switch(psBinding->eType)
-			{
-			case RTYPE_UAV_RWSTRUCTURED_WITH_COUNTER:
-			case RTYPE_UAV_APPEND_STRUCTURED:
-			case RTYPE_UAV_CONSUME_STRUCTURED:
-				psDecl->sUAV.bCounter = 1;
-				break;
-			default:
-				break;
-			}
+            if (GetResourceFromBindingPoint(RGROUP_UAV, psDecl->asOperands[0].ui32RegisterNumber, &psShader->sInfo, &psBinding))
+            {
+                    GetConstantBufferFromBindingPoint(RGROUP_UAV, psBinding->ui32BindPoint, &psShader->sInfo, &psBuffer);
+                    psDecl->sUAV.ui32BufferSize = psBuffer->ui32TotalSizeInBytes;
+                    switch(psBinding->eType)
+                    {
+                    case RTYPE_UAV_RWSTRUCTURED_WITH_COUNTER:
+                    case RTYPE_UAV_APPEND_STRUCTURED:
+                    case RTYPE_UAV_CONSUME_STRUCTURED:
+                        psDecl->sUAV.bCounter = 1;
+                        break;
+                    default:
+                        break;
+                    }
+            }
             break;
         }
         case OPCODE_DCL_RESOURCE_STRUCTURED:
